@@ -12,15 +12,15 @@
 
     - Added new field options:
 
-    - `filetext:` Text string matching.
+    - filetext: Text string matching.
 
-    - `recheck:` to recheck repaired files.
+    - recheck: to recheck repaired files.
 
-    - `repair:` for clang & sh file types.
+    - repair: for clang & sh file types.
 
-    - `report:` to send report to repo releases.
+    - report: to send report to repo releases.
 
-    - `update:` upload repaired files remotely.
+    - update: upload repaired files remotely.
 
 
 ## Version 1.0.0 - 2025-10-15
