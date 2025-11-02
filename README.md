@@ -231,9 +231,9 @@ https://github.com/sharkdp/bat
 
 `filetext:` Text string matching.
 
-`filefix:` for clang & sh file types.
-
 `recheck:` to recheck repaired files.
+
+`repair:` for clang & sh file types.
 
 `report:` to send report to repo releases.
 
