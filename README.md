@@ -1,53 +1,58 @@
 
 # Check-File-Action v1.1.0
 
-## _Helpful_
+
 Use to check **workspace build files** for errors and try auto fixing them or display suggestions to fix found errors. ***Can locate file(s) an display it's content or search for a text (string) match within all __local__ files.***
 
 ![Check File Action](/assets/images/check_file_action.png)
+
+## _Helpful_
 
 >[!IMPORTANT]
 Search starts from github workspace or root directory on all files.
 
 
-## Parameters:
+### Parameters:
 
 - `filename:`  File name to search for in workspace directories.
-  - string required eg: < `init.c` >
+  - string required: ` init.c `
+ 
+__Or__
 
 - `filetext:`  Text to search files for matches in workspace directories.
-  - string required eg: < `OF_CONFIG` >
+  - string required: ` OF_CONFIG `
 
-## Optional:
+### Optional:
 
 - `filetype:`  Check only these file types when searching for text word match use when needed. Defaults search all files.
-  - string required: < `.c .h .cpp` >
+  - string: ` .c .h .cpp `
  
 - `filefix:`  Fix files with errors if able in workspace directories.
-  - boolean required eg: < `true` >
+  - boolean: ` true `
 
 - `dirname:`  Your workspace directory name use when needed.
-  - string required: < `workspace` >
+  - string: ` workspace `
 
 - `rootdir:`  Search from root directory use when needed.
-  - boolean required: < `true` >
+  - boolean: ` true `
 
 - `content:`  Display file & directory contents for filename found.
-  - boolean required: < `true` >
+  - boolean: ` true `
 
 - `include:`  Check all #include <name> for errors in C/C++ file if found.
-  - boolean required: < `true` >
+  - boolean: ` true `
 
 - `recheck:`  Recheck file(s) for errors if repaired by filefix.
-  - boolean required: < `true` >
+  - boolean: ` true `
 
 - `report:`  Create logs for files with errors in user repo releases section.
-  - boolean required eg: < `true` >
+  - boolean: ` true `
 
 - `update:`  Update remote repo with locally fixed files when using filefix.
-  - boolean required eg: < `true` >
+  - boolean: ` true `
 
-### Wildcard Support :
+
+#### Wildcard Support :
 
 - Supports `*` all files. If a given filename is found multiple times in different directories all will be checked for errors if of extension types listed.
 
@@ -57,7 +62,7 @@ Use `dirname:` to add directory name that contains file to check errors if multi
   - ( `*.extension` ) searches allowed.
  
 
-### Defaults :
+#### Defaults :
 
 **TEXT STRING MATCHES** of the provided information.
 
@@ -94,7 +99,7 @@ File types not listed for error checking if found will still display file locati
  Makefile Files are not auto-fix with ` filefix: true `
 
 
-### Check File Report :
+#### Check File Report :
 
 - Found in github action runner workflow logs.
 
@@ -103,7 +108,8 @@ File types not listed for error checking if found will still display file locati
 
   - check file action `error.log` report file can be found in repo releases under the `filename:` that you set.
 
-### Workflow Actions :
+
+#### Workflow Actions :
 
  Action step example:
 
@@ -128,7 +134,7 @@ File types not listed for error checking if found will still display file locati
 
 
 
-- Action runs using
+**Action runs using**
 
 [cppcheck](https://github.com/danmar/cppcheck)
 
