@@ -1,5 +1,5 @@
 # Check-File-Action 
-v2.0.0
+v1.1.0
 
 Use to check **workspace build files** for errors and try auto fixing them or display suggestions to fix found errors. also locate file(s) an display its location, content or search for any text (string) match located within all files.
 
