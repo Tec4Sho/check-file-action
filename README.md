@@ -1,8 +1,10 @@
 # Check-File-Action 
 v1.1.0
 
+## _Helpful_
 Use to check **workspace build files** for errors and try auto fixing them or display suggestions to fix found errors. also locate file(s) an display its location, content or search for any text (string) match located within all files.
 
+![Screenshot of a comment on a GitHub issue showing an image, added in the Markdown, of an Octocat smiling and raising a tentacle.](https://myoctocat.com/assets/images/base-octocat.svg)
 
 >[!NOTE]
 Search starts from github workspace or root directory on all files.
@@ -206,3 +208,5 @@ https://github.com/sharkdp/bat
 `report:` to send report to repo releases.
 
 `update:` to upload locally repaired files remotely to repo.
+
+- Link to the helpful section: [Link Text](#thisll-be-a-helpful-section-about-the-greek-letter-Θ).
