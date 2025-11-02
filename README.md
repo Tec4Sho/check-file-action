@@ -118,7 +118,7 @@ File types not listed for error checking if found will still display file locati
 
     - name: Check File
       if: inputs.check-file != ''
-      uses: Tec4Sho/check-file-action@v1.0.0
+      uses: Tec4Sho/check-file-action@v2
       with:
         filename: ${{ inputs.check-file }}
         filetext: ${{ inputs.check-text }}
