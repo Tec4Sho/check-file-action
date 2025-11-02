@@ -17,9 +17,9 @@ Search starts from github workspace or root directory on all files.
 - `filename:`  File name to search for in workspace directories.
   - string required: ` init.c `
  
-__Or__
+__OR__
 
-- `filetext:`  Text to search files for matches in workspace directories.
+- `filetext:`  Text pattern to search for in workspace directory files.
   - string required: ` OF_CONFIG `
 
 ### Optional:
