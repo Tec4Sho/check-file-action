@@ -26,9 +26,6 @@ __OR__
 
 - `filetype:`  Check only these file types when searching for text word match use when needed. Defaults search all files.
   - string: ` .c .h .cpp `
- 
-- `filefix:`  Fix files with errors if able in workspace directories.
-  - boolean: ` true `
 
 - `dirname:`  Your workspace directory name use when needed.
   - string: ` workspace `
@@ -39,10 +36,12 @@ __OR__
 - `content:`  Display file & directory contents for filename found.
   - boolean: ` true `
 
-- `include:`  Check all #include <name> for errors in C/C++ file if found.
-  - boolean: ` true `
+- `include:`  Check all #include <name> for errors in C/C++ file if found.  - boolean: ` true `
 
 - `recheck:`  Recheck file(s) for errors if repaired by filefix.
+  - boolean: ` true `
+
+- `repair:`  Fix files with errors if able in workspace directories.
   - boolean: ` true `
 
 - `report:`  Create logs for files with errors in user repo releases section.
@@ -98,7 +97,7 @@ File types not listed for error checking if found will still display file locati
   - `GNUmakefile`
 
 >[!NOTE]
- Makefile Files are not auto-fix with ` filefix: true `
+ Makefile Files are not auto-fix with ` repair: true `
 
 
 #### Check File Report :
@@ -123,13 +122,13 @@ File types not listed for error checking if found will still display file locati
       with:
         filename: ${{ inputs.check-file }}
         filetext: ${{ inputs.check-text }}
-        filetype: .c .h .cpp .c++ .txx
-        filefix: false
+        filetype: .c .h .cpp .cxx .txx
         dirname: workspace
         rootdir: false
         content: true
         include: true
         recheck: false
+        repair: false
         report: true
         update: false
       continue-on-error: true
@@ -181,7 +180,7 @@ https://github.com/danmar/cppcheck
 
 #### Clang-tidy Info :
 
-- When checking `c, h` family types listed above if error is found. clang-tidy will try to fix them if `filefix: true`. Afterwards cppcheck will check again for errors if `recheck: true`. ***If `errors` are repaired locally, setting `update: true` will update your remote repo files also***.
+- When checking `c, h` family types listed above if error is found. clang-tidy will try to fix them if `repair: true`. Afterwards cppcheck will check again for errors if `recheck: true`. **If errors are repaired locally, setting `update: true` will also update your remote repo files**.
 
   - clang-tidy link:
 https://clang.llvm.org/extra/clang-tidy/
@@ -189,7 +188,7 @@ https://clang.llvm.org/extra/clang-tidy/
 
 #### Shellharden Info :
 
-- Make sure any sh files you want fixed has a shebang eg: ( `#!/bin/sh` ) at the vary top of the file before scanning for repairing any error.
+- Make sure any sh files you want fixed has a shebang eg: ( `#!/bin/ksh` ) at the vary top of the file before scanning for repairing any error.
 
   - shellharden link:
 https://github.com/anordal/shellharden
@@ -205,7 +204,7 @@ https://github.com/koalaman/shellcheck
 
 #### Batcat Info :
 
-- Batcat is using custom settings for its style and display for a elegant yet informative UI display. Do to the display output during `content: true` usage runtime may increase.
+- Batcat is using custom settings for its style and display for a elegant yet informative UI display. **Do to the display output during `content: true` usage runtime may slightly increase**.
 
   - uses: ` --theme=ansi ` to support light and dark mode in terminal logs for compatibility purposes.
 
