@@ -2,11 +2,11 @@
 # Check-File-Action v1.1.0
 
 
-Use to check **workspace build files** for errors and try auto fixing them or display suggestions to fix found errors. ***Can locate file(s) an display it's content or search for a text (string) match within all __local__ files.***
+Use to check **workspace build files** for errors and try auto fixing them or display suggestions to fix found errors. **Can locate file(s) an display it's content or search for a text (string) match within all __local__ files.**
 
 ![Check File Action](/assets/images/check_file_action.png)
 
-## _Helpful_
+## **Helpful**
 
 >[!IMPORTANT]
 Search starts from github workspace or root directory on all files.
