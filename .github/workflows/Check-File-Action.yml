@@ -3,7 +3,12 @@ on:
   workflow_dispatch: # Allows manual triggering from the Actions tab
     inputs:
       check-file:
-        description: 'CHECK FILE NAME'
+        description: 'CHECK FILENAME'
+        type: string
+        required: true
+        default: ''
+      check-text:
+        description: 'CHECK PATTERN'
         type: string
         required: true
         default: ''
@@ -13,10 +18,10 @@ on:
         required: false
         default: ''
       dir-name:
-        description: 'WORKSPACE DIR IF CREATED'
+        description: 'WORKSPACE DIRECTORY'
         type: string
         required: false
-        default: ''
+        default: 'workspace'
       DEVICE_TREE_A:
         description: 'DEVICE TREE A'
         required: true
@@ -52,21 +57,21 @@ jobs:
           set -o allexport
           export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
           if [[ `which git` ]]; then
-          echo -e "\n`git --version`\n";
-          git config --global core.longpaths true
-          git config --global core.protectNTFS false
-          git config --global http.postBuffer 524288000 # Increase post buffer size (example value in bytes)
-          git config --global http.lowSpeedLimit 0      # Disable low speed limit
-          git config --global http.lowSpeedTime 999999  # Increase low speed time threshold
+            echo -e "\n`git --version`\n";
+            git config --global core.longpaths true
+            git config --global core.protectNTFS false
+            git config --global http.postBuffer 524288000 # Increase post buffer size (example value in bytes)
+            git config --global http.lowSpeedLimit 0      # Disable low speed limit
+            git config --global http.lowSpeedTime 999999  # Increase low speed time threshold
           else
-          echo -e "\nGit needed installing now....\n";
-          sudo DEBIAN_FRONTEND=noninteractive sudo apt-get install -yq git >/dev/null;
-          git config --global core.longpaths true
-          git config --global core.protectNTFS false
-          git config --global http.postBuffer 524288000 # Increase post buffer size (example value in bytes)
-          git config --global http.lowSpeedLimit 0      # Disable low speed limit
-          git config --global http.lowSpeedTime 999999  # Increase low speed time threshold
-          fi
+            echo -e "\nGit needed installing now....\n";
+            sudo DEBIAN_FRONTEND=noninteractive sudo apt-get install -yq git >/dev/null;
+            git config --global core.longpaths true
+            git config --global core.protectNTFS false
+            git config --global http.postBuffer 524288000 # Increase post buffer size (example value in bytes)
+            git config --global http.lowSpeedLimit 0      # Disable low speed limit
+            git config --global http.lowSpeedTime 999999  # Increase low speed time threshold
+          fi;
           set +e
         continue-on-error: true
 
@@ -96,9 +101,14 @@ jobs:
         uses: Tec4Sho/check-file-action@master
         with:
           filename: ${{ inputs.check-file }}
+          filetext: ${{ inputs.check-text }}
           filetype: ${{ inputs.file-type }}
           dirname: ${{ inputs.dir-name }}
-          rootdir: false
           content: true
           include: true
+          rootdir: false
+          recheck: false
+          repair: false
+          report: false
+          update: false
         continue-on-error: true
