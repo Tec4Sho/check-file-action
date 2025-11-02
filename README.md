@@ -132,11 +132,13 @@ File types not listed for error checking if found will still display file locati
 
 [cppcheck](https://github.com/danmar/cppcheck)
 
-[shellcheck](https://github.com/koalaman/shellcheck)
-
 [checkmake](https://github.com/checkmake/checkmake)
 
 [clang-tidy](https://clang.llvm.org/extra/clang-tidy/)
+
+[shellharden](https://github.com/anordal/shellharden)
+
+[shellcheck](https://github.com/koalaman/shellcheck)
 
 [batcat](https://github.com/sharkdp/bat)
 
@@ -159,14 +161,6 @@ Fork this repo to run error checking of your cloned repository files locally usi
 https://github.com/checkmake/checkmake
 
 
-#### Shellcheck Info :
-
-- You should make sure any sh files you want checked has a shebang eg: ( #!/bin/bash ) at the vary top of the file before scanning for errors.
-
-  - shellchell link:
-https://github.com/koalaman/shellcheck
-
-
 #### Cppcheck Info :
 
 - When checking c, h family types listed above if no error is found. Rarely cppcheck may still ask about header file or to suppress a warning, below is totally fine to ignore.
@@ -184,6 +178,21 @@ https://github.com/danmar/cppcheck
   - clang-tidy link:
 https://clang.llvm.org/extra/clang-tidy/
 
+
+#### Shellharden Info :
+
+- Make sure any sh files you want fixed has a shebang eg: ( `#!/bin/sh` ) at the vary top of the file before scanning for repairing any error.
+
+  - shellharden link:
+https://github.com/anordal/shellharden
+
+
+#### Shellcheck Info :
+
+- Please make sure any sh files you want checked has a shebang eg: ( `#!/bin/bash` ) at the vary top of the file before scanning for errors.
+
+  - shellcheck link:
+https://github.com/koalaman/shellcheck
 
 
 #### Batcat Info :
