@@ -147,7 +147,7 @@ File types not listed for error checking if found will still display file locati
 
 [.github/workflows/Check-File-Action.yml](.github/workflows/Check-File-Action.yml)
 
-  - Workflow template to run checks locally on your repository files located in the required path for running github workflow actions.
+  - Workflow template to run checks locally on your repository files. ***It's location is in the required path needed for running a github workflow action***.
 
 >[!TIP]
 Fork this repo to run error checking of your cloned repository files locally using our custom workflow template. Add one or two repositories for file searches and checking.
