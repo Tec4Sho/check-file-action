@@ -64,11 +64,13 @@ Use `dirname:` to add directory name that contains file to check errors if multi
 
 #### Defaults :
 
-**TEXT STRING MATCHES** of the provided information.
+When considering using wildcards, check your (**LOCAL REPO**) overall file count to determine possible runtime length. 
+
+- Displays repo file count if ` content: true `
 
 Names allowed for text matches
 
-- All text strings ( `musbfsh_base musbfsh base` ) an so on. Experiment with it.
+- All text string patterns ( `musbfsh_base MUSBFSH base` ) an so on. Experiment with it.
 
 File types not listed for error checking if found will still display file location and file text data if `content: true`.
 
