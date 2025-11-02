@@ -36,6 +36,9 @@ Search starts from github workspace or root directory on all files.
 - `include:`  Check all #include <name> for errors in C/C++ file if found.
   - boolean required: < `true` >
 
+- `recheck:`  Recheck file(s) for errors if repaired by filefix.
+  - boolean required: < `true` >
+
 - `report:`  Create logs for files with errors in user repo releases section.
   - boolean required eg: < `true` >
 
