@@ -181,7 +181,7 @@ https://github.com/danmar/cppcheck
 
 #### Clang-tidy Info :
 
-- When checking `c, h` family types listed above if error is found. clang-tidy will try to fix them if `filefix: true`. Afterwards cppcheck will check again for errors if `recheck: true`. If errors are repaired locally. Setting `update: true` will update your remote repo files after repairing any files locally.
+- When checking `c, h` family types listed above if error is found. clang-tidy will try to fix them if `filefix: true`. Afterwards cppcheck will check again for errors if `recheck: true`. ***If `errors` are repaired locally, setting `update: true` will update your remote repo files also***.
 
   - clang-tidy link:
 https://clang.llvm.org/extra/clang-tidy/
