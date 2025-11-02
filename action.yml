@@ -41,6 +41,11 @@ inputs:
     type: boolean
     required: false
     default: 'false'
+  recheck:
+    description: 'Recheck files repaired by filefix if true'
+    type: boolean
+    required: false
+    default: 'false'
   report:
     description: 'Errors found will be logged and sent to repo releases if true'
     type: boolean
@@ -79,7 +84,10 @@ runs:
         sudo apt-get upgrade -yq >/dev/null 2>&1;
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
-        sudo apt-get install -yq git >/dev/null;
+
+        if [[ ! $(which git) ]]; then
+          sudo apt-get -yq install git >/dev/null && echo -e "\n####################\n\t.Git dependencies Installed\n####################\n";
+        fi;
 
         if [[ ! $(which ansi2txt) ]]; then
           sudo apt-get -yq install ansi2txt >/dev/null && echo -e "\n####################\n\tAnsi2txt dependencies Installed\n####################\n";
@@ -209,10 +217,10 @@ runs:
               separator=' -I';
               for i in ${includes[@]}; do
                 count2=$((include_count++));
-                header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit);
-                for h in ${header[@]}; do
+                header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit) 2>/dev/null;
+                for h in "${header[@]}"; do
                   echo "$(dirname ${h})" >> "$(dirname ${f})/${included1}";
-                  include_paths+=${separator}${h}
+                  include_paths+=${separator}$(dirname ${h});
                 done;
               done;
               include_paths="${include_paths/\\n /}"
@@ -239,11 +247,12 @@ runs:
             else
               echo -e "\n####################\nCLANG-TIDY FOUND ERROR(S) TO FIX\n####################\n";
             fi;
+            if [[ -f "$(dirname ${f})/${included2}" ]]; then
+              echo -e "# Included Path(s): ${include_paths}";
+              echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
+              echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
+            fi;
           done;
-          if [[ -f "$(dirname ${f})/${included2}" ]]; then
-            echo -e "# Included Path(s): ${include_paths}";
-            rm -vf "$(dirname ${f})/${included1}" "$(dirname ${f})/${included2}" 2>/dev/null;
-          fi;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           echo -e "Total number of included file(s) checked is: ${count2}\n";
           echo -e "Scanning Completed!\nClang-tidy Exiting!\n .....\n";
@@ -255,7 +264,7 @@ runs:
 
    
     - name: Check C/C++ (Cppcheck)
-      if: inputs.filename != ''
+      if: inputs.filename != '' || inputs.recheck != 'false' && inputs.filename != ''
       run: |
         echo ''
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
@@ -270,7 +279,7 @@ runs:
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname $(sudo find $(dirname ${f}) -type f -name $(basename ${f}) -print))";
-            if ${{ inputs.content }}; then
+            if ${{ inputs.content }} && ! ${{ inputs.filefix }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
               sudo find $(dirname ${f}) -type f -name $(basename ${f}) -exec batcat --theme=ansi --paging=never --show-all --color=always --style=full "{}" \;
             fi;
@@ -288,7 +297,7 @@ runs:
                 echo -e "\nFound Include Path(s):\n${includes}\n";
                 for i in ${includes[@]}; do
                   count2=$((include_count++));
-                  header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit);
+                  header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit) 2>/dev/null;
                   for h in "${header[@]}"; do
                     echo "$(dirname ${h})" >> "$(dirname ${f})/${included1}";
                   done;
@@ -298,7 +307,7 @@ runs:
                 fi;
                 if [[ -n ${header} ]] && [[ -f "$(dirname ${f})/${included2}" ]]; then
                   included3=$(dirname ${f})/${included2}
-                  if ${{ inputs.content }}; then
+                  if ${{ inputs.content }} && ! ${{ inputs.filefix }}; then
                     echo -e "\n####################\n\tFILE PATH(S) (${count2})\n####################\n";
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
@@ -314,11 +323,11 @@ runs:
             else
               echo -e "\n####################\nCPPCHECK FOUND ERROR(S)\n####################\n";
             fi;
+            if [[ -f "$(dirname ${f})/${included2}" ]]; then
+              echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
+              echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
+            fi;
           done;
-          if [[ -f "$(dirname ${f})/${included2}" ]]; then
-            echo ''
-            rm -vf "$(dirname ${f})/${included1}" "$(dirname ${f})/${included2}" 2>/dev/null;
-          fi;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           echo -e "Total number of included file(s) checked is: ${count2}\n";
           echo -e "Scanning Completed!\nCppcheck Exiting!\n .....\n";
@@ -359,14 +368,26 @@ runs:
                 echo -e "\n####################\n${SHELL} FOUND ERROR(S) TO FIX\n####################\n";
               fi;
             fi;
-            file_error=0
-            SHELL=SHELLCHECK
-            echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-            shellcheck --norc --severity=warning --color=always "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
-            if [[ ${file_error} == 0 ]]; then
-              echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
-            else
-              echo -e "\n####################\n${SHELL} FOUND ERROR(S)\n####################\n";
+            if ${{ inputs.recheck }}; then
+              file_error=0
+              SHELL=SHELLCHECK
+              echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
+              shellcheck --norc --severity=warning --color=always "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
+              if [[ ${file_error} == 0 ]]; then
+                echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
+              else
+                echo -e "\n####################\n${SHELL} FOUND ERROR(S)\n####################\n";
+              fi;
+            elif ! ${{ inputs.filefix }}; then
+              file_error=0
+              SHELL=SHELLCHECK
+              echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
+              shellcheck --norc --severity=warning --color=always "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
+              if [[ ${file_error} == 0 ]]; then
+                echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
+              else
+                echo -e "\n####################\n${SHELL} FOUND ERROR(S)\n####################\n";
+              fi;
             fi;
           done;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
