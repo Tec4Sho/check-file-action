@@ -181,8 +181,8 @@ runs:
       continue-on-error: false
 
 
-    - name: Check & Fix C/C++ (Clang-tidy)
-      if: inputs.filename != '' && inputs.filefix != 'false'
+    - name: Check & Fix (Clang-tools)
+      if: inputs.filename != ''
       run: |
         echo ''
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
@@ -204,138 +204,77 @@ runs:
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname $(sudo find $(dirname ${f}) -type f -name $(basename ${f}) -print))";
-            if ${{ inputs.content }}; then
-              echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
-              sudo find $(dirname ${f}) -type f -name $(basename ${f}) -exec batcat --theme=ansi --paging=never --show-all --color=always --style=full "{}" \;
-            fi;  
-            includes=$(sudo find $(dirname ${f}) -name $(basename ${f}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
-            included1='include_file.txt'
-            included2='include_paths.txt'
-            if [[ -n ${includes} ]]; then
-              echo -e "\n# Found Include File(s):\n${includes}\n";
-              include_paths='';
-              separator=' -I';
-              for i in ${includes[@]}; do
-                final="${i}";
-                count2=$((include_count++));
-                header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit);
-                for h in ${header[@]}; do
-                  echo "$(dirname ${h})" >> "$(dirname ${f})/${included1}";
-                  include_paths+=${separator}$(dirname ${h});
-                done;
-              done;
-              include_paths="${include_paths/\\n /}";
-              if [[ -f "$(dirname ${f})/${included1}" ]]; then
-                awk '!seen[$0]++' "$(dirname ${f})/${included1}" > "$(dirname ${f})/${included2}";
-              fi;
-              if [[ -n ${header} ]] && [[ -n ${include_paths} ]]; then
-                if ${{ inputs.content }}; then
-                  included3=$(dirname ${f})/${included2}
-                  echo -e "\n####################\n\tFILE PATH(S) (${count2})\n####################\n";
-                  batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
-                fi;
-                echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
-              else 
-                echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILE(S) FOR $(basename ${f}) NOT FOUND\n####################\n\n";
-              fi;
-            else
-              echo -e "\n\n####################\nCLANG-TIDY ERROR ANALYZER (${count1})\n####################\n\n";
-              clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet -- -I$(echo $(dirname ${f}) | cut -d/ -f1-7) |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
-            fi;
-            if [[ ${file_error} == 0 ]]; then
-              echo -e "\n####################\nCLANG-TIDY NO ERRORS FOUND ${f}\n####################\n";
-            else
-              echo -e "\n####################\nCLANG-TIDY FOUND ERROR(S) TO FIX\n####################\n";
-            fi;
-            if [[ -f "$(dirname ${f})/${included2}" ]]; then
-              echo -e "# Included Path(s): ${include_paths/\\n /}";
-              echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
-              echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
-            fi;
-          done;
-          echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
-          echo -e "Total number of included file(s) checked is: ${count2}\n";
-          echo -e "Scanning Completed!\nClang-tidy Exiting!\n .....\n";
-        elif [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
-          echo -e "\n####################\nFINISHED SEARCHING C/C++ FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
-        fi;
-      shell: bash
-      continue-on-error: true
-
-   
-    - name: Check C/C++ (Cppcheck)
-      if: inputs.filename != '' || inputs.recheck != 'false' && inputs.filename != ''
-      run: |
-        echo ''
-        files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
-        file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        file_count=1
-        include_count=1
-        if [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
-          echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          echo -e "\nFound File Path(s):\n${files}\n\n";
-          for f in ${files[@]}; do
-            count1=$((file_count++));
-            echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
-            echo "$(dirname $(sudo find $(dirname ${f}) -type f -name $(basename ${f}) -print))";
-            if ${{ inputs.content }} && ! ${{ inputs.filefix }}; then
+            if ${{ inputs.content }} && ! ${{ inputs.include }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
               sudo find $(dirname ${f}) -type f -name $(basename ${f}) -exec batcat --theme=ansi --paging=never --show-all --color=always --style=full "{}" \;
             fi;
-            if ! ${{ inputs.include }}; then
-              echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
-              cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
-            elif ${{ inputs.include }}; then
+            if ${{ inputs.include }}; then
               includes=$(sudo find $(dirname ${f}) -name $(basename ${f}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
               included1='include_file.txt'
               included2='include_paths.txt'
-              if [[ -f "$(dirname ${f})/${included2}" ]]; then
-                rm -vf "$(dirname ${f})/${included1}" "$(dirname ${f})/${included2}" 2>/dev/null;
-              fi;
               if [[ -n ${includes} ]]; then
-                echo -e "\nFound Include Path(s):\n${includes}\n";
+                echo -e "\n# Found Include File(s):\n${includes}\n";
+                include_paths='';
+                separator=' -I';
                 for i in ${includes[@]}; do
                   final="${i}";
                   count2=$((include_count++));
                   header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit);
-                  for h in "${header[@]}"; do
-                    include_paths="$(dirname ${h/\\n /})";
-                    echo "${include_paths}" >> "$(dirname ${f})/${included1}";
+                  for h in ${header[@]}; do
+                    echo "$(dirname ${h})" >> "$(dirname ${f})/${included1}";
+                    include_paths+=${separator}$(dirname ${h});
                   done;
                 done;
+                include_paths="${include_paths/\\n /}";
                 if [[ -f "$(dirname ${f})/${included1}" ]]; then
                   awk '!seen[$0]++' "$(dirname ${f})/${included1}" > "$(dirname ${f})/${included2}";
                 fi;
-                if [[ -n ${header} ]] && [[ -f "$(dirname ${f})/${included2}" ]]; then
-                  included3=$(dirname ${f})/${included2}
-                  if ${{ inputs.content }} && ! ${{ inputs.filefix }}; then
+                if [[ -n ${header} ]] && [[ -n ${include_paths} ]]; then
+                  if ${{ inputs.content }}; then
+                    included3=$(dirname ${f})/${included2}
                     echo -e "\n####################\n\tFILE PATH(S) (${count2})\n####################\n";
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
-                  echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                  cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --includes-file="${included3}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                  if ${{ inputs.filefix }}; then
+                    echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
+                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
+                  else
+                    echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
+                    cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --includes-file="${included3}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                  fi;
+                else 
+                  echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${f}) NOT FOUND\n####################\n\n";
+                fi;
+              else
+                if ${{ inputs.filefix }}; then
+                  echo -e "\n\n####################\nCLANG-TIDY ERROR ANALYZER (${count1})\n####################\n\n";
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet -- -I$(echo $(dirname ${f}) | cut -d/ -f1-7) |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
                 else
-                  echo -e "\n\n####################\nCPPCHECK INCLUDE FILES(S) FOR $(basename ${f}) NOT FOUND\n####################\n\n";
+                  echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
+                  cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
                 fi;
               fi;
-            fi;
-            if [[ ${file_error} == 0 ]]; then
-              echo -e "\n####################\nCPPCHECK NO ERRORS FOUND ${f}\n####################\n";
-            else
-              echo -e "\n####################\nCPPCHECK FOUND ERROR(S)\n####################\n";
-            fi;
-            if [[ -f "$(dirname ${f})/${included2}" ]]; then
-              echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
-              echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
+              if ${{ inputs.recheck }}; then
+                echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n";
+                cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
+              fi;
+              if [[ ${file_error} == 0 ]]; then
+                echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+              else
+                echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO FIX\n####################\n";
+              fi;
+              if [[ -f "$(dirname ${f})/${included2}" ]]; then
+                echo -e "# Included Path(s): ${include_paths/\\n /}";
+                echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
+                echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
+              fi;
             fi;
           done;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           echo -e "Total number of included file(s) checked is: ${count2}\n";
-          echo -e "Scanning Completed!\nCppcheck Exiting!\n .....\n";
+          echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
         elif [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
-          echo -e "\n####################\nFINISHED SEARCHING C/C++ FILES\n ${{ inputs.filename }} NOT FOUND\n####################\n";
+          echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
       continue-on-error: true
