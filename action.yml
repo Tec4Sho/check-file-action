@@ -5,7 +5,7 @@ inputs:
     description: 'Check for filename or search for text word matches'
     type: string
     required: false
-    default: ""
+    default: ''
   filetype:
     description: 'Check only these file extension types when searching for text word matches'
     type: string
@@ -15,12 +15,7 @@ inputs:
     description: 'Search for text string matches in selected or all files'
     type: string
     required: false
-    default: ""
-  filefix:
-    description: 'Check file and fix if able when searching for errors'
-    type: boolean
-    required: false
-    default: 'false'
+    default: ''
   dirname:
     description: 'Your project root folder if created'
     type: string
@@ -42,7 +37,12 @@ inputs:
     required: false
     default: 'false'
   recheck:
-    description: 'Recheck files repaired by filefix if true'
+    description: 'Recheck files repaired by repair if true'
+    type: boolean
+    required: false
+    default: 'false'
+  repair:
+    description: 'Check file and fix if able when searching for errors'
     type: boolean
     required: false
     default: 'false'
@@ -181,7 +181,7 @@ runs:
       continue-on-error: false
 
 
-    - name: Check & Fix (Clang-tools)
+    - name: Check & Repair (Clang-tools)
       if: inputs.filename != ''
       run: |
         echo ''
@@ -194,7 +194,7 @@ runs:
         if [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          if [[ -f "${file_path}" ]] && ${{ inputs.filefix }}; then
+          if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
             sudo cp -vf "${file_path}" "${clang_file}";
           fi;
@@ -235,7 +235,7 @@ runs:
                     echo -e "\n####################\n\tFILE PATH(S) (${count2})\n####################\n";
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
-                  if ${{ inputs.filefix }}; then
+                  if ${{ inputs.repair }}; then
                     echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                     clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
                   else
@@ -246,7 +246,7 @@ runs:
                   echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${f}) NOT FOUND\n####################\n\n";
                 fi;
               else
-                if ${{ inputs.filefix }}; then
+                if ${{ inputs.repair }}; then
                   echo -e "\n\n####################\nCLANG-TIDY ERROR ANALYZER (${count1})\n####################\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet -- -I$(echo $(dirname ${f}) | cut -d/ -f1-7) |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
                 else
@@ -261,7 +261,7 @@ runs:
               if [[ ${file_error} == 0 ]] || [ $? -eq 0 ]; then
                 echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
               else
-                echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO FIX\n####################\n";
+                echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
               fi;
               if [[ -f "$(dirname ${f})/${included2}" ]]; then
                 echo -e "# Included Path(s): ${include_paths/\\n /}";
@@ -299,7 +299,7 @@ runs:
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
               echo -e "\n\n";
             fi;
-            if ${{ inputs.filefix }}; then
+            if ${{ inputs.repair }}; then
               file_error=0
               SHELL=SHELLHARDEN
               echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
@@ -320,7 +320,7 @@ runs:
               else
                 echo -e "\n####################\n${SHELL} FOUND ERROR(S)\n####################\n";
               fi;
-            elif ! ${{ inputs.filefix }}; then
+            elif ! ${{ inputs.repair }}; then
               file_error=0
               SHELL=SHELLCHECK
               echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
@@ -501,19 +501,19 @@ runs:
 
       
     - name: Repository Update
-      if: inputs.filename != '' && inputs.update != 'false' && inputs.filefix != 'false' 
+      if: inputs.filename != '' && inputs.update != 'false' && inputs.repair != 'false' 
       run: | 
         echo ''
         repo=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repo} ]]; then
           cd "${repo%/*}";
-          date | tee filefix-generated.txt
+          date | tee repair-generated.txt
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
           git config --global credential.helper store
           git add . 
-          git commit -m "check-file-action fixed errors in ${{ inputs.filename }} file(s)" 
-          git push && echo -e "\n####################\nFILE-FIX UPDATED REPO FILE(S) .. Goodbye\n####################";
+          git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)" 
+          git push && echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################";
         else
           echo -e "\n####################\nCHECK FILE CANT FIND (.git) FOR UPDATING\n####################";
         fi;
