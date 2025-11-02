@@ -2,7 +2,8 @@
 
 Use to check **workspace build files** for errors and also locate file(s) an display its content or search for a text (string) match located within all files.
 
-[***Please use v1.1.0 for fixing errors or advanced search engine.***](https://github.com/Tec4Sho/check-file-action/tree/v2))
+
+[***Please use v1.1.0 for fixing errors or advanced search engine.***](https://github.com/Tec4Sho/check-file-action/tree/v2)
 
 
 >[!NOTE]
