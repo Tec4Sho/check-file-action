@@ -49,10 +49,14 @@ Search starts from github workspace or root directory on all files.
 
 ### Wildcard Support :
 
-- Support not fully tested. If a filename is found multiple times in different directories all will be checked for errors if of extension types listed. Use dirname to add directory of files exact folder name to search if known.
+- Supports `*` all files. If a given filename is found multiple times in different directories all will be checked for errors if of extension types listed.
+
+>[!TIP]
+Use `dirname:` to add directory name that contains file to check errors if multiple files with same name so only that file is checked or simply rename the file for checking.
   
   - ( `*.extension` ) searches allowed.
  
+
 ### Defaults :
 
 **TEXT STRING MATCHES** of the provided information.
@@ -87,7 +91,8 @@ File types not listed for error checking if found will still display file locati
   - `GNUmakefile`
 
 >[!NOTE]
- Makefile Files are not auto-fix with `filefix: true` .
+ Makefile Files are not auto-fix with ` filefix: true `
+
 
 ### Check File Report :
 
@@ -132,9 +137,11 @@ File types not listed for error checking if found will still display file locati
 [checkmake](https://github.com/checkmake/checkmake)
 
 [clang-tidy](https://clang.llvm.org/extra/clang-tidy/)
+
 [batcat](https://github.com/sharkdp/bat)
 
 **linux packages and development tools.**
+
 
 [.github/workflows/Check-File-Action.yml](.github/workflows/Check-File-Action.yml)
 
@@ -143,6 +150,7 @@ File types not listed for error checking if found will still display file locati
 >[!TIP]
 Fork this repo to run error checking of your cloned repository files locally using our custom workflow template. Add one or two repositories for file searches and checking.
 
+
 #### Checkmake Info :
 
 - You can add a `checkmake.ini` file found above to your repo root directory to apply rules for checking Makefile types.
@@ -150,12 +158,14 @@ Fork this repo to run error checking of your cloned repository files locally usi
   - checkmake link: 
 https://github.com/checkmake/checkmake
 
+
 #### Shellcheck Info :
 
 - You should make sure any sh files you want checked has a shebang eg: ( #!/bin/bash ) at the vary top of the file before scanning for errors.
 
   - shellchell link:
 https://github.com/koalaman/shellcheck
+
 
 #### Cppcheck Info :
 
@@ -166,12 +176,15 @@ https://github.com/koalaman/shellcheck
   - cppcheck link:
 https://github.com/danmar/cppcheck
 
+
 #### Clang-tidy Info :
 
 - When checking `c, h` family types listed above if error is found. clang-tidy will try to fix them if `filefix: true`. Afterwards cppcheck will be ran to recheck for errors again. If errors are repaired locally. Setting `update: true` will update your remote repo files after repairing any files.
 
   - clang-tidy link:
 https://clang.llvm.org/extra/clang-tidy/
+
+
 
 #### Batcat Info :
 
@@ -183,11 +196,13 @@ https://clang.llvm.org/extra/clang-tidy/
 https://github.com/sharkdp/bat
 
 
+
 ##### Usage Skill Level :
 
 - User Friendly `Beginners`
  - Professional `Developers`
    - Very easy to **setup**
+
 
 
 ###### Changelog:
@@ -200,7 +215,7 @@ https://github.com/sharkdp/bat
 
 `filetext:` Text string matching.
 
-`filefix:` for c* & sh file types.
+`filefix:` for clang & sh file types.
 
 `recheck:` to recheck repaired files.
 
