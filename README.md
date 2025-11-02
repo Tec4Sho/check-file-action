@@ -129,7 +129,7 @@ File types not listed for error checking if found will still display file locati
         rootdir: false
         content: true
         include: true
-        recheck: true
+        recheck: false
         report: true
         update: false
       continue-on-error: true
