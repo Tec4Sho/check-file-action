@@ -107,11 +107,16 @@ File types not listed for error checking if found will still display file locati
       uses: Tec4Sho/check-file-action@v1.0.0
       with:
         filename: ${{ inputs.check-file }}
+        filetext: ${{ inputs.check-text }}
         filetype: .c .h .cpp .c++ .txx
+        filefix: false
         dirname: workspace
         rootdir: false
         content: true
         include: true
+        recheck: true
+        report: true
+        update: false
       continue-on-error: true
 
 
