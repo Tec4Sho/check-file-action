@@ -2,7 +2,7 @@
 # Check-File-Action v1.1.0
 
 ## _Helpful_
-Use to check **workspace build files** for errors and try auto fixing them or display suggestions to fix found errors. also locate file(s) an display its location, content or search for any text (string) match located within all files.
+Use to check **workspace build files** for errors and try auto fixing them or display suggestions to fix found errors. ***Can locate file(s) an display it's content or search for a text (string) match within all __local__ files.***
 
 ![Check File Action](/assets/images/check_file_action.png)
 
