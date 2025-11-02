@@ -235,7 +235,7 @@ runs:
                   batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                 fi;
                 echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
+                clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
               else 
                 echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILE(S) FOR $(basename ${f}) NOT FOUND\n####################\n\n";
               fi;
@@ -249,7 +249,7 @@ runs:
               echo -e "\n####################\nCLANG-TIDY FOUND ERROR(S) TO FIX\n####################\n";
             fi;
             if [[ -f "$(dirname ${f})/${included2}" ]]; then
-              echo -e "# Included Path(s): ${include_paths}";
+              echo -e "# Included Path(s): ${include_paths/\\n /}";
               echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
               echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
             fi;
@@ -301,7 +301,7 @@ runs:
                   count2=$((include_count++));
                   header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit);
                   for h in "${header[@]}"; do
-                    include_paths="${$(dirname ${h})/\\n /}";
+                    include_paths="$(dirname ${h/\\n /})";
                     echo "${include_paths}" >> "$(dirname ${f})/${included1}";
                   done;
                 done;
