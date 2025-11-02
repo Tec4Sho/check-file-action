@@ -1,9 +1,10 @@
+
 # Check-File-Action v1.1.0
 
 ## _Helpful_
 Use to check **workspace build files** for errors and try auto fixing them or display suggestions to fix found errors. also locate file(s) an display its location, content or search for any text (string) match located within all files.
 
-![Screenshot of a comment on a GitHub issue showing an image, added in the Markdown, of an Octocat smiling and raising a tentacle.](https://myoctocat.com/assets/images/base-octocat.svg)
+![Check File Action](/assets/images/check_file_action.png)
 
 >[!NOTE]
 Search starts from github workspace or root directory on all files.
@@ -130,12 +131,10 @@ File types not listed for error checking if found will still display file locati
 
 [checkmake](https://github.com/checkmake/checkmake)
 
+[clang-tidy](https://clang.llvm.org/extra/clang-tidy/)
 [batcat](https://github.com/sharkdp/bat)
 
-[clang-tidy](https://clang.llvm.org/extra/clang-tidy/)
-
 **linux packages and development tools.**
-
 
 [.github/workflows/Check-File-Action.yml](.github/workflows/Check-File-Action.yml)
 
@@ -183,6 +182,7 @@ https://clang.llvm.org/extra/clang-tidy/
   - bat link:
 https://github.com/sharkdp/bat
 
+
 ##### Usage Skill Level :
 
 - User Friendly `Beginners`
@@ -206,6 +206,9 @@ https://github.com/sharkdp/bat
 
 `report:` to send report to repo releases.
 
-`update:` to upload locally repaired files remotely to repo.
+`update:` upload repaired files remotely.
+
 
 - Link to the helpful section: [Link Text](#helpful).
+
+![Screenshot of a commit on GitHub.](https://myoctocat.com/assets/images/base-octocat.svg)
