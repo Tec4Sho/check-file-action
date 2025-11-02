@@ -6,7 +6,7 @@ Use to check **workspace build files** for errors and try auto fixing them or di
 
 ![Check File Action](/assets/images/check_file_action.png)
 
->[!NOTE]
+>[!IMPORTANT]
 Search starts from github workspace or root directory on all files.
 
 
