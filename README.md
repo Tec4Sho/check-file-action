@@ -42,7 +42,7 @@ Search starts from github workspace or root directory on all files.
 - `report:`  Create logs for files with errors in user repo releases section.
   - boolean required eg: < `true` >
 
-- `update:`  Update all locally fixed files with errors to remote repo.
+- `update:`  Update remote repo with locally fixed files when using filefix.
   - boolean required eg: < `true` >
 
 ### Wildcard Support :
