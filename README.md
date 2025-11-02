@@ -221,25 +221,6 @@ https://github.com/sharkdp/bat
 
 
 
-###### Changelog:
-
-- Search for any text match or filename locally.
-
-- Ability to repair files with errors.
-
-**Added new field options:**
-
-`filetext:` Text string matching.
-
-`recheck:` to recheck repaired files.
-
-`repair:` for clang & sh file types.
-
-`report:` to send report to repo releases.
-
-`update:` upload repaired files remotely.
-
-
 - Link to the helpful section: [Link Text](#helpful).
 
 ![Screenshot of a commit on GitHub.](https://myoctocat.com/assets/images/base-octocat.svg)
