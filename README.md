@@ -1,6 +1,8 @@
-# check-file-action
+# Check-File-Action v1.0.0
 
 Use to check **workspace build files** for errors and also locate file(s) an display its content or search for a text (string) match located within all files.
+
+[***Please use v1.1.0 for fixing errors or advanced search engine.***](README)
 
 
 >[!NOTE]
