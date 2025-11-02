@@ -218,13 +218,13 @@ runs:
               for i in ${includes[@]}; do
                 final="${i}";
                 count2=$((include_count++));
-                header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit) 2>/dev/null;
-                for h in "${header[@]}"; do
+                header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit);
+                for h in ${header[@]}; do
                   echo "$(dirname ${h})" >> "$(dirname ${f})/${included1}";
                   include_paths+=${separator}$(dirname ${h});
                 done;
               done;
-              include_paths="${include_paths/\\n /}"
+              include_paths="${include_paths/\\n /}";
               if [[ -f "$(dirname ${f})/${included1}" ]]; then
                 awk '!seen[$0]++' "$(dirname ${f})/${included1}" > "$(dirname ${f})/${included2}";
               fi;
@@ -299,9 +299,10 @@ runs:
                 for i in ${includes[@]}; do
                   final="${i}";
                   count2=$((include_count++));
-                  header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit) 2>/dev/null;
+                  header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit);
                   for h in "${header[@]}"; do
-                    echo "$(dirname ${h})" >> "$(dirname ${f})/${included1}";
+                    include_paths="${$(dirname ${h})/\\n /}";
+                    echo "${include_paths}" >> "$(dirname ${f})/${included1}";
                   done;
                 done;
                 if [[ -f "$(dirname ${f})/${included1}" ]]; then
