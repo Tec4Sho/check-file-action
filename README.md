@@ -30,13 +30,13 @@ __OR__
 - `dirname:`  Your workspace directory name use when needed.
   - string: ` workspace `
 
-- `rootdir:`  Search from root directory use when needed.
-  - boolean: ` true `
-
 - `content:`  Display file & directory contents for filename found.
   - boolean: ` true `
 
 - `include:`  Check all #include <name> for errors in C/C++ file if found.  - boolean: ` true `
+
+- `rootdir:`  Search from root directory use when needed.
+  - boolean: ` true `
 
 - `recheck:`  Recheck file(s) for errors if repaired by filefix.
   - boolean: ` true `
@@ -124,9 +124,9 @@ File types not listed for error checking if found will still display file locati
         filetext: ${{ inputs.check-text }}
         filetype: .c .h .cpp .cxx .txx
         dirname: workspace
-        rootdir: false
         content: true
         include: true
+        rootdir: false
         recheck: false
         repair: false
         report: true
