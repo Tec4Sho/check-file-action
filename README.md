@@ -121,9 +121,20 @@ File types not listed for error checking if found will still display file locati
 
 
 
-- Action runs using [cppcheck](https://github.com/danmar/cppcheck) [shellcheck](https://github.com/koalaman/shellcheck)
+- Action runs using
+
+[cppcheck](https://github.com/danmar/cppcheck)
+
+[shellcheck](https://github.com/koalaman/shellcheck)
+
 [checkmake](https://github.com/checkmake/checkmake)
-[batcat](https://github.com/sharkdp/bat) linux packages development tools using their custom settings.
+
+[batcat](https://github.com/sharkdp/bat)
+
+[clang-tidy](https://clang.llvm.org/extra/clang-tidy/)
+
+**linux packages and development tools.**
+
 
 [.github/workflows/Check-File-Action.yml](.github/workflows/Check-File-Action.yml)
 
@@ -176,3 +187,22 @@ https://github.com/sharkdp/bat
 - User Friendly `Beginners`
  - Professional `Developers`
    - Very easy to **setup**
+
+
+###### Changelog:
+
+- Search for any text match or filename locally.
+
+- Ability to repair files with errors.
+
+**Added new field options:**
+
+`filetext:` Text string matching.
+
+`filefix:` for c* & sh file types.
+
+`recheck:` to recheck repaired files.
+
+`report:` to send report to repo releases.
+
+`update:` to upload locally repaired files remotely to repo.
