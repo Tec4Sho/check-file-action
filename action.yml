@@ -534,7 +534,7 @@ runs:
         echo "changed_files=false" >> "${GITHUB_OUTPUT}";
         if ${{ steps.pushed-files.outputs.pushed_files }}; then
           if ${{ github.event_name == 'workflow_dispatch' }}; then 
-            echo "changed_files=$(git diff --name-only HEAD^1 HEAD | xargs)" >> "${GITHUB_OUTPUT}" || echo "changed_files=false" >> "${GITHUB_OUTPUT}";
+            echo "changed_files=$(git diff --name-only HEAD | xargs)" >> "${GITHUB_OUTPUT}" || echo "changed_files=false" >> "${GITHUB_OUTPUT}";
           else
             echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> "${GITHUB_OUTPUT}" || echo "changed_files=false" >> "${GITHUB_OUTPUT}";
           fi;
