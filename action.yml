@@ -188,6 +188,7 @@ runs:
         file_path=$(sudo find ${{ env.FILE_PATH }} -type f -name '.clang-tidy' -print -quit);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
+        repair=${GITHUB_WORKSPACE}/repair-generated.txt;
         count2=0
         file_count=1
         include_count=1
@@ -235,6 +236,7 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
+                    echo "${f}" >> "${repair}";
                     echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                     clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   else
@@ -254,6 +256,7 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
+                echo "${f}" >> "${repair}";
                 echo -e "\n\n####################\nCLANG-TIDY ERROR ANALYZER (${count1})\n####################\n\n";
                 clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet -- -I$(echo $(dirname ${f}) | cut -d/ -f1-7) |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
               else
@@ -295,6 +298,7 @@ runs:
       if: inputs.filename != '' && env.FILE_FOUND == 0 
       run: |
         echo ''
+        repair=${GITHUB_WORKSPACE}/repair-generated.txt;
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         shellcheck_count=1
@@ -494,16 +498,21 @@ runs:
       run: |
         echo ''
         set +e
+        BUILD_DATE="$(date +%Y%m%d)";
+        repair=${GITHUB_WORKSPACE}/repair-generated.txt;
         repo=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repo} ]]; then
           cd "${repo%/*}";
-          date | tee repair-generated.txt;
+          if [[ -f ${repair} ]]; then 
+            sudo mv -f "${repair}" "repaired-${BUILD_DATE}.txt";
+          fi;
           git config --global user.name "${{ github.actor }}";
           git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com";
           git config --global credential.helper store
           git add .
           git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)";
-          echo "push_files=$(git push | xargs)" >> "${GITHUB_OUTPUT}" && echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################";
+          echo "pushed_files=$(git push | xargs)" >> "${GITHUB_OUTPUT}" 
+          && echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################";
         else
           echo -e "\n####################\nCHECK FILE CANT FIND (.git) FOR UPDATING\n####################";
         fi;
@@ -517,7 +526,7 @@ runs:
       run: |
         echo ''
         set +e
-        if [[ -n ${{ steps.pushed-files.outputs.push_files }} ]]; then
+        if ${{ steps.pushed-files.outputs.pushed_files }}; then
           if ${{ github.event_name == 'workflow_dispatch' }}; then 
             echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> "${GITHUB_OUTPUT}";
           else
@@ -532,7 +541,7 @@ runs:
       if: inputs.filename != '' && inputs.update != 'false' && inputs.report != 'false'
       run: |
         echo ''
-        if [[ -n ${{ steps.changed-files.outputs.changed_files }} ]]; then
+        if ${{ steps.changed-files.outputs.changed_files }}; then
           for file in ${{ steps.changed-files.outputs.changed_files }}; do
             echo -e "$file was repaired" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
           done;
@@ -567,7 +576,7 @@ runs:
     - name: Delete Log File
       if: inputs.filename != ''
       run: |
-        echo ''
+        date
         if [[ -f "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" ]]; then
           echo -e "\nLOGFILE: $(rm -vf ${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log)\n";
         fi;
