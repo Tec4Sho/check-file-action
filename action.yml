@@ -61,6 +61,11 @@ inputs:
     type: boolean
     required: false
     default: 'false'
+  number:
+    description: 'Number of files to check before stopping action'
+    type: int
+    required: false
+    default: 0
 
 runs:
   using: composite
@@ -209,6 +214,12 @@ runs:
           echo -e "\n# Found File Path(s)\n${files}\n\n";
           for f in ${files[@]}; do
             count1=$((file_count++));
+            if [[ ${{ inputs.count != 0 }} ]]; then
+              if [[ -n "${{ inputs.count }}" -lt "${count1}" ]]; then
+                echo "\nFile checking auto stopped at $(basename ${f})\n";
+                break;
+              fi;
+            fi; 
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname $(sudo find $(dirname ${f}) -type f -name $(basename ${f}) -print))";
             if ${{ inputs.content }} && ! ${{ inputs.include }}; then
@@ -246,7 +257,9 @@ runs:
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                       echo "${f}" >> "${repair_file}";
-                    elif ! ${{ inputs.stored }} 
+                    elif ${{ inputs.stored }}; then
+                      echo "${f}" >> "${repair_file}";
+                    elif ! ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                     fi;
@@ -271,7 +284,9 @@ runs:
                   echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   echo "${f}" >> "${repair_file}";
-                elif ! ${{ inputs.stored }} 
+                elif ${{ inputs.stored }}; then
+                  echo "${f}" >> "${repair_file}";
+                elif ! ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                 fi;
