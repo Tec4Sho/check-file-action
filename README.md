@@ -219,8 +219,11 @@ https://github.com/koalaman/shellcheck
   - bat link:
 https://github.com/sharkdp/bat
 
+##### Illustration :
 
-![Check File Action Log](/assets/images/error.log)
+- Thousands of `c` files checked in 1 hour 15 minutes while error checking and repairing local repo kernel build files with `repair: true`, while `include, update, content` and `report` are `false`
+
+![Check File Action Log](/assets/images/error.jpg)
 
 
 ##### Usage Skill Level :
@@ -231,6 +234,6 @@ https://github.com/sharkdp/bat
 
 
 
-- Link to the helpful section: [Link Text](#helpful).
+- Link to the helpful section: [Link Text](#helpful)
 
 ![Screenshot of a commit on GitHub.](https://myoctocat.com/assets/images/base-octocat.svg)
