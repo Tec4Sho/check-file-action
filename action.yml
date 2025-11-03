@@ -59,6 +59,10 @@ inputs:
 
 runs:
   using: composite
+  permissions: # required for all workflows 
+    security-events: write # only required for workflows in private repositories 
+    actions: write 
+    contents: write
   steps:
     - name: Set up Go 1.25.3
       if: inputs.filename != ''
@@ -72,6 +76,7 @@ runs:
       run: |
         set -o pipefail
         set -o allexport
+        set -o verbose
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
         export DEBIAN_FRONTEND=noninteractive
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -488,6 +493,57 @@ runs:
       shell: bash
       continue-on-error: true
 
+      
+    - name: Repository Update
+      if: inputs.filename != '' && inputs.update != 'false' && inputs.repair != 'false'
+      id: pushed-files
+      run: |
+        echo ''
+        repo=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
+        if [[ -d ${repo} ]]; then
+          cd "${repo%/*}";
+          date | tee repair-generated.txt
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+          git config --global credential.helper store
+          git add .
+          git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)" 
+          echo "push_files=$(git push | xargs) >> "${GITHUB_OUTPUT}" && echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################";
+        else
+          echo -e "\n####################\nCHECK FILE CANT FIND (.git) FOR UPDATING\n####################";
+        fi;
+      shell: bash
+      continue-on-error: false
+
+
+    - name: Get Changed Files
+      if: inputs.filename != '' && inputs.update != 'false'
+      id: changed-files
+      run: |
+        echo ''
+        if [[ -n ${{ steps.pushed-files.outputs.push_files }} ]]; then
+          if ${{ github.event_name == 'workflow_dispatch' }}; then 
+            echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> "${GITHUB_OUTPUT}";
+          else
+            echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> "${GITHUB_OUTPUT}";
+          fi;
+        fi;
+      shell: bash
+      continue-on-error: false
+
+
+    - name: List Changed Files
+      if: inputs.filename != '' && inputs.update != 'false' && inputs.report != 'false'
+      run: |
+        echo ''
+        if [[ -n ${{ steps.changed-files.outputs.changed_files }} ]]; then
+          for file in ${{ steps.changed-files.outputs.changed_files }}; do
+            echo -e "$file was repaired" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+          done;
+        fi;
+      shell: bash
+      continue-on-error: false
+
 
     - name: Check For ${{ inputs.filename }} Error.log
       if: inputs.report != 'false' && inputs.filename != ''
@@ -510,27 +566,6 @@ runs:
           ./${{ inputs.filename }}_error.log
         name: Check File Action Errors Report For ${{ inputs.filename }} File(s).
         tag_name: ${{ github.run_id }}
-
-      
-    - name: Repository Update
-      if: inputs.filename != '' && inputs.update != 'false' && inputs.repair != 'false' 
-      run: | 
-        echo ''
-        repo=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
-        if [[ -d ${repo} ]]; then
-          cd "${repo%/*}";
-          date | tee repair-generated.txt
-          git config user.name "${{ github.actor }}"
-          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
-          git config --global credential.helper store
-          git add . 
-          git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)" 
-          git push && echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################";
-        else
-          echo -e "\n####################\nCHECK FILE CANT FIND (.git) FOR UPDATING\n####################";
-        fi;
-      shell: bash
-      continue-on-error: false
 
 
     - name: Delete Log File
