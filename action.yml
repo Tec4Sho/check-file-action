@@ -502,6 +502,7 @@ runs:
         repair=${GITHUB_WORKSPACE}/repair-generated.txt;
         repo=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repo} ]]; then
+          echo "pushed_files=false" >> "${GITHUB_OUTPUT}";
           cd "${repo%/*}";
           if [[ -f ${repair} ]]; then 
             sudo mv -f "${repair}" "repaired-${BUILD_DATE}.txt";
@@ -511,8 +512,8 @@ runs:
           git config --global credential.helper store
           git add .
           git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)";
-          echo "pushed_files=$(git push | xargs)" >> "${GITHUB_OUTPUT}";
-          if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+          git push && echo "pushed_files=true" >> "${GITHUB_OUTPUT}";
+          if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
             echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################";
           else
             echo -e "\n####################\nCHECK FILE CANT UPDATED REPO FILE(S)\n####################";
@@ -530,6 +531,7 @@ runs:
       run: |
         echo ''
         set +e
+        echo "changed_files=false" >> "${GITHUB_OUTPUT}";
         if ${{ steps.pushed-files.outputs.pushed_files }}; then
           if ${{ github.event_name == 'workflow_dispatch' }}; then 
             echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> "${GITHUB_OUTPUT}";
