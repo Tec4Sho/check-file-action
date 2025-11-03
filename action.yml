@@ -497,7 +497,7 @@ runs:
       id: pushed-files
       run: |
         echo ''
-        set +e
+        set -o pipefail
         BUILD_DATE="$(date +%Y%m%d)";
         repair=${GITHUB_WORKSPACE}/repair-generated.txt;
         repo=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
@@ -511,8 +511,12 @@ runs:
           git config --global credential.helper store
           git add .
           git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)";
-          echo "pushed_files=$(git push | xargs)" >> "${GITHUB_OUTPUT}" 
-          && echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################";
+          echo "pushed_files=$(git push | xargs)" >> "${GITHUB_OUTPUT}";
+          if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+            echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################";
+          else
+            echo -e "\n####################\nCHECK FILE CANT UPDATED REPO FILE(S)\n####################";
+          fi;
         else
           echo -e "\n####################\nCHECK FILE CANT FIND (.git) FOR UPDATING\n####################";
         fi;
