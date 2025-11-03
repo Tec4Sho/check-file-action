@@ -109,6 +109,7 @@ File types not listed for error checking if found will still display file locati
 
   - check file action `error.log` report file can be found in repo releases under the `filename:` that you set.
 
+ - if `repair:` , `update:` and `report: ` are all `true` their will be additional information about any files changes that happened remotely.
 
 #### Workflow Actions :
 
@@ -133,7 +134,14 @@ File types not listed for error checking if found will still display file locati
         update: false
       continue-on-error: true
 
+>[!CAUTION]
+When `update: true` is set `.git` may need special permissions to push changes back remotely in these cases adding the below code to your own workflow.yml may help.
 
+    permissions: # required for all workflows 
+      security-events: write # only required for workflows in private repositories 
+      actions: write 
+      contents: write
+      
 
 **Action runs using**
 
