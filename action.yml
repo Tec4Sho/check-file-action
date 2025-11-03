@@ -70,9 +70,7 @@ runs:
     - name: Installing Dependencies
       if: inputs.filetext != '' || inputs.filename != ''
       run: |
-        set -o pipefail
         set -o allexport
-        set -o verbose
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
         export DEBIAN_FRONTEND=noninteractive
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -194,6 +192,7 @@ runs:
         file_count=1
         include_count=1
         if [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
+          set -o pipefail
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
@@ -300,6 +299,7 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         shellcheck_count=1
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
+          set -o pipefail
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           for f in ${files[@]}; do
@@ -358,6 +358,7 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
+          set -o pipefail
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           for f in ${files[@]}; do
@@ -394,6 +395,7 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
         if [[ -n ${files} ]]; then
+          set -o pipefail
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           for f in ${files[@]}; do
@@ -420,6 +422,7 @@ runs:
       run: |
         echo ''
         file_count=1
+        set -o pipefail
         echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if [[ ${{ inputs.filetype }} != 'none' ]]; then
           for t in ${{ inputs.filetype }}; do
@@ -473,7 +476,7 @@ runs:
     - name: Directory Contains
       if: inputs.filename != '' && inputs.content != 'false'
       run: |
-        set +e
+        echo ''
         file_count=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) | wc -l);
         if [[ ${{ env.FILE_FOUND }} != 0  ]]; then
           echo -e "\n####################\nNOTE: Contents found in directory(s) for ${{ inputs.filename }}\n####################\n";
@@ -490,6 +493,7 @@ runs:
       id: pushed-files
       run: |
         echo ''
+        set +e
         repo=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repo} ]]; then
           cd "${repo%/*}";
@@ -512,6 +516,7 @@ runs:
       id: changed-files
       run: |
         echo ''
+        set +e
         if [[ -n ${{ steps.pushed-files.outputs.push_files }} ]]; then
           if ${{ github.event_name == 'workflow_dispatch' }}; then 
             echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> "${GITHUB_OUTPUT}";
