@@ -206,7 +206,6 @@ runs:
         if [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           set -o pipefail
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
-          echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
             sudo cp -vf "${file_path}" "${clang_file}";
@@ -214,9 +213,9 @@ runs:
           echo -e "\n# Found File Path(s)\n${files}\n\n";
           for f in ${files[@]}; do
             count1=$((file_count++));
-            if [[ ${{ inputs.count != 0 }} ]]; then
-              if [[ "${{ inputs.count }}" -lt "${count1}" ]]; then
-                echo "\nFile checking auto stopped at $(basename ${f})\n";
+            if [[ ${{ inputs.number != 0 }} ]]; then
+              if [[ "${{ inputs.number }}" -lt "${count1}" ]]; then
+                echo -e "\nFile checking auto stopped at $(basename ${f})\n";
                 break;
               fi;
             fi; 
@@ -320,6 +319,7 @@ runs:
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           echo -e "Total number of included file(s) checked is: ${count2}\n";
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
+          echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
         elif [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
