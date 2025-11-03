@@ -193,7 +193,8 @@ runs:
         file_path=$(sudo find ${{ env.FILE_PATH }} -type f -name '.clang-tidy' -print -quit);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
-        repaired=${GITHUB_WORKSPACE}/check-file-repaired.txt;
+        repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
+        repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
         count2=0
         file_count=1
         include_count=1
@@ -244,7 +245,7 @@ runs:
                     if ${{ inputs.stored }} && [[ ! $(grep -q "{f}" "${repaired}") ]]; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-                      echo "${f}" >> "${repaired}";
+                      echo "${f}" >> "${repair_file}";
                     elif ! ${{ inputs.stored }} 
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -269,7 +270,7 @@ runs:
                 if ${{ inputs.stored }} && [[ ! $(grep -q "{f}" "${repaired}") ]]; then
                   echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-                  echo "${f}" >> "${repaired}";
+                  echo "${f}" >> "${repair_file}";
                 elif ! ${{ inputs.stored }} 
                   echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -514,13 +515,13 @@ runs:
         echo ''
         set -o pipefail
         REPAIR_DATE="$(date +%Y%m%d)";
-        repaired=${GITHUB_WORKSPACE}/check-file-repaired.txt;
+        repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
         repo=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repo} ]]; then
           changed_files=false
           cd "${repo%/*}";
           if [[ -f ${repaired} ]]; then 
-            sudo mv -f "${repaired}" "$(basename ${repaired})";
+            sudo mv -f "${repair_file}" 'check-file-repaired.txt';
           fi;
           git config --global user.name "${{ github.actor }}";
           git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com";
