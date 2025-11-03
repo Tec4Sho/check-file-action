@@ -59,10 +59,6 @@ inputs:
 
 runs:
   using: composite
-  permissions: # required for all workflows 
-    security-events: write # only required for workflows in private repositories 
-    actions: write 
-    contents: write
   steps:
     - name: Set up Go 1.25.3
       if: inputs.filename != ''
