@@ -220,6 +220,8 @@ https://github.com/koalaman/shellcheck
 https://github.com/sharkdp/bat
 
 
+![Check File Action Log](/assets/images/error.log)
+
 
 ##### Usage Skill Level :
 
