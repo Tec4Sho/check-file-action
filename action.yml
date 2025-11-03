@@ -215,7 +215,7 @@ runs:
           for f in ${files[@]}; do
             count1=$((file_count++));
             if [[ ${{ inputs.count != 0 }} ]]; then
-              if [[ -n "${{ inputs.count }}" -lt "${count1}" ]]; then
+              if [[ "${{ inputs.count }}" -lt "${count1}" ]]; then
                 echo "\nFile checking auto stopped at $(basename ${f})\n";
                 break;
               fi;
@@ -258,6 +258,7 @@ runs:
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                       echo "${f}" >> "${repair_file}";
                     elif ${{ inputs.stored }}; then
+                      echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                       echo "${f}" >> "${repair_file}";
                     elif ! ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
@@ -285,6 +286,7 @@ runs:
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   echo "${f}" >> "${repair_file}";
                 elif ${{ inputs.stored }}; then
+                  echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                   echo "${f}" >> "${repair_file}";
                 elif ! ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
@@ -524,7 +526,7 @@ runs:
 
       
     - name: Repository Update
-      if: inputs.filename != '' && inputs.update != 'false' && inputs.repair != 'false'
+      if: inputs.filename != '' && inputs.update != 'false' && inputs.repair != 'false' && env.FILE_FOUND == 1
       id: changed-files
       run: |
         echo ''
