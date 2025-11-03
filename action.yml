@@ -52,7 +52,12 @@ inputs:
     required: false
     default: 'false'
   update:
-    description: 'Errors repaired with clang-tidy push changes to remote repo if true'
+    description: 'Errors repaired with clang-tidy will push changes to remote repo if true'
+    type: boolean
+    required: false
+    default: 'false'
+  stored:
+    description: 'Clang files with errors repaired are skipped when ran again if true'
     type: boolean
     required: false
     default: 'false'
@@ -188,7 +193,7 @@ runs:
         file_path=$(sudo find ${{ env.FILE_PATH }} -type f -name '.clang-tidy' -print -quit);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
-        repair=${GITHUB_WORKSPACE}/repair-generated.txt;
+        repaired=${GITHUB_WORKSPACE}/check-file-repaired.txt;
         count2=0
         file_count=1
         include_count=1
@@ -236,9 +241,14 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    echo "${f}" >> "${repair}";
-                    echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                    if ${{ inputs.stored }} && [[ ! $(grep -q "{f}" "${repaired}") ]]; then
+                      echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
+                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                      echo "${f}" >> "${repaired}";
+                    elif ! ${{ inputs.stored }} 
+                      echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
+                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                    fi;
                   else
                     echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                     cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --error-exitcode=1 --includes-file="${included3}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -256,9 +266,14 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                echo "${f}" >> "${repair}";
-                echo -e "\n\n####################\nCLANG-TIDY ERROR ANALYZER (${count1})\n####################\n\n";
-                clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet -- -I$(echo $(dirname ${f}) | cut -d/ -f1-7) |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                if ${{ inputs.stored }} && [[ ! $(grep -q "{f}" "${repaired}") ]]; then
+                  echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                  echo "${f}" >> "${repaired}";
+                elif ! ${{ inputs.stored }} 
+                  echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
                 cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --error-exitcode=1 "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -298,7 +313,7 @@ runs:
       if: inputs.filename != '' && env.FILE_FOUND == 0 
       run: |
         echo ''
-        repair=${GITHUB_WORKSPACE}/repair-generated.txt;
+        repair=${GITHUB_WORKSPACE}/check-file-repaired.txt;
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         shellcheck_count=1
@@ -494,64 +509,65 @@ runs:
       
     - name: Repository Update
       if: inputs.filename != '' && inputs.update != 'false' && inputs.repair != 'false'
-      id: pushed-files
+      id: changed-files
       run: |
         echo ''
         set -o pipefail
-        BUILD_DATE="$(date +%Y%m%d)";
-        repair=${GITHUB_WORKSPACE}/repair-generated.txt;
+        REPAIR_DATE="$(date +%Y%m%d)";
+        repaired=${GITHUB_WORKSPACE}/check-file-repaired.txt;
         repo=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repo} ]]; then
-          echo "pushed_files=false" >> "${GITHUB_OUTPUT}";
+          changed_files=false
           cd "${repo%/*}";
-          if [[ -f ${repair} ]]; then 
-            sudo mv -f "${repair}" "repaired-${BUILD_DATE}.txt";
+          if [[ -f ${repaired} ]]; then 
+            sudo mv -f "${repaired}" "$(basename ${repaired})";
           fi;
           git config --global user.name "${{ github.actor }}";
           git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com";
           git config --global credential.helper store
-          git fetch origin
           git add .
           git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)";
-          git push origin "${{ github.ref }}" && echo "pushed_files=true" >> "${GITHUB_OUTPUT}";
+          git push origin "${{ github.ref }}";
           if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
-            echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################";
+            echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################\n";
+            if ${{ github.event_name == 'workflow_dispatch' }}; then
+              changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs);
+            else
+              echo 'Currently only supports workflow_dispatch: action events';
+            fi;
+            if [[ -n ${changed_files} ]]; then
+              echo -e "\n####################\nDATE: ${REPAIR_DATE}\n####################\n\nRepaired Files:\n" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+              for file in ${changed_files}; do
+                echo -e "$file was repaired" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+              done;
+            else
+              echo 'Was git push event successful no changes found';
+            fi;
           else
-            echo -e "\n####################\nCHECK FILE CANT UPDATED REPO FILE(S)\n####################";
+            echo -e "\n####################\nCHECK FILE COULD NOT UPDATED REPO FILE(S)\n####################\n\n";
+            echo 'Retrying again after git fetches branch';
+            git fetch origin "${{ github.ref }}";
+            git add .
+            git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)";
+            git push origin "${{ github.ref }}";
+            if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
+              echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################\n";
+              if ${{ github.event_name == 'workflow_dispatch' }}; then
+                echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> "${GITHUB_OUTPUT}" 
+              else
+                echo 'Currently only supports workflow_dispatch: action events';
+              fi;
+              if [[ -n ${changed_files} ]]; then
+                for file in ${changed_files}; do
+                  echo -e "$file was repaired" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                done;
+              else
+                echo 'Was git push event successful no changes found';
+              fi;
+            fi;
           fi;
         else
-          echo -e "\n####################\nCHECK FILE CANT FIND (.git) FOR UPDATING\n####################";
-        fi;
-      shell: bash
-      continue-on-error: false
-
-
-    - name: Get Changed Files
-      if: inputs.filename != '' && inputs.update != 'false'
-      id: changed-files
-      run: |
-        echo ''
-        set +e
-        echo "changed_files=false" >> "${GITHUB_OUTPUT}";
-        if ${{ steps.pushed-files.outputs.pushed_files }}; then
-          if ${{ github.event_name == 'workflow_dispatch' }}; then
-            echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> "${GITHUB_OUTPUT}" || echo "changed_files=false" >> "${GITHUB_OUTPUT}";
-          else
-            echo 'Currently only supports workflow_dispatch: action events';
-          fi;
-        fi;
-      shell: bash
-      continue-on-error: false
-
-
-    - name: List Changed Files
-      if: inputs.filename != '' && inputs.update != 'false' && inputs.report != 'false'
-      run: |
-        echo ''
-        if ${{ steps.changed-files.outputs.changed_files }}; then
-          for file in ${{ steps.changed-files.outputs.changed_files }}; do
-            echo -e "$file was repaired" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-          done;
+          echo -e "\n####################\nCHECK FILE CANT FIND (.git) FOR UPDATING\n####################\n";
         fi;
       shell: bash
       continue-on-error: false
