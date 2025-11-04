@@ -545,9 +545,10 @@ runs:
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
-          if [[ -f ${repair_file} ]]; then 
+          if [[ -f ${repair_file} ]]; then
+            echo -e "\n####################\n\tcheck-file-repair.txt found copying...\n####################\n";
             sudo mv -vu "${repair_file}" 'check-file-repaired.txt';
-            echo "\n\t########## MOVED ##########\n";
+            echo -e "\n\t########## MOVED ##########\n";
           fi;
           git config --global user.name "${{ github.actor }}";
           git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com";
@@ -556,22 +557,22 @@ runs:
           git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)";
           git push origin "${{ github.ref }}";
           if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
-            echo -e "\n####################\nCHECK FILE UPDATED REPOSITORY\n####################\n\n";
+            echo -e "\n####################\nCHECK FILE UPDATED REPOSITORY\n####################\n";
             echo -e "\n####################\nUPDATED FILE(S) LIST:\n####################\n";
             git diff --name-only @{push}@{1} @{push} |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-            echo "\n\t########## END ##########\n";
+            echo -e "\n\t########## END ##########\n";
           else
-            echo -e "\n####################\nCHECK FILE COULD NOT UPDATED REPO FILE(S)\n####################\n\n";
+            echo -e "\n####################\nCHECK FILE COULD NOT UPDATED REPO FILE(S)\n####################\n";
             echo 'Retrying again after git fetches branch';
             git fetch origin "${{ github.ref }}";
             git add .
             git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)";
             git push origin "${{ github.ref }}";
             if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
-              echo -e "\n####################\nCHECK FILE UPDATED REPOSITORY\n####################\n\n";
+              echo -e "\n####################\nCHECK FILE UPDATED REPOSITORY\n####################\n";
               echo -e "\n####################\nUPDATED FILE(S) LIST:\n####################\n";
               git diff --name-only @{push}@{1} @{push} |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-              echo "\n\t########## END ##########\n";
+              echo -e "\n\t########## END ##########\n";
             else
               echo 'Was git push event successful status ? unknown';
             fi;
