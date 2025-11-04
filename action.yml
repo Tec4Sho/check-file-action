@@ -247,7 +247,7 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ ! $(grep -q "{f}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || [[ ! $(grep -q "{f}" "${repaired}" 2>/dev/null) ]]; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                       echo "${f}" >> "${repair_file}";
@@ -277,7 +277,7 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && [[ ! $(grep -q "{f}" "${repaired}") ]]; then
+                if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || [[ ! $(grep -q "{f}" "${repaired}" 2>/dev/null) ]]; then
                   echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   echo "${f}" >> "${repair_file}";
