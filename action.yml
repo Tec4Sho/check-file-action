@@ -65,7 +65,7 @@ inputs:
     description: 'Number of files to check before stopping action'
     type: number
     required: false
-    default: 0
+    default: '0'
 
 runs:
   using: composite
@@ -214,12 +214,6 @@ runs:
           echo -e "\n# Found File Path(s)\n${files}\n\n";
           for f in ${files[@]}; do
             count1=$((file_count++));
-            if [[ ${{ inputs.number != 0 }} ]]; then
-              if [[ "${{ inputs.number }}" -lt "${count1}" ]]; then
-                echo -e "\nFile checking auto stopped at $(basename ${f})\n";
-                break;
-              fi;
-            fi; 
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname $(sudo find $(dirname ${f}) -type f -name $(basename ${f}) -print))";
             if ${{ inputs.content }} && ! ${{ inputs.include }}; then
@@ -319,6 +313,12 @@ runs:
               echo -e "# Included Path(s): ${include_paths/\\n /}";
               echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
               echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
+            fi;
+            if [[ ${{ inputs.number != '0' }} ]]; then
+              if [[ "${{ inputs.number }}" -lt "${count1}" ]]; then
+                echo -e "\nFile checking auto stopped at $(basename ${f})\n";
+                break;
+              fi;
             fi;
           done;
           if [[ "${fixed}" ]]; then
