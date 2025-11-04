@@ -314,7 +314,7 @@ runs:
               echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
               echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
             fi;
-            if [[ ${{ inputs.number }} ! -eq 0 ]]; then
+            if [[ ${{ inputs.number }} -gt 0 ]]; then
               if [[ ${{ inputs.number }} -lt ${count1} ]]; then
                 echo -e "\nFile checking auto stopped at $(basename ${f})\n";
                 break;
