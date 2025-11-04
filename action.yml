@@ -63,7 +63,7 @@ inputs:
     default: 'false'
   number:
     description: 'Number of files to check before stopping action'
-    type: int
+    type: number
     required: false
     default: 0
 
@@ -80,6 +80,7 @@ runs:
     - name: Installing Dependencies
       if: inputs.filetext != '' || inputs.filename != ''
       run: |
+        set -o pipefail
         set -o allexport
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
         export DEBIAN_FRONTEND=noninteractive
@@ -183,7 +184,7 @@ runs:
         else
           echo "dirname=${{ inputs.dirname }}" >> "$GITHUB_OUTPUT";
         fi;
-
+        echo "FILE_FIXED=0" >> "${GITHUB_ENV}";
         echo "FILE_FOUND=0" >> "${GITHUB_ENV}";
         echo "FILE_ERROR=0" >> "${GITHUB_ENV}";
       shell: bash
@@ -193,7 +194,7 @@ runs:
     - name: Check & Repair (Clang-tools)
       if: inputs.filename != ''
       run: |
-        echo ''
+        set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_path=$(sudo find ${{ env.FILE_PATH }} -type f -name '.clang-tidy' -print -quit);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -201,10 +202,10 @@ runs:
         repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
         repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
         count2=0
+        checked=false
         file_count=1
         include_count=1
         if [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
-          set -o pipefail
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
@@ -256,12 +257,14 @@ runs:
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                       echo "${f}" >> "${repair_file}";
+                      fixed=true
                     elif ${{ inputs.stored }}; then
                       echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                       echo "${f}" >> "${repair_file}";
                     elif ! ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                      fixed=true
                     fi;
                   else
                     echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
@@ -284,12 +287,14 @@ runs:
                   echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   echo "${f}" >> "${repair_file}";
+                  fixed=true
                 elif ${{ inputs.stored }}; then
                   echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                   echo "${f}" >> "${repair_file}";
                 elif ! ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                  fixed=true
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
@@ -316,6 +321,9 @@ runs:
               echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
             fi;
           done;
+          if [[ "${fixed}" ]]; then
+            echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
+          fi;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           echo -e "Total number of included file(s) checked is: ${count2}\n";
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
@@ -330,13 +338,13 @@ runs:
     - name: Check Shell Files
       if: inputs.filename != '' && env.FILE_FOUND == 0 
       run: |
-        echo ''
+        set -o pipefail
+        fixed=false
         repair=${GITHUB_WORKSPACE}/check-file-repaired.txt;
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         shellcheck_count=1
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
-          set -o pipefail
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           for f in ${files[@]}; do
@@ -351,7 +359,8 @@ runs:
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
               echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-              shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" && file_error=1;
+              shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+              fixed=true
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -361,7 +370,7 @@ runs:
             if ${{ inputs.recheck }}; then
               SHELL=SHELLCHECK
               echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-              shellcheck --norc --severity=warning --color=always "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
+              shellcheck --norc --severity=warning --color=always "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -370,7 +379,7 @@ runs:
             elif ! ${{ inputs.repair }}; then
               SHELL=SHELLCHECK
               echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-              shellcheck --norc --severity=warning --color=always "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || file_error=1;
+              shellcheck --norc --severity=warning --color=always "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -378,6 +387,9 @@ runs:
               fi;
             fi;
           done;
+          if [[ "${fixed}" ]]; then
+            echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
+          fi;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
         elif [[ -n $(echo "${file_type}" | grep -i "^sh$") ]]; then
@@ -390,12 +402,11 @@ runs:
     - name: Check Makefile Files
       if: inputs.filename != '' && env.FILE_FOUND == 0
       run: |
-        echo ''
+        set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
-          set -o pipefail
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           for f in ${files[@]}; do
@@ -427,12 +438,11 @@ runs:
     - name: Check All Files
       if: inputs.filename != '' && env.FILE_FOUND == 0 
       run: |
-        echo ''
+        set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
         if [[ -n ${files} ]]; then
-          set -o pipefail
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           for f in ${files[@]}; do
@@ -457,9 +467,8 @@ runs:
     - name: Word Text Match
       if: inputs.filetext != ''
       run: |
-        echo ''
-        file_count=1
         set -o pipefail
+        file_count=1
         echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if [[ ${{ inputs.filetype }} != 'none' ]]; then
           for t in ${{ inputs.filetype }}; do
@@ -526,17 +535,16 @@ runs:
 
       
     - name: Repository Update
-      if: inputs.filename != '' && inputs.update != 'false' && inputs.repair != 'false' && env.FILE_FOUND == 1
+      if: inputs.update != 'false' && env.FILE_FIXED == 1
       id: changed-files
       run: |
-        echo ''
         set -o pipefail
+        changed_files=false
         REPAIR_DATE="$(date +%Y%m%d)";
         repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
-        repo=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
+        repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repo} ]]; then
-          changed_files=false
-          cd "${repo%/*}";
+          cd "${repository%/*}";
           if [[ -f ${repaired} ]]; then 
             sudo mv -f "${repair_file}" 'check-file-repaired.txt';
           fi;
@@ -571,7 +579,7 @@ runs:
             if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
               echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################\n";
               if ${{ github.event_name == 'workflow_dispatch' }}; then
-                echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> "${GITHUB_OUTPUT}" 
+                changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)";
               else
                 echo 'Currently only supports workflow_dispatch: action events';
               fi;
@@ -633,4 +641,4 @@ runs:
       shell: bash
       continue-on-error: false
 
-## version v2.0.0
+## version v1.1.1 
