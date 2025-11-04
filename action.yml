@@ -543,7 +543,7 @@ runs:
         REPAIR_DATE="$(date +%Y%m%d)";
         repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
-        if [[ -d ${repo} ]]; then
+        if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
           if [[ -f ${repaired} ]]; then 
             sudo mv -f "${repair_file}" 'check-file-repaired.txt';
