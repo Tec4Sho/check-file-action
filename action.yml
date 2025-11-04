@@ -314,8 +314,8 @@ runs:
               echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
               echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
             fi;
-            if [[ ${{ inputs.number }} -gt 0 ]]; then
-              if [[ ${{ inputs.number }} -lt ${count1} ]]; then
+            if ${{ inputs.number > 0 }}; then
+              if ${{ inputs.number < $count1 }}; then
                 echo -e "\nFile checking auto stopped at $(basename ${f})\n";
                 break;
               fi;
@@ -470,7 +470,7 @@ runs:
         set -o pipefail
         file_count=1
         echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
-        if [[ ${{ inputs.filetype }} != 'none' ]]; then
+        if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
             finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -Hans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
             content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
