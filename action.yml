@@ -556,19 +556,7 @@ runs:
           git push origin "${{ github.ref }}";
           if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
             echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################\n";
-            if ${{ github.event_name == 'workflow_dispatch' }}; then
-              changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs);
-            else
-              echo 'Currently only supports workflow_dispatch: action events';
-            fi;
-            if [[ -n ${changed_files} ]]; then
-              echo -e "\n####################\nDATE: ${REPAIR_DATE}\n####################\n\nRepaired Files:\n" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-              for file in ${changed_files}; do
-                echo -e "$file was repaired" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-              done;
-            else
-              echo 'Was git push event successful no changes found';
-            fi;
+            git show --name-only ${{ github.sha }} |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
           else
             echo -e "\n####################\nCHECK FILE COULD NOT UPDATED REPO FILE(S)\n####################\n\n";
             echo 'Retrying again after git fetches branch';
@@ -577,39 +565,17 @@ runs:
             git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)";
             git push origin "${{ github.ref }}";
             if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
-              echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################\n";
-              if ${{ github.event_name == 'workflow_dispatch' }}; then
-                changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs);
-              else
-                echo 'Currently only supports workflow_dispatch: action events';
-              fi;
-              if [[ -n ${changed_files} ]]; then
-                for file in ${changed_files}; do
-                  echo -e "$file was repaired" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-                done;
-              else
-                echo 'Was git push event successful no changes found';
-              fi;
+              echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S)\n####################\n";
+              git show --name-only ${{ github.sha }} |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+            else
+              echo 'Was git push event successful status ? unknown';
             fi;
           fi;
         else
-          echo -e "\n####################\nCHECK FILE CANT FIND (.git) FOR UPDATING\n####################\n";
+          echo -e "\n####################\nCHECK FILE CANT FIND (.git) DIR FOR UPDATING\n####################\n";
         fi;
       shell: bash
       continue-on-error: false
-
-
-    - name: Check For ${{ inputs.filename }} Error.log
-      if: inputs.report != 'false' && inputs.filename != ''
-      run: |
-        echo ''
-        if [[ -s "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" ]]; then
-          echo "FILE_ERROR=1" >> "${GITHUB_ENV}";
-          ansi2txt "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" > "${GITHUB_WORKSPACE}/${{ inputs.filename }}_new_error.log" &&
-          sudo mv -f "${GITHUB_WORKSPACE}/${{ inputs.filename }}_new_error.log" "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log"
-        fi;
-      shell: bash
-      continue-on-error: true
 
 
     - name: Uploading ${{ inputs.filename }} Error Report
