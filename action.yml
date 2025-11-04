@@ -556,7 +556,8 @@ runs:
           git push origin "${{ github.ref }}";
           if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
             echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################\n";
-            git show --name-only ${{ github.sha }} |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+            # git show --name-only ${{ github.sha }} 
+            git diff --name-only @{push}@{1} @{push} |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
           else
             echo -e "\n####################\nCHECK FILE COULD NOT UPDATED REPO FILE(S)\n####################\n\n";
             echo 'Retrying again after git fetches branch';
@@ -566,7 +567,7 @@ runs:
             git push origin "${{ github.ref }}";
             if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
               echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S)\n####################\n";
-              git show --name-only ${{ github.sha }} |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+              git diff --name-only @{push}@{1} @{push} |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
             else
               echo 'Was git push event successful status ? unknown';
             fi;
