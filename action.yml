@@ -555,9 +555,10 @@ runs:
           git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)";
           git push origin "${{ github.ref }}";
           if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
-            echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################\n";
-            # git show --name-only ${{ github.sha }} 
+            echo -e "\n####################\nCHECK FILE UPDATED REPOSITORY\n####################\n\n";
+            echo -e "\n####################\nUPDATED FILE(S) LIST:\n####################\n";
             git diff --name-only @{push}@{1} @{push} |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+            echo "\n\t########## END ##########\n";
           else
             echo -e "\n####################\nCHECK FILE COULD NOT UPDATED REPO FILE(S)\n####################\n\n";
             echo 'Retrying again after git fetches branch';
@@ -566,8 +567,10 @@ runs:
             git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)";
             git push origin "${{ github.ref }}";
             if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
-              echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S)\n####################\n";
+              echo -e "\n####################\nCHECK FILE UPDATED REPOSITORY\n####################\n\n";
+              echo -e "\n####################\nUPDATED FILE(S) LIST:\n####################\n";
               git diff --name-only @{push}@{1} @{push} |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+              echo "\n\t########## END ##########\n";
             else
               echo 'Was git push event successful status ? unknown';
             fi;
