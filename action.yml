@@ -65,7 +65,7 @@ inputs:
     description: 'Number of files to check before stopping action'
     type: number
     required: false
-    default: '0'
+    default: 0
 
 runs:
   using: composite
@@ -314,8 +314,8 @@ runs:
               echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
               echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
             fi;
-            if [[ ${{ inputs.number != '0' }} ]]; then
-              if [[ "${{ inputs.number }}" -lt "${count1}" ]]; then
+            if [[ ${{ inputs.number -eq 0 }} ]]; then
+              if [[ ${{ inputs.number }} -lt ${count1} ]]; then
                 echo -e "\nFile checking auto stopped at $(basename ${f})\n";
                 break;
               fi;
@@ -579,7 +579,7 @@ runs:
             if [[ ${PIPESTATUS[0]} == 0 ]] || [[ ${PIPESTATUS[1]} == 0 ]]; then
               echo -e "\n####################\nCHECK FILE UPDATED REPO FILE(S) .. Goodbye\n####################\n";
               if ${{ github.event_name == 'workflow_dispatch' }}; then
-                changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)";
+                changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs);
               else
                 echo 'Currently only supports workflow_dispatch: action events';
               fi;
