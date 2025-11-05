@@ -215,8 +215,8 @@ runs:
             sudo cp -vf "${file_path}" "${clang_file}";
           fi;
           if ${{ inputs.number > 0 }}; then
-            files_count=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print | head -n "${number}");
-            echo -e "\n# ${{ inputs.number }} File Path(s)\n${files_count}\n";
+            count=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" | head -n ${{ inputs.number }});
+            echo -e "\n# ${{ inputs.number }} File Path(s)\n${count}\n";
           else
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
