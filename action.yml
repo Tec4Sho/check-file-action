@@ -221,6 +221,9 @@ runs:
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
               sudo find $(dirname ${f}) -type f -name $(basename ${f}) -exec batcat --theme=ansi --paging=never --show-all --color=always --style=full "{}" \;
             fi;
+            if ${{ inputs.repair }} && [[ -n ${repaired} ]]; then
+              echo -e "\n####################\n(check-file-repaired.txt) fixed files stored!!!\n####################\n"; 
+            fi;
             if ${{ inputs.include }}; then
               includes=$(sudo find $(dirname ${f}) -name $(basename ${f}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
               included1='include_file.txt'
@@ -248,14 +251,14 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || ! grep -q "${SEARCH_PATH}" "${repaired}"; then
+                    if ${{ inputs.stored }} && grep -q "${SEARCH_PATH}" "${repaired}"; then
+                      echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
+                      echo "${f}" >> "${repair_file}";
+                    elif ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                       echo "${f}" >> "${repair_file}";
                       fixed=true
-                    elif ${{ inputs.stored }}; then
-                      echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
-                      echo "${f}" >> "${repair_file}";
                     elif ! ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -278,14 +281,14 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || ! grep -q "${SEARCH_PATH}" "${repaired}"; then
+                if ${{ inputs.stored }} && grep -q "${SEARCH_PATH}" "${repaired}"; then
+                  echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
+                  echo "${f}" >> "${repair_file}";
+                elif ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\nFinal File: ${final}\n\n";
                   echo "${f}" >> "${repair_file}";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   fixed=true
-                elif ${{ inputs.stored }}; then
-                  echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
-                  echo "${f}" >> "${repair_file}";
                 elif ! ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\nFinal File: ${final}\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -363,14 +366,14 @@ runs:
             fi;
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
-              if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || ! grep -q "${SEARCH_PATH}" "${repaired}"; then
+              if ${{ inputs.stored }} && grep -q "${SEARCH_PATH}" "${repaired}"; then
+                echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
+                echo "${f}" >> "${repair_file}";
+              elif ${{ inputs.stored }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                 echo "${f}" >> "${repair_file}";
                 fixed=true
-              elif ${{ inputs.stored }}; then
-                echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
-                echo "${f}" >> "${repair_file}";
               elif ! ${{ inputs.stored }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
