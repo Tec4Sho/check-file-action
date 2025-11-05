@@ -251,7 +251,7 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ "${repaired}" ]] && grep -q "${SEARCH_PATH}" "${repaired}"; then
+                    if ${{ inputs.stored }} && [[ "${repaired}" ]] && [[ $(grep -q "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                       echo "${f}" >> "${repair_file}";
                     elif ${{ inputs.stored }}; then
@@ -270,9 +270,9 @@ runs:
                   fi;
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
-                  elif [[ ${PIPESTATUS[0]} == 1 ]] || [[ ${PIPESTATUS[1]} == 1 ]]; then
+                  elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
-                  elif [[ $? -eq 0 ]]; then
+                  else
                     echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                   fi;
                 else 
@@ -302,9 +302,9 @@ runs:
               fi;
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
-              elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 1 ]]; then
+              elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
-              elif [[ $? -eq 0 ]]; then
+              else
                 echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
               fi;
             fi;
@@ -385,9 +385,9 @@ runs:
               fi;
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
-              elif [[ ${PIPESTATUS[0]} == 1 ]] || [[ ${PIPESTATUS[1]} == 1 ]]; then
+              elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\n${SHELL} FOUND ERROR(S) TO REPAIR\n####################\n";
-              elif [[ $? -eq 0 ]]; then
+              else
                 echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
               fi;
             fi;
