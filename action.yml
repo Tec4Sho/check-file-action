@@ -211,7 +211,10 @@ runs:
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
             sudo cp -vf "${file_path}" "${clang_file}";
           fi;
-          echo -e "\n# Found File Path(s)\n${files}\n\n";
+          echo -e "\n# Found File Path(s)\n${files}\n";
+          if ${{ inputs.repair }} && [[ -n ${repaired} ]]; then
+            echo -e "\n####################\n(check-file-repaired.txt) repaired files listed!!!\n####################\n"; 
+          fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             count1=$((file_count++));
@@ -220,9 +223,6 @@ runs:
             if ${{ inputs.content }} && ! ${{ inputs.include }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
               sudo find $(dirname ${f}) -type f -name $(basename ${f}) -exec batcat --theme=ansi --paging=never --show-all --color=always --style=full "{}" \;
-            fi;
-            if ${{ inputs.repair }} && [[ -n ${repaired} ]]; then
-              echo -e "\n####################\n(check-file-repaired.txt) repaired files listed!!!\n####################\n"; 
             fi;
             if ${{ inputs.include }}; then
               includes=$(sudo find $(dirname ${f}) -name $(basename ${f}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
@@ -252,7 +252,7 @@ runs:
                   fi;
                   if ${{ inputs.repair }}; then
                     if ${{ inputs.stored }} && [[ "${repaired}" ]] && [[ $(grep -q "${SEARCH_PATH}" "${repaired}") ]]; then
-                      echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
+                      echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n\n";
                       echo "${f}" >> "${repair_file}";
                     elif ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
@@ -284,7 +284,7 @@ runs:
             else
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && [[ "${repaired}" ]] && grep -q "${SEARCH_PATH}" "${repaired}"; then
-                  echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
+                  echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n\n";
                   echo "${f}" >> "${repair_file}";
                 elif ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
@@ -332,6 +332,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
+          echo -e "Search Runtime!\n";
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
@@ -358,6 +359,9 @@ runs:
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
+          if ${{ inputs.repair }} && [[ -n ${repaired} ]]; then
+            echo -e "\n####################\n(check-file-repaired.txt) repaired files listed!!!\n####################\n"; 
+          fi;
           for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             count3=$((shellcheck_count++));
@@ -371,7 +375,7 @@ runs:
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
               if ${{ inputs.stored }} && [[ "${repaired}" ]] && grep -q "${SEARCH_PATH}" "${repaired}"; then
-                echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
+                echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n\n";
                 echo "${f}" >> "${repair_file}";
               elif ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
