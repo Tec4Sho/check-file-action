@@ -213,6 +213,7 @@ runs:
           fi;
           echo -e "\n# Found File Path(s)\n${files}\n\n";
           for f in ${files[@]}; do
+            SEARCH_PATH="{f}";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname $(sudo find $(dirname ${f}) -type f -name $(basename ${f}) -print))";
@@ -247,9 +248,9 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || [[ ! $(grep -q "{f}" "${repaired}" 2>/dev/null) ]]; then
+                    if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || ! grep -q "{SEARCH_PATH}" "${repaired}"; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                       echo "${f}" >> "${repair_file}";
                       fixed=true
                     elif ${{ inputs.stored }}; then
@@ -277,7 +278,7 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || [[ ! $(grep -q "{f}" "${repaired}" 2>/dev/null) ]]; then
+                if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || ! grep -q "{SEARCH_PATH}" "${repaired}"; then
                   echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   echo "${f}" >> "${repair_file}";
@@ -340,14 +341,16 @@ runs:
       run: |
         set -o pipefail
         fixed=false
-        repair=${GITHUB_WORKSPACE}/check-file-repaired.txt;
+        shellcheck_count=1
+        repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
+        repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        shellcheck_count=1
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           for f in ${files[@]}; do
+            SEARCH_PATH="{f}";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname $(sudo find $(dirname ${f}) -type f -name $(basename ${f}) -print))";
@@ -358,9 +361,19 @@ runs:
             fi;
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
-              echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-              shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-              fixed=true
+              if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || ! grep -q "${SEARCH_PATH}" "${repaired}"; then
+                echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
+                shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                echo "${f}" >> "${repair_file}";
+                fixed=true
+              elif ${{ inputs.stored }}; then
+                echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
+                echo "${f}" >> "${repair_file}";
+              elif ! ${{ inputs.stored }}; then
+                echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
+                shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                fixed=true
+              fi;
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -384,6 +397,12 @@ runs:
                 echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
               else
                 echo -e "\n####################\n${SHELL} FOUND ERROR(S)\n####################\n";
+              fi;
+            fi;
+            if ${{ inputs.number > 0 }}; then
+              if [[ ${{ inputs.number }} -lt ${count3} ]]; then
+                echo -e "\nFile checking auto stopped at $(basename ${f})\n";
+                break;
               fi;
             fi;
           done;
@@ -546,7 +565,7 @@ runs:
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
           if [[ -f ${repair_file} ]]; then
-            echo -e "\n####################\n\tcheck-file-repair.txt found copying...\n####################\n";
+            echo -e "\n####################\ncheck-file-repair.txt found copying...\n####################\n";
             sudo mv -vu "${repair_file}" 'check-file-repaired.txt';
             echo -e "\n\t########## MOVED ##########\n";
           fi;
