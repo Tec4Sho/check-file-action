@@ -270,10 +270,10 @@ runs:
                   fi;
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
-                  elif [[ ${PIPESTATUS[0]} == 0 ]]; then
-                    echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
-                  else
+                  elif [[ ${PIPESTATUS[0]} == 1 ]] || [[ ${PIPESTATUS[1]} == 1 ]]; then
                     echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
+                  elif [[ $? -eq 0 ]]; then
+                    echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                   fi;
                 else 
                   echo -e "\n\n####################\nHEADER FILE(S) FOR $(basename ${f}) NOT FOUND\n####################\n\n";
@@ -302,10 +302,10 @@ runs:
               fi;
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
-              elif [[ ${PIPESTATUS[0]} == 0 ]]; then
-                echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
-              else
+              elif [[ ${PIPESTATUS[0]} == 1 ]] || [[ ${PIPESTATUS[1]} == 1 ]]; then
                 echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
+              elif [[ $? -eq 0 ]]; then
+                echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
               fi;
             fi;
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
@@ -375,8 +375,8 @@ runs:
                 echo "${f}" >> "${repair_file}";
               elif ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-                shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                 echo "${f}" >> "${repair_file}";
+                shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                 fixed=true
               elif ! ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
@@ -385,10 +385,10 @@ runs:
               fi;
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
-              elif [[ ${PIPESTATUS[0]} == 0 ]]; then
-                echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
-              else
+              elif [[ ${PIPESTATUS[0]} == 1 ]] || [[ ${PIPESTATUS[1]} == 1 ]]; then
                 echo -e "\n####################\n${SHELL} FOUND ERROR(S) TO REPAIR\n####################\n";
+              elif [[ $? -eq 0 ]]; then
+                echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
               fi;
             fi;
             if ${{ inputs.recheck }}; then
@@ -643,4 +643,4 @@ runs:
       shell: bash
       continue-on-error: false
 
-## version v1.1.1 
+## version v1.1.2 beta
