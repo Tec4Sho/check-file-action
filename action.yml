@@ -251,7 +251,7 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && grep -q "${SEARCH_PATH}" "${repaired}"; then
+                    if ${{ inputs.stored }} && [[ "${repaired}" ]] && grep -q "${SEARCH_PATH}" "${repaired}"; then
                       echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                       echo "${f}" >> "${repair_file}";
                     elif ${{ inputs.stored }}; then
@@ -270,6 +270,8 @@ runs:
                   fi;
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+                  elif [[ ${PIPESTATUS[0]} == 0 ]]; then
+                    echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                   else
                     echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
                   fi;
@@ -281,7 +283,7 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && grep -q "${SEARCH_PATH}" "${repaired}"; then
+                if ${{ inputs.stored }} && [[ "${repaired}" ]] && grep -q "${SEARCH_PATH}" "${repaired}"; then
                   echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                   echo "${f}" >> "${repair_file}";
                 elif ${{ inputs.stored }}; then
@@ -300,6 +302,8 @@ runs:
               fi;
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+              elif [[ ${PIPESTATUS[0]} == 0 ]]; then
+                echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
               else
                 echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
               fi;
@@ -366,7 +370,7 @@ runs:
             fi;
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
-              if ${{ inputs.stored }} && grep -q "${SEARCH_PATH}" "${repaired}"; then
+              if ${{ inputs.stored }} && [[ "${repaired}" ]] && grep -q "${SEARCH_PATH}" "${repaired}"; then
                 echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                 echo "${f}" >> "${repair_file}";
               elif ${{ inputs.stored }}; then
@@ -381,8 +385,10 @@ runs:
               fi;
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
+              elif [[ ${PIPESTATUS[0]} == 0 ]]; then
+                echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
               else
-                echo -e "\n####################\n${SHELL} FOUND ERROR(S) TO FIX\n####################\n";
+                echo -e "\n####################\n${SHELL} FOUND ERROR(S) TO REPAIR\n####################\n";
               fi;
             fi;
             if ${{ inputs.recheck }}; then
