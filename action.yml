@@ -204,6 +204,7 @@ runs:
         repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
         repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
         count2=0
+        number=
         checked=false
         file_count=1
         include_count=1
@@ -213,11 +214,22 @@ runs:
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
             sudo cp -vf "${file_path}" "${clang_file}";
           fi;
-          echo -e "\n# Found File Path(s)\n${files}\n";
+          if ${{ inputs.number > 0 }}; then
+            files_count=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print | head -n "${number}");
+            echo -e "\n# ${{ inputs.number }} File Path(s)\n${files_count}\n";
+          else
+            echo -e "\n# Found File Path(s)\n${files}\n";
+          fi;
           if ${{ inputs.repair }} && [[ -n ${repaired} ]]; then
             echo -e "\n####################\n(check-file-repaired.txt) repaired files listed!!!\n####################\n"; 
           fi;
           time -p for f in ${files[@]}; do
+            if ${{ inputs.number > 0 }}; then
+              if [[ ${{ inputs.number }} -lt ${count1} ]]; then
+                echo -e "\nFile checking auto stopped at $(basename ${f})\n";
+                break;
+              fi;
+            fi;
             SEARCH_PATH="${f}";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
@@ -324,12 +336,6 @@ runs:
               echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
               echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
             fi;
-            if ${{ inputs.number > 0 }}; then
-              if [[ ${{ inputs.number }} -lt ${count1} ]]; then
-                echo -e "\nFile checking auto stopped at $(basename ${f})\n";
-                break;
-              fi;
-            fi;
           done;
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
@@ -365,6 +371,12 @@ runs:
             echo -e "\n####################\n(check-file-repaired.txt) repaired files listed!!!\n####################\n"; 
           fi;
           for f in ${files[@]}; do
+            if ${{ inputs.number > 0 }}; then
+              if [[ ${{ inputs.number }} -lt ${count3} ]]; then
+                echo -e "\nFile checking auto stopped at $(basename ${f})\n";
+                break;
+              fi;
+            fi;
             SEARCH_PATH="${f}";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
@@ -414,12 +426,6 @@ runs:
                 echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
               else
                 echo -e "\n####################\n${SHELL} FOUND ERROR(S)\n####################\n";
-              fi;
-            fi;
-            if ${{ inputs.number > 0 }}; then
-              if [[ ${{ inputs.number }} -lt ${count3} ]]; then
-                echo -e "\nFile checking auto stopped at $(basename ${f})\n";
-                break;
               fi;
             fi;
           done;
