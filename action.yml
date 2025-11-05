@@ -248,7 +248,7 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || ! grep -q "{SEARCH_PATH}" "${repaired}"; then
+                    if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || ! grep -q "${SEARCH_PATH}" "${repaired}"; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                       echo "${f}" >> "${repair_file}";
@@ -278,16 +278,16 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || ! grep -q "{SEARCH_PATH}" "${repaired}"; then
-                  echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                if ${{ inputs.stored }} && [[ ! -f "${repaired}" ]] || ! grep -q "${SEARCH_PATH}" "${repaired}"; then
+                  echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\nFinal File: ${final}\n\n";
                   echo "${f}" >> "${repair_file}";
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   fixed=true
                 elif ${{ inputs.stored }}; then
                   echo -e "\n\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                   echo "${f}" >> "${repair_file}";
                 elif ! ${{ inputs.stored }}; then
-                  echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
+                  echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\nFinal File: ${final}\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   fixed=true
                 fi;
@@ -326,7 +326,9 @@ runs:
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
-          echo -e "Total number of included file(s) checked is: ${count2}\n";
+          if ${{ inputs.include }}; then
+            echo -e "Total number of included file(s) checked is: ${count2}\n";
+          fi;
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
         elif [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
