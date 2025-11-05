@@ -203,8 +203,8 @@ runs:
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
         repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
         repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
-        count2=0
         number=${{ inputs.number }}
+        count2=0
         checked=false
         file_count=1
         include_count=1
@@ -216,12 +216,13 @@ runs:
           fi;
           if ${{ inputs.number > 0 }}; then
             count=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" | head -n ${{ inputs.number }});
-            echo -e "\n# ${{ inputs.number }} File Path(s)\n${count}\n";
+            echo -e "\nLimit:${{ inputs.number }} File Path(s)\n${count}\n";
           else
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           if ${{ inputs.repair }} && [[ -n ${repaired} ]]; then
-            echo -e "\n####################\n(check-file-repaired.txt) repaired files listed!!!\n####################\n"; 
+            echo -e "\n####################\nRepaired files list found!!!\n####################\n";
+            sudo cp -vf "${repaired}" "${repair_file}";
           fi;
           time -p for f in ${files[@]}; do
             if ${{ inputs.number > 0 }}; then
@@ -265,13 +266,12 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ "${repaired}" ]] && [[ $(grep -q "${SEARCH_PATH}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && [[ "${repair_file}" ]] && [[ $(grep -q "${SEARCH_PATH}" "${repair_file}") ]]; then
                       echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
-                      echo "${f}" >> "${repair_file}";
                     elif ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                       echo "${f}" >> "${repair_file}";
+                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                       fixed=true
                     elif ! ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
@@ -284,7 +284,7 @@ runs:
                   fi;
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
-                  elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+                  elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 1 ]]; then
                     echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
                   else
                     echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
@@ -299,11 +299,10 @@ runs:
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && [[ "${repaired}" ]] && grep -q "${SEARCH_PATH}" "${repaired}"; then
                   echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
-                  echo "${f}" >> "${repair_file}";
                 elif ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                   echo "${f}" >> "${repair_file}";
-                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   fixed=true
                 elif ! ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
@@ -316,7 +315,7 @@ runs:
               fi;
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
-              elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+              elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 1 ]]; then
                 echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
               else
                 echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
@@ -336,11 +335,10 @@ runs:
               echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
               echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
             fi;
-          done;
+          done && echo -e "Search Runtime!\n";
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
-          echo -e "Search Runtime!\n";
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
@@ -360,6 +358,7 @@ runs:
         set -o pipefail
         fixed=false
         shellcheck_count=1
+        number=${{ inputs.number }}
         repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
         repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
@@ -367,8 +366,15 @@ runs:
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
+          if ${{ inputs.number > 0 }}; then
+            count=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" | head -n ${{ inputs.number }});
+            echo -e "\nLimit:${{ inputs.number }} File Path(s)\n${count}\n";
+          else
+            echo -e "\n# Found File Path(s)\n${files}\n";
+          fi;
           if ${{ inputs.repair }} && [[ -n ${repaired} ]]; then
-            echo -e "\n####################\n(check-file-repaired.txt) repaired files listed!!!\n####################\n"; 
+            echo -e "\n####################\nRepaired files list found!!!\n####################\n";
+            sudo cp -vf "${repaired}" "${repair_file}";
           fi;
           for f in ${files[@]}; do
             if ${{ inputs.number > 0 }}; then
@@ -388,9 +394,8 @@ runs:
             fi;
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
-              if ${{ inputs.stored }} && [[ "${repaired}" ]] && grep -q "${SEARCH_PATH}" "${repaired}"; then
+              if ${{ inputs.stored }} && [[ "${repair_file}" ]] && grep -q "${SEARCH_PATH}" "${repair_file}"; then
                 echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
-                echo "${f}" >> "${repair_file}";
               elif ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 echo "${f}" >> "${repair_file}";
@@ -403,7 +408,7 @@ runs:
               fi;
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
-              elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+              elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 1 ]]; then
                 echo -e "\n####################\n${SHELL} FOUND ERROR(S) TO REPAIR\n####################\n";
               else
                 echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
