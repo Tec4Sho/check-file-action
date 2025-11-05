@@ -212,7 +212,7 @@ runs:
             sudo cp -vf "${file_path}" "${clang_file}";
           fi;
           echo -e "\n# Found File Path(s)\n${files}\n\n";
-          for f in ${files[@]}; do
+          time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
@@ -317,7 +317,7 @@ runs:
                 echo -e "\n####################\nRECHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
               fi;
             fi;
-            if [[ -f "$(dirname ${f})/${included2}" ]]; then
+            if ${{ inputs.include }} && [[ -f "$(dirname ${f})/${included2}" ]]; then
               echo -e "# Included Path(s): ${include_paths/\\n /}";
               echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
               echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
