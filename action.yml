@@ -302,7 +302,7 @@ runs:
               fi;
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
-              elif [[ ${PIPESTATUS[0]} == 1 ]] || [[ ${PIPESTATUS[1]} == 1 ]]; then
+              elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 1 ]]; then
                 echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
               elif [[ $? -eq 0 ]]; then
                 echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
