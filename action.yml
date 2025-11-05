@@ -204,7 +204,7 @@ runs:
         repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
         repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
         count2=0
-        number=
+        number=${{ inputs.number }}
         checked=false
         file_count=1
         include_count=1
