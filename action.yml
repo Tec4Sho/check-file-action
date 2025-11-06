@@ -262,7 +262,7 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ -f "${repair_file}" ]] && [[ $(grep -s "${SEARCH_PATH}" "${repair_file}") ]]; then
+                    if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}$" "${repair_file}"; then
                       echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                     elif ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
@@ -293,7 +293,7 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && [[ -f "${repair_file}" ]] && [[ $(grep -s "${SEARCH_PATH}" "${repair_file}") ]]; then
+                if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}$" "$(echo ${repair_file})"; then
                   echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                 elif ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
@@ -387,7 +387,7 @@ runs:
             fi;
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
-              if ${{ inputs.stored }} && [[ -f "${repair_file}" ]] && [[ $(grep -s "${SEARCH_PATH}" "${repair_file}") ]]; then
+              if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}$" "${repair_file}"; then
                 echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
               elif ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
