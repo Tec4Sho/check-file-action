@@ -219,8 +219,9 @@ runs:
           fi;
           if [[ -d ${repository} ]] && ${{ inputs.repair }}; then
             repository="${repository%/*}/${repair_file}";
-            if [[ -f {repository} ]]; then
+            if [[ -f ${repository} ]]; then
               echo -e "\n####################\nRepaired files list found!!!\n####################\n";
+              date >> "${repository}";
             else
               date > "${repository}";
             fi;
@@ -261,7 +262,7 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}" "${repaired}"; then
+                    if ${{ inputs.stored }} && [[ $(grep -s "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                       echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                     elif ${{ inputs.stored }}; then
@@ -301,7 +302,7 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}" "${repaired}"; then
+                if ${{ inputs.stored }} && [[ $(grep -s "${SEARCH_PATH}" "${repaired}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                   echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                 elif ${{ inputs.stored }}; then
@@ -391,8 +392,9 @@ runs:
           fi;
           if [[ -d ${repository} ]] && ${{ inputs.repair }}; then
             repository="${repository%/*}/${repair_file}";
-            if [[ -f {repository} ]]; then
+            if [[ -f ${repository} ]]; then
               echo -e "\n####################\nRepaired files list found!!!\n####################\n";
+              date >> "${repository}";
             else
               date > "${repository}";
             fi;
