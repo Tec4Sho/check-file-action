@@ -262,27 +262,36 @@ runs:
                   fi;
                   if ${{ inputs.repair }}; then
                     if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}$" "${repaired}"; then
+                      echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                       echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                     elif ${{ inputs.stored }}; then
-                      echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                      echo "${f}" >> "${repaired}";
+                      echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                      if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+                        echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+                      else
+                        echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
+                      fi;
+                      echo "${f}" >> "${repaired}";
                       fixed=true
                     elif ! ${{ inputs.stored }}; then
-                      echo -e "\n\n####################\nCLANG-TIDY INCLUDE FILES ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
+                      echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                      if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+                        echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+                      else
+                        echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
+                      fi;
                       fixed=true
                     fi;
                   else
                     echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                     cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --error-exitcode=1 --includes-file="${included3}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-                  fi;
-                  if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
-                    echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
-                  elif [[ ${PIPESTATUS[0]} == 1 ]]; then
-                    echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
-                  else
-                    echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
+                    if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+                      echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+                    else
+                      echo -e "\n####################\nCHECK-FILE FOUND ERROR(S)\n####################\n";
+                    fi;
                   fi;
                 else 
                   echo -e "\n\n####################\nHEADER FILE(S) FOR $(basename ${f}) NOT FOUND\n####################\n\n";
@@ -293,27 +302,36 @@ runs:
             else
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}$" "${repaired}"; then
+                  echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                   echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                 elif ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  echo "${f}" >> "${repaired}";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                  if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+                    echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+                  else
+                    echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
+                  fi;
+                  echo "${f}" >> "${repaired}";
                   fixed=true
                 elif ! ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths/\\n /}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                  if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+                    echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+                  else
+                    echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
+                  fi;
                   fixed=true
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
                 cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --error-exitcode=1 "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-              fi;
-              if [[ ${PIPESTATUS[0]} == 0 ]]; then
-                echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
-              elif [[ ${PIPESTATUS[0]} == 1 ]]; then
-                echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
-              else
-                echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
+                if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+                  echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+                else
+                  echo -e "\n####################\nCHECK-FILE FOUND ERROR(S)\n####################\n";
+                fi;
               fi;
             fi;
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
@@ -392,23 +410,27 @@ runs:
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
               if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}$" "${repaired}"; then
+                echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
                 echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
               elif ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-                echo "${f}" >> "${repaired}";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+                  echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
+                else
+                  echo -e "\n####################\n${SHELL} FOUND ERROR(S) TO REPAIR\n####################\n";
+                fi;
+                echo "${f}" >> "${repaired}";
                 fixed=true
               elif ! ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+                  echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
+                else
+                  echo -e "\n####################\n${SHELL} FOUND ERROR(S) TO REPAIR\n####################\n";
+                fi;
                 fixed=true
-              fi;
-              if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
-                echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
-              elif [[ ${PIPESTATUS[0]} == 1 ]]; then
-                echo -e "\n####################\n${SHELL} FOUND ERROR(S) TO REPAIR\n####################\n";
-              else
-                echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
               fi;
             fi;
             if ${{ inputs.recheck }}; then
