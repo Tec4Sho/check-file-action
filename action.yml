@@ -595,11 +595,6 @@ runs:
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
-          if [[ -f ${repair_file} ]]; then
-            echo -e "\n####################\ncheck-file-repair.txt updated...\n####################\n";
-            sudo mv -vu "${repair_file}" 'check-file-repaired.txt';
-            echo -e "\n\t########## MOVED ##########\n";
-          fi;
           git config --global user.name "${{ github.actor }}";
           git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com";
           git config --global credential.helper store
