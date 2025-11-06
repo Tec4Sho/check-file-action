@@ -355,7 +355,7 @@ runs:
               fi;
             fi;
           done;
-          echo -n ' || File Check Runtime || ';
+          echo -n '| Check File Runtime |';
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
