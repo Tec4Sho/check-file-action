@@ -206,7 +206,7 @@ runs:
       continue-on-error: false
 
 
-      - name: Check & Repair (Clang-tools)
+    - name: Check & Repair (Clang-tools)
       if: inputs.filename != '' && inputs.locate != 'false'
       run: |
         set -o pipefail
