@@ -203,7 +203,6 @@ runs:
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
         repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
         repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
-        number=${{ inputs.number }}
         count2=0
         checked=false
         file_count=1
@@ -214,13 +213,10 @@ runs:
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
             sudo cp -vf "${file_path}" "${clang_file}";
           fi;
-          if ${{ inputs.number > 0 }}; then
-            count=$( sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print | head -n "${number}" );
-            echo -e "\nLimit:${{ inputs.number }} File Path(s)\n${count}\n";
-          else
+          if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
-          if ${{ inputs.repair }} && [[ -n ${repaired} ]]; then
+          if [[ -n ${repaired} ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\nRepaired files list found!!!\n####################\n";
             sudo cp -vf "${repaired}" "${repair_file}";
           fi;
@@ -335,7 +331,8 @@ runs:
               echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
               echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
             fi;
-          done && echo -e "Search Runtime!\n";
+          done;
+          echo -en " || File Check Runtime ||\n";
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
@@ -358,7 +355,6 @@ runs:
         set -o pipefail
         fixed=false
         shellcheck_count=1
-        number=${{ inputs.number }}
         repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
         repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
@@ -366,10 +362,7 @@ runs:
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          if ${{ inputs.number > 0 }}; then
-            count=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" | head -n ${{ inputs.number }});
-            echo -e "\nLimit:${{ inputs.number }} File Path(s)\n${count}\n";
-          else
+          if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           if ${{ inputs.repair }} && [[ -n ${repaired} ]]; then
