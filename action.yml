@@ -219,7 +219,7 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
         repair_file='check-file-repaired.txt';
-        repaired=$(locate -r "/.${repair_file}$");
+        repaired=$(locate -r "/${repair_file}$");
         repository=$(locate -r "/.git$");
         count2=0
         checked=false
@@ -247,7 +247,7 @@ runs:
             SEARCH_PATH="${f}";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
-            echo "$(dirname $(locate -r /$(basename ${f})$))";
+            echo "$(basename ${f})";
             if ${{ inputs.content }} && ! ${{ inputs.include }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
               sudo find $(dirname ${f}) -type f -name $(basename ${f}) -exec batcat --theme=ansi --paging=never --show-all --color=always --style=full "{}" \;
@@ -397,7 +397,7 @@ runs:
         fixed=false
         shellcheck_count=1
         repair_file='check-file-repaired.txt';
-        repaired=$(locate -r "/.${repair_file}$");
+        repaired=$(locate -r "/${repair_file}$");
         repository=$(locate -r "/.git$");
         if ${{ inputs.number > 0 }}; then
           files=$(locate -r "/${{ inputs.filename }}$" -n ${{ inputs.number }});
@@ -424,7 +424,7 @@ runs:
             SEARCH_PATH="${f}";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
-            echo "$(dirname $(locate -r /$(basename ${f})$))";
+            echo "$(basename ${f})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT\n####################\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
@@ -511,7 +511,7 @@ runs:
           for f in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
-            echo "$(dirname $(locate -r /$(basename ${f})$))";
+            echo "$(basename ${f})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT\n####################\n\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
@@ -551,7 +551,7 @@ runs:
           for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
-            echo "$(dirname $(locate -r /$(basename ${f})$))";
+            echo "$(basename ${f})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count5})\n####################\n\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
@@ -604,7 +604,7 @@ runs:
             SEARCH_PATH="${f}";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
-            echo "$(dirname $(sudo find $(dirname ${f}) -type f -name $(basename ${f}) -print))";
+            echo "$(basename ${f})";
             if ${{ inputs.content }} && ! ${{ inputs.include }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
               sudo find $(dirname ${f}) -type f -name $(basename ${f}) -exec batcat --theme=ansi --paging=never --show-all --color=always --style=full "{}" \;
@@ -777,7 +777,7 @@ runs:
             SEARCH_PATH="${f}";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
-            echo "$(dirname $(sudo find $(dirname ${f}) -type f -name $(basename ${f}) -print))";
+            echo "$(basename ${f})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT\n####################\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
@@ -860,7 +860,7 @@ runs:
           for f in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
-            echo "$(dirname $(sudo find $(dirname ${f}) -type f -name $(basename ${f}) -print))";
+            echo "$(basename ${f})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT\n####################\n\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
@@ -896,7 +896,7 @@ runs:
           for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
-            echo "$(dirname $(sudo find $(dirname ${f}) -type f -name $(basename ${f}) -print))";
+            echo "$(basename ${f})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count5})\n####################\n\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
@@ -971,11 +971,12 @@ runs:
       if: inputs.filename != '' && inputs.content != 'false'
       run: |
         echo ''
+        check_file=$(dirname $(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}"));
         file_count=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) | wc -l);
         if [[ ${{ env.FILE_FOUND }} != 0  ]]; then
           echo -e "\n####################\nNOTE: Contents found in directory(s) for ${{ inputs.filename }}\n####################\n";
-          ls -Shap $(dirname $(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}"));
-          echo -e "\n(LOCAL REPO) Files: ${file_count}\n";
+          ls -Shap "${check_file}";
+          echo -e "\n(CLONED REPO) Files: ${file_count}\n";
           echo -e "\n####################\nCHECK FILE EXITING ....✅\n####################";
         fi;
       shell: bash
@@ -989,7 +990,6 @@ runs:
         set -o pipefail
         changed_files=false
         REPAIR_DATE="$(date +%Y%m%d)";
-        repair_file=${GITHUB_WORKSPACE}/check-file-repair.txt;
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
@@ -1003,7 +1003,7 @@ runs:
             echo -e "\n####################\nCHECK FILE UPDATED REPOSITORY\n####################\n";
             echo -e "\n####################\nUPDATED FILE(S) LIST:\n####################\n";
             git diff --name-only @{push}@{1} @{push} |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-            echo -e "\n\t########## END ##########\n";
+            echo -e "\n\t########## ${REPAIR_DATE} ##########\n";
           else
             echo -e "\n####################\nCHECK FILE COULD NOT UPDATED REPO FILE(S)\n####################\n";
             echo 'Retrying again after git fetches branch';
@@ -1015,7 +1015,7 @@ runs:
               echo -e "\n####################\nCHECK FILE UPDATED REPOSITORY\n####################\n";
               echo -e "\n####################\nUPDATED FILE(S) LIST:\n####################\n";
               git diff --name-only @{push}@{1} @{push} |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
-              echo -e "\n\t########## END ##########\n";
+              echo -e "\n\t########## ${REPAIR_DATE} ##########\n";
             else
               echo 'Was git push event successful status ? unknown';
             fi;
