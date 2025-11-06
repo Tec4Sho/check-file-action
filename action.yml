@@ -226,12 +226,6 @@ runs:
             fi;
           fi;
           time -p for f in ${files[@]}; do
-            if ${{ inputs.number > 0 }}; then
-              if [[ ${{ inputs.number }} -lt ${count1} ]]; then
-                echo -e "\nFile checking auto stopped at $(basename ${f})\n";
-                break;
-              fi;
-            fi;
             SEARCH_PATH="${f}";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
@@ -285,7 +279,7 @@ runs:
                   fi;
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
-                  elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 1 ]]; then
+                  elif [[ ${PIPESTATUS[0]} == 1 ]]; then
                     echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
                   else
                     echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
@@ -314,9 +308,9 @@ runs:
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
                 cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --error-exitcode=1 "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
               fi;
-              if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+              if [[ ${PIPESTATUS[0]} == 0 ]]; then
                 echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
-              elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 1 ]]; then
+              elif [[ ${PIPESTATUS[0]} == 1 ]]; then
                 echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
               else
                 echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
@@ -335,6 +329,12 @@ runs:
               echo -e "# Included Path(s): ${include_paths/\\n /}";
               echo -e "\nInclude_File: $(rm -vf $(dirname ${f})/${included1})\n" 2>/dev/null;
               echo -e "\nInclude_Path: $(rm -vf $(dirname ${f})/${included2})\n" 2>/dev/null;
+            fi;
+            if ${{ inputs.number > 0 }}; then
+              if [[ ${{ inputs.number }} -eq ${count1} ]]; then
+                echo -e "\nFile ${count1} checking auto stopped at $(basename ${f})\n";
+                break;
+              fi;
             fi;
           done;
           echo -n ' || File Check Runtime || ';
@@ -380,12 +380,6 @@ runs:
             fi;
           fi;
           for f in ${files[@]}; do
-            if ${{ inputs.number > 0 }}; then
-              if [[ ${{ inputs.number }} -lt ${count3} ]]; then
-                echo -e "\nFile checking auto stopped at $(basename ${f})\n";
-                break;
-              fi;
-            fi;
             SEARCH_PATH="${f}";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
@@ -411,7 +405,7 @@ runs:
               fi;
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
-              elif [[ ${PIPESTATUS[0]} == 1 ]] && [[ ${PIPESTATUS[1]} == 1 ]]; then
+              elif [[ ${PIPESTATUS[0]} == 1 ]]; then
                 echo -e "\n####################\n${SHELL} FOUND ERROR(S) TO REPAIR\n####################\n";
               else
                 echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
@@ -434,6 +428,12 @@ runs:
                 echo -e "\n####################\n${SHELL} NO ERRORS FOUND ${f}\n####################\n";
               else
                 echo -e "\n####################\n${SHELL} FOUND ERROR(S)\n####################\n";
+              fi;
+            fi;
+            if ${{ inputs.number > 0 }}; then
+              if [[ ${{ inputs.number }} -eq ${count1} ]]; then
+                echo -e "\nFile ${count1} checking auto stopped at $(basename ${f})\n";
+                break;
               fi;
             fi;
           done;
