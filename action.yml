@@ -170,10 +170,12 @@ runs:
           echo -e "\n####################\nDEFAULT DIRECTORY (SYSTEM ROOT)\n####################\n";
           echo -e "\n ~/\n";
           echo "FILE_PATH=/" >> "${GITHUB_ENV}";
+          FILE_PATH=/
         else
           echo -e "\n####################\nDEFAULT DIRECTORY (GITHUB WORKSPACE)\n####################\n";
           echo -e "\n${GITHUB_WORKSPACE}\n";
           echo "FILE_PATH=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
+          FILE_PATH=${GITHUB_WORKSPACE}
         fi;
 
         if ${{ inputs.locate }}; then
