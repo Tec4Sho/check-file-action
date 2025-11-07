@@ -211,9 +211,9 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
+          files=$(locate "*/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}" -n ${{ inputs.number }} );
         else
-          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$");
+          files=$(locate "*/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}");
         fi;
         file_path=$(locate -r "/.clang-tidy$");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -401,9 +401,9 @@ runs:
         repaired=$(locate -r "/${repair_file}$");
         repository=$(locate -r "/.git$");
         if ${{ inputs.number > 0 }}; then
-          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
+          files=$(locate "*/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}" -n ${{ inputs.number }} );
         else
-          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$");
+          files=$(locate "*/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
@@ -501,9 +501,9 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
+          files=$(locate "*/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}" -n ${{ inputs.number }} );
         else
-          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$");
+          files=$(locate "*/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
@@ -542,9 +542,9 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
+          files=$(locate -r "/${{ inputs.filename }}$" -n ${{ inputs.number }} );
         else
-          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$");
+          files=$(locate -r "/${{ inputs.filename }}$");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
@@ -927,8 +927,8 @@ runs:
         echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "*${t}$" | xargs grep --color=always -Hans "${{ inputs.filetext }}");
-            content=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "*${t}$" | xargs grep --color=always -q "${{ inputs.filetext }}");
+            finder=$(locate --all "/${{ steps.set_dirname.outputs.dirname }}$" "*${t}$" | xargs grep --color=always -Hans "${{ inputs.filetext }}");
+            content=$(locate --all "/${{ steps.set_dirname.outputs.dirname }}$" "*${t}$" | xargs grep --color=always -q "${{ inputs.filetext }}");
             if [[ -n ${finder} ]]; then
               counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
@@ -949,8 +949,8 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          finder=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "*" | xargs grep --color=always -Hans "${{ inputs.filetext }}");
-            content=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "*" | xargs grep --color=always -q "${{ inputs.filetext }}");
+          finder=$(locate --all "/${{ steps.set_dirname.outputs.dirname }}$" "*" | xargs grep --color=always -Hans "${{ inputs.filetext }}");
+            content=$(locate --all "/${{ steps.set_dirname.outputs.dirname }}$" "*" | xargs grep --color=always -q "${{ inputs.filetext }}");
           if [[ -n ${finder} ]]; then
             counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
