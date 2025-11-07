@@ -176,7 +176,7 @@ runs:
           echo "FILE_PATH=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
         fi;
 
-        if ${{ inputs.sudo locate }}; then
+        if ${{ inputs.locate }}; then
           sudo updatedb
         fi;
 
@@ -207,7 +207,7 @@ runs:
 
 
     - name: Check & Repair (Clang-tools)
-      if: inputs.filename != '' && inputs.sudo locate != 'false'
+      if: inputs.filename != '' && inputs.locate != 'false'
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
@@ -392,7 +392,7 @@ runs:
 
 
     - name: Check Shell Files
-      if: inputs.filename != '' && inputs.sudo locate != 'false' && env.FILE_FOUND == 0 
+      if: inputs.filename != '' && inputs.locate != 'false' && env.FILE_FOUND == 0 
       run: |
         set -o pipefail
         fixed=false
@@ -497,7 +497,7 @@ runs:
 
 
     - name: Check Makefile Files
-      if: inputs.filename != '' && inputs.sudo locate != 'false' && env.FILE_FOUND == 0
+      if: inputs.filename != '' && inputs.locate != 'false' && env.FILE_FOUND == 0
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
@@ -538,7 +538,7 @@ runs:
 
 
     - name: Check All Files
-      if: inputs.filename != '' && inputs.sudo locate != 'false' && env.FILE_FOUND == 0 
+      if: inputs.filename != '' && inputs.locate != 'false' && env.FILE_FOUND == 0 
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
@@ -571,7 +571,7 @@ runs:
 
 
     - name: Check & Repair (Clang-tools)
-      if: inputs.filename != '' && inputs.sudo locate != 'true'
+      if: inputs.filename != '' && inputs.locate != 'true'
       run: |
         set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
@@ -751,7 +751,7 @@ runs:
 
 
     - name: Check Shell Files
-      if: inputs.filename != '' && inputs.sudo locate != 'true' && env.FILE_FOUND == 0 
+      if: inputs.filename != '' && inputs.locate != 'true' && env.FILE_FOUND == 0 
       run: |
         set -o pipefail
         fixed=false
@@ -852,7 +852,7 @@ runs:
 
 
     - name: Check Makefile Files
-      if: inputs.filename != '' && inputs.sudo locate != 'true' && env.FILE_FOUND == 0
+      if: inputs.filename != '' && inputs.locate != 'true' && env.FILE_FOUND == 0
       run: |
         set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
@@ -889,7 +889,7 @@ runs:
 
 
     - name: Check All Files
-      if: inputs.filename != '' && inputs.sudo locate != 'true' && env.FILE_FOUND == 0 
+      if: inputs.filename != '' && inputs.locate != 'true' && env.FILE_FOUND == 0 
       run: |
         set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
@@ -918,7 +918,7 @@ runs:
 
 
     - name: Word Text Match
-      if: inputs.filetext != '' && inputs.sudo locate != 'false'
+      if: inputs.filetext != '' && inputs.locate != 'false'
       run: |
         set -o pipefail
         file_count=1
@@ -973,7 +973,7 @@ runs:
 
 
     - name: Word Text Match
-      if: inputs.filetext != '' && inputs.sudo locate != 'true'
+      if: inputs.filetext != '' && inputs.locate != 'true'
       run: |
         set -o pipefail
         file_count=1
