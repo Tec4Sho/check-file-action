@@ -168,7 +168,7 @@ runs:
         echo ''
         if ${{ inputs.rootdir }}; then
           echo -e "\n####################\nDEFAULT DIRECTORY (SYSTEM ROOT)\n####################\n";
-          echo -e "\n~/\n";
+          echo -e "\n ~/\n";
           echo "FILE_PATH=/" >> "${GITHUB_ENV}";
         else
           echo -e "\n####################\nDEFAULT DIRECTORY (GITHUB WORKSPACE)\n####################\n";
@@ -211,9 +211,9 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
+          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
         else
-          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$");
+          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$");
         fi;
         file_path=$(locate -r "/.clang-tidy$");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -248,7 +248,7 @@ runs:
             SEARCH_PATH="${f}";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
-            echo "$(basename ${f})";
+            echo "$(dirname ${f})";
             if ${{ inputs.content }} && ! ${{ inputs.include }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
               sudo find $(dirname ${f}) -type f -name $(basename ${f}) -exec batcat --theme=ansi --paging=never --show-all --color=always --style=full "{}" \;
@@ -401,9 +401,9 @@ runs:
         repaired=$(locate -r "/${repair_file}$");
         repository=$(locate -r "/.git$");
         if ${{ inputs.number > 0 }}; then
-          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
+          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
         else
-          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$");
+          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
@@ -425,7 +425,7 @@ runs:
             SEARCH_PATH="${f}";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
-            echo "$(basename ${f})";
+            echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT\n####################\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
@@ -501,9 +501,9 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
+          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
         else
-          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$");
+          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
@@ -513,7 +513,7 @@ runs:
           time -p for f in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
-            echo "$(basename ${f})";
+            echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT\n####################\n\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
@@ -542,9 +542,9 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
+          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
         else
-          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$");
+          files=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "/${{ inputs.filename }}$");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
@@ -554,7 +554,7 @@ runs:
           time -p for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
-            echo "$(basename ${f})";
+            echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count5})\n####################\n\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
@@ -608,7 +608,7 @@ runs:
             SEARCH_PATH="${f}";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
-            echo "$(basename ${f})";
+            echo "$(dirname ${f})";
             if ${{ inputs.content }} && ! ${{ inputs.include }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
               sudo find $(dirname ${f}) -type f -name $(basename ${f}) -exec batcat --theme=ansi --paging=never --show-all --color=always --style=full "{}" \;
@@ -781,7 +781,7 @@ runs:
             SEARCH_PATH="${f}";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
-            echo "$(basename ${f})";
+            echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT\n####################\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
@@ -865,7 +865,7 @@ runs:
           time -p for f in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
-            echo "$(basename ${f})";
+            echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT\n####################\n\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
@@ -902,7 +902,7 @@ runs:
           time -p for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
-            echo "$(basename ${f})";
+            echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count5})\n####################\n\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
