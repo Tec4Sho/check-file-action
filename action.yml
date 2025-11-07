@@ -246,7 +246,7 @@ runs:
               sudo find "${FILE_PATH}" -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
             fi;
           fi;
-          time -p for f in ${files[@]}; do
+          (time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
@@ -375,7 +375,8 @@ runs:
                 break;
               fi;
             fi;
-          done;
+          done) 2>&1;
+          echo -n '| Check File Runtime |';
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
@@ -385,7 +386,6 @@ runs:
           fi;
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          echo '| Check File Runtime |';
         elif [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
@@ -419,7 +419,7 @@ runs:
               date > "${repository}";
             fi;
           fi;
-          time -p for f in ${files[@]}; do
+          (time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
@@ -480,7 +480,7 @@ runs:
                 break;
               fi;
             fi;
-          done;
+          done) 2>&1;
           echo -n '| Check File Runtime |';
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
@@ -504,7 +504,7 @@ runs:
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          time -p for f in ${files[@]}; do
+          (time -p for f in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
             echo "$(dirname ${f})";
@@ -520,7 +520,7 @@ runs:
             else
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
-          done;
+          done) 2>&1;
           echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
