@@ -92,11 +92,11 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file=$(sudo find ${GITHUB_WORKSPACE} -type f -name "checkmake.ini" -print -quit);
         path='/home/runner/checkmake.ini';
-        sudo apt-get autoclean >/dev/null 2>&1;
-        sudo apt-get autoremove >/dev/null 2>&1;
+        #sudo apt-get autoclean >/dev/null 2>&1;
+        #sudo apt-get autoremove >/dev/null 2>&1;
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee /etc/apt/sources.list.d/gabe565.list;
         sudo apt-get update -yq >/dev/null 2>&1;
-        sudo apt-get upgrade -yq >/dev/null 2>&1;
+        #sudo apt-get upgrade -yq >/dev/null 2>&1;
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
 
