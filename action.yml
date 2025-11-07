@@ -215,12 +215,12 @@ runs:
         else
           files=$(locate -r "/${{ inputs.filename }}$");
         fi;
-        file_path=$(locate "/.clang-tidy$");
+        file_path=$(locate '.clang-tidy' -n 1);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
         repair_file='check-file-repaired.txt';
-        repaired=$(locate "/${repair_file}$");
-        repository=$(locate "/.git/");
+        repaired=$(locate -r "/${repair_file}$" -n 1);
+        repository=$(locate '.git' -n 1);
         count2=0
         checked=false
         file_count=1
@@ -398,8 +398,8 @@ runs:
         fixed=false
         shellcheck_count=1
         repair_file='check-file-repaired.txt';
-        repaired=$(locate -r0 "^${repair_file}$");
-        repository=$(locate -r0 "^.git$");
+        repaired=$(locate -r "^${repair_file}$" -n 1);
+        repository=$(locate '.git' -n 1);
         if ${{ inputs.number > 0 }}; then
           files=$(locate -r "/${{ inputs.filename }}$" -n "${{ inputs.number }}");
         else
@@ -542,9 +542,9 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate -r "^${{ inputs.filename }}$" -n "${{ inputs.number }}");
+          files=$(locate -r "/${{ inputs.filename }}$" -n "${{ inputs.number }}");
         else
-          files=$(locate -r "^${{ inputs.filename }}$");
+          files=$(locate -r "/${{ inputs.filename }}$");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
