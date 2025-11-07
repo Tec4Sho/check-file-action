@@ -211,9 +211,9 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate "*/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}" -n ${{ inputs.number }} );
+          files=$(locate "/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}" -n "${{ inputs.number }}" );
         else
-          files=$(locate "*/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}");
+          files=$(locate "/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}");
         fi;
         file_path=$(locate -r "/.clang-tidy$");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -401,9 +401,9 @@ runs:
         repaired=$(locate -r "/${repair_file}$");
         repository=$(locate -r "/.git$");
         if ${{ inputs.number > 0 }}; then
-          files=$(locate "*/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}" -n ${{ inputs.number }} );
+          files=$(locate "/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}" -n "${{ inputs.number }}" );
         else
-          files=$(locate "*/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}");
+          files=$(locate "/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
@@ -501,9 +501,9 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate "*/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}" -n ${{ inputs.number }} );
+          files=$(locate "/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}" -n "${{ inputs.number }}" );
         else
-          files=$(locate "*/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}");
+          files=$(locate "/${{ steps.set_dirname.outputs.dirname }}/*${{ inputs.filename }}");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
@@ -542,7 +542,7 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate -r "/${{ inputs.filename }}$" -n ${{ inputs.number }} );
+          files=$(locate -r "/${{ inputs.filename }}$" -n "${{ inputs.number }}" );
         else
           files=$(locate -r "/${{ inputs.filename }}$");
         fi;
@@ -551,7 +551,7 @@ runs:
         if [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          time -p for f in ${files[@]}; do
+          for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
             echo "$(dirname ${f})";
@@ -561,7 +561,6 @@ runs:
               echo -e "\n\n";
             fi;
           done;
-          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
         else
@@ -899,7 +898,7 @@ runs:
         if [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          time -p for f in ${files[@]}; do
+          for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
             echo "$(dirname ${f})";
@@ -909,7 +908,6 @@ runs:
               echo -e "\n\n";
             fi;
           done;
-          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
         else
