@@ -215,19 +215,19 @@ runs:
         else
           files=$(locate -r "/${{ inputs.filename }}$");
         fi;
-        file_path=$(locate -r "/.clang-tidy$");
+        file_path=$(locate "/.clang-tidy$");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
         repair_file='check-file-repaired.txt';
-        repaired=$(locate -r "/${repair_file}$");
-        repository=$(locate -r "/.git$");
+        repaired=$(locate "/${repair_file}$");
+        repository=$(locate "/.git/");
         count2=0
         checked=false
         file_count=1
         include_count=1
         if [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
-          if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
+          if [[ -n "${file_path}" ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
             sudo cp -vf "${file_path}" "${clang_file}";
           fi;
@@ -398,8 +398,8 @@ runs:
         fixed=false
         shellcheck_count=1
         repair_file='check-file-repaired.txt';
-        repaired=$(locate -r "/${repair_file}$");
-        repository=$(locate -r "/.git$");
+        repaired=$(locate -r0 "^${repair_file}$");
+        repository=$(locate -r0 "^.git$");
         if ${{ inputs.number > 0 }}; then
           files=$(locate -r "/${{ inputs.filename }}$" -n "${{ inputs.number }}");
         else
@@ -542,9 +542,9 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate -r "/${{ inputs.filename }}$" -n "${{ inputs.number }}");
+          files=$(locate -r "^${{ inputs.filename }}$" -n "${{ inputs.number }}");
         else
-          files=$(locate -r "/${{ inputs.filename }}$");
+          files=$(locate -r "^${{ inputs.filename }}$");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
