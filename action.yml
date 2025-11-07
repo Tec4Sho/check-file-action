@@ -61,8 +61,8 @@ inputs:
     type: boolean
     required: false
     default: 'false'
-  sudo locate:
-    description: 'Use sudo locate over find commands slower performance for local searches'
+  locate:
+    description: 'Use locate over find commands slower performance for local searches'
     type: boolean 
     required: false
     default: 'false'
@@ -104,7 +104,7 @@ runs:
           sudo apt-get -yq install git >/dev/null && echo -e "\n####################\n\t.Git dependencies Installed\n####################\n";
         fi;
 
-        if [[ ! $(which sudo locate) ]]; then
+        if [[ ! $(which locate) ]]; then
           sudo apt-get -yq install plocate >/dev/null && echo -e "\n####################\n\tLocate dependencies Installed\n####################\n";
         fi;
 
