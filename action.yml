@@ -211,9 +211,9 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate -r "/${{ inputs.filename }}$" -n ${{ inputs.number }});
+          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
         else
-          files=$(locate -r "/${{ inputs.filename }}$");
+          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$");
         fi;
         file_path=$(locate -r "/.clang-tidy$");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -241,6 +241,7 @@ runs:
               date >> "${repository}";
             else
               date > "${repository}";
+              sudo updatedb
             fi;
           fi;
           time -p for f in ${files[@]}; do
@@ -400,9 +401,9 @@ runs:
         repaired=$(locate -r "/${repair_file}$");
         repository=$(locate -r "/.git$");
         if ${{ inputs.number > 0 }}; then
-          files=$(locate -r "/${{ inputs.filename }}$" -n ${{ inputs.number }});
+          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
         else
-          files=$(locate -r "/${{ inputs.filename }}$");
+          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
@@ -420,7 +421,7 @@ runs:
               date > "${repository}";
             fi;
           fi;
-          for f in ${files[@]}; do
+          time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
@@ -482,6 +483,7 @@ runs:
               fi;
             fi;
           done;
+          echo -n '| Check File Runtime |';
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
@@ -499,16 +501,16 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate -r "/${{ inputs.filename }}$" -n ${{ inputs.number }});
+          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
         else
-          files=$(locate -r "/${{ inputs.filename }}$");
+          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          for f in ${files[@]}; do
+          time -p for f in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
             echo "$(basename ${f})";
@@ -525,6 +527,7 @@ runs:
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
           done;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
         elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
@@ -539,16 +542,16 @@ runs:
       run: |
         set -o pipefail
         if ${{ inputs.number > 0 }}; then
-          files=$(locate -r "/${{ inputs.filename }}$" -n ${{ inputs.number }});
+          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$" -n ${{ inputs.number }});
         else
-          files=$(locate -r "/${{ inputs.filename }}$");
+          files=$(locate --all -r "/${{ inputs.dirname }}$" "/${{ inputs.filename }}$");
         fi;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
         if [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          for f in ${files[@]}; do
+          time -p for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
             echo "$(basename ${f})";
@@ -558,6 +561,7 @@ runs:
               echo -e "\n\n";
             fi;
           done;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
         else
@@ -773,7 +777,7 @@ runs:
               date > "${repository}";
             fi;
           fi;
-          for f in ${files[@]}; do
+          time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
@@ -835,6 +839,7 @@ runs:
               fi;
             fi;
           done;
+          echo -n '| Check File Runtime |';
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
@@ -857,7 +862,7 @@ runs:
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          for f in ${files[@]}; do
+          time -p for f in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
             echo "$(basename ${f})";
@@ -874,6 +879,7 @@ runs:
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
           done;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
         elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
@@ -893,7 +899,7 @@ runs:
         if [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          for f in ${files[@]}; do
+          time -p for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
             echo "$(basename ${f})";
@@ -903,6 +909,7 @@ runs:
               echo -e "\n\n";
             fi;
           done;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
         else
@@ -913,7 +920,62 @@ runs:
 
 
     - name: Word Text Match
-      if: inputs.filetext != ''
+      if: inputs.filetext != '' && inputs.locate != 'false'
+      run: |
+        set -o pipefail
+        file_count=1
+        echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+        if ${{ inputs.filetype != 'none' }}; then
+          for t in ${{ inputs.filetype }}; do
+            finder=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "*${t}$" | xargs grep --color=always -Hans "${{ inputs.filetext }}");
+            content=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "*${t}$" | xargs grep --color=always -q "${{ inputs.filetext }}");
+            if [[ -n ${finder} ]]; then
+              counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
+              echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
+              echo -e "\n${finder}\n";
+              if ${{ inputs.content }}; then
+                for c in ${content[@]}; do
+                  count=$((file_count++));
+                  echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
+                  echo -e "\n$(dirname ${c})\n":
+                  echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
+                  batcat --theme=ansi --paging=never --show-all --color=always --style=full "${c}";
+                  echo -e "\n####################\nFILE COMPLETED\n####################\n";
+                done;
+              fi;
+            else
+              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO ${{ inputs.filetext }} FOUND\n####################\n";
+            fi;
+          done;
+          echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
+        else
+          finder=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "*" | xargs grep --color=always -Hans "${{ inputs.filetext }}");
+            content=$(locate --all -r "/${{ steps.set_dirname.outputs.dirname }}$" "*" | xargs grep --color=always -q "${{ inputs.filetext }}");
+          if [[ -n ${finder} ]]; then
+            counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
+            echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
+            echo -e "\n${finder}\n";
+            if ${{ inputs.content }}; then
+              for c in ${content[@]}; do
+                count=$((file_count++));
+                echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
+                echo -e "\n$(dirname ${c})\n":
+                echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
+                batcat --theme=ansi --paging=never --show-all --color=always --style=full "${c}";
+                echo -e "\n####################\nFILE COMPLETED\n####################\n";
+              done;
+            fi;
+          else
+            echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO ${{ inputs.filetext }} FOUND\n####################\n";
+          fi;
+          echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
+        fi;
+      shell: bash
+      continue-on-error: true
+
+
+    - name: Word Text Match
+      if: inputs.filetext != '' && inputs.locate != 'true'
       run: |
         set -o pipefail
         file_count=1
