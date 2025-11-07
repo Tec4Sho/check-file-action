@@ -62,7 +62,7 @@ inputs:
     required: false
     default: 'false'
   locate:
-    description: 'Use locate over find commands slower performance for local searches'
+    description: 'Use ripgrep over find commands slower performance for all searches'
     type: boolean 
     required: false
     default: 'false'
@@ -104,8 +104,8 @@ runs:
           sudo apt-get -yq install git >/dev/null && echo -e "\n####################\n\t.Git dependencies Installed\n####################\n";
         fi;
 
-        if [[ ! $(which locate) ]]; then
-          sudo apt-get -yq install plocate >/dev/null && echo -e "\n####################\n\tLocate dependencies Installed\n####################\n";
+        if [[ ! $(which rg) ]]; then
+          sudo apt-get -yq install ripgrep >/dev/null && echo -e "\n####################\n\tLocate dependencies Installed\n####################\n";
         fi;
 
         if [[ ! $(which ansi2txt) ]]; then
@@ -177,7 +177,11 @@ runs:
         fi;
 
         if ${{ inputs.locate }}; then
-          sudo updatedb
+          sudo find "${FILE_PATH}" -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
+          if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
+            echo -e "\n####################\ncheck_file_list database found\n####################\n";
+            echo "DATABASE=${GITHUB_WORKSPACE}/check_file_list.txt" >> "${GITHUB_ENV}";
+          fi;
         fi;
 
         if [[ "${{ inputs.filename }}" != '' ]]; then
@@ -210,11 +214,7 @@ runs:
       if: inputs.filename != '' && inputs.locate != 'false'
       run: |
         set -o pipefail
-        if ${{ inputs.number > 0 }}; then
-          files=$(sudo locate -r "/${{ inputs.filename }}$" -n "${{ inputs.number }}");
-        else
-          files=$(sudo locate -r "/${{ inputs.filename }}$");
-        fi;
+        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_path=$(sudo find ${{ env.FILE_PATH }} -type f -name '.clang-tidy' -print -quit);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
@@ -241,7 +241,7 @@ runs:
               date >> "${repository}";
             else
               date > "${repository}";
-              sudo updatedb
+              sudo find "${FILE_PATH}" -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
             fi;
           fi;
           time -p for f in ${files[@]}; do
@@ -400,11 +400,7 @@ runs:
         repair_file='check-file-repaired.txt';
         repaired=$(sudo locate -r "^${repair_file}$" -n 1);
         repository=$(sudo locate '.git' -n 1);
-        if ${{ inputs.number > 0 }}; then
-          files=$(sudo locate -r "/${{ inputs.filename }}$" -n "${{ inputs.number }}");
-        else
-          files=$(sudo locate -r "/${{ inputs.filename }}$");
-        fi;
+        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -500,11 +496,7 @@ runs:
       if: inputs.filename != '' && inputs.locate != 'false' && env.FILE_FOUND == 0
       run: |
         set -o pipefail
-        if ${{ inputs.number > 0 }}; then
-          files=$(sudo locate -r "/${{ inputs.filename }}$" -n "${{ inputs.number }}");
-        else
-          files=$(sudo locate -r "/${{ inputs.filename }}$");
-        fi;
+        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
@@ -541,11 +533,7 @@ runs:
       if: inputs.filename != '' && inputs.locate != 'false' && env.FILE_FOUND == 0 
       run: |
         set -o pipefail
-        if ${{ inputs.number > 0 }}; then
-          files=$(sudo locate -r "/${{ inputs.filename }}$" -n "${{ inputs.number }}");
-        else
-          files=$(sudo locate -r "/${{ inputs.filename }}$");
-        fi;
+        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
         if [[ -n ${files} ]]; then
@@ -925,8 +913,8 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(sudo locate "/*${t}$" | xargs grep --color=always -Hans "${{ inputs.filetext }}");
-            content=$(sudo locate "/*${t}$" | xargs grep --color=always -q "${{ inputs.filetext }}");
+            finder=$(sudo rg "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -Hans "${{ inputs.filetext }}");
+            content=$(sudo rg "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
             if [[ -n ${finder} ]]; then
               counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
@@ -947,8 +935,8 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          finder=$(sudo locate "*" | xargs grep --color=always -Hans "${{ inputs.filetext }}");
-            content=$(sudo locate "*" | xargs grep --color=always -q "${{ inputs.filetext }}");
+          finder=$(sudo rg "*" "${{ env.DATABASE }}" | xargs grep --color=always -Hans "${{ inputs.filetext }}");
+          content=$(sudo rg "*" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
           if [[ -n ${finder} ]]; then
             counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
@@ -1103,6 +1091,9 @@ runs:
         date
         if [[ -f "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" ]]; then
           echo -e "\nLOGFILE: $(rm -vf ${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log)\n";
+        fi;
+        if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
+          echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/check_file_list.txt)\n";
         fi;
       shell: bash
       continue-on-error: false
