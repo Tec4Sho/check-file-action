@@ -247,9 +247,9 @@ runs:
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           time -p for f in ${files[@]}; do
-            SEARCH_PATH=${f};
-            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-10);
-            export count1=$((file_count++));
+            SEARCH_PATH="${f}";
+            CHECKED_DATE="$(grep -Fs ${SEARCH_PATH} ${repaired} | cut -d' ' -f 2-10)";
+            count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -267,7 +267,7 @@ runs:
                 separator=' -I';
                 for i in ${includes[@]}; do
                   final="${i}";
-                  export count2=$((include_count++));
+                  count2=$((include_count++));
                   header=$(sudo rg -F "/$(basename ${i})$" "${{ env.DATABASE }}");
                   for h in ${header[@]}; do
                     echo "$(dirname ${h/\\n /})" >> "$(dirname ${f})/${included1}";
@@ -411,9 +411,9 @@ runs:
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           time -p for f in ${files[@]}; do
-            SEARCH_PATH=${f};
-            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-10);
-            export count3=$((shellcheck_count++));
+            SEARCH_PATH="${f}";
+            CHECKED_DATE="$(grep -Fs ${SEARCH_PATH} ${repaired} | cut -d' ' -f 2-10)";
+            count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -424,7 +424,8 @@ runs:
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
               if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}" "${repaired}"; then
-                echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
+                echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
+                echo -e "\n####################\nSkipping $(basename ${f}) was checked ${CHECKED_DATE}\n####################\n";
               elif ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -498,7 +499,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           time -p for f in ${files[@]}; do
-            export count4=$((makefile_count++));
+            count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -536,7 +537,7 @@ runs:
         if [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           time -p for f in ${files[@]}; do
-            export count5=$((file_count++));
+            count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -580,9 +581,9 @@ runs:
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           time -p for f in ${files[@]}; do
-            SEARCH_PATH=${f};
-            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-10);
-            export count1=$((file_count++));
+            SEARCH_PATH="${f}";
+            CHECKED_DATE="$(grep -Fs ${SEARCH_PATH} ${repaired} | cut -d' ' -f 2-10)";
+            count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -599,7 +600,7 @@ runs:
                 separator=' -I';
                 for i in ${includes[@]}; do
                   final="${i}";
-                  export count2=$((include_count++));
+                  count2=$((include_count++));
                   header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit);
                   for h in ${header[@]}; do
                     echo "$(dirname ${h/\\n /})" >> "$(dirname ${f})/${included1}";
@@ -617,7 +618,7 @@ runs:
                   fi;
                   if ${{ inputs.repair }}; then
                     if ${{ inputs.stored }} && [[ $(grep -s "${SEARCH_PATH}" "${repaired}") ]]; then
-                      echo -e "\n####################\n$(basename ${f}) was checked ${CHECKED_DATE} skipping\n####################\n";
+                      echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                       echo -e "\n####################\nSkipping $(basename ${f}) was checked ${CHECKED_DATE}\n####################\n";
                     elif ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
@@ -743,9 +744,9 @@ runs:
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           time -p for f in ${files[@]}; do
-            SEARCH_PATH=${f};
-            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-10);
-            export count3=$((shellcheck_count++));
+            SEARCH_PATH="${f}";
+            CHECKED_DATE="$(grep -Fs ${SEARCH_PATH} ${repaired} | cut -d' ' -f 2-10)";
+            count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -830,7 +831,7 @@ runs:
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           time -p for f in ${files[@]}; do
-            export count4=$((makefile_count++));
+            count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -868,7 +869,7 @@ runs:
         if [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           time -p for f in ${files[@]}; do
-            export count5=$((file_count++));
+            count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
