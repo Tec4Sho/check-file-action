@@ -214,7 +214,7 @@ runs:
       run: |
         export LC_ALL=C
         set -o pipefail
-        files=$(sudo rg -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_path=$(sudo rg -F '.clang-tidy' "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
@@ -402,7 +402,7 @@ runs:
         repair_file='check-file-repaired.txt';
         repaired=$(sudo rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
-        files=$(sudo rg -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -500,7 +500,7 @@ runs:
       run: |
         export LC_ALL=C
         set -o pipefail
-        files=$(sudo rg -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
@@ -538,7 +538,7 @@ runs:
       run: |
         export LC_ALL=C
         set -o pipefail
-        files=$(sudo rg -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
         if [[ -n ${files} ]]; then
