@@ -381,13 +381,13 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
+          echo -n '| Check File Runtime |';
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
           fi;
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          echo -n '| Check File Runtime |';
         elif [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
@@ -476,10 +476,10 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          echo -n '| Check File Runtime |';
         elif [[ -n $(echo "${file_type}" | grep -i "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
@@ -515,10 +515,10 @@ runs:
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
           done
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          echo -n '| Check File Runtime |';
         elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING MK FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
@@ -546,10 +546,10 @@ runs:
               echo -e "\n\n";
             fi;
           done
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          echo -n '| Check File Runtime |';
         else
           echo -e "\n####################\nFINISHED SEARCHING ALL FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
@@ -715,13 +715,13 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
+          echo -n '| Check File Runtime |';
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
           fi;
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          echo '| Check File Runtime |';
         elif [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
@@ -810,10 +810,10 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          echo -n '| Check File Runtime |';
         elif [[ -n $(echo "${file_type}" | grep -i "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
@@ -848,10 +848,10 @@ runs:
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
           done
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          echo -n '| Check File Runtime |';
         elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING MK FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
@@ -879,10 +879,10 @@ runs:
               echo -e "\n\n";
             fi;
           done
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          echo -n '| Check File Runtime |';
         else
           echo -e "\n####################\nFINISHED SEARCHING ALL FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
