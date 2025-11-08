@@ -237,14 +237,14 @@ runs:
             repository="${repository%/*}/${repair_file}";
             if [[ -f ${repository} ]]; then
               echo -e "\n####################\nRepaired files list found!!!\n####################\n";
-              date >> "${repository}";
             else
-              date > "${repository}";
+              touch "${repository}";
               sudo find "${{ env.FILE_PATH }}" -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
             fi;
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
+            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f2);
             export count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
@@ -282,7 +282,7 @@ runs:
                   if ${{ inputs.repair }}; then
                     if ${{ inputs.stored }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
-                      echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
+                      echo -e "\n####################\n$(basename ${f}) was checked ${CHECKED_DATE} skipping\n####################\n";
                     elif ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -291,7 +291,7 @@ runs:
                       else
                         echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
                       fi;
-                      echo "${f}" >> "${repaired}";
+                      echo "${f} $(date)" >> "${repaired}";
                       fixed=true
                     elif ! ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
@@ -322,7 +322,7 @@ runs:
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
-                  echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
+                  echo -e "\n####################\n$(basename ${f}) was checked ${CHECKED_DATE} skipping\n####################\n";
                 elif ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f 1-6)" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -331,7 +331,7 @@ runs:
                   else
                     echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
                   fi;
-                  echo "${f}" >> "${repaired}";
+                  echo "${f} $(date)" >> "${repaired}";
                   fixed=true
                 elif ! ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
@@ -412,14 +412,14 @@ runs:
             repository="${repository%/*}/${repair_file}";
             if [[ -f ${repository} ]]; then
               echo -e "\n####################\nRepaired files list found!!!\n####################\n";
-              date >> "${repository}";
             else
-              date > "${repository}";
+              touch "${repository}";
               sudo find "${{ env.FILE_PATH }}" -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
             fi;
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
+            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f2);
             export count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
@@ -432,7 +432,7 @@ runs:
               SHELL=SHELLHARDEN
               if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}" "${repaired}"; then
                 echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
-                echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
+                echo -e "\n####################\n$(basename ${f}) was checked ${CHECKED_DATE} skipping\n####################\n";
               elif ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -441,7 +441,7 @@ runs:
                 else
                   echo -e "\n####################\n${SHELL} FOUND ERROR(S) TO REPAIR\n####################\n";
                 fi;
-                echo "${f}" >> "${repaired}";
+                echo "${f} $(date)" >> "${repaired}";
                 fixed=true
               elif ! ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
@@ -593,13 +593,13 @@ runs:
             repository="${repository%/*}/${repair_file}";
             if [[ -f ${repository} ]]; then
               echo -e "\n####################\nRepaired files list found!!!\n####################\n";
-              date >> "${repository}";
             else
-              date > "${repository}";
+              touch "${repository}";
             fi;
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
+            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f2);
             export count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
@@ -645,7 +645,7 @@ runs:
                       else
                         echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
                       fi;
-                      echo "${f}" >> "${repaired}";
+                      echo "${f} $(date)" >> "${repaired}";
                       fixed=true
                     elif ! ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
@@ -685,7 +685,7 @@ runs:
                   else
                     echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
                   fi;
-                  echo "${f}" >> "${repaired}";
+                  echo "${f} $(date)" >> "${repaired}";
                   fixed=true
                 elif ! ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
@@ -766,13 +766,13 @@ runs:
             repository="${repository%/*}/${repair_file}";
             if [[ -f ${repository} ]]; then
               echo -e "\n####################\nRepaired files list found!!!\n####################\n";
-              date >> "${repository}";
             else
-              date > "${repository}";
+              touch "${repository}";
             fi;
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
+            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f2);
             export count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
@@ -794,7 +794,7 @@ runs:
                 else
                   echo -e "\n####################\n${SHELL} FOUND ERROR(S) TO REPAIR\n####################\n";
                 fi;
-                echo "${f}" >> "${repaired}";
+                echo "${f} $(date)" >> "${repaired}";
                 fixed=true
               elif ! ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
