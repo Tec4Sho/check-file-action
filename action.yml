@@ -248,7 +248,7 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE="$(grep -Fs ${SEARCH_PATH} ${repaired} | cut -d' ' -f 2-10)";
+            CHECKED_DATE="$(grep -Fs ${SEARCH_PATH} ${repaired} | awk '{$1=""; print $0}')";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
@@ -402,7 +402,7 @@ runs:
         set -o pipefail
         fixed=false
         shellcheck_count=1
-        repaired=$(sudo rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}";
+        repaired=$(sudo rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
         files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
@@ -412,7 +412,7 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE="$(grep -Fs ${SEARCH_PATH} ${repaired} | cut -d' ' -f 2-10)";
+            CHECKED_DATE="$(grep -Fs ${SEARCH_PATH} ${repaired} | awk '{$1=""; print $0}')";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
@@ -582,7 +582,7 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE="$(grep -Fs ${SEARCH_PATH} ${repaired} | cut -d' ' -f 2-10)";
+            CHECKED_DATE="$(grep -Fs ${SEARCH_PATH} ${repaired} | awk '{$1=""; print $0}')";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
@@ -745,7 +745,7 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE="$(grep -Fs ${SEARCH_PATH} ${repaired} | cut -d' ' -f 2-10)";
+            CHECKED_DATE="$(grep -Fs ${SEARCH_PATH} ${repaired} | awk '{$1=""; print $0}')";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
