@@ -85,8 +85,8 @@ runs:
     - name: Installing Dependencies
       if: inputs.filetext != '' || inputs.filename != ''
       run: |
-        set -o pipefail
         set -o allexport
+        set -o pipefail
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
         export DEBIAN_FRONTEND=noninteractive
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -162,7 +162,8 @@ runs:
       env: 
         DEFAULT_PATH: "*" 
       run: |
-        echo ''
+        set -o allexport
+        set -o pipefail
         if ${{ inputs.rootdir }}; then
           echo -e "\n####################\nDEFAULT DIRECTORY (SYSTEM ROOT)\n####################\n";
           echo -e "\n ~/\n";
@@ -213,6 +214,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
+        set -o allexport
         set -o pipefail
         files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_path=$(sudo rg -F '.clang-tidy' "${{ env.DATABASE }}");
@@ -246,7 +248,7 @@ runs:
           fi;
           (time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            count1=$((file_count++));
+            export count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -264,7 +266,7 @@ runs:
                 separator=' -I';
                 for i in ${includes[@]}; do
                   final="${i}";
-                  count2=$((include_count++));
+                  export count2=$((include_count++));
                   header=$(sudo rg -F "/$(basename ${i})$" "${{ env.DATABASE }}");
                   for h in ${header[@]}; do
                     echo "$(dirname ${h/\\n /})" >> "$(dirname ${f})/${included1}";
@@ -396,6 +398,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0 
       run: |
         export LC_ALL=C
+        set -o allexport
         set -o pipefail
         fixed=false
         shellcheck_count=1
@@ -422,7 +425,7 @@ runs:
           fi;
           (time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            count3=$((shellcheck_count++));
+            export count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -499,6 +502,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0
       run: |
         export LC_ALL=C
+        set -o allexport
         set -o pipefail
         files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -507,7 +511,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           (time -p for f in ${files[@]}; do
-            count4=$((makefile_count++));
+            export count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -537,6 +541,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0 
       run: |
         export LC_ALL=C
+        set -o allexport
         set -o pipefail
         files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -545,7 +550,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           (time -p for f in ${files[@]}; do
-            count5=$((file_count++));
+            export count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -568,6 +573,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true'
       run: |
         export LC_ALL=C
+        set -o allexport
         set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_path=$(sudo find ${{ env.FILE_PATH }} -type f -name '.clang-tidy' -print -quit);
@@ -600,7 +606,7 @@ runs:
           fi;
           (time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            count1=$((file_count++));
+            export count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -617,7 +623,7 @@ runs:
                 separator=' -I';
                 for i in ${includes[@]}; do
                   final="${i}";
-                  count2=$((include_count++));
+                  export count2=$((include_count++));
                   header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ steps.set_dirname.outputs.dirname }}" \) -name "$(basename ${i})" -print -quit);
                   for h in ${header[@]}; do
                     echo "$(dirname ${h/\\n /})" >> "$(dirname ${f})/${included1}";
@@ -750,6 +756,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0 
       run: |
         export LC_ALL=C
+        set -o allexport
         set -o pipefail
         fixed=false
         shellcheck_count=1
@@ -775,7 +782,7 @@ runs:
           fi;
           (time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            count3=$((shellcheck_count++));
+            export count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -852,6 +859,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0
       run: |
         export LC_ALL=C
+        set -o allexport
         set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -860,7 +868,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           (time -p for f in ${files[@]}; do
-            count4=$((makefile_count++));
+            export count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -890,6 +898,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0 
       run: |
         export LC_ALL=C
+        set -o allexport
         set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -898,7 +907,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           time -p for f in ${files[@]}; do
-            count5=$((file_count++));
+            export count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
             echo "$(dirname ${f})";
             if ${{ inputs.content }}; then
@@ -921,6 +930,7 @@ runs:
       if: inputs.filetext != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
+        set -o allexport
         set -o pipefail
         file_count=1
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -977,6 +987,7 @@ runs:
       if: inputs.filetext != '' && inputs.database != 'true'
       run: |
         export LC_ALL=C
+        set -o allexport
         set -o pipefail
         file_count=1
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -1048,6 +1059,7 @@ runs:
       if: inputs.update != 'false' && env.FILE_FIXED == 1
       id: changed-files
       run: |
+        set -o allexport
         set -o pipefail
         changed_files=false
         REPAIR_DATE="$(date +%Y%m%d)";
