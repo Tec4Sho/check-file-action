@@ -16,6 +16,11 @@ inputs:
     type: string
     required: false
     default: ''
+  database:
+    description: 'Use file database over find commands slower performance for searches'
+    type: boolean 
+    required: false
+    default: 'false'
   dirname:
     description: 'Your project root folder if created'
     type: string
@@ -61,11 +66,6 @@ inputs:
     type: boolean
     required: false
     default: 'false'
-  locate:
-    description: 'Use ripgrep over find commands slower performance for all searches'
-    type: boolean 
-    required: false
-    default: 'false'
   number:
     description: 'Number of files to check before stopping action'
     type: number
@@ -92,20 +92,17 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file=$(sudo find ${GITHUB_WORKSPACE} -type f -name "checkmake.ini" -print -quit);
         path='/home/runner/checkmake.ini';
-        #sudo apt-get autoclean >/dev/null 2>&1;
-        #sudo apt-get autoremove >/dev/null 2>&1;
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee /etc/apt/sources.list.d/gabe565.list;
-        sudo apt-get update -yq >/dev/null 2>&1;
-        #sudo apt-get upgrade -yq >/dev/null 2>&1;
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
+        sudo apt-get update -yq >/dev/null 2>&1;
 
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git >/dev/null && echo -e "\n####################\n\t.Git dependencies Installed\n####################\n";
         fi;
 
         if [[ ! $(which rg) ]]; then
-          sudo apt-get -yq install ripgrep >/dev/null && echo -e "\n####################\n\tLocate dependencies Installed\n####################\n";
+          sudo apt-get -yq install ripgrep >/dev/null && echo -e "\n####################\n\tRipgrep dependencies Installed\n####################\n";
         fi;
 
         if [[ ! $(which ansi2txt) ]]; then
@@ -178,7 +175,7 @@ runs:
           FILE_PATH=${GITHUB_WORKSPACE}
         fi;
 
-        if ${{ inputs.locate }}; then
+        if ${{ inputs.database }}; then
           sudo find "${FILE_PATH}" -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
           if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
             echo -e "\n####################\ncheck_file_list database found\n####################\n";
@@ -213,22 +210,22 @@ runs:
 
 
     - name: Check & Repair (Clang-tools)
-      if: inputs.filename != '' && inputs.locate != 'false'
+      if: inputs.filename != '' && inputs.database != 'false'
       run: |
         set -o pipefail
         files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
-        file_path=$(sudo find ${{ env.FILE_PATH }} -type f -name '.clang-tidy' -print -quit);
+        file_path=$(sudo rg '.clang-tidy' "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
-        repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
-        repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
+        repaired=$(sudo rg 'check-file-repaired.txt' "${{ env.DATABASE }}");
+        repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
         repair_file='check-file-repaired.txt';
         count2=0
         checked=false
         file_count=1
         include_count=1
         if [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
             sudo cp -vf "${file_path}" "${clang_file}";
@@ -243,7 +240,7 @@ runs:
               date >> "${repository}";
             else
               date > "${repository}";
-              sudo find "${FILE_PATH}" -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
+              sudo find "${{ env.FILE_PATH }}" -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
             fi;
           fi;
           (time -p for f in ${files[@]}; do
@@ -251,9 +248,10 @@ runs:
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
-            if ${{ inputs.content }} && ! ${{ inputs.include }}; then
+            if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
-              sudo find $(dirname ${f}) -type f -name $(basename ${f}) -exec batcat --theme=ansi --paging=never --show-all --color=always --style=full "{}" \;
+              batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
+              echo -e "\n\n";
             fi;
             if ${{ inputs.include }}; then
               includes=$(sudo find $(dirname ${f}) -name $(basename ${f}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
@@ -266,7 +264,7 @@ runs:
                 for i in ${includes[@]}; do
                   final="${i}";
                   count2=$((include_count++));
-                  header=$(sudo locate -r "/$(basename ${i})$");
+                  header=$(sudo rg "/$(basename ${i})$" "${{ env.DATABASE }}");
                   for h in ${header[@]}; do
                     echo "$(dirname ${h/\\n /})" >> "$(dirname ${f})/${included1}";
                     include_paths+="${separator/\\n /}$(dirname ${h/\\n /})";
@@ -394,18 +392,18 @@ runs:
 
 
     - name: Check Shell Files
-      if: inputs.filename != '' && inputs.locate != 'false' && env.FILE_FOUND == 0 
+      if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0 
       run: |
         set -o pipefail
         fixed=false
         shellcheck_count=1
         repair_file='check-file-repaired.txt';
-        repaired=$(sudo locate -r "^${repair_file}$" -n 1);
-        repository=$(sudo locate '.git' -n 1);
+        repaired=$(sudo rg 'check-file-repaired.txt' "${{ env.DATABASE }}");
+        repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
         files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
@@ -417,6 +415,7 @@ runs:
               date >> "${repository}";
             else
               date > "${repository}";
+              sudo find "${{ env.FILE_PATH }}" -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
             fi;
           fi;
           (time -p for f in ${files[@]}; do
@@ -495,14 +494,14 @@ runs:
 
 
     - name: Check Makefile Files
-      if: inputs.filename != '' && inputs.locate != 'false' && env.FILE_FOUND == 0
+      if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0
       run: |
         set -o pipefail
         files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           (time -p for f in ${files[@]}; do
             count4=$((makefile_count++));
@@ -532,16 +531,16 @@ runs:
 
 
     - name: Check All Files
-      if: inputs.filename != '' && inputs.locate != 'false' && env.FILE_FOUND == 0 
+      if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0 
       run: |
         set -o pipefail
         files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
         if [[ -n ${files} ]]; then
-          echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          for f in ${files[@]}; do
+          (time -p for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
             echo "$(dirname ${f})";
@@ -550,7 +549,8 @@ runs:
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
               echo -e "\n\n";
             fi;
-          done;
+          done) 2>&1;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
         else
@@ -561,7 +561,7 @@ runs:
 
 
     - name: Check & Repair (Clang-tools)
-      if: inputs.filename != '' && inputs.locate != 'true'
+      if: inputs.filename != '' && inputs.database != 'true'
       run: |
         set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
@@ -576,7 +576,7 @@ runs:
         file_count=1
         include_count=1
         if [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
             sudo cp -vf "${file_path}" "${clang_file}";
@@ -593,14 +593,14 @@ runs:
               date > "${repository}";
             fi;
           fi;
-          time -p for f in ${files[@]}; do
+          (time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
-            if ${{ inputs.content }} && ! ${{ inputs.include }}; then
+            if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
-              sudo find $(dirname ${f}) -type f -name $(basename ${f}) -exec batcat --theme=ansi --paging=never --show-all --color=always --style=full "{}" \;
+              batcat --theme=ansi --paging=never --show-all --color=always --style=full "{f}";
             fi;
             if ${{ inputs.include }}; then
               includes=$(sudo find $(dirname ${f}) -name $(basename ${f}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
@@ -722,7 +722,8 @@ runs:
                 break;
               fi;
             fi;
-          done;
+          done) 2>&1;
+          echo -n '| Check File Runtime |';
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
@@ -741,7 +742,7 @@ runs:
 
 
     - name: Check Shell Files
-      if: inputs.filename != '' && inputs.locate != 'true' && env.FILE_FOUND == 0 
+      if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0 
       run: |
         set -o pipefail
         fixed=false
@@ -752,7 +753,7 @@ runs:
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
@@ -766,7 +767,7 @@ runs:
               date > "${repository}";
             fi;
           fi;
-          time -p for f in ${files[@]}; do
+          (time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
@@ -827,7 +828,7 @@ runs:
                 break;
               fi;
             fi;
-          done;
+          done) 2>&1;
           echo -n '| Check File Runtime |';
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
@@ -842,16 +843,16 @@ runs:
 
 
     - name: Check Makefile Files
-      if: inputs.filename != '' && inputs.locate != 'true' && env.FILE_FOUND == 0
+      if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0
       run: |
         set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          time -p for f in ${files[@]}; do
+          (time -p for f in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
             echo "$(dirname ${f})";
@@ -867,7 +868,7 @@ runs:
             else
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
-          done;
+          done) 2>&1;
           echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
@@ -879,16 +880,16 @@ runs:
 
 
     - name: Check All Files
-      if: inputs.filename != '' && inputs.locate != 'true' && env.FILE_FOUND == 0 
+      if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0 
       run: |
         set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
         if [[ -n ${files} ]]; then
-          echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          for f in ${files[@]}; do
+          time -p for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
             echo "$(dirname ${f})";
@@ -897,7 +898,8 @@ runs:
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
               echo -e "\n\n";
             fi;
-          done;
+          done) 2>&1;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
         else
@@ -908,7 +910,7 @@ runs:
 
 
     - name: Word Text Match
-      if: inputs.filetext != '' && inputs.locate != 'false'
+      if: inputs.filetext != '' && inputs.database != 'false'
       run: |
         set -o pipefail
         file_count=1
@@ -963,11 +965,11 @@ runs:
 
 
     - name: Word Text Match
-      if: inputs.filetext != '' && inputs.locate != 'true'
+      if: inputs.filetext != '' && inputs.database != 'true'
       run: |
         set -o pipefail
         file_count=1
-        echo -e "\n####################\nWorkspace-folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+        echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
             finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -Hans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
@@ -1024,10 +1026,9 @@ runs:
         check_file=$(dirname $(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}"));
         file_count=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) | wc -l);
         if [[ ${{ env.FILE_FOUND }} != 0  ]]; then
-          echo -e "\n####################\nNOTE: Contents found in directory(s) for ${{ inputs.filename }}\n####################\n";
+          echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }}\n####################\n";
           ls -Shap "${check_file}";
-          echo -e "\n(CLONED REPO) Files: ${file_count}\n";
-          echo -e "\n####################\nCHECK FILE EXITING ....✅\n####################";
+          echo -e "\n(CLONED REPO) Total Files: ${file_count}\n";
         fi;
       shell: bash
       continue-on-error: true
@@ -1088,7 +1089,7 @@ runs:
 
 
     - name: Delete Log File
-      if: inputs.filename != ''
+      if: inputs.filename != '' || inputs.filetext != ''
       run: |
         date
         if [[ -f "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" ]]; then
@@ -1097,6 +1098,7 @@ runs:
         if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
           echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/check_file_list.txt)\n";
         fi;
+        echo -e "\n####################\nCHECK FILE EXITING ....✅\n####################";
       shell: bash
       continue-on-error: false
 
