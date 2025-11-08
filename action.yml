@@ -412,7 +412,6 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-10);
             export count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
@@ -425,7 +424,8 @@ runs:
               SHELL=SHELLHARDEN
               if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}" "${repaired}"; then
                 echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
-                echo -e "\n####################\n$(basename ${f}) was checked ${CHECKED_DATE} skipping\n####################\n";
+                echo -e "\n####################\nSkipping $(basename ${f}) was checked\n####################\n";
+                grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-10
               elif ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -582,7 +582,6 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-10);
             export count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
@@ -619,7 +618,8 @@ runs:
                   if ${{ inputs.repair }}; then
                     if ${{ inputs.stored }} && [[ $(grep -s "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n####################\n$(basename ${f}) was checked ${CHECKED_DATE} skipping\n####################\n";
-                      echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
+                      echo -e "\n####################\nSkipping $(basename ${f}) was checked\n####################\n";
+                      grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-10
                     elif ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -659,7 +659,8 @@ runs:
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && [[ $(grep -s "${SEARCH_PATH}" "${repaired}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
-                  echo -e "\n####################\n$(basename ${f}) was checked ${CHECKED_DATE} skipping\n####################\n";
+                  echo -e "\n####################\nSkipping $(basename ${f}) was checked\n####################\n";
+                  grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-10
                 elif ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f 1-6)" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -745,7 +746,6 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-10);
             export count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
@@ -758,7 +758,8 @@ runs:
               SHELL=SHELLHARDEN
               if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}" "${repaired}"; then
                 echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
-                echo -e "\n####################\n$(basename ${f}) was checked ${CHECKED_DATE} skipping\n####################\n";
+                echo -e "\n####################\nSkipping $(basename ${f}) was checked\n####################\n";
+                grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-10
               elif ${{ inputs.stored }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
