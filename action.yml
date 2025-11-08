@@ -112,20 +112,20 @@ runs:
           sudo apt-get -yq install ca-certificates >/dev/null && echo -e "\n####################\n\tCa-certificates dependencies Installed\n####################\n";
         fi;
 
-        if [[ ! $(which cppcheck) ]] && [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        if [[ ! $(which cppcheck) ]] && [[ -n $(echo "${file_type}" | sudo rg -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           sudo apt-get -yq install cppcheck >/dev/null && echo -e "\n####################\n\tCppcheck dependencies Installed\n####################\n";
         fi;
 
-        if [[ ! $(which clang-tidy) ]] && [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        if [[ ! $(which clang-tidy) ]] && [[ -n $(echo "${file_type}" | sudo rg -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e "\n####################\n\Clang-tool dependencies Installed\n####################\n";
         fi;
 
-        if [[ ! $(which shellharden) ]] && [[ -n $(echo "${file_type}" | grep -i "^sh$") ]]; then
+        if [[ ! $(which shellharden) ]] && [[ -n $(echo "${file_type}" | sudo rg -i "^sh$") ]]; then
           wget -qO shellharden.tar.gz https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-gnu.tar.gz
           sudo tar xf shellharden.tar.gz -C /usr/local/bin shellharden && rm -vrf shellharden.tar.gz && echo -e "\n####################\n\tShellharden dependencies Installed\n####################\n";
         fi;
 
-        if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | grep -i "^sh$") ]]; then
+        if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | sudo rg -i "^sh$") ]]; then
           sudo apt-get -yq install shellcheck >/dev/null && echo -e "\n####################\n\tShellcheck dependencies Installed\n####################\n";
         fi;
 
@@ -237,7 +237,7 @@ runs:
         checked=false
         file_count=1
         include_count=1
-        if [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | sudo rg -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
@@ -283,10 +283,10 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && [[ $(sudo rg -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                       echo -e "\n####################\nChecked Before Skipping\n####################\n";
-                      grep -Fs "${SEARCH_PATH}" "${repaired}";
+                      echo "Path: `sudo rg -Fs ${SEARCH_PATH} ${repaired}`";
                     elif ${{ inputs.stored }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -324,7 +324,7 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
+                if ${{ inputs.stored }} && [[ $(sudo rg -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                   echo -e "\n####################\nChecked Before Skipping\n${CHECKED_DATE}\n####################\n";
                 elif ${{ inputs.stored }}; then
@@ -388,7 +388,7 @@ runs:
           fi;
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        elif [[ -n $(echo "${file_type}" | sudo rg -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -405,14 +405,14 @@ runs:
         repaired=$(sudo rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
         files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | sudo rg -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}");
+            CHECKED_DATE=$(sudo rg -Fs "${SEARCH_PATH}" "${repaired}");
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
@@ -423,7 +423,7 @@ runs:
             fi;
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
-              if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}" "${repaired}"; then
+              if ${{ inputs.stored }} && sudo rg -qs "${SEARCH_PATH}" "${repaired}"; then
                 echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                 echo -e "\n####################\nChecked Before Skipping\n${CHECKED_DATE}\n####################\n";
               elif ${{ inputs.stored }}; then
@@ -480,7 +480,7 @@ runs:
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | grep -i "^sh$") ]]; then
+        elif [[ -n $(echo "${file_type}" | sudo rg -i "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -571,7 +571,7 @@ runs:
         checked=false
         file_count=1
         include_count=1
-        if [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | sudo rg -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
@@ -582,7 +582,7 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}");
+            CHECKED_DATE=$(sudo rg -Fs "${SEARCH_PATH}" "${repaired}");
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
@@ -617,7 +617,7 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ $(grep -s "${SEARCH_PATH}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && [[ $(sudo rg -s "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                       echo -e "\n####################\nChecked Before Skipping\n${CHECKED_DATE}\n####################\n";
                     elif ${{ inputs.stored }}; then
@@ -657,7 +657,7 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && [[ $(grep -s "${SEARCH_PATH}" "${repaired}") ]]; then
+                if ${{ inputs.stored }} && [[ $(sudo rg -s "${SEARCH_PATH}" "${repaired}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                   echo -e "\n####################\nChecked Before Skipping\n${CHECKED_DATE}\n####################\n";
                 elif ${{ inputs.stored }}; then
@@ -721,7 +721,7 @@ runs:
           fi;
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        elif [[ -n $(echo "${file_type}" | sudo rg -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -738,14 +738,14 @@ runs:
         repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | sudo rg -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}");
+            CHECKED_DATE=$(sudo rg -Fs "${SEARCH_PATH}" "${repaired}");
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
@@ -756,7 +756,7 @@ runs:
             fi;
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
-              if ${{ inputs.stored }} && grep -qs "${SEARCH_PATH}" "${repaired}"; then
+              if ${{ inputs.stored }} && sudo rg -qs "${SEARCH_PATH}" "${repaired}"; then
                 echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
                 echo -e "\n####################\nChecked Before Skipping\n${CHECKED_DATE}\n####################\n";
               elif ${{ inputs.stored }}; then
@@ -813,7 +813,7 @@ runs:
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | grep -i "^sh$") ]]; then
+        elif [[ -n $(echo "${file_type}" | sudo rg -i "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -898,10 +898,10 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(sudo rg "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
-            content=$(sudo rg "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
+            finder=$(sudo rg "*${t}$" "${{ env.DATABASE }}" | xargs sudo rg --color=always -HFans "${{ inputs.filetext }}");
+            content=$(sudo rg "*${t}$" "${{ env.DATABASE }}" | xargs sudo rg --color=always -q "${{ inputs.filetext }}");
             if [[ -n ${finder} ]]; then
-              counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
+              counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
               echo -e "\n${finder}\n";
               if ${{ inputs.content }}; then
@@ -920,10 +920,10 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          finder=$(sudo rg -F "*" "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
-          content=$(sudo rg -F "*" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
+          finder=$(sudo rg -F "*" "${{ env.DATABASE }}" | xargs sudo rg --color=always -HFans "${{ inputs.filetext }}");
+          content=$(sudo rg -F "*" "${{ env.DATABASE }}" | xargs sudo rg --color=always -q "${{ inputs.filetext }}");
           if [[ -n ${finder} ]]; then
-            counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
+            counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
             echo -e "\n${finder}\n";
             if ${{ inputs.content }}; then
@@ -954,10 +954,10 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
-            content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+            finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo rg --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+            content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo rg --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
             if [[ -n ${finder} ]]; then
-              counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
+              counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
               echo -e "\n${finder}\n";
               if ${{ inputs.content }}; then
@@ -976,10 +976,10 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
-          content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+          finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo rg --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+          content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo rg --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
           if [[ -n ${finder} ]]; then
-            counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
+            counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
             echo -e "\n${finder}\n";
             if ${{ inputs.content }}; then
