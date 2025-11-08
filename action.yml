@@ -85,7 +85,7 @@ runs:
     - name: Installing Dependencies
       if: inputs.filetext != '' || inputs.filename != ''
       run: |
-        set -o pipefail
+        echo '';
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
         export DEBIAN_FRONTEND=noninteractive
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -161,7 +161,7 @@ runs:
       env: 
         DEFAULT_PATH: "*" 
       run: |
-        set -o pipefail
+        echo '';
         repair_file='check-file-repaired.txt';
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
         
@@ -227,7 +227,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
-        set -o pipefail
+        echo '';
         files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_path=$(sudo rg -F '.clang-tidy' "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -399,7 +399,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0 
       run: |
         export LC_ALL=C
-        set -o pipefail
+        echo '';
         fixed=false
         shellcheck_count=1
         repaired=$(sudo rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
@@ -491,7 +491,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0
       run: |
         export LC_ALL=C
-        set -o pipefail
+        echo '';
         files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
@@ -530,7 +530,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0 
       run: |
         export LC_ALL=C
-        set -o pipefail
+        echo '';
         files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
@@ -561,7 +561,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true'
       run: |
         export LC_ALL=C
-        set -o pipefail
+        echo '';
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_path=$(sudo find ${{ env.FILE_PATH }} -type f -name '.clang-tidy' -print -quit);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -732,7 +732,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0 
       run: |
         export LC_ALL=C
-        set -o pipefail
+        echo '';
         fixed=false
         shellcheck_count=1
         repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
@@ -824,7 +824,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0
       run: |
         export LC_ALL=C
-        set -o pipefail
+        echo '';
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
@@ -862,7 +862,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0 
       run: |
         export LC_ALL=C
-        set -o pipefail
+        echo '';
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
@@ -893,7 +893,7 @@ runs:
       if: inputs.filetext != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
-        set -o pipefail
+        echo '';
         file_count=1
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
@@ -949,7 +949,7 @@ runs:
       if: inputs.filetext != '' && inputs.database != 'true'
       run: |
         export LC_ALL=C
-        set -o pipefail
+        echo '';
         file_count=1
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
@@ -1020,7 +1020,7 @@ runs:
       if: inputs.update != 'false' && env.FILE_FIXED == 1
       id: changed-files
       run: |
-        set -o pipefail
+        echo '';
         changed_files=false
         REPAIR_DATE="$(date +%Y%m%d)";
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
