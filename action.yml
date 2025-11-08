@@ -212,12 +212,13 @@ runs:
     - name: Check & Repair (Clang-tools)
       if: inputs.filename != '' && inputs.database != 'false'
       run: |
+        export LC_ALL=C
         set -o pipefail
-        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
-        file_path=$(sudo rg '.clang-tidy' "${{ env.DATABASE }}");
+        files=$(sudo rg -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        file_path=$(sudo rg -F '.clang-tidy' "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
-        repaired=$(sudo rg 'check-file-repaired.txt' "${{ env.DATABASE }}");
+        repaired=$(sudo rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
         repair_file='check-file-repaired.txt';
         count2=0
@@ -264,7 +265,7 @@ runs:
                 for i in ${includes[@]}; do
                   final="${i}";
                   count2=$((include_count++));
-                  header=$(sudo rg "/$(basename ${i})$" "${{ env.DATABASE }}");
+                  header=$(sudo rg -F "/$(basename ${i})$" "${{ env.DATABASE }}");
                   for h in ${header[@]}; do
                     echo "$(dirname ${h/\\n /})" >> "$(dirname ${f})/${included1}";
                     include_paths+="${separator/\\n /}$(dirname ${h/\\n /})";
@@ -280,7 +281,7 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ $(grep -s "${SEARCH_PATH}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                       echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                     elif ${{ inputs.stored }}; then
@@ -320,7 +321,7 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && [[ $(grep -s "${SEARCH_PATH}" "${repaired}") ]]; then
+                if ${{ inputs.stored }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                   echo -e "\n####################\n$(basename ${f}) has been checked before skipping\n####################\n";
                 elif ${{ inputs.stored }}; then
@@ -394,13 +395,14 @@ runs:
     - name: Check Shell Files
       if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0 
       run: |
+        export LC_ALL=C
         set -o pipefail
         fixed=false
         shellcheck_count=1
         repair_file='check-file-repaired.txt';
-        repaired=$(sudo rg 'check-file-repaired.txt' "${{ env.DATABASE }}");
+        repaired=$(sudo rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
-        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(sudo rg -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | grep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -496,8 +498,9 @@ runs:
     - name: Check Makefile Files
       if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0
       run: |
+        export LC_ALL=C
         set -o pipefail
-        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(sudo rg -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
@@ -533,8 +536,9 @@ runs:
     - name: Check All Files
       if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0 
       run: |
+        export LC_ALL=C
         set -o pipefail
-        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(sudo rg -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
         if [[ -n ${files} ]]; then
@@ -563,6 +567,7 @@ runs:
     - name: Check & Repair (Clang-tools)
       if: inputs.filename != '' && inputs.database != 'true'
       run: |
+        export LC_ALL=C
         set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_path=$(sudo find ${{ env.FILE_PATH }} -type f -name '.clang-tidy' -print -quit);
@@ -744,6 +749,7 @@ runs:
     - name: Check Shell Files
       if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0 
       run: |
+        export LC_ALL=C
         set -o pipefail
         fixed=false
         shellcheck_count=1
@@ -845,6 +851,7 @@ runs:
     - name: Check Makefile Files
       if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0
       run: |
+        export LC_ALL=C
         set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -882,6 +889,7 @@ runs:
     - name: Check All Files
       if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0 
       run: |
+        export LC_ALL=C
         set -o pipefail
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -912,12 +920,13 @@ runs:
     - name: Word Text Match
       if: inputs.filetext != '' && inputs.database != 'false'
       run: |
+        export LC_ALL=C
         set -o pipefail
         file_count=1
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(sudo rg "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -Hans "${{ inputs.filetext }}");
+            finder=$(sudo rg "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
             content=$(sudo rg "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
             if [[ -n ${finder} ]]; then
               counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
@@ -939,8 +948,8 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          finder=$(sudo rg "*" "${{ env.DATABASE }}" | xargs grep --color=always -Hans "${{ inputs.filetext }}");
-          content=$(sudo rg "*" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
+          finder=$(sudo rg -F "*" "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
+          content=$(sudo rg -F "*" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
           if [[ -n ${finder} ]]; then
             counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
@@ -967,12 +976,13 @@ runs:
     - name: Word Text Match
       if: inputs.filetext != '' && inputs.database != 'true'
       run: |
+        export LC_ALL=C
         set -o pipefail
         file_count=1
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -Hans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+            finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
             content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
             if [[ -n ${finder} ]]; then
               counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
@@ -994,7 +1004,7 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -Hans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+          finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
           content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
           if [[ -n ${finder} ]]; then
             counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
