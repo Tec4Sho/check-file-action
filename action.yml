@@ -183,7 +183,7 @@ runs:
             echo -e "\n####################\nRepaired files list found!!!\n####################\n";
           else
             echo -e "\nCreating ${repair_file} for checked files\n"
-            echo "CHECKED FILES" | sudo tee "${repository}" || exit 1
+            date "+%Y%m%d" > "${repository}" || exit 1
           fi;
         fi;
 
