@@ -387,7 +387,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
-          echo -n '| Check File Runtime |';
+          echo '| Check File Runtime |' >&2;
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
@@ -409,16 +409,22 @@ runs:
         fixed=false
         shellcheck_count=1
         repaired=$(rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
-        files=$(rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | rg -o '\b\w+\.\w+\b') ]]; then
+          files=$(rg -j $(nproc --all) -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        elif [[ -n $(echo "${file_type}" | rg -o '\b/.\w+\b') ]]; then
+          files=$(rg -j $(nproc --all) ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
+        else
+          files=$(rg -j $(nproc --all) "${{ inputs.filename }}" "${{ env.DATABASE }}");
+        fi;
+        if [[ -n $(echo "${file_type}" | rg -ie "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(rg -F "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
+            CHECKED_DATE=$(rg -Fw "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
@@ -429,7 +435,7 @@ runs:
             fi;
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
-              if ${{ inputs.stored }} && [[ $(rg -F "${SEARCH_PATH}" "${repaired}") ]]; then
+              if ${{ inputs.stored }} && [[ $(rg -Fw "${SEARCH_PATH}" "${repaired}") ]]; then
                 echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                 echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
               elif ${{ inputs.stored }}; then
@@ -482,11 +488,11 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
-          echo -n '| Check File Runtime |';
+          echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
+        elif [[ -n $(echo "${file_type}" | rg -ie "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -498,10 +504,16 @@ runs:
       run: |
         export LC_ALL=C
         echo '';
-        files=$(rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
+        if [[ -n $(echo "${file_type}" | rg -o '\b\w+\.\w+\b') ]]; then
+          files=$(rg -j $(nproc --all) -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        elif [[ -n $(echo "${file_type}" | rg -o '\b/.\w+\b') ]]; then
+          files=$(rg -j $(nproc --all) ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
+        else
+          files=$(rg -j $(nproc --all) "${{ inputs.filename }}" "${{ env.DATABASE }}");
+        fi;
         makefile_count=1
-        if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | rg -ie "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           time -p for f in ${files[@]}; do
@@ -521,11 +533,11 @@ runs:
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
           done
-          echo -n '| Check File Runtime |';
+          echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
+        elif [[ -n $(echo "${file_type}" | rg -ie "^mk$|.*Makefile$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING MK FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -537,8 +549,14 @@ runs:
       run: |
         export LC_ALL=C
         echo '';
-        files=$(rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
+        if [[ -n $(echo "${file_type}" | rg -o '\b\w+\.\w+\b') ]]; then
+          files=$(rg -j $(nproc --all) -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        elif [[ -n $(echo "${file_type}" | rg -o '\b/.\w+\b') ]]; then
+          files=$(rg -j $(nproc --all) ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
+        else
+          files=$(rg -j $(nproc --all) "${{ inputs.filename }}" "${{ env.DATABASE }}");
+        fi;
         file_count=1
         if [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -552,7 +570,7 @@ runs:
               echo -e "\n\n";
             fi;
           done
-          echo -n '| Check File Runtime |';
+          echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -577,7 +595,7 @@ runs:
         checked=false
         file_count=1
         include_count=1
-        if [[ -n $(echo "${file_type}" | sudo rg -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
@@ -720,14 +738,14 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
-          echo -n '| Check File Runtime |';
+          echo '| Check File Runtime |' >&2;
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
           fi;
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | sudo rg -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        elif [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -744,7 +762,7 @@ runs:
         repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | rg -i "^sh$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
@@ -815,11 +833,11 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
-          echo -n '| Check File Runtime |';
+          echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | sudo rg -i "^sh$") ]]; then
+        elif [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -853,7 +871,7 @@ runs:
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
           done
-          echo -n '| Check File Runtime |';
+          echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -884,7 +902,7 @@ runs:
               echo -e "\n\n";
             fi;
           done
-          echo -n '| Check File Runtime |';
+          echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -904,10 +922,10 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(rg -j $(nproc --all) -F "${t}$" "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always -Fn "${{ inputs.filetext }}");
-            content=$(rg -j $(nproc --all) -F "${t}$" "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always --files "${{ inputs.filetext }}");
+            finder=$(rg -j $(nproc --all) -F ".*\${t}$" "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always -Fn "${{ inputs.filetext }}");
+            content=$(rg -j $(nproc --all) -F ".*\${t}$" "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always --files "${{ inputs.filetext }}");
             if [[ -n ${finder} ]]; then
-              counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
+              counter=$( echo "${finder}" | rg -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
               echo -e "\n${finder}\n";
               if ${{ inputs.content }}; then
@@ -929,7 +947,7 @@ runs:
           finder=$(rg -j $(nproc --all) -F "." "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always -Fn "${{ inputs.filetext }}");
           content=$(rg -j $(nproc --all) -F "." "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always --files "${{ inputs.filetext }}");
           if [[ -n ${finder} ]]; then
-            counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
+            counter=$( echo "${finder}" | rg -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
             echo -e "\n${finder}\n";
             if ${{ inputs.content }}; then
@@ -963,7 +981,7 @@ runs:
             finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
             content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
             if [[ -n ${finder} ]]; then
-              counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
+              counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
               echo -e "\n${finder}\n";
               if ${{ inputs.content }}; then
@@ -985,7 +1003,7 @@ runs:
           finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
           content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
           if [[ -n ${finder} ]]; then
-            counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
+            counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
             echo -e "\n${finder}\n";
             if ${{ inputs.content }}; then
