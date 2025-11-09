@@ -70,7 +70,7 @@ inputs:
     description: 'Number of files to check before stopping action'
     type: number
     required: false
-    default: 0
+    default: '0'
 
 runs:
   using: composite
@@ -228,7 +228,7 @@ runs:
       run: |
         export LC_ALL=C
         echo '';
-        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(rg --pre-glob "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_path=$(rg -F '.clang-tidy' "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
@@ -248,7 +248,7 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(rg -F "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
+            CHECKED_DATE=$(rg -F --pre-glob "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
@@ -329,7 +329,7 @@ runs:
                   echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
                 elif ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f 1-6)" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
@@ -339,7 +339,7 @@ runs:
                   fixed=true
                 elif ! ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f 1-6)" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
@@ -381,7 +381,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
-          echo '| Check File Runtime |' >&2;
+          echo -n '| Check File Runtime |';
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
@@ -403,7 +403,7 @@ runs:
         fixed=false
         shellcheck_count=1
         repaired=$(rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
-        files=$(rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(rg --pre-glob "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | rg -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -412,7 +412,7 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(rg -F "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
+            CHECKED_DATE=$(rg -F --pre-glob "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
@@ -476,7 +476,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
-          echo '| Check File Runtime |' >&2;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -515,7 +515,7 @@ runs:
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
           done
-          echo '| Check File Runtime |' >&2;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -531,7 +531,7 @@ runs:
       run: |
         export LC_ALL=C
         echo '';
-        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(rg --pre-glob "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
         if [[ -n ${files} ]]; then
@@ -546,7 +546,7 @@ runs:
               echo -e "\n\n";
             fi;
           done
-          echo '| Check File Runtime |' >&2;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -662,7 +662,7 @@ runs:
                   echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
                 elif ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f 1-6)" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
@@ -672,7 +672,7 @@ runs:
                   fixed=true
                 elif ! ${{ inputs.stored }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f 1-6)" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
@@ -714,7 +714,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
-          echo '| Check File Runtime |' >&2;
+          echo -n '| Check File Runtime |';
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
@@ -809,7 +809,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
-          echo '| Check File Runtime |' >&2;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -847,7 +847,7 @@ runs:
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
           done
-          echo '| Check File Runtime |' >&2;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -878,7 +878,7 @@ runs:
               echo -e "\n\n";
             fi;
           done
-          echo '| Check File Runtime |' >&2;
+          echo -n '| Check File Runtime |';
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -898,8 +898,8 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(rg "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
-            content=$(rg "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
+            finder=$(rg --pre-glob "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
+            content=$(rg --pre-glob "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
             if [[ -n ${finder} ]]; then
               counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
