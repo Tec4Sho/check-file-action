@@ -70,7 +70,7 @@ inputs:
     description: 'Number of files to check before stopping action'
     type: number
     required: false
-    default: '0'
+    default: 0
 
 runs:
   using: composite
@@ -112,20 +112,20 @@ runs:
           sudo apt-get -yq install ca-certificates >/dev/null && echo -e "\n####################\n\tCa-certificates dependencies Installed\n####################\n";
         fi;
 
-        if [[ ! $(which cppcheck) ]] && [[ -n $(echo "${file_type}" | rg -F "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        if [[ ! $(which cppcheck) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           sudo apt-get -yq install cppcheck >/dev/null && echo -e "\n####################\n\tCppcheck dependencies Installed\n####################\n";
         fi;
 
-        if [[ ! $(which clang-tidy) ]] && [[ -n $(echo "${file_type}" | rg -F "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        if [[ ! $(which clang-tidy) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e "\n####################\n\Clang-tool dependencies Installed\n####################\n";
         fi;
 
-        if [[ ! $(which shellharden) ]] && [[ -n $(echo "${file_type}" | rg -Fi "^sh$") ]]; then
+        if [[ ! $(which shellharden) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
           wget -qO shellharden.tar.gz https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-gnu.tar.gz
           sudo tar xf shellharden.tar.gz -C /usr/local/bin shellharden && rm -vrf shellharden.tar.gz && echo -e "\n####################\n\tShellharden dependencies Installed\n####################\n";
         fi;
 
-        if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | rg -Fi "^sh$") ]]; then
+        if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
           sudo apt-get -yq install shellcheck >/dev/null && echo -e "\n####################\n\tShellcheck dependencies Installed\n####################\n";
         fi;
 
@@ -237,7 +237,7 @@ runs:
         checked=false
         file_count=1
         include_count=1
-        if [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
@@ -388,7 +388,7 @@ runs:
           fi;
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        elif [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -405,7 +405,7 @@ runs:
         repaired=$(rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
         files=$(rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | rg -i "^sh$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
@@ -480,7 +480,7 @@ runs:
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | rg -i "^sh$") ]]; then
+        elif [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
