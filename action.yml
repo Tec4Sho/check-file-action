@@ -228,7 +228,7 @@ runs:
       run: |
         export LC_ALL=C
         echo '';
-        files=$(rg --pre-glob "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(rg -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_path=$(rg -F '.clang-tidy' "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
@@ -248,7 +248,7 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(rg -F --pre-glob "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
+            CHECKED_DATE=$(rg -F "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
@@ -403,7 +403,7 @@ runs:
         fixed=false
         shellcheck_count=1
         repaired=$(rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
-        files=$(rg --pre-glob "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(rg -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | rg -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -412,7 +412,7 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(rg -F --pre-glob "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
+            CHECKED_DATE=$(rg -F "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
