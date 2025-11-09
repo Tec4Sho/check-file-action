@@ -229,11 +229,14 @@ runs:
         export LC_ALL=C
         echo '';
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | rg -e " ") ]] 
-        rg '.*\.c' 
-        files=$(rg -j $(nproc --all) -F "${{ inputs.filename }}" "${{ env.DATABASE }}");
+        if [[ -n $(echo "${file_type}" | rg -o "\b\w+\.\w+\b") ]]; then
+          files=$(rg -j $(nproc --all) -F "${{ inputs.filename }}" "${{ env.DATABASE }}");
+        elif [[ -n $(echo "${file_type}" | rg -o "\b\.\w+\b") ]]; then
+          files=$(rg -j $(nproc --all) ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
+        else
+          files=$(rg -j $(nproc --all) "\${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        fi;
         file_path=$(rg -F '.clang-tidy' "${{ env.DATABASE }}");
-        
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
         repaired=$(rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
         count2=0
