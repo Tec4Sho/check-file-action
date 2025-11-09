@@ -228,7 +228,7 @@ runs:
       run: |
         export LC_ALL=C
         echo '';
-        files=$(rg -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_path=$(rg -F '.clang-tidy' "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
@@ -403,7 +403,7 @@ runs:
         fixed=false
         shellcheck_count=1
         repaired=$(rg -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
-        files=$(rg -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | rg -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -492,7 +492,7 @@ runs:
       run: |
         export LC_ALL=C
         echo '';
-        files=$(sudo rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
@@ -531,7 +531,7 @@ runs:
       run: |
         export LC_ALL=C
         echo '';
-        files=$(rg --pre-glob "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
         if [[ -n ${files} ]]; then
@@ -898,8 +898,8 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(rg --pre-glob "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
-            content=$(rg --pre-glob "*${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
+            finder=$(rg "${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
+            content=$(rg "${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
             if [[ -n ${finder} ]]; then
               counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
@@ -920,8 +920,8 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          finder=$(rg "*" "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
-          content=$(rg "*" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
+          finder=$(rg "." "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
+          content=$(rg "." "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
           if [[ -n ${finder} ]]; then
             counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
