@@ -228,7 +228,7 @@ runs:
       run: |
         export LC_ALL=C
         echo '';
-        files=$(rg "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        files=$(rg -j $(nproc --all) -F "${{ inputs.filename }}" "${{ env.DATABASE }}");
         file_path=$(rg -F '.clang-tidy' "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
@@ -237,7 +237,7 @@ runs:
         checked=false
         file_count=1
         include_count=1
-        if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | rg -e "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
@@ -248,7 +248,7 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(rg -F "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
+            CHECKED_DATE=$(rg -Fw "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
@@ -284,7 +284,7 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ $(rg -F "${SEARCH_PATH}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && [[ $(rg -Fw "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                       echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
                     elif ${{ inputs.stored }}; then
@@ -324,7 +324,7 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && [[ $(rg -F "${SEARCH_PATH}" "${repaired}") ]]; then
+                if ${{ inputs.stored }} && [[ $(rg -Fw "${SEARCH_PATH}" "${repaired}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                   echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
                 elif ${{ inputs.stored }}; then
@@ -388,7 +388,7 @@ runs:
           fi;
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        elif [[ -n $(echo "${file_type}" | rg -e "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -898,8 +898,8 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(rg "${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
-            content=$(rg "${t}$" "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
+            finder=$(rg -j $(nproc --all) -F "${t}$" "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always -Fn "${{ inputs.filetext }}");
+            content=$(rg -j $(nproc --all) -F "${t}$" "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always --files "${{ inputs.filetext }}");
             if [[ -n ${finder} ]]; then
               counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
@@ -920,8 +920,8 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          finder=$(rg "." "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
-          content=$(rg "." "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
+          finder=$(rg -j $(nproc --all) -F "." "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always -Fn "${{ inputs.filetext }}");
+          content=$(rg -j $(nproc --all) -F "." "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always --files "${{ inputs.filetext }}");
           if [[ -n ${finder} ]]; then
             counter=$( echo "${finder}" | sudo rg -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
