@@ -100,6 +100,10 @@ runs:
           sudo apt-get -yq install tput >/dev/null && printf '\n####################\ntput dependencies Installed\n####################\n' || printf 'No tput installed Exiting';
           [[ ! $(which tput) ]] && exit 1
         fi;
+        
+        if [[ -z "$TERM" ]]; then 
+          TERM=xterm
+        fi;
 
         # Get terminal width # Text to be centered
         COLUMNS=$(tput cols);
@@ -199,6 +203,9 @@ runs:
         DEFAULT_PATH: "*" 
       run: |
         echo '';
+        if [[ -z "$TERM" ]]; then 
+          TERM=xterm
+        fi;
         COLUMNS=$(tput cols);
         repair_file='check-file-repaired.txt';
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
@@ -1163,6 +1170,9 @@ runs:
         fi;
         if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
           echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/check_file_list.txt)\n";
+        fi;
+        if [[ -z "$TERM" ]]; then 
+          TERM=xterm
         fi;
         COLUMNS=$(tput cols);
         TEXT='\n●●●●●●●●●●●●●\n✅ CHECK FILE EXITING ✅\n●●●●●●●●●●●●●\n';
