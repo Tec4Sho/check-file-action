@@ -186,7 +186,7 @@ runs:
         TEXT7="\n####################\nSearching directories for ${{ inputs.filename }} file(s)\n####################\n";
         TEXT8="\n####################\nSearching ${{ inputs.filetype }} files for ${{ inputs.filetext }} match(s)\n####################\n";
         TEXT9="\n####################\nSearching all files for ${{ inputs.filetext }} match(s)\n####################\n";
-        TEXT10="\n\t●●●●●●●●●●●\n\t SETUP COMPLETED\n\t●●●●●●●●●●●\n";
+        TEXT10="\n\t●●●●●●●●●●●●\n\t ● CHECK FILE ACTION ●\n\t●●●●●●●●●●●●\n";
         
         if ${{ inputs.rootdir }}; then
           echo -e "${TEXT1}";
@@ -317,7 +317,7 @@ runs:
                     if ${{ inputs.stored }} && ${{ inputs.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                       echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
-                    elif ${{ inputs.stored }} && ${{ inputs.update }} then
+                    elif ${{ inputs.stored }} && ${{ inputs.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                       if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -357,7 +357,7 @@ runs:
                 if ${{ inputs.stored }} && ${{ inputs.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                   echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
-                elif ${{ inputs.stored }} && ${{ inputs.update }} then
+                elif ${{ inputs.stored }} && ${{ inputs.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -463,7 +463,7 @@ runs:
               if ${{ inputs.stored }} && ${{ inputs.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                 echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                 echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
-              elif ${{ inputs.stored }} && ${{ inputs.update }} then
+              elif ${{ inputs.stored }} && ${{ inputs.update }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -666,10 +666,10 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && ${{ inputs.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                       echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
-                    elif ${{ inputs.stored }}; then
+                    elif ${{ inputs.stored }} && ${{ inputs.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                       if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -706,10 +706,10 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
+                if ${{ inputs.stored }} && ${{ inputs.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                   echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
-                elif ${{ inputs.stored }}; then
+                elif ${{ inputs.stored }} && ${{ inputs.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -805,10 +805,10 @@ runs:
             fi;
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
-              if ${{ inputs.stored }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
+              if ${{ inputs.stored }} && ${{ inputs.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                 echo -e "\n####################\n${SHELL} NOTHING TO REPAIR\n####################\n";
                 echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
-              elif ${{ inputs.stored }}; then
+              elif ${{ inputs.stored }} && ${{ inputs.update }}; then
                 echo -e "\n\n####################\n${SHELL} ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
