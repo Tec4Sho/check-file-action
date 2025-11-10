@@ -186,7 +186,7 @@ runs:
         TEXT7="\n####################\nSearching directories for ${{ inputs.filename }} file(s)\n####################\n";
         TEXT8="\n####################\nSearching ${{ inputs.filetype }} files for ${{ inputs.filetext }} match(s)\n####################\n";
         TEXT9="\n####################\nSearching all files for ${{ inputs.filetext }} match(s)\n####################\n";
-        TEXT10="\n\t●●●●●●●●●●●\n\tSETUP COMPLETED\n\t●●●●●●●●●●●\n";
+        TEXT10="\n\t●●●●●●●●●●●\n\t SETUP COMPLETED\n\t●●●●●●●●●●●\n";
         
         if ${{ inputs.rootdir }}; then
           echo -e "$TEXT1"
@@ -253,10 +253,10 @@ runs:
         export LC_ALL=C
         echo '';
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | grep -P '\b\w+\.\w+\b') ]]; then
+        if [[ -n $(echo "${file_type}" | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
-        elif [[ -n $(echo "${file_type}" | grep -P '\b/.\w+\b') ]]; then
-          files=$(grep -P ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
+        elif [[ -n $(echo "${file_type}" | grep -Po "\b/.\w+\b") ]]; then
+          files=$(grep ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
         else
           files=$(grep -E "${{ inputs.filename }}" "${{ env.DATABASE }}");
         fi;
@@ -267,7 +267,7 @@ runs:
         checked=false
         file_count=1
         include_count=1
-        if [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
             echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
@@ -419,7 +419,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
           fi;
-        elif [[ -n $(echo "${file_type}" | grep -E "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        elif [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -435,14 +435,14 @@ runs:
         shellcheck_count=1
         repaired=$(grep -F 'check-file-repaired.txt' "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | grep -P '\b\w+\.\w+\b') ]]; then
+        if [[ -n $(echo "${file_type}" | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
-        elif [[ -n $(echo "${file_type}" | grep -P '\b/.\w+\b') ]]; then
-          files=$(grep -P ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
+        elif [[ -n $(echo "${file_type}" | grep -Po "\b/.\w+\b") ]]; then
+          files=$(grep ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
         else
           files=$(grep -E "${{ inputs.filename }}" "${{ env.DATABASE }}");
         fi;
-        if [[ -n $(echo "${file_type}" | grep -iE "^sh$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
@@ -517,7 +517,7 @@ runs:
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | grep -iE "^sh$") ]]; then
+        elif [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -530,15 +530,15 @@ runs:
         export LC_ALL=C
         echo '';
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | rg -o '\b\w+\.\w+\b') ]]; then
-          files=$(rg -j $(nproc --all) -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
-        elif [[ -n $(echo "${file_type}" | rg -o '\b/.\w+\b') ]]; then
-          files=$(rg -j $(nproc --all) ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
+        if [[ -n $(echo "${file_type}" | grep -Po "\b\w+\.\w+\b") ]]; then
+          files=$(grep -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        elif [[ -n $(echo "${file_type}" | grep -Po "\b/.\w+\b") ]]; then
+          files=$(grep ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
         else
-          files=$(rg -j $(nproc --all) "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          files=$(grep -E "${{ inputs.filename }}" "${{ env.DATABASE }}");
         fi;
         makefile_count=1
-        if [[ -n $(echo "${file_type}" | rg -ie "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
+        if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           time -p for f in ${files[@]}; do
@@ -562,7 +562,7 @@ runs:
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | rg -ie "^mk$|.*Makefile$") ]]; then
+        elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING MK FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
       shell: bash
@@ -575,12 +575,12 @@ runs:
         export LC_ALL=C
         echo '';
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | rg -o '\b\w+\.\w+\b') ]]; then
-          files=$(rg -j $(nproc --all) -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
-        elif [[ -n $(echo "${file_type}" | rg -o '\b/.\w+\b') ]]; then
-          files=$(rg -j $(nproc --all) ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
+        if [[ -n $(echo "${file_type}" | grep -Po "\b\w+\.\w+\b") ]]; then
+          files=$(grep -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+        elif [[ -n $(echo "${file_type}" | grep -Po "\b/.\w+\b") ]]; then
+          files=$(grep ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
         else
-          files=$(rg -j $(nproc --all) "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          files=$(grep -E "${{ inputs.filename }}" "${{ env.DATABASE }}");
         fi;
         file_count=1
         if [[ -n ${files} ]]; then
@@ -947,10 +947,10 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(rg -j $(nproc --all) -F ".*\${t}$" "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always -Fn "${{ inputs.filetext }}");
-            content=$(rg -j $(nproc --all) -F ".*\${t}$" "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always --files "${{ inputs.filetext }}");
+            finder=$(grep -F ".*\${t}$" "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always -Fn "${{ inputs.filetext }}");
+            content=$(grep -F ".*\${t}$" "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always --files "${{ inputs.filetext }}");
             if [[ -n ${finder} ]]; then
-              counter=$( echo "${finder}" | rg -c "${{ inputs.filetext }}" );
+              counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
               echo -e "\n${finder}\n";
               if ${{ inputs.content }}; then
@@ -969,10 +969,10 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          finder=$(rg -j $(nproc --all) -F "." "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always -Fn "${{ inputs.filetext }}");
-          content=$(rg -j $(nproc --all) -F "." "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always --files "${{ inputs.filetext }}");
+          finder=$(grep "." "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
+          content=$(grep "." "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
           if [[ -n ${finder} ]]; then
-            counter=$( echo "${finder}" | rg -c "${{ inputs.filetext }}" );
+            counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
             echo -e "\n${finder}\n";
             if ${{ inputs.content }}; then
@@ -1129,7 +1129,7 @@ runs:
         if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
           echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/check_file_list.txt)\n";
         fi;
-        TEXT="\n\t●●●●●●●●●●●●●\n\t✅ CHECK FILE EXITING ✅\n\t●●●●●●●●●●●●●\n";
+        TEXT="\n\t●●●●●●●●●●●●●●●\n\t✅ CHECK FILE EXITING ✅\n\t●●●●●●●●●●●●●●●\n";
         echo -e "$TEXT";
       shell: bash
       continue-on-error: false
