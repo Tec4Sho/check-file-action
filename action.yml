@@ -228,7 +228,7 @@ runs:
         fi;
 
         if ${{ inputs.database }}; then
-          sudo find "${FILE_PATH}" -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
+          sudo find "${FILE_PATH}" -type f -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
           if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
             printf "%*s%s\n" "$PADDING" "" "$TEXT5";
             echo "DATABASE=${GITHUB_WORKSPACE}/check_file_list.txt" >> "${GITHUB_ENV}";
@@ -295,7 +295,7 @@ runs:
           fi;
           time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
-            CHECKED_DATE=$(rg -Fw "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
+            CHECKED_DATE=$(rg -F "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
@@ -331,7 +331,7 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && [[ $(rg -Fw "${SEARCH_PATH}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && [[ $(rg -F "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                       echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
                     elif ${{ inputs.stored }}; then
@@ -371,7 +371,7 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && [[ $(rg -Fw "${SEARCH_PATH}" "${repaired}") ]]; then
+                if ${{ inputs.stored }} && [[ $(rg -F "${SEARCH_PATH}" "${repaired}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                   echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
                 elif ${{ inputs.stored }}; then
@@ -424,7 +424,8 @@ runs:
                 break;
               fi;
             fi;
-          done && sleep 0.5
+          done;
+          sleep 0.5
           echo '| Check File Runtime |' >&2;   
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
@@ -476,7 +477,7 @@ runs:
             fi;
             if ${{ inputs.repair }}; then
               SHELL=SHELLHARDEN
-              if ${{ inputs.stored }} && [[ $(rg -Fw "${SEARCH_PATH}" "${repaired}") ]]; then
+              if ${{ inputs.stored }} && [[ $(rg -F "${SEARCH_PATH}" "${repaired}") ]]; then
                 echo -e "\n####################\nCHECK-FILE NOTHING TO REPAIR\n####################\n";
                 echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
               elif ${{ inputs.stored }}; then
