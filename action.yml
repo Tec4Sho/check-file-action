@@ -86,8 +86,8 @@ runs:
       if: inputs.filetext != '' || inputs.filename != ''
       run: |
         echo '';
-        export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-        export DEBIAN_FRONTEND=noninteractive
+        sudo bash -c echo -e "\nexport GIT_DISCOVERY_ACROSS_FILESYSTEM=1" | sudo tee -a ~/.bashrc >/dev/null;
+        sudo bash -c echo -e "\nexport DEBIAN_FRONTEND=noninteractive" | sudo tee -a ~/.bashrc >/dev/null;
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file=$(sudo find ${GITHUB_WORKSPACE} -type f -name "checkmake.ini" -print -quit);
         path='/home/runner/checkmake.ini';
@@ -97,40 +97,47 @@ runs:
         sudo apt-get update -yq >/dev/null 2>&1;
 
         if [[ ! $(which git) ]] && ${{ inputs.update }}; then
-          sudo apt-get -yq install git >/dev/null && echo -e '\n####################\n\tgit dependencies Installed\n####################\n' || echo 'No .git found Exiting' && exit 1;
+          sudo apt-get -yq install git >/dev/null && echo -e '\n####################\n\tgit dependencies Installed\n####################\n' || echo 'No git installed for repo updates';
+          [[ ! $(which git) ]] && exit 1
         fi;
 
         if [[ ! $(which rg) ]] && ${{ inputs.database }}; then
-          sudo apt-get -yq install ripgrep >/dev/null && echo -e '\n####################\n\tripgrep dependencies Installed\n####################\n' || echo 'No ripgrep found Exiting' && exit 1;
+          sudo apt-get -yq install ripgrep >/dev/null && echo -e '\n####################\n\tripgrep dependencies Installed\n####################\n' || echo 'No ripgrep installed Exiting';
+          [[ ! $(which git) ]] && exit 1
         fi;
 
         if [[ ! $(which ansi2txt) ]] && ${{ inputs.report }}; then
-          sudo apt-get -yq install ansi2txt >/dev/null && echo -e '\n####################\n\tansi2txt dependencies Installed\n####################\n';
+          sudo apt-get -yq install ansi2txt >/dev/null && echo -e '\n####################\n\tansi2txt dependencies Installed\n####################\n' || echo 'No ansi2txt installed for cleaning log report';
         fi;
 
         if [[ ! $(which update-ca-certificates) ]]; then
-          sudo apt-get -yq install ca-certificates >/dev/null && echo -e '\n####################\n\tca-certificates dependencies Installed\n####################\n';
+          sudo apt-get -yq install ca-certificates >/dev/null && echo -e '\n####################\n\tca-certificates dependencies Installed\n####################\n' || echo 'No ca-certificates installed effects can vary';
         fi;
 
         if [[ ! $(which cppcheck) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
-          sudo apt-get -yq install cppcheck >/dev/null && echo -e '\n####################\n\tcppcheck dependencies Installed\n####################\n' || echo 'No cppcheck found Exiting' && exit 1;
+          sudo apt-get -yq install cppcheck >/dev/null && echo -e '\n####################\n\tcppcheck dependencies Installed\n####################\n' || echo 'No cppcheck installed Exiting';
+          [[ ! $(which cppcheck) ]] && exit 1
         fi;
 
         if [[ ! $(which clang-tidy) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}; then
-          sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e '\n####################\n\clang-tidy dependencies Installed\n####################\n' || echo 'No clang-tidy found Exiting' && exit 1;
+          sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e '\n####################\n\clang-tidy dependencies Installed\n####################\n' || echo 'No clang-tidy installed Exiting';
+          [[ ! $(which clang-tidy) ]] && exit 1
         fi;
 
         if [[ ! $(which shellharden) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.repair }}; then
           wget -qO 'shellharden.tar.gz' 'https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-gnu.tar.gz';
-          sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e '\n####################\n\tshellharden dependencies Installed\n####################\n' || echo 'No shellharden found Exiting' && exit 1;
+          sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e '\n####################\n\tshellharden dependencies Installed\n####################\n' || echo 'No shellharden installed Exiting';
+          [[ ! $(which shellharden) ]] && exit 1
         fi;
 
         if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.recheck }} || ! ${{ inputs.repair }}; then
-          sudo apt-get -yq install shellcheck >/dev/null && echo -e '\n####################\n\tshellcheck dependencies Installed\n####################\n' || echo 'No shellcheck found Exiting' && exit 1;
+          sudo apt-get -yq install shellcheck >/dev/null && echo -e '\n####################\n\tshellcheck dependencies Installed\n####################\n' || echo 'No shellcheck installed Exiting';
+          [[ ! $(which shellcheck) ]] && exit 1
         fi;
 
         if [[ ! $(which checkmake) ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
-          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e '\n####################\n\tcheckmake dependencies Installed\n####################\n' || echo 'No checkmake found Exiting' && exit 1;    
+          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e '\n####################\n\tcheckmake dependencies Installed\n####################\n' || echo 'No checkmake installed Exiting';
+          [[ ! $(which checkmake) ]] && exit 1
           if [[ -n ${file} ]]; then
             echo -e '\n####################\n\tcheckmake.ini found copying...\n####################\n';
             sudo cp -vf "${file}" "${path}" 2>/dev/null;
@@ -140,12 +147,13 @@ runs:
         fi;
 
         if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
-          sudo ln -sf ~/usr/bin/bat ~/usr/bin/batcat >/dev/null 2>&1;
-          echo "########## $(which batcat) ##########" || echo 'No batcat found Exiting' && exit 1;
-          sudo bash -c echo -e "\nalias batcat='bat'" | sudo tee -a ~/.bashrc 2>/dev/null;
+          sudo ln -sf ~/usr/bin/bat ~/usr/bin/batcat >/dev/null || echo 'No batcat installed Exiting';
+          [[ ! $(which batcat) ]] && exit 1
+          sudo bash -c echo -e "\nalias batcat='bat'" | sudo tee -a ~/.bashrc >/dev/null;
           export BAT_THEME="ansi";
         elif [[ ! $(which batcat) ]]; then
-          sudo apt-get -yq install bat >/dev/null && echo -e '\n####################\n\tbatcat dependencies Installed\n####################\n' || echo 'No batcat found Exiting' && exit 1;
+          sudo apt-get -yq install bat >/dev/null && echo -e '\n####################\n\tbatcat dependencies Installed\n####################\n' || echo 'No batcat installed Exiting';
+          [[ ! $(which batcat) ]] && exit 1
           export BAT_THEME="ansi";
         fi;
 
@@ -176,7 +184,7 @@ runs:
           FILE_PATH=${GITHUB_WORKSPACE}
         fi;
 
-        if [[ -d ${repository} ]] && ${{ inputs.repair }}; then
+        if [[ -d ${repository} ]] && ${{ inputs.repair }} && ${{ inputs.update }}; then
           repository="${repository%/*}/${repair_file}";
           if [[ -f ${repository} ]]; then
             echo -e '\n####################\nRepaired files list found!!!\n####################\n';
@@ -218,7 +226,7 @@ runs:
         echo 'FILE_FIXED=0' >> "${GITHUB_ENV}";
         echo 'FILE_FOUND=0' >> "${GITHUB_ENV}";
         echo 'FILE_ERROR=0' >> "${GITHUB_ENV}";
-        echo -e '\n●●●●●●●●●●●●●●\n SETUP COMPLETED \n●●●●●●●●●●●●●●\n';
+        echo -e '\n●●●●●●●●●●●●●●\nSETUP COMPLETED\n●●●●●●●●●●●●●●\n';
       shell: bash
       continue-on-error: false
 
