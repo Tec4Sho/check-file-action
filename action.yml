@@ -136,7 +136,7 @@ runs:
           [[ ! $(which shellharden) ]] && exit 1
         fi;
 
-        if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.recheck }} || ! ${{ inputs.repair }}; then
+        if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && $(${{ inputs.recheck }} || ! ${{ inputs.repair }}); then
           sudo apt-get -yq install shellcheck >/dev/null && echo -e "${TEXT7}" || echo 'No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1
         fi;
@@ -186,7 +186,7 @@ runs:
         TEXT7="\n####################\nSearching directories for ${{ inputs.filename }} file(s)\n####################\n";
         TEXT8="\n####################\nSearching ${{ inputs.filetype }} files for ${{ inputs.filetext }} match(s)\n####################\n";
         TEXT9="\n####################\nSearching all files for ${{ inputs.filetext }} match(s)\n####################\n";
-        TEXT10="\n\t●●●●●●●●●●●●\n\t ● CHECK FILE ACTION ●\n\t●●●●●●●●●●●●\n";
+        TEXT10="\n\t●●●●●●●●●●●●●●\n\t○ CHECK FILE ACTION ○\n\t●●●●●●●●●●●●●●\n";
         
         if ${{ inputs.rootdir }}; then
           echo -e "${TEXT1}";
@@ -407,8 +407,7 @@ runs:
                 break;
               fi;
             fi;
-          done;
-          sleep 0.5
+          done
           echo '| Check File Runtime |' >&2;   
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
@@ -510,13 +509,13 @@ runs:
               fi;
             fi;
           done
-          if [[ "${fixed}" ]]; then
-            echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
-          fi;
           echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
+          if [[ "${fixed}" ]]; then
+            echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
+          fi;
         elif [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
@@ -760,9 +759,6 @@ runs:
               fi;
             fi;
           done
-          if [[ "${fixed}" ]]; then
-            echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
-          fi;
           echo '| Check File Runtime |' >&2;
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
@@ -770,6 +766,9 @@ runs:
           fi;
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
+          if [[ "${fixed}" ]]; then
+            echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
+          fi;
         elif [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
@@ -855,13 +854,13 @@ runs:
               fi;
             fi;
           done
-          if [[ "${fixed}" ]]; then
-            echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
-          fi;
           echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
+          if [[ "${fixed}" ]]; then
+            echo "FILE_FIXED=1" >> "${GITHUB_ENV}";
+          fi;
         elif [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO ${{ inputs.filename }} FOUND\n####################\n";
         fi;
