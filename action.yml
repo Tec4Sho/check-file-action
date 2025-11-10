@@ -194,7 +194,7 @@ runs:
         TEXT10='\n●●●●●●●●●●●\nSETUP COMPLETED\n●●●●●●●●●●●\n';
         
         if ${{ inputs.rootdir }}; then
-          printf "%*s\n" "$(( ( $(echo $* | wc -c ) + 80 ) / 2 ))" "$TEXT1"
+          echo -e "$TEXT1"
           printf '\n~/\n';
           echo 'FILE_PATH=/' >> "${GITHUB_ENV}";
           FILE_PATH=/
@@ -210,7 +210,7 @@ runs:
           if [[ -f ${repository} ]]; then
             printf "%*s%s\n" "$(( ( $(echo $* | wc -c ) + 80 ) / 2 ))" "$TEXT3"
           else
-            printf "%*s\n" "$(( ( $(echo $* | wc -c ) + 80 ) / 2 ))" "$TEXT4"
+            echo -e "$TEXT4"
             date '+%Y%m%d' > "${repository}" || exit 1
           fi;
         fi;
@@ -1135,7 +1135,7 @@ runs:
           echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/check_file_list.txt)\n";
         fi;
         TEXT="\n●●●●●●●●●●●●●\n✅ CHECK FILE EXITING ✅\n●●●●●●●●●●●●●\n";
-        printf "%*s\n" "$(( ( $(echo $* | wc -c ) + 80 ) / 2 ))" "$TEXT";
+        echo -e "$TEXT";
       shell: bash
       continue-on-error: false
 
