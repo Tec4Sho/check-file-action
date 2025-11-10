@@ -113,54 +113,63 @@ runs:
         TEXT8='\n####################\nshellcheck dependencies Installed\n####################\n';
         TEXT9='\n####################\ncheckmake dependencies Installed\n####################\n';
         TEXT10='\n####################\ncheckmake.ini found copying\n####################\n';
-        TEXT11='\n####################\nbatcat dependencies Installed\n####################\n';     
-        # (Terminal width - length of text) / 2 # Calculates padding
-        PADDING=$(( (COLUMNS - ${#TEXT}) / 2 ));
+        TEXT11='\n####################\nbatcat dependencies Installed\n####################\n';
+        PADDING1=$(( (COLUMNS - ${#TEXT1}) / 2 ));
+        PADDING2=$(( (COLUMNS - ${#TEXT2}) / 2 ));
+        PADDING3=$(( (COLUMNS - ${#TEXT3}) / 2 ));
+        PADDING4=$(( (COLUMNS - ${#TEXT4}) / 2 ));
+        PADDING5=$(( (COLUMNS - ${#TEXT5}) / 2 ));
+        PADDING6=$(( (COLUMNS - ${#TEXT6}) / 2 ));
+        PADDING7=$(( (COLUMNS - ${#TEXT7}) / 2 ));
+        PADDING8=$(( (COLUMNS - ${#TEXT8}) / 2 ));
+        PADDING9=$(( (COLUMNS - ${#TEXT9}) / 2 ));
+        PADDING10=$(( (COLUMNS - ${#TEXT10}) / 2 ));
+        PADDING11=$(( (COLUMNS - ${#TEXT11}) / 2 ));
 
         if [[ ! $(which git) ]] && ${{ inputs.update }}; then
-          sudo apt-get -yq install git >/dev/null && printf "%*s%s\n" "$PADDING" "" "$TEXT1" || printf 'No git installed for repo updates';
+          sudo apt-get -yq install git >/dev/null && printf "%*s%s\n" "$PADDING1" "" "$TEXT1" || printf 'No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
 
         if [[ ! $(which rg) ]] && ${{ inputs.database }}; then
-          sudo apt-get -yq install ripgrep >/dev/null && printf "%*s%s\n" "$PADDING" "" "$TEXT2" || printf 'No ripgrep installed Exiting';
+          sudo apt-get -yq install ripgrep >/dev/null && printf "%*s%s\n" "$PADDING2" "" "$TEXT2" || printf 'No ripgrep installed Exiting';
           [[ ! $(which git) ]] && exit 1
         fi;
 
         if [[ ! $(which ansi2txt) ]] && ${{ inputs.report }}; then
-          sudo apt-get -yq install ansi2txt >/dev/null && printf "%*s%s\n" "$PADDING" "" "$TEXT3" || printf 'No ansi2txt installed for cleaning log report';
+          sudo apt-get -yq install ansi2txt >/dev/null && printf "%*s%s\n" "$PADDING3" "" "$TEXT3" || printf 'No ansi2txt installed for cleaning log report';
         fi;
 
         if [[ ! $(which update-ca-certificates) ]]; then
-          sudo apt-get -yq install ca-certificates >/dev/null && printf "%*s%s\n" "$PADDING" "" "$TEXT4" || printf 'No ca-certificates installed effects can vary';
+          sudo apt-get -yq install ca-certificates >/dev/null && printf "%*s%s\n" "$PADDING4" "" "$TEXT4" || printf 'No ca-certificates installed effects can vary';
         fi;
 
         if [[ ! $(which cppcheck) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
-          sudo apt-get -yq install cppcheck >/dev/null && printf "%*s%s\n" "$PADDING" "" "$TEXT5" || printf 'No cppcheck installed Exiting';
+          sudo apt-get -yq install cppcheck >/dev/null && printf "%*s%s\n" "$PADDING5" "" "$TEXT5" || printf 'No cppcheck installed Exiting';
           [[ ! $(which cppcheck) ]] && exit 1
         fi;
 
         if [[ ! $(which clang-tidy) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}; then
-          sudo apt-get -yq install clang-tidy clang-format >/dev/null && printf "%*s%s\n" "$PADDING" "" "$TEXT6" || printf 'No clang-tidy installed Exiting';
+          sudo apt-get -yq install clang-tidy clang-format >/dev/null && printf "%*s%s\n" "$PADDING6" "" "$TEXT6" || printf 'No clang-tidy installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
 
         if [[ ! $(which shellharden) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.repair }}; then
           wget -qO 'shellharden.tar.gz' 'https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-gnu.tar.gz';
-          sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && printf "%*s%s\n" "$PADDING" "" "$TEXT7" || printf 'No shellharden installed Exiting';
+          sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && printf "%*s%s\n" "$PADDING7" "" "$TEXT7" || printf 'No shellharden installed Exiting';
           [[ ! $(which shellharden) ]] && exit 1
         fi;
 
         if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.recheck }} || ! ${{ inputs.repair }}; then
-          sudo apt-get -yq install shellcheck >/dev/null && printf "%*s%s\n" "$PADDING" "" "$TEXT8" || printf 'No shellcheck installed Exiting';
+          sudo apt-get -yq install shellcheck >/dev/null && printf "%*s%s\n" "$PADDING8" "" "$TEXT8" || printf 'No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1
         fi;
 
         if [[ ! $(which checkmake) ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
-          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && printf "%*s%s\n" "$PADDING" "" "$TEXT9" || printf 'No checkmake installed Exiting';
+          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && printf "%*s%s\n" "$PADDING9" "" "$TEXT9" || printf 'No checkmake installed Exiting';
           [[ ! $(which checkmake) ]] && exit 1
           if [[ -n ${file} ]]; then
-            printf "%*s%s\n" "$PADDING" "" "$TEXT10"
+            printf "%*s%s\n" "$PADDING10" "" "$TEXT10"
             sudo cp -vf "${file}" "${path}" 2>/dev/null;
           fi;
         elif [[ -n ${file} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
@@ -173,7 +182,7 @@ runs:
           sudo bash -c echo -e "\nalias batcat='bat'" | sudo tee -a ~/.bashrc >/dev/null;
           export BAT_THEME="ansi";
         elif [[ ! $(which batcat) ]]; then
-          sudo apt-get -yq install bat >/dev/null && printf "%*s%s\n" "$PADDING" "" "$TEXT11" || printf 'No batcat installed Exiting';
+          sudo apt-get -yq install bat >/dev/null && printf "%*s%s\n" "$PADDING11" "" "$TEXT11" || printf 'No batcat installed Exiting';
           [[ ! $(which batcat) ]] && exit 1
           export BAT_THEME="ansi";
         fi;
@@ -191,7 +200,6 @@ runs:
       run: |
         echo '';
         COLUMNS=$(tput cols);
-        PADDING=$(( (COLUMNS - ${#TEXT}) / 2 ));
         repair_file='check-file-repaired.txt';
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
         TEXT1='\n####################\nDEFAULT DIRECTORY (SYSTEM ROOT)\n####################\n';
@@ -204,14 +212,24 @@ runs:
         TEXT8="\n####################\nSearching ${{ inputs.filetype }} files for ${{ inputs.filetext }} match(s)\n####################\n";
         TEXT9="\n####################\nSearching all files for ${{ inputs.filetext }} match(s)\n####################\n";
         TEXT10='\n●●●●●●●●●●●\nSETUP COMPLETED\n●●●●●●●●●●●\n';
-
+        PADDING1=$(( (COLUMNS - ${#TEXT1}) / 2 ));
+        PADDING2=$(( (COLUMNS - ${#TEXT2}) / 2 ));
+        PADDING3=$(( (COLUMNS - ${#TEXT3}) / 2 ));
+        PADDING4=$(( (COLUMNS - ${#TEXT4}) / 2 ));
+        PADDING5=$(( (COLUMNS - ${#TEXT5}) / 2 ));
+        PADDING6=$(( (COLUMNS - ${#TEXT6}) / 2 ));
+        PADDING7=$(( (COLUMNS - ${#TEXT7}) / 2 ));
+        PADDING8=$(( (COLUMNS - ${#TEXT8}) / 2 ));
+        PADDING9=$(( (COLUMNS - ${#TEXT9}) / 2 ));
+        PADDING10=$(( (COLUMNS - ${#TEXT10}) / 2 ));
+        
         if ${{ inputs.rootdir }}; then
-          printf "%*s%s\n" "$PADDING" "" "$TEXT1"
+          printf "%*s%s\n" "$PADDING1" "" "$TEXT1"
           printf '\n~/\n';
           echo 'FILE_PATH=/' >> "${GITHUB_ENV}";
           FILE_PATH=/
         else
-          printf "%*s%s\n" "$PADDING" "" "$TEXT2"
+          printf "%*s%s\n" "$PADDING2" "" "$TEXT2"
           printf "\n${GITHUB_WORKSPACE}\n";
           echo "FILE_PATH=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
           FILE_PATH=${GITHUB_WORKSPACE}
@@ -220,9 +238,9 @@ runs:
         if [[ -d ${repository} ]] && ${{ inputs.repair }} && ${{ inputs.update }}; then
           repository="${repository%/*}/${repair_file}";
           if [[ -f ${repository} ]]; then
-            printf "%*s%s\n" "$PADDING" "" "$TEXT3"
+            printf "%*s%s\n" "$PADDING3" "" "$TEXT3"
           else
-            printf "%*s%s\n" "$PADDING" "" "$TEXT4"
+            printf "%*s%s\n" "$PADDING4" "" "$TEXT4"
             date '+%Y%m%d' > "${repository}" || exit 1
           fi;
         fi;
@@ -230,21 +248,21 @@ runs:
         if ${{ inputs.database }}; then
           sudo find "${FILE_PATH}" -type f -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
           if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
-            printf "%*s%s\n" "$PADDING" "" "$TEXT5";
+            printf "%*s%s\n" "$PADDING5" "" "$TEXT5";
             echo "DATABASE=${GITHUB_WORKSPACE}/check_file_list.txt" >> "${GITHUB_ENV}";
           else
-            printf "%*s%s\n" "$PADDING" "" "$TEXT6" && exit 1
+            printf "%*s%s\n" "$PADDING6" "" "$TEXT6" && exit 1
           fi;
         fi;
 
         if [[ "${{ inputs.filename }}" != '' ]]; then
-          printf "%*s%s\n" "$PADDING" "" "$TEXT7";
+          printf "%*s%s\n" "$PADDING7" "" "$TEXT7";
         fi;
 
         if [[ "${{ inputs.filetext }}" != '' ]] && [[ ${{ inputs.filetype }} != 'none' ]]; then
-          printf "%*s%s\n" "$PADDING" "" "$TEXT8";
+          printf "%*s%s\n" "$PADDING8" "" "$TEXT8";
         elif [[ "${{ inputs.filetext }}" != '' ]]; then
-          printf "%*s%s\n" "$PADDING" "" "$TEXT9";
+          printf "%*s%s\n" "$PADDING9" "" "$TEXT9";
         fi;
       
         if [[ "${{ inputs.dirname }}" == '' ]]; then
@@ -259,7 +277,7 @@ runs:
         echo 'FILE_FIXED=0' >> "${GITHUB_ENV}";
         echo 'FILE_FOUND=0' >> "${GITHUB_ENV}";
         echo 'FILE_ERROR=0' >> "${GITHUB_ENV}";
-        printf "%*s%s\n" "$PADDING" "" "$TEXT10";
+        printf "%*s%s\n" "$PADDING10" "" "$TEXT10";
       shell: bash
       continue-on-error: false
 
@@ -1147,8 +1165,8 @@ runs:
           echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/check_file_list.txt)\n";
         fi;
         COLUMNS=$(tput cols);
-        PADDING=$(( (COLUMNS - ${#TEXT}) / 2 ));
         TEXT='\n●●●●●●●●●●●●●\n✅ CHECK FILE EXITING ✅\n●●●●●●●●●●●●●\n';
+        PADDING=$(( (COLUMNS - ${#TEXT}) / 2 ));
         printf "%*s%s\n" "$PADDING" "" "$TEXT";
       shell: bash
       continue-on-error: false
