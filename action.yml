@@ -1134,8 +1134,8 @@ runs:
         if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
           echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/check_file_list.txt)\n";
         fi;
-        TEXT='\n●●●●●●●●●●●●●\n✅ CHECK FILE EXITING ✅\n●●●●●●●●●●●●●\n';
-        printf "%*s%s\n" "$(( ( $(echo $* | wc -c ) + 80 ) / 2 ))" "$TEXT";
+        TEXT="\n●●●●●●●●●●●●●\n✅ CHECK FILE EXITING ✅\n●●●●●●●●●●●●●\n";
+        printf "%*s\n" "$(( ( $(echo $* | wc -c ) + 80 ) / 2 ))" "$TEXT";
       shell: bash
       continue-on-error: false
 
