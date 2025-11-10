@@ -96,56 +96,55 @@ runs:
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
         sudo apt-get update -yq >/dev/null 2>&1;
         TEXT1="\n####################\ngit dependencies Installed\n####################\n";
-        TEXT2='\n####################\nripgrep dependencies Installed\n####################\n';
-        TEXT3="\n####################\nansi2txt dependencies Installed\n####################\n";
-        TEXT4="\n####################\nca-certificates dependencies Installed\n####################\n";
-        TEXT5="\n####################\ncppcheck dependencies Installed\n####################\n";
-        TEXT6="\n####################\nclang-tidy dependencies Installed\n####################\n";
-        TEXT7="\n####################\nshellharden dependencies Installed\n####################\n";
-        TEXT8="\n####################\nshellcheck dependencies Installed\n####################\n";
-        TEXT9="\n####################\ncheckmake dependencies Installed\n####################\n";
-        TEXT10="\n####################\ncheckmake.ini found copying\n####################\n";
-        TEXT11="\n####################\nbatcat dependencies Installed\n####################\n";
+        TEXT2="\n####################\nansi2txt dependencies Installed\n####################\n";
+        TEXT3="\n####################\nca-certificates dependencies Installed\n####################\n";
+        TEXT4="\n####################\ncppcheck dependencies Installed\n####################\n";
+        TEXT5="\n####################\nclang-tidy dependencies Installed\n####################\n";
+        TEXT6="\n####################\nshellharden dependencies Installed\n####################\n";
+        TEXT7="\n####################\nshellcheck dependencies Installed\n####################\n";
+        TEXT8="\n####################\ncheckmake dependencies Installed\n####################\n";
+        TEXT9="\n####################\ncheckmake.ini found copying\n####################\n";
+        TEXT10="\n####################\nbatcat dependencies Installed\n####################\n";
 
         if [[ ! $(which git) ]] && ${{ inputs.update }}; then
-          sudo apt-get -yq install git >/dev/null && echo -e "$TEXT1" || echo 'No git installed for repo updates';
+          sudo apt-get -yq install git >/dev/null && echo -e "${TEXT1}" || echo 'No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
 
         if [[ ! $(which ansi2txt) ]] && ${{ inputs.report }}; then
-          sudo apt-get -yq install ansi2txt >/dev/null && echo -e "$TEXT3" || echo 'No ansi2txt installed for cleaning log report';
+          sudo apt-get -yq install ansi2txt >/dev/null && echo -e "${TEXT2}" || echo 'No ansi2txt installed for cleaning log report';
         fi;
 
         if [[ ! $(which update-ca-certificates) ]]; then
-          sudo apt-get -yq install ca-certificates >/dev/null && echo -e "$TEXT4" || echo 'No ca-certificates installed effects can vary';
+          sudo apt-get -yq install ca-certificates >/dev/null && echo -e "${TEXT3}" || echo 'No ca-certificates installed effects can vary';
         fi;
 
         if [[ ! $(which cppcheck) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
-          sudo apt-get -yq install cppcheck >/dev/null && echo -e "$TEXT5" || echo 'No cppcheck installed Exiting';
+          sudo apt-get -yq install cppcheck >/dev/null && echo -e "${TEXT4}" || echo 'No cppcheck installed Exiting';
           [[ ! $(which cppcheck) ]] && exit 1
         fi;
 
         if [[ ! $(which clang-tidy) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}; then
-          sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e "$TEXT6" || echo 'No clang-tidy installed Exiting';
+          sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e "${TEXT5}" || echo 'No clang-tidy installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
 
         if [[ ! $(which shellharden) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.repair }}; then
           wget -qO 'shellharden.tar.gz' 'https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-gnu.tar.gz';
-          sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e "$TEXT7" || echo 'No shellharden installed Exiting';
+          sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e "${TEXT6}" || echo 'No shellharden installed Exiting';
           [[ ! $(which shellharden) ]] && exit 1
         fi;
 
         if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.recheck }} || ! ${{ inputs.repair }}; then
-          sudo apt-get -yq install shellcheck >/dev/null && echo -e "$TEXT8" || echo 'No shellcheck installed Exiting';
+          sudo apt-get -yq install shellcheck >/dev/null && echo -e "${TEXT7}" || echo 'No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1
         fi;
 
         if [[ ! $(which checkmake) ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
-          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "$*" "$TEXT9" || echo 'No checkmake installed Exiting';
+          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "$*" "${TEXT8}" || echo 'No checkmake installed Exiting';
           [[ ! $(which checkmake) ]] && exit 1
           if [[ -n ${file} ]]; then
-            echo -e "$TEXT10"
+            echo -e "${TEXT9}";
             sudo cp -vf "${file}" "${path}" 2>/dev/null;
           fi;
         elif [[ -n ${file} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
@@ -158,7 +157,7 @@ runs:
           sudo bash -c echo -e "\nalias batcat='bat'" | sudo tee -a ~/.bashrc >/dev/null;
           export BAT_THEME="ansi";
         elif [[ ! $(which batcat) ]]; then
-          sudo apt-get -yq install bat >/dev/null && echo -e "$TEXT11" || echo 'No batcat installed Exiting';
+          sudo apt-get -yq install bat >/dev/null && echo -e "${TEXT10}" || echo 'No batcat installed Exiting';
           [[ ! $(which batcat) ]] && exit 1
           export BAT_THEME="ansi";
         fi;
@@ -189,13 +188,13 @@ runs:
         TEXT10="\n\t●●●●●●●●●●●\n\t SETUP COMPLETED\n\t●●●●●●●●●●●\n";
         
         if ${{ inputs.rootdir }}; then
-          echo -e "$TEXT1"
-          echo '\n~/\n';
+          echo -e "${TEXT1}"
+          echo -e '\n~/\n';
           echo 'FILE_PATH=/' >> "${GITHUB_ENV}";
           FILE_PATH=/
         else
-          echo -e "$TEXT2"
-          echo "\n${GITHUB_WORKSPACE}\n";
+          echo -e "${TEXT2}"
+          echo -e "\n${GITHUB_WORKSPACE}\n";
           echo "FILE_PATH=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
           FILE_PATH=${GITHUB_WORKSPACE}
         fi;
@@ -203,9 +202,9 @@ runs:
         if [[ -d ${repository} ]] && ${{ inputs.stored }} && ${{ inputs.upload }}; then
           repository="${repository%/*}/${repair_file}";
           if [[ -f ${repository} ]]; then
-            echo -e "$TEXT3";
+            echo -e "${TEXT3}";
           else
-            echo -e "$TEXT4";
+            echo -e "${TEXT4}";
             date '+%Y%m%d' > "${repository}" || exit 1
           fi;
         fi;
@@ -213,21 +212,21 @@ runs:
         if ${{ inputs.database }}; then
           sudo find "${FILE_PATH}" -type f -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
           if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
-            echo -e "$TEXT5";
+            echo -e "${TEXT5}";
             echo "DATABASE=${GITHUB_WORKSPACE}/check_file_list.txt" >> "${GITHUB_ENV}";
           else
-            echo -e "$TEXT6" && exit 1
+            echo -e "${TEXT6}" && exit 1
           fi;
         fi;
 
         if [[ "${{ inputs.filename }}" != '' ]]; then
-          echo -e "$TEXT7";
+          echo -e "${TEXT7}";
         fi;
 
         if [[ "${{ inputs.filetext }}" != '' ]] && [[ ${{ inputs.filetype }} != 'none' ]]; then
-          echo -e "$TEXT8";
+          echo -e "${TEXT8}";
         elif [[ "${{ inputs.filetext }}" != '' ]]; then
-          echo -e "$TEXT9";
+          echo -e "${TEXT9}";
         fi;
       
         if [[ "${{ inputs.dirname }}" == '' ]]; then
@@ -239,10 +238,10 @@ runs:
         else
           echo "dirname=${{ inputs.dirname }}" >> "$GITHUB_OUTPUT";
         fi;
+        echo -e "${TEXT10}";
         echo 'FILE_FIXED=0' >> "${GITHUB_ENV}";
         echo 'FILE_FOUND=0' >> "${GITHUB_ENV}";
         echo 'FILE_ERROR=0' >> "${GITHUB_ENV}";
-        echo -e "$TEXT10";
       shell: bash
       continue-on-error: false
 
@@ -270,7 +269,7 @@ runs:
         if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
-            echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
+            echo -e '\n####################\n\t.clang-tidy found copying...\n####################\n';
             sudo cp -vf "${file_path}" "${clang_file}";
           fi;
           if ${{ inputs.content }}; then
@@ -623,7 +622,7 @@ runs:
         if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
-            echo -e "\n####################\n\t.clang-tidy found copying...\n####################\n";
+            echo -e '\n####################\n\t.clang-tidy found copying...\n####################\n';
             sudo cp -vf "${file_path}" "${clang_file}";
           fi;
           if ${{ inputs.content }}; then
@@ -1130,7 +1129,7 @@ runs:
           echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/check_file_list.txt)\n";
         fi;
         TEXT="\n\t●●●●●●●●●●●●●●●\n\t✅ CHECK FILE EXITING ✅\n\t●●●●●●●●●●●●●●●\n";
-        echo -e "$TEXT";
+        echo -e "${TEXT}";
       shell: bash
       continue-on-error: false
 
