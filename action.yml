@@ -256,7 +256,7 @@ runs:
         if [[ -n $(echo "${file_type}" | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
           echo -e "\n1: ${files}\n";
-        elif [[ -n $(echo "${file_type}" | grep -Po "\b/.\w+\b") ]]; then
+        elif [[ -n $(echo "${file_type}" | grep -Po "\b\.\w+\b") ]]; then
           files=$(grep ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
           echo -e "\n2: ${files}\n";
         else
