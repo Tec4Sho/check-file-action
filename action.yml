@@ -110,6 +110,7 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file=$(sudo find ${GITHUB_WORKSPACE} -type f -name "checkmake.ini" -print -quit);
         path='/home/runner/checkmake.ini';
+        export TERM=xterm-256color
         tput bold 2>/dev/null;
 
         if [[ ! $(which git) ]]; then
@@ -181,6 +182,7 @@ runs:
         DEFAULT_PATH: "*" 
       run: |
         echo '';
+        export TERM=xterm-256color
         repair_file='check-file-repaired.txt';
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
         TEXT1="\n####################\nDEFAULT DIRECTORY (SYSTEM ROOT)\n####################\n";
@@ -193,7 +195,7 @@ runs:
         TEXT8="\n####################\nSearching ${{ inputs.filetype }} files for ${{ inputs.filetext }} match(s)\n####################\n";
         TEXT9="\n####################\nSearching all files for $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') match(s)\n####################\n";
         TEXT10="\n\t●●●●●●●●●●●●●●\n\t○ CHECK FILE ACTION ○\n\t●●●●●●●●●●●●●●\n";
-
+        
         if [[ -n ${TERM} ]]; then
           center_text() {
             local text="$1"
