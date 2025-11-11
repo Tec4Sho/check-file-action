@@ -107,7 +107,7 @@ runs:
         TEXT9="\n####################\ncheckmake.ini found copying\n####################\n";
         TEXT10="\n####################\nbatcat dependencies Installed\n####################\n";
 
-        if [[ ! $(which git) ]] && ${{ inputs.update }}; then
+        if [[ ! $(which git) ]] && ${{ env.update }}; then
           sudo apt-get -yq install git >/dev/null && echo -e "${TEXT1}" || echo 'No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
@@ -183,9 +183,9 @@ runs:
         TEXT4="\nCreating ${repair_file} for checked files\n";
         TEXT5="\n####################\ncheck_file_list database found\n####################\n";
         TEXT6="\nDatabase check_file_list.txt not found exiting.."
-        TEXT7="\n####################\nSearching directories for ${{ inputs.filename }} file(s)\n####################\n";
+        TEXT7="\n####################\nSearching directories for $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s)\n####################\n";
         TEXT8="\n####################\nSearching ${{ inputs.filetype }} files for ${{ inputs.filetext }} match(s)\n####################\n";
-        TEXT9="\n####################\nSearching all files for ${{ inputs.filetext }} match(s)\n####################\n";
+        TEXT9="\n####################\nSearching all files for $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') match(s)\n####################\n";
         TEXT10="\n\t●●●●●●●●●●●●●●\n\t○ CHECK FILE ACTION ○\n\t●●●●●●●●●●●●●●\n";
         
         if ${{ inputs.rootdir }}; then
@@ -200,7 +200,8 @@ runs:
           FILE_PATH=${GITHUB_WORKSPACE}
         fi;
 
-        if ${{ inputs.stored }} && ${{ inputs.update }} && [[ -d ${repository} ]]; then
+        echo 'update=false' >> "${GITHUB_ENV}";
+        if ${{ inputs.stored }} && ${{ env.update }} && [[ -d ${repository} ]]; then
           repository="${repository%/*}/${repair_file}";
           if [[ -f ${repository} ]]; then
             echo -e "${TEXT3}";
@@ -208,6 +209,16 @@ runs:
             echo -e "${TEXT4}";
             date '+%Y%m%d' > "${repository}" || exit 1
           fi;
+          echo 'update=true' >> "${GITHUB_ENV}";
+        elif ${{ inputs.stored }} && [[ -d ${repository} ]]; then
+          repository="${repository%/*}/${repair_file}";
+          if [[ -f ${repository} ]]; then
+            echo -e "${TEXT3}";
+          else
+            echo -e "${TEXT4}";
+            date '+%Y%m%d' > "${repository}" || exit 1
+          fi;
+          echo 'update=true' >> "${GITHUB_ENV}";
         fi;
 
         if ${{ inputs.database }}; then
@@ -314,10 +325,10 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && ${{ inputs.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
                       echo -e "\n####################\nRepaired on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
-                    elif ${{ inputs.stored }} && ${{ inputs.update }}; then
+                    elif ${{ inputs.stored }} && ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                       if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -327,7 +338,7 @@ runs:
                       fi;
                       echo "${f} $(date)" >> "${repaired}";
                       fixed=true
-                    elif ! ${{ inputs.stored }} || ! ${{ inputs.update }}; then
+                    elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                       if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -354,10 +365,10 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && ${{ inputs.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
+                if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
                   echo -e "\n####################\nRepaired on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
-                elif ${{ inputs.stored }} && ${{ inputs.update }}; then
+                elif ${{ inputs.stored }} && ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -367,7 +378,7 @@ runs:
                   fi;
                   echo "${f} $(date)" >> "${repaired}";
                   fixed=true
-                elif ! ${{ inputs.stored }} || ! ${{ inputs.update }}; then
+                elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -457,10 +468,10 @@ runs:
               echo -e "\n\n";
             fi;
             if ${{ inputs.repair }}; then
-              if ${{ inputs.stored }} && ${{ inputs.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
+              if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                 echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
                 echo -e "\n####################\nRepaired on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
-              elif ${{ inputs.stored }} && ${{ inputs.update }}; then
+              elif ${{ inputs.stored }} && ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -470,7 +481,7 @@ runs:
                 fi;
                 echo "${f} $(date)" >> "${repaired}";
                 fixed=true
-              elif ! ${{ inputs.stored }} || ! ${{ inputs.update }}; then
+              elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -658,10 +669,10 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && ${{ inputs.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                       echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
                       echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
-                    elif ${{ inputs.stored }} && ${{ inputs.update }}; then
+                    elif ${{ inputs.stored }} && ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                       if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -671,7 +682,7 @@ runs:
                       fi;
                       echo "${f} $(date)" >> "${repaired}";
                       fixed=true
-                    elif ! ${{ inputs.stored }} || ! ${{ inputs.update }}; then
+                    elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                       if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -698,10 +709,10 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && ${{ inputs.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
+                if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
                   echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
-                elif ${{ inputs.stored }} && ${{ inputs.update }}; then
+                elif ${{ inputs.stored }} && ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -711,7 +722,7 @@ runs:
                   fi;
                   echo "${f} $(date)" >> "${repaired}";
                   fixed=true
-                elif ! ${{ inputs.stored }} || ! ${{ inputs.update }}; then
+                elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -795,10 +806,10 @@ runs:
               echo -e "\n\n";
             fi;
             if ${{ inputs.repair }}; then
-              if ${{ inputs.stored }} && ${{ inputs.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
+              if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -Fs "${SEARCH_PATH}" "${repaired}") ]]; then
                 echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
                 echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
-              elif ${{ inputs.stored }} && ${{ inputs.update }}; then
+              elif ${{ inputs.stored }} && ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -808,7 +819,7 @@ runs:
                 fi;
                 echo "${f} $(date)" >> "${repaired}";
                 fixed=true
-              elif ! ${{ inputs.stored }} || ! ${{ inputs.update }}; then
+              elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
@@ -949,7 +960,7 @@ runs:
                 done;
               fi;
             else
-              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO ${{ inputs.filetext }} FOUND\n####################\n";
+              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
             fi;
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
@@ -971,7 +982,7 @@ runs:
               done;
             fi;
           else
-            echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO ${{ inputs.filetext }} FOUND\n####################\n";
+            echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetype }} | sed 's/[\/\$]//g') FOUND\n####################\n";
           fi;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         fi;
@@ -1005,7 +1016,7 @@ runs:
                 done;
               fi;
             else
-              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO ${{ inputs.filetext }} FOUND\n####################\n";
+              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
             fi;
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
@@ -1027,7 +1038,7 @@ runs:
               done;
             fi;
           else
-            echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO ${{ inputs.filetext }} FOUND\n####################\n";
+            echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
           fi;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         fi;
@@ -1051,7 +1062,7 @@ runs:
 
       
     - name: Repository Update
-      if: inputs.update != 'false' && env.FILE_FIXED == 1
+      if: env.update != 'false' && env.FILE_FIXED == 1
       id: changed-files
       run: |
         echo '';
