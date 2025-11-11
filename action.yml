@@ -107,7 +107,7 @@ runs:
         TEXT9="\n####################\ncheckmake.ini found copying\n####################\n";
         TEXT10="\n####################\nbatcat dependencies Installed\n####################\n";
 
-        if [[ ! $(which git) ]] && ${{ env.update }}; then
+        if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git >/dev/null && echo -e "${TEXT1}" || echo 'No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
@@ -201,7 +201,7 @@ runs:
         fi;
 
         echo 'update=false' >> "${GITHUB_ENV}";
-        if ${{ inputs.stored }} && ${{ env.update }} && [[ -d ${repository} ]]; then
+        if ${{ inputs.stored }} && ${{ inputs.update }} && [[ -d ${repository} ]]; then
           repository="${repository%/*}/${repair_file}";
           if [[ -f ${repository} ]]; then
             echo -e "${TEXT3}";
