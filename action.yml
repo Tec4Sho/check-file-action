@@ -253,14 +253,14 @@ runs:
         export LC_ALL=C
         set -o pipefail
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | grep -P "\b\w+\.\w+\b") ]]; then
+        if [[ -n $(echo "${file_type}" | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fw "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
           echo -e "\n1: wrong\n";
-        elif [[ -n $(echo "${file_type}" | grep -P "\b/.\w+\b") ]]; then
-          files=$(grep ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
+        elif [[ -n $(echo "${file_type}" | grep -e "^.$" -e "^..$" -e "^...$") ]]; then
+          files=$(grep -e ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
           echo -e "\n2: ${files}\n";
         else
-          files=$(grep -e "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          files=$(grep "${{ inputs.filename }}" "${{ env.DATABASE }}");
           echo -e "\n3: wrong\n";
         fi;
         file_path=$(grep -Fs '.clang-tidy' "${{ env.DATABASE }}");
