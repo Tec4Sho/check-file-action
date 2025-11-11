@@ -276,7 +276,7 @@ runs:
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
-          time -p for f in ${files[@]}; do
+          { time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
@@ -407,7 +407,7 @@ runs:
                 break;
               fi;
             fi;
-          done
+          done; }
           echo '| Check File Runtime |' >&2;   
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
