@@ -88,13 +88,10 @@ runs:
       run: |
         echo '';
         set -o pipefail
-        sudo bash -c echo "export GIT_DISCOVERY_ACROSS_FILESYSTEM=1" | sudo tee -a ~/.bashrc >/dev/null;
-        sudo bash -c echo "export DEBIAN_FRONTEND=noninteractive" | sudo tee -a ~/.bashrc >/dev/null;
-        sudo bash -c echo "export TERM=xterm-256color" | sudo tee -a ~/.bashrc;
-        file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        file=$(sudo find ${GITHUB_WORKSPACE} -type f -name "checkmake.ini" -print -quit);
-        path='/home/runner/checkmake.ini';
-        echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee /etc/apt/sources.list.d/gabe565.list;
+        echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc;
+        echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc;
+        echo 'export TERM=xterm-256color' | sudo tee -a ~/.bashrc;
+        echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list;
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
         sudo apt-get update -yq >/dev/null 2>&1;
@@ -110,7 +107,10 @@ runs:
         TEXT9="\n####################\ncheckmake.ini found copying\n####################\n";
         TEXT10="\n####################\nbatcat dependencies Installed\n####################\n";
 
-        tput bold >/dev/null;
+        file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
+        file=$(sudo find ${GITHUB_WORKSPACE} -type f -name "checkmake.ini" -print -quit);
+        path='/home/runner/checkmake.ini';
+        tput bold 2>/dev/null;
 
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git >/dev/null && echo -e "${TEXT1}" || echo 'No git installed for repo updates';
@@ -168,8 +168,7 @@ runs:
           export BAT_THEME="ansi";
         fi;
 
-        tput sgr0 >/dev/null;
-
+        tput sgr0 2>/dev/null;
         sudo apt-get --fix-broken install -yq >/dev/null 2>&1;
       shell: bash
       continue-on-error: false
