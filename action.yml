@@ -256,7 +256,7 @@ runs:
         if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
           echo -e "\n-Fs: Literal Pattern Match\n";
-        elif [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\.\w+\b") ]]; then
+        elif [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b/.\w+\b") ]]; then
           files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
           echo -e "\n-Es: Extended Regex Pattern Match\n";
         else
@@ -279,7 +279,7 @@ runs:
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
-          { time -p for f in ${files[@]}; do
+          { echo '|  Check  |' >&2; time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
@@ -410,9 +410,8 @@ runs:
                 break;
               fi;
             fi;
-          done;
-          echo '| Check File Runtime |' >&2; }
-          echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
+          done; echo '| Runtime |' >&2; }
+          echo -e "\nTotal number of $(${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
           fi;
