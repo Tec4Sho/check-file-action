@@ -136,7 +136,7 @@ runs:
           [[ ! $(which shellharden) ]] && exit 1
         fi;
 
-        if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && $(${{ inputs.recheck }} || ! ${{ inputs.repair }}); then
+        if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
           sudo apt-get -yq install shellcheck >/dev/null && echo -e "${TEXT7}" || echo 'No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1
         fi;
