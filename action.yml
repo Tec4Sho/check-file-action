@@ -253,19 +253,19 @@ runs:
         export LC_ALL=C
         set -o pipefail
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | grep -Po "\b\w+\.\w+\b") ]]; then
-          files=$(grep -Fs "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
-          echo -e "\n1: wrong\n";
-        elif [[ -n $(echo "${file_type}" | grep -e "^.$" -e "^..$" -e "^...$") ]]; then
+        if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
+          files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-Fs: Literal Pattern Match\n";
+        elif [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\.\w+\b") ]]; then
           files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n2: ${files}\n";
+          echo -e "\n-Es: Extended Regex Pattern Match\n";
         else
           files=$(grep -s "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n3: wrong\n";
+          echo -e "\n-s: Suppress Non-Pattern Match\n";
         fi;
-        file_path=$(grep -Fs '.clang-tidy' "${{ env.DATABASE }}");
+        file_path=$(grep -Fsm 1 '.clang-tidy' "${{ env.DATABASE }}");
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
-        repaired=$(grep -Fs 'check-file-repaired.txt' "${{ env.DATABASE }}");
+        repaired=$(grep -Fsm 1 'check-file-repaired.txt' "${{ env.DATABASE }}");
         count2=0
         checked=false
         file_count=1
@@ -410,8 +410,8 @@ runs:
                 break;
               fi;
             fi;
-          done &>; } 
-          echo '| Check File Runtime |' >&2;   
+          done;
+          echo '| Check File Runtime |' >&2; }
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
@@ -435,14 +435,17 @@ runs:
         echo '';
         fixed=false
         shellcheck_count=1
-        repaired=$(grep -Fs 'check-file-repaired.txt' "${{ env.DATABASE }}");
+        repaired=$(grep -Fsm 1 'check-file-repaired.txt' "${{ env.DATABASE }}");
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | grep -Po "\b\w+\.\w+\b") ]]; then
-          files=$(grep -Fsw "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
-        elif [[ -n $(echo "${file_type}" | grep -Po "\b/.\w+\b") ]]; then
-          files=$(grep -s ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
-        else
+        if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
+          files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-Fs: Literal Pattern Match\n";
+        elif [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\.\w+\b") ]]; then
           files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-Es: Extended Regex Pattern Match\n";
+        else
+          files=$(grep -s "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-s: Suppress Non-Pattern Match\n";
         fi;
         if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -508,8 +511,8 @@ runs:
                 break;
               fi;
             fi;
-          done; }
-          echo '| Check File Runtime |' >&2;
+          done; 
+          echo '| Check File Runtime |' >&2; }
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -529,12 +532,15 @@ runs:
         export LC_ALL=C
         echo '';
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | grep -Po "\b\w+\.\w+\b") ]]; then
-          files=$(grep -Fsw "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
-        elif [[ -n $(echo "${file_type}" | grep -Po "\b/.\w+\b") ]]; then
-          files=$(grep -s ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
-        else
+        if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
+          files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-Fs: Literal Pattern Match\n";
+        elif [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\.\w+\b") ]]; then
           files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-Es: Extended Regex Pattern Match\n";
+        else
+          files=$(grep -s "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-s: Suppress Non-Pattern Match\n";
         fi;
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
@@ -574,12 +580,15 @@ runs:
         export LC_ALL=C
         echo '';
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        if [[ -n $(echo "${file_type}" | grep -Po "\b\w+\.\w+\b") ]]; then
-          files=$(grep -Fsw "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
-        elif [[ -n $(echo "${file_type}" | grep -Po "\b/.\w+\b") ]]; then
-          files=$(grep -s ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
-        else
+        if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
+          files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-Fs: Literal Pattern Match\n";
+        elif [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\.\w+\b") ]]; then
           files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-Es: Extended Regex Pattern Match\n";
+        else
+          files=$(grep -s "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-s: Suppress Non-Pattern Match\n";
         fi;
         file_count=1
         if [[ -n ${files} ]]; then
