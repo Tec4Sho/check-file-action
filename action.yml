@@ -407,8 +407,7 @@ runs:
                 break;
               fi;
             fi;
-          done; }
-          echo '| Check File Runtime |' >&2;   
+          done; } && echo '| Check File Runtime |' >&2;   
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
