@@ -255,10 +255,13 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fsw "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+          echo "1: ${files}";
         elif [[ -n $(echo "${file_type}" | grep -Po "\b/.\w+\b") ]]; then
           files=$(grep -s ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo "2: ${files}";
         else
           files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo "3: ${files}";
         fi;
         file_path=$(grep -Fs '.clang-tidy' "${{ env.DATABASE }}");
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
