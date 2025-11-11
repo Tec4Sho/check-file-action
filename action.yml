@@ -255,13 +255,10 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Fs: Literal Pattern Match\n";
-        elif [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b/.\w+\b") ]]; then
-          files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Es: Extended Regex Pattern Match\n";
+          echo -e "\n-Fs: Literal String Pattern Matching\n";
         else
-          files=$(grep -s "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-s: Suppress Non-Pattern Match\n";
+          files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-Es: Extended Regex Pattern Matching\n";
         fi;
         file_path=$(grep -Fsm 1 '.clang-tidy' "${{ env.DATABASE }}");
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
@@ -279,7 +276,7 @@ runs:
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
-          { time -p echo '|  Check  |' >&2; for f in ${files[@]}; do
+          { time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
@@ -410,7 +407,7 @@ runs:
                 break;
               fi;
             fi;
-          done; echo '| Runtime |' >&2; }
+          done; echo '| Runtime |'; } 2>&1
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
@@ -438,13 +435,10 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Fs: Literal Pattern Match\n";
-        elif [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\.\w+\b") ]]; then
-          files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Es: Extended Regex Pattern Match\n";
+          echo -e "\n-Fs: Literal String Pattern Matching\n";
         else
-          files=$(grep -s "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-s: Suppress Non-Pattern Match\n";
+          files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-Es: Extended Regex Pattern Matching\n";
         fi;
         if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -510,8 +504,7 @@ runs:
                 break;
               fi;
             fi;
-          done; 
-          echo '| Check File Runtime |' >&2; }
+          done; echo '| Runtime |'; } 2>&1
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -533,13 +526,10 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Fs: Literal Pattern Match\n";
-        elif [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\.\w+\b") ]]; then
-          files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Es: Extended Regex Pattern Match\n";
+          echo -e "\n-Fs: Literal String Pattern Matching\n";
         else
-          files=$(grep -s "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-s: Suppress Non-Pattern Match\n";
+          files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-Es: Extended Regex Pattern Matching\n";
         fi;
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
@@ -561,8 +551,7 @@ runs:
             else
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
-          done; }
-          echo '| Check File Runtime |' >&2;
+          done; echo '| Runtime |'; } 2>&1
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -581,13 +570,10 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Fs: Literal Pattern Match\n";
-        elif [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\.\w+\b") ]]; then
-          files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Es: Extended Regex Pattern Match\n";
+          echo -e "\n-Fs: Literal String Pattern Matching\n";
         else
-          files=$(grep -s "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-s: Suppress Non-Pattern Match\n";
+          files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          echo -e "\n-Es: Extended Regex Pattern Matching\n";
         fi;
         file_count=1
         if [[ -n ${files} ]]; then
@@ -601,8 +587,7 @@ runs:
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
               echo -e "\n\n";
             fi;
-          done; }
-          echo '| Check File Runtime |' >&2;
+          done; echo '| Runtime |'; } 2>&1
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -766,8 +751,7 @@ runs:
                 break;
               fi;
             fi;
-          done; }
-          echo '| Check File Runtime |' >&2;
+          done; echo '| Runtime |'; } 2>&1
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
@@ -858,8 +842,7 @@ runs:
                 break;
               fi;
             fi;
-          done; }
-          echo '| Check File Runtime |' >&2;
+          done; echo '| Runtime |'; } 2>&1
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -899,8 +882,7 @@ runs:
             else
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
-          done; }
-          echo '| Check File Runtime |' >&2;
+          done; echo '| Runtime |'; } 2>&1
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
@@ -930,8 +912,7 @@ runs:
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
               echo -e "\n\n";
             fi;
-          done; }
-          echo '| Check File Runtime |' >&2;
+          done; echo '| Runtime |'; } 2>&1
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
