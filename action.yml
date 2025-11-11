@@ -80,6 +80,7 @@ runs:
       uses: actions/setup-go@v2 
       with: 
         go-version: 1.25.3
+      continue-on-error: true
 
 
     - name: Installing Dependencies
@@ -262,7 +263,6 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
-        set -o pipefail
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
@@ -419,7 +419,7 @@ runs:
               fi;
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
+          echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
           fi;
@@ -439,7 +439,6 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0 
       run: |
         export LC_ALL=C
-        echo '';
         fixed=false
         shellcheck_count=1
         repaired=$(grep -Fsm 1 'check-file-repaired.txt' "${{ env.DATABASE }}");
@@ -516,7 +515,7 @@ runs:
               fi;
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
+          echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count3}\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           if [[ "${fixed}" ]]; then
@@ -533,7 +532,6 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0
       run: |
         export LC_ALL=C
-        echo '';
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
@@ -563,7 +561,7 @@ runs:
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
+          echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count4}\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
         elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
@@ -577,7 +575,6 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false' && env.FILE_FOUND == 0 
       run: |
         export LC_ALL=C
-        echo '';
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
@@ -599,7 +596,7 @@ runs:
               echo -e "\n\n";
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
+          echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
         else
@@ -613,7 +610,6 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true'
       run: |
         export LC_ALL=C
-        echo '';
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_path=$(sudo find ${{ env.FILE_PATH }} -type f -name '.clang-tidy' -print -quit);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
@@ -763,7 +759,7 @@ runs:
               fi;
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
+          echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
             echo -e "Total number of included file(s) checked is: ${count2}\n";
           fi;
@@ -783,7 +779,6 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0 
       run: |
         export LC_ALL=C
-        echo '';
         fixed=false
         shellcheck_count=1
         repaired=$(sudo find ${{ env.FILE_PATH }} -type f -name 'check-file-repaired.txt' -print -quit);
@@ -854,7 +849,7 @@ runs:
               fi;
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
+          echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count3}\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
           if [[ "${fixed}" ]]; then
@@ -871,7 +866,6 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0
       run: |
         export LC_ALL=C
-        echo '';
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         makefile_count=1
@@ -894,7 +888,7 @@ runs:
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
+          echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count4}\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
         elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
@@ -908,7 +902,6 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true' && env.FILE_FOUND == 0 
       run: |
         export LC_ALL=C
-        echo '';
         files=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         file_count=1
@@ -924,7 +917,7 @@ runs:
               echo -e "\n\n";
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
+          echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
         else
@@ -938,7 +931,6 @@ runs:
       if: inputs.filetext != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
-        echo '';
         file_count=1
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
@@ -982,7 +974,7 @@ runs:
               done;
             fi;
           else
-            echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetype }} | sed 's/[\/\$]//g') FOUND\n####################\n";
+            echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
           fi;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         fi;
@@ -994,7 +986,6 @@ runs:
       if: inputs.filetext != '' && inputs.database != 'true'
       run: |
         export LC_ALL=C
-        echo '';
         file_count=1
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
@@ -1063,10 +1054,8 @@ runs:
       
     - name: Repository Update
       if: env.update != 'false' && env.FILE_FIXED == 1
-      id: changed-files
       run: |
         echo '';
-        changed_files=false
         REPAIR_DATE="$(date +%Y%m%d)";
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repository} ]]; then
@@ -1102,7 +1091,7 @@ runs:
           echo -e "\n####################\nCHECK FILE CANT FIND (.git) DIR FOR UPDATING\n####################\n";
         fi;
       shell: bash
-      continue-on-error: false
+      continue-on-error: true
 
 
     - name: Uploading ${{ inputs.filename }} Error Report
@@ -1113,6 +1102,7 @@ runs:
           ./${{ inputs.filename }}_error.log
         name: Check File Action Errors Report For ${{ inputs.filename }} File(s).
         tag_name: ${{ github.run_id }}
+      continue-on-error: true
 
 
     - name: Delete Log File
@@ -1128,7 +1118,7 @@ runs:
         TEXT="\n\t●●●●●●●●●●●●●●●\n\t✅ CHECK FILE EXITING ✅\n\t●●●●●●●●●●●●●●●\n";
         echo -e "${TEXT}";
       shell: bash
-      continue-on-error: false
+      continue-on-error: true
 
 
     - name: Filename Check
@@ -1137,6 +1127,6 @@ runs:
         echo ''
         echo -e "\nNo input provided!\nVariables not set\n• filename\n• filetext\n\t Exiting\n";
       shell: bash
-      continue-on-error: false
+      continue-on-error: true
 
 ## version v1.1.4 beta
