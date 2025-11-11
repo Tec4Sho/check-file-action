@@ -446,7 +446,7 @@ runs:
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
-          time -p for f in ${files[@]}; do
+          { time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             CHECKED_DATE=$(grep -F "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count3=$((shellcheck_count++));
@@ -508,7 +508,7 @@ runs:
                 break;
               fi;
             fi;
-          done
+          done; }
           echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
@@ -540,7 +540,7 @@ runs:
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "FILE_FOUND=1" >> "${GITHUB_ENV}";
-          time -p for f in ${files[@]}; do
+          { time -p for f in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
             echo "$(dirname ${f})";
@@ -556,7 +556,7 @@ runs:
             else
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
-          done
+          done; }
           echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
@@ -584,7 +584,7 @@ runs:
         file_count=1
         if [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
-          time -p for f in ${files[@]}; do
+          { time -p for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
             echo "$(dirname ${f})";
@@ -593,7 +593,7 @@ runs:
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
               echo -e "\n\n";
             fi;
-          done
+          done; }
           echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
@@ -628,7 +628,7 @@ runs:
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
-          time -p for f in ${files[@]}; do
+          { time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
@@ -758,7 +758,7 @@ runs:
                 break;
               fi;
             fi;
-          done
+          done; }
           echo '| Check File Runtime |' >&2;
           echo -e "\n\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           if ${{ inputs.include }}; then
@@ -791,7 +791,7 @@ runs:
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
-          time -p for f in ${files[@]}; do
+          { time -p for f in ${files[@]}; do
             SEARCH_PATH="${f}";
             CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
             count3=$((shellcheck_count++));
@@ -853,7 +853,7 @@ runs:
                 break;
               fi;
             fi;
-          done
+          done; }
           echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count3\n";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
@@ -878,7 +878,7 @@ runs:
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
-          time -p for f in ${files[@]}; do
+          { time -p for f in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
             echo "$(dirname ${f})";
@@ -894,7 +894,7 @@ runs:
             else
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
             fi;
-          done
+          done; }
           echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: $count4\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
@@ -916,7 +916,7 @@ runs:
         file_count=1
         if [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
-          time -p for f in ${files[@]}; do
+          { time -p for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
             echo "$(dirname ${f})";
@@ -925,7 +925,7 @@ runs:
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
               echo -e "\n\n";
             fi;
-          done
+          done; }
           echo '| Check File Runtime |' >&2;
           echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
           echo -e "Scanning Completed!\nCheckfile Exiting!\n .....\n";
