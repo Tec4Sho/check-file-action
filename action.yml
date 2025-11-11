@@ -266,10 +266,10 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Fs: Literal String Pattern Matching\n";
+          echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
         else
           files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Es: Extended Regex Pattern Matching\n";
+          echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
         file_path=$(grep -Fsm 1 '.clang-tidy' "${{ env.DATABASE }}");
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
@@ -446,10 +446,10 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Fs: Literal String Pattern Matching\n";
+          echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
         else
           files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Es: Extended Regex Pattern Matching\n";
+          echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
         if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -537,10 +537,10 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Fs: Literal String Pattern Matching\n";
+          echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
         else
           files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Es: Extended Regex Pattern Matching\n";
+          echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
@@ -581,10 +581,10 @@ runs:
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -Fs "/${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Fs: Literal String Pattern Matching\n";
+          echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
         else
           files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
-          echo -e "\n-Es: Extended Regex Pattern Matching\n";
+          echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
         file_count=1
         if [[ -n ${files} ]]; then
@@ -943,8 +943,8 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(grep -Fsr ".*\${t}$" "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always -Fn "${{ inputs.filetext }}");
-            content=$(grep -Fsr ".*\${t}$" "${{ env.DATABASE }}" | xargs rg -j $(nproc --all) --color always --files "${{ inputs.filetext }}");
+            finder=$(grep -Fsr ".*\${t}$" "${{ env.DATABASE }}" | xargs sudo grep --color=always -HFans "${{ inputs.filetext }}");
+            content=$(grep -Fsr ".*\${t}$" "${{ env.DATABASE }}" | xargs sudo grep --color=always -q "${{ inputs.filetext }}");
             if [[ -n ${finder} ]]; then
               counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
@@ -965,8 +965,8 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          finder=$(grep -sr "." "${{ env.DATABASE }}" | xargs grep --color=always -HFans "${{ inputs.filetext }}");
-          content=$(grep -sr "." "${{ env.DATABASE }}" | xargs grep --color=always -q "${{ inputs.filetext }}");
+          finder=$(grep -sr "." "${{ env.DATABASE }}" | xargs sudo grep --color=always -HFans "${{ inputs.filetext }}");
+          content=$(grep -sr "." "${{ env.DATABASE }}" | xargs sudo grep --color=always -q "${{ inputs.filetext }}");
           if [[ -n ${finder} ]]; then
             counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
@@ -999,8 +999,8 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
-            content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+            finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+            content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
             if [[ -n ${finder} ]]; then
               counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
@@ -1021,8 +1021,8 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
-          content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+          finder=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+          content=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
           if [[ -n ${finder} ]]; then
             counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
