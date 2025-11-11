@@ -251,14 +251,14 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
-        echo '';
+        set -o pipefail
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
         if [[ -n $(echo "${file_type}" | grep -Po "\b\w+\.\w+\b") ]]; then
-          files=$(grep -Fsw "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
+          files=$(grep -F "/${{ inputs.filename }}$" "${{ env.DATABASE }}");
         elif [[ -n $(echo "${file_type}" | grep -Po "\b/.\w+\b") ]]; then
-          files=$(grep -s ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
+          files=$(grep ".*\${{ inputs.filename }}" "${{ env.DATABASE }}");
         else
-          files=$(grep -Es "${{ inputs.filename }}" "${{ env.DATABASE }}");
+          files=$(grep -E "${{ inputs.filename }}" "${{ env.DATABASE }}");
         fi;
         file_path=$(grep -Fs '.clang-tidy' "${{ env.DATABASE }}");
         clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
