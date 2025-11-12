@@ -1008,49 +1008,57 @@ runs:
       run: |
         export LC_ALL=C
         file_count=1
-        echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
-        echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.filetext }}\033[0m\n####################\n";
+        echo -e "\033[1m\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n\033[0m";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            matches=$(grep "." "${{ env.database }}" | xargs -d '\n' sudo grep --color=always -HFans "${{ inputs.filetext }}");
-            content=$(grep "." "${{ env.database }}" | xargs -d '\n' sudo grep --color=always -q "${{ inputs.filetext }}");
-            if [[ -n ${matches} ]]; then
-              counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
-              echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
-              echo -e "\n${matches}\n";
-              if ${{ inputs.content }}; then
-                for c in ${content[@]}; do
+            regex="\${t}$";
+            matches=false
+            searches=$(grep -s "${regex}" "${{ env.database }}");
+            for s in ${searches[@]}; do
+              patterns=$(sudo grep --color=always -HFans "${{ inputs.filetext }}" "${s}");
+              content=$(sudo grep --color=always -q "${{ inputs.filetext }}" "${s}");
+              if [[ -n ${patterns} ]]; then
+                matches=true
+                counter=$( echo "${patterns}" | grep -c "${{ inputs.filetext }}" );
+                echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
+                echo -e "\n${patterns}\n";
+                if ${{ inputs.content }} && [[ -n ${content} ]]; then
                   count=$((file_count++));
                   echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
-                  echo -e "\n$(dirname ${c})\n":
+                  echo -e "\n$(dirname ${content})\n":
                   echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
-                  batcat --theme=ansi --paging=never --show-all --color=always --style=full "${c}";
+                  batcat --theme=ansi --paging=never --show-all --color=always --style=full "${content}";
                   echo -e "\n####################\nFILE COMPLETED\n####################\n";
-                done;
+                fi;
               fi;
-            else
+            done;
+            if [[ ! ${matches} ]]; then
               echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
             fi;
           done;
-          echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
+          echo -e "\nScanning Completed!\nText Locator\nExiting....\n";
         else
-          matches=$(grep "." "${{ env.database }}" | xargs -d '\n' sudo grep --color=always -HFans "${{ inputs.filetext }}");
-          content=$(grep "." "${{ env.database }}" | xargs -d '\n' sudo grep --color=always -q "${{ inputs.filetext }}");
-          if [[ -n ${matches} ]]; then
-            counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
-            echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
-            echo -e "\n${matches}\n";
-            if ${{ inputs.content }}; then
-              for c in ${content[@]}; do
+          matches=false
+          searches=$(grep -s "." "${{ env.database }}");
+          for s in ${searches[@]}; do
+            patterns=$(sudo grep --color=always -HFans "${{ inputs.filetext }}" "${s}");
+            content=$(sudo grep --color=always -q "${{ inputs.filetext }}" "${s}");
+            if [[ -n ${patterns} ]]; then
+              matches=true
+              counter=$( echo "${patterns}" | grep -c "${{ inputs.filetext }}" );
+              echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
+              echo -e "\n${patterns}\n";
+              if ${{ inputs.content }} && [[ -n ${content} ]]; then
                 count=$((file_count++));
                 echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
-                echo -e "\n$(dirname ${c})\n":
+                echo -e "\n$(dirname ${content})\n":
                 echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
-                batcat --theme=ansi --paging=never --show-all --color=always --style=full "${c}";
+                batcat --theme=ansi --paging=never --show-all --color=always --style=full "${content}";
                 echo -e "\n####################\nFILE COMPLETED\n####################\n";
-              done;
+              fi;
             fi;
-          else
+          done;
+          if [[ ! ${matches} ]]; then
             echo -e "\n####################\nPATTERN MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
           fi;
           echo -e "\nScanning Completed!\nPatterns Locator\nExiting...\n";
@@ -1065,7 +1073,6 @@ runs:
         export LC_ALL=C
         file_count=1
         echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
-        echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.filetext }}\033[0m\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
             matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
@@ -1196,11 +1203,15 @@ runs:
         export TERM=xterm-256color
         if [[ -n ${TERM} ]]; then
           center_text() {
-            local text="$1";
-            local term_width=$(tput cols);
-            local text_length=${#text};
-            local padding=$(( (term_width - text_length) / 2 ));
-            printf "%*s\\n" "$((padding + text_length))" "$text"
+            local text="$1"
+            local term_cols=$(tput cols)
+            local text_length=${#text}
+            if (( term_cols > text_length )); then
+              local padding=$(( (term_cols - text_length) / 2 ))
+              printf "%*s%s\n" "$padding" "" "$text"
+            else
+              echo "$text" # If text is longer than terminal, just print it
+            fi;
           }
         fi;
         texta="######################";
