@@ -216,7 +216,7 @@ runs:
         text9c="####################";
         text10a="●●●●●●●●●●●●●●";
         text10b="○ CHECK FILE ACTION ○";
-        text10c="●●●●●●●●●●●●●●\n";
+        text10c="●●●●●●●●●●●●●●";
         export TERM=xterm-256color
         bold=$(tput bold)
         normal=$(tput sgr0)
@@ -229,7 +229,7 @@ runs:
             local padding=$(( (term_width - text_length) / 2 ));
             printf "%*s\\n" $((padding + text_length)) "$text"
           }
-          center_text "\n#################### RUNNING XTERM 256-COLOR MODE ####################\n"
+          center_text "#################### RUNNING XTERM 256-COLOR MODE ####################"
         fi;
 
         if ${{ inputs.rootdir }}; then
@@ -239,13 +239,15 @@ runs:
           echo -e '\n~/\n';
           echo 'file_path=/' >> "${GITHUB_ENV}";
           file_path=/
+          echo '';
         else
-          center_text "${bold}${text2a}";
-          center_text "${bold}${text2b}";
-          center_text "${bold}${text2c}";
+          center_text "${bold}${text2a}${bold}";
+          center_text "${bold}${text2b}${bold}";
+          center_text "${bold}${text2c}${bold}";
           echo -e "\n${GITHUB_WORKSPACE}\n";
           echo "file_path=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
           file_path=${GITHUB_WORKSPACE}
+          echo '';
         fi;
 
         echo 'update=false' >> "${GITHUB_ENV}";
@@ -261,6 +263,7 @@ runs:
             center_text "${bold}${text4c}";
             date '+%Y%m%d' > "${repository}" || exit 1
           fi;
+          echo '';
           echo 'update=true' >> "${GITHUB_ENV}";
         elif ${{ inputs.stored }} && [[ -d ${repository} ]]; then
           repository="${repository%/*}/${repair_file}";
@@ -274,6 +277,7 @@ runs:
             center_text "${bold}${text4c}";
             date '+%Y%m%d' > "${repository}" || exit 1
           fi;
+          echo '';
           echo 'update=true' >> "${GITHUB_ENV}";
         fi;
 
@@ -289,22 +293,26 @@ runs:
             center_text "${bold}${text6b}";
             center_text "${bold}${text6c}" && exit 1
           fi;
+          echo '';
         fi;
 
         if [[ "${{ inputs.filename }}" != '' ]]; then
           center_text "${bold}${text7a}";
           center_text "${bold}${text7b}";
           center_text "${bold}${text7c}";
+          echo '';
         fi;
 
         if [[ "${{ inputs.filetext }}" != '' ]] && [[ ${{ inputs.filetype }} != 'none' ]]; then
           center_text "${bold}${text8a}";
           center_text "${bold}${text8b}";
           center_text "${bold}${text8c}";
+          echo '';
         elif [[ "${{ inputs.filetext }}" != '' ]]; then
           center_text "${bold}${text9a}";
           center_text "${bold}${text9b}";
           center_text "${bold}${text9c}";
+          echo '';
         fi;
       
         if [[ "${{ inputs.dirname }}" == '' ]]; then
@@ -316,9 +324,10 @@ runs:
         else
           echo "dirname=${{ inputs.dirname }}" >> "$GITHUB_OUTPUT";
         fi;
-        center_text "${bold}${text10a}";
-        center_text "${bold}${text10b}";
-        center_text "${bold}${text10c}";
+        center_text "${normal}${text10a}";
+        center_text "${normal}${text10b}";
+        center_text "${normal}${text10c}";
+        echo '';
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
         echo 'file_error=0' >> "${GITHUB_ENV}";
@@ -1194,12 +1203,12 @@ runs:
             printf "%*s\\n" $((padding + text_length)) "$text"
           }
         fi;
-        text1a="●●●●●●●●●●●●●●●";
-        text1b="✅ CHECK FILE EXITING ✅";
-        text1c="●●●●●●●●●●●●●●●";
-        center_text "${bold}${text1a}";
-        center_text "${bold}${text1b}";
-        center_text "${bold}${text1c}";
+        texta="●●●●●●●●●●●●●●●";
+        textb="✅ CHECK FILE EXITING ✅";
+        textc="●●●●●●●●●●●●●●●";
+        center_text "${normal}${texta}";
+        center_text "${normal}${textb}";
+        center_text "${normal}${textc}";
       shell: bash
       continue-on-error: true
 
