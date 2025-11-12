@@ -1008,15 +1008,16 @@ runs:
       run: |
         export LC_ALL=C
         file_count=1
-        echo -e "\033[1m\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n\033[0m";
+        echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
+        echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.filetext }}\033[0m\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
             regex="\${t}$";
             matches=false
             searches=$(grep -s "${regex}" "${{ env.database }}");
             for s in ${searches[@]}; do
-              patterns=$(sudo grep --color=always -HFans "${{ inputs.filetext }}" "${s}");
-              content=$(sudo grep --color=always -q "${{ inputs.filetext }}" "${s}");
+              patterns=$(grep --color=always -sHFan "${{ inputs.filetext }}" "${s}");
+              content=$(grep --color=always -q "${{ inputs.filetext }}" "${s}");
               if [[ -n ${patterns} ]]; then
                 matches=true
                 counter=$( echo "${patterns}" | grep -c "${{ inputs.filetext }}" );
@@ -1039,7 +1040,7 @@ runs:
           echo -e "\nScanning Completed!\nText Locator\nExiting....\n";
         else
           matches=false
-          searches=$(grep -s "." "${{ env.database }}");
+          searches=$(cat "${{ env.database }}");
           for s in ${searches[@]}; do
             patterns=$(sudo grep --color=always -HFans "${{ inputs.filetext }}" "${s}");
             content=$(sudo grep --color=always -q "${{ inputs.filetext }}" "${s}");
@@ -1073,6 +1074,7 @@ runs:
         export LC_ALL=C
         file_count=1
         echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
+        echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.filetext }}\033[0m\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
             matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
