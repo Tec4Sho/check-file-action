@@ -1034,8 +1034,8 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          finder=$(echo $(grep -s "." "${{ env.database }}" | grep --color=always -HFans "${{ inputs.filetext }}"));
-          content=$(echo $(grep -s "." "${{ env.database }}" | xargs sudo grep --color=always -q "${{ inputs.filetext }}"));
+          finder=$(grep -sz "." "${{ env.database }}" | xargs -0 grep --color=always -HFans "${{ inputs.filetext }}");
+          content=$(grep -sz "." "${{ env.database }}" | xargs -0 grep --color=always -q "${{ inputs.filetext }}");
           if [[ -n ${finder} ]]; then
             counter=$( echo "${finder}" | grep -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
