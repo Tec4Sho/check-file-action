@@ -319,6 +319,7 @@ runs:
         center_text "${text10a}";
         center_text "${text10b}";
         center_text "${text10c}";
+        echo '';
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
         echo 'file_error=0' >> "${GITHUB_ENV}";
