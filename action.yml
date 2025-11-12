@@ -185,8 +185,12 @@ runs:
         echo '';
         repair_file='check-file-repaired.txt';
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
-        text1="\n####################\nDEFAULT DIRECTORY (SYSTEM ROOT)\n####################\n";
-        text2="\n####################\nDEFAULT DIRECTORY (GITHUB WORKSPACE)\n####################\n";
+        text1="####################";
+        text1+="DEFAULT DIRECTORY (SYSTEM ROOT)";
+        text1+="####################";
+        text2="####################";
+        text2+="DEFAULT DIRECTORY (GITHUB WORKSPACE)";
+        text2+="####################";
         text3="\n####################\nRepaired files list found!!!\n####################\n";
         text4="\nCreating ${repair_file} for checked files\n";
         text5="\n####################\ncheck_file_list database found\n####################\n";
@@ -205,8 +209,7 @@ runs:
             local term_width=$(tput cols)
             local text_length=${#text}
             local padding=$(( (term_width - text_length) / 2 ))
-            #printf "%*s\\n" $((padding + text_length)) "$text"
-            printf "%s" $((padding + text_length)) "$text"
+            printf "%*s\\n" $((padding + text_length)) "$text"
           }
           center_text "\n#################### RUNNING XTERM 256-COLOR MODE ####################\n"
         fi;
