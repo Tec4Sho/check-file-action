@@ -1004,7 +1004,7 @@ runs:
 
 
     - name: Word text Match
-      if: inputs.filetext != '' && inputs.database != 'true'
+      if: inputs.filetext != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
         file_count=1
