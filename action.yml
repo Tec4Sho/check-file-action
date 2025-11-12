@@ -121,44 +121,44 @@ runs:
         normal=$(tput sgr0)
 
         if [[ ! $(which git) ]]; then
-          sudo apt-get -yq install git >/dev/null && echo -e "${bold}${text1}" || echo 'No git installed for repo updates';
+          sudo apt-get -yq install git >/dev/null && echo -e "${text1}" || echo 'No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
 
         if [[ ! $(which ansi2txt) ]] && ${{ inputs.report }}; then
-          sudo apt-get -yq install ansi2txt >/dev/null && echo -e "${bold}${text2}" || echo 'No ansi2txt installed for cleaning log report';
+          sudo apt-get -yq install ansi2txt >/dev/null && echo -e "${text2}" || echo 'No ansi2txt installed for cleaning log report';
         fi;
 
         if [[ ! $(which update-ca-certificates) ]]; then
-          sudo apt-get -yq install ca-certificates >/dev/null && echo -e "${bold}${text3}" || echo 'No ca-certificates installed effects can vary';
+          sudo apt-get -yq install ca-certificates >/dev/null && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
 
         if [[ ! $(which cppcheck) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
-          sudo apt-get -yq install cppcheck >/dev/null && echo -e "${bold}${text4}" || echo 'No cppcheck installed Exiting';
+          sudo apt-get -yq install cppcheck >/dev/null && echo -e "${text4}" || echo 'No cppcheck installed Exiting';
           [[ ! $(which cppcheck) ]] && exit 1
         fi;
 
         if [[ ! $(which clang-tidy) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}; then
-          sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e "${bold}${text5}" || echo 'No clang-tidy installed Exiting';
+          sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e "${text5}" || echo 'No clang-tidy installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
 
         if [[ ! $(which shellharden) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.repair }}; then
           wget -qO 'shellharden.tar.gz' 'https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-gnu.tar.gz';
-          sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e "${bold}${text6}" || echo 'No shellharden installed Exiting';
+          sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e "${text6}" || echo 'No shellharden installed Exiting';
           [[ ! $(which shellharden) ]] && exit 1
         fi;
 
         if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
-          sudo apt-get -yq install shellcheck >/dev/null && echo -e "${bold}${text7}" || echo 'No shellcheck installed Exiting';
+          sudo apt-get -yq install shellcheck >/dev/null && echo -e "${text7}" || echo 'No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1
         fi;
 
         if [[ ! $(which checkmake) ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
-          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "${bold}${text8}" || echo 'No checkmake installed Exiting';
+          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "${text8}" || echo 'No checkmake installed Exiting';
           [[ ! $(which checkmake) ]] && exit 1
           if [[ -n ${file} ]]; then
-            echo -e "${bold}${text9}";
+            echo -e "${text9}";
             sudo cp -vf "${file}" "${path}" 2>/dev/null;
           fi;
         elif [[ -n ${file} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
@@ -171,12 +171,12 @@ runs:
           sudo bash -c echo -e "\nalias batcat='bat'" | sudo tee -a ~/.bashrc >/dev/null;
           export BAT_THEME="ansi";
         elif [[ ! $(which batcat) ]]; then
-          sudo apt-get -yq install bat >/dev/null && echo -e "${bold}${text10}" || echo 'No batcat installed Exiting';
+          sudo apt-get -yq install bat >/dev/null && echo -e "${text10}" || echo 'No batcat installed Exiting';
           [[ ! $(which batcat) ]] && exit 1
           export BAT_THEME="ansi";
         fi;
 
-        tput sgr0 2>/dev/null;
+        echo 'update=${{ inputs.update }}' >> "${GITHUB_ENV}";
         sudo apt-get --fix-broken install -yq >/dev/null 2>&1;
       shell: bash
       continue-on-error: false
@@ -204,7 +204,7 @@ runs:
         text5a="####################";
         text5b="check_file_list database found";
         text5c="####################";
-        text6="Database check_file_list.txt not found exiting.."
+        text6="Database check_file_list.txt not found exiting"
         text7a="####################";
         text7b="Searching directories for $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s)";
         text7c="####################";
@@ -227,54 +227,50 @@ runs:
             local term_width=$(tput cols);
             local text_length=${#text};
             local padding=$(( (term_width - text_length) / 2 ));
-            printf "%*s\\n" $((padding + text_length)) "$text"
+            printf "%*s\\n" "$((padding + text_length))" "$text"
           }
-          center_text "#################### RUNNING XTERM 256-COLOR MODE ####################"
+          center_text "XTERM 256-COLOR MODE";
         fi;
 
         if ${{ inputs.rootdir }}; then
-          center_text "${bold}${text1a}";
-          center_text "${bold}${text1b}";
-          center_text "${bold}${text1c}";
+          center_text "${text1a}";
+          center_text "${text1b}";
+          center_text "${text1c}";
           echo -e '\n~/\n';
           echo 'file_path=/' >> "${GITHUB_ENV}";
           file_path=/
-          echo '';
         else
-          center_text "${bold}${text2a}${bold}";
-          center_text "${bold}${text2b}${bold}";
-          center_text "${bold}${text2c}${bold}";
+          center_text "${text2a}";
+          center_text "${text2b}";
+          center_text "${text2c}";
           echo -e "\n${GITHUB_WORKSPACE}\n";
           echo "file_path=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
           file_path=${GITHUB_WORKSPACE}
-          echo '';
         fi;
 
-        echo 'update=false' >> "${GITHUB_ENV}";
-        if ${{ inputs.stored }} && ${{ inputs.update }} && [[ -d ${repository} ]]; then
+        if ${{ inputs.stored }} && ${{ env.update }} && [[ -d ${repository} ]]; then
           repository="${repository%/*}/${repair_file}";
           if [[ -f ${repository} ]]; then
-            center_text "${bold}${text3a}";
-            center_text "${bold}${text3b}";
-            center_text "${bold}${text3c}";
+            center_text "${text3a}";
+            center_text "${text3b}";
+            center_text "${text3c}";
           else
-            center_text "${bold}${text4a}";
-            center_text "${bold}${text4b}";
-            center_text "${bold}${text4c}";
+            center_text "${text4a}";
+            center_text "${text4b}";
+            center_text "${text4c}";
             date '+%Y%m%d' > "${repository}" || exit 1
           fi;
           echo '';
-          echo 'update=true' >> "${GITHUB_ENV}";
         elif ${{ inputs.stored }} && [[ -d ${repository} ]]; then
           repository="${repository%/*}/${repair_file}";
           if [[ -f ${repository} ]]; then
-            center_text "${bold}${text3a}";
-            center_text "${bold}${text3b}";
-            center_text "${bold}${text3c}";
+            center_text "${text3a}";
+            center_text "${text3b}";
+            center_text "${text3c}";
           else
-            center_text "${bold}${text4a}";
-            center_text "${bold}${text4b}";
-            center_text "${bold}${text4c}";
+            center_text "${text4a}";
+            center_text "${text4b}";
+            center_text "${text4c}";
             date '+%Y%m%d' > "${repository}" || exit 1
           fi;
           echo '';
@@ -284,34 +280,34 @@ runs:
         if ${{ inputs.database }}; then
           sudo find "${file_path}" -type f -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
           if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
-            center_text "${bold}${text5a}";
-            center_text "${bold}${text5b}";
-            center_text "${bold}${text5c}";
+            center_text "${text5a}";
+            center_text "${text5b}";
+            center_text "${text5c}";
             echo "database=${GITHUB_WORKSPACE}/check_file_list.txt" >> "${GITHUB_ENV}";
           else
-            center_text "${bold}${text6a}";
-            center_text "${bold}${text6b}";
-            center_text "${bold}${text6c}" && exit 1
+            center_text "${text6a}";
+            center_text "${text6b}";
+            center_text "${text6c}" && exit 1
           fi;
           echo '';
         fi;
 
         if [[ "${{ inputs.filename }}" != '' ]]; then
-          center_text "${bold}${text7a}";
-          center_text "${bold}${text7b}";
-          center_text "${bold}${text7c}";
+          center_text "${text7a}";
+          center_text "${text7b}";
+          center_text "${text7c}";
           echo '';
         fi;
 
         if [[ "${{ inputs.filetext }}" != '' ]] && [[ ${{ inputs.filetype }} != 'none' ]]; then
-          center_text "${bold}${text8a}";
-          center_text "${bold}${text8b}";
-          center_text "${bold}${text8c}";
+          center_text "${text8a}";
+          center_text "${text8b}";
+          center_text "${text8c}";
           echo '';
         elif [[ "${{ inputs.filetext }}" != '' ]]; then
-          center_text "${bold}${text9a}";
-          center_text "${bold}${text9b}";
-          center_text "${bold}${text9c}";
+          center_text "${text9a}";
+          center_text "${text9b}";
+          center_text "${text9c}";
           echo '';
         fi;
       
@@ -324,10 +320,10 @@ runs:
         else
           echo "dirname=${{ inputs.dirname }}" >> "$GITHUB_OUTPUT";
         fi;
-        center_text "${normal}${text10a}";
-        center_text "${normal}${text10b}";
-        center_text "${normal}${text10c}";
-        echo '';
+
+        echo -e "\t${text10a}";
+        echo -e "\t${text10b}";
+        echo -e "\t${text10c}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
         echo 'file_error=0' >> "${GITHUB_ENV}";
@@ -1191,24 +1187,12 @@ runs:
         if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
           echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/check_file_list.txt)\n";
         fi;
-        export TERM=xterm-256color
-        bold=$(tput bold);
-        normal=$(tput sgr0);
-        if [[ -n ${TERM} ]]; then
-          center_text() {
-            local text="$1";
-            local term_width=$(tput cols);
-            local text_length=${#text};
-            local padding=$(( (term_width - text_length) / 2 ));
-            printf "%*s\\n" $((padding + text_length)) "$text"
-          }
-        fi;
         texta="●●●●●●●●●●●●●●●";
         textb="✅ CHECK FILE EXITING ✅";
         textc="●●●●●●●●●●●●●●●";
-        center_text "${normal}${texta}";
-        center_text "${normal}${textb}";
-        center_text "${normal}${textc}";
+        echo -e "\t${texta}";
+        echo -e "\t${textb}";
+        echo -e "\t${textc}";
       shell: bash
       continue-on-error: true
 
