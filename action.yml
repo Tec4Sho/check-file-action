@@ -214,9 +214,9 @@ runs:
         text9a="####################";
         text9b="Searching all files for $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') match(s)";
         text9c="####################";
-        text10a="●●●●●●●●●●●●●●";
-        text10b="○ CHECK FILE ACTION ○";
-        text10c="●●●●●●●●●●●●●●";
+        text10a="#####################";
+        text10b="# CHECK FILE ACTION #";
+        text10c="#####################";
         export TERM=xterm-256color
         bold=$(tput bold)
         normal=$(tput sgr0)
@@ -230,19 +230,20 @@ runs:
             printf "%*s\\n" "$((padding + text_length))" "$text"
           }
           center_text "XTERM 256-COLOR MODE";
+          echo '';
         fi;
 
         if ${{ inputs.rootdir }}; then
-          center_text "${text1a}";
-          center_text "${text1b}";
-          center_text "${text1c}";
+          echo -e "\n${text1a}";
+          echo -e "${text1b}";
+          echo -e "${text1c}";
           echo -e '\n~/\n';
           echo 'file_path=/' >> "${GITHUB_ENV}";
           file_path=/
         else
-          center_text "${text2a}";
-          center_text "${text2b}";
-          center_text "${text2c}";
+          echo -e "\n${text2a}";
+          echo -e "${text2b}";
+          echo -e "${text2c}";
           echo -e "\n${GITHUB_WORKSPACE}\n";
           echo "file_path=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
           file_path=${GITHUB_WORKSPACE}
@@ -251,64 +252,58 @@ runs:
         if ${{ inputs.stored }} && ${{ env.update }} && [[ -d ${repository} ]]; then
           repository="${repository%/*}/${repair_file}";
           if [[ -f ${repository} ]]; then
-            center_text "${text3a}";
-            center_text "${text3b}";
-            center_text "${text3c}";
+            echo -e "\n${text3a}";
+            echo -e "${text3b}";
+            echo -e "${text3c}\n";
           else
-            center_text "${text4a}";
-            center_text "${text4b}";
-            center_text "${text4c}";
+            echo -e "\n${text4a}";
+            echo -e "${text4b}";
+            echo -e "${text4c}\n";
             date '+%Y%m%d' > "${repository}" || exit 1
           fi;
-          echo '';
         elif ${{ inputs.stored }} && [[ -d ${repository} ]]; then
           repository="${repository%/*}/${repair_file}";
           if [[ -f ${repository} ]]; then
-            center_text "${text3a}";
-            center_text "${text3b}";
-            center_text "${text3c}";
+            echo -e "\n${text3a}";
+            echo -e "${text3b}";
+            echo -e "${text3c}\n";
           else
-            center_text "${text4a}";
-            center_text "${text4b}";
-            center_text "${text4c}";
+            echo -e "\n${text4a}";
+            echo -e "${text4b}";
+            echo -e "${text4c}\n";
             date '+%Y%m%d' > "${repository}" || exit 1
           fi;
-          echo '';
           echo 'update=true' >> "${GITHUB_ENV}";
         fi;
 
         if ${{ inputs.database }}; then
           sudo find "${file_path}" -type f -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
           if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
-            center_text "${text5a}";
-            center_text "${text5b}";
-            center_text "${text5c}";
+            echo -e "\n${text5a}";
+            echo -e "${text5b}";
+            echo -e "${text5c}\n";
             echo "database=${GITHUB_WORKSPACE}/check_file_list.txt" >> "${GITHUB_ENV}";
           else
-            center_text "${text6a}";
-            center_text "${text6b}";
-            center_text "${text6c}" && exit 1
+            echo -e "\n${text6a}";
+            echo -e "${text6b}";
+            echo -e "${text6c}\n" && exit 1
           fi;
-          echo '';
         fi;
 
         if [[ "${{ inputs.filename }}" != '' ]]; then
-          center_text "${text7a}";
-          center_text "${text7b}";
-          center_text "${text7c}";
-          echo '';
+          echo -e "\n${text7a}";
+          echo -e "${text7b}";
+          echo -e "${text7c}\n";
         fi;
 
         if [[ "${{ inputs.filetext }}" != '' ]] && [[ ${{ inputs.filetype }} != 'none' ]]; then
-          center_text "${text8a}";
-          center_text "${text8b}";
-          center_text "${text8c}";
-          echo '';
+          echo -e "\n${text8a}";
+          echo -e "${text8b}";
+          echo -e "${text8c}\n";
         elif [[ "${{ inputs.filetext }}" != '' ]]; then
-          center_text "${text9a}";
-          center_text "${text9b}";
-          center_text "${text9c}";
-          echo '';
+          echo -e "\n${text9a}";
+          echo -e "${text9b}";
+          echo -e "${text9c}\n";
         fi;
       
         if [[ "${{ inputs.dirname }}" == '' ]]; then
@@ -321,9 +316,9 @@ runs:
           echo "dirname=${{ inputs.dirname }}" >> "$GITHUB_OUTPUT";
         fi;
 
-        echo -e "\t${text10a}";
-        echo -e "\t${text10b}";
-        echo -e "\t${text10c}";
+        center_text "${text10a}";
+        center_text "${text10b}";
+        center_text "${text10c}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
         echo 'file_error=0' >> "${GITHUB_ENV}";
@@ -1185,7 +1180,7 @@ runs:
       continue-on-error: true
 
 
-    - name: Delete Log File
+    - name: Delete & Exit
       if: inputs.filename != '' || inputs.filetext != ''
       run: |
         date
@@ -1195,12 +1190,24 @@ runs:
         if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
           echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/check_file_list.txt)\n";
         fi;
-        texta="●●●●●●●●●●●●●●●";
-        textb="✅ CHECK FILE EXITING ✅";
-        textc="●●●●●●●●●●●●●●●";
-        echo -e "\t${texta}";
-        echo -e "\t${textb}";
-        echo -e "\t${textc}";
+        export TERM=xterm-256color
+        if [[ -n ${TERM} ]]; then
+          center_text() {
+            local text="$1";
+            local term_width=$(tput cols);
+            local text_length=${#text};
+            local padding=$(( (term_width - text_length) / 2 ));
+            printf "%*s\\n" "$((padding + text_length))" "$text"
+          }
+        fi;
+        texta="######################";
+        textb="# CHECK FILE EXITING #";
+        textc="######################";
+        echo '';
+        center_text "${texta}";
+        center_text "${textb}";
+        center_text "${textc}";
+        echo '';
       shell: bash
       continue-on-error: true
 
