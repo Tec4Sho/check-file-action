@@ -1038,7 +1038,7 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -sHanF "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -sHanF "${{ inputs.filetext }}" "{}" \+ -printf "%p\n");
           content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
           if [[ -n ${matches} ]]; then
             counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
