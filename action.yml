@@ -1041,8 +1041,8 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" "+" ; );
-          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -q "${{ inputs.pattern }}" "{}" "+" ; );
+          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" "+" \ );
+          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -q "${{ inputs.pattern }}" "{}" "+" \ );
           if [[ -n ${matches} ]]; then
             counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
