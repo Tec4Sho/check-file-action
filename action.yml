@@ -1016,8 +1016,8 @@ runs:
         echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.filetext }}\033[0m\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -sHanF "${{ inputs.filetext }}" "{}" \+ -printf "%p\n");
-            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \+ -printf "%p\n");
+            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -sHanF "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
@@ -1038,8 +1038,8 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -sHanF "${{ inputs.filetext }}" "{}" \+ -printf "%p\n");
-          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -sHanF "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
           if [[ -n ${matches} ]]; then
             counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
