@@ -181,7 +181,7 @@ runs:
       shell: bash
       continue-on-error: false
 
-
+    # If text is longer than terminal, just print it. Stretching for desktop/mobile log
     - name: Set Directory Base
       if: inputs.filetext != '' || inputs.filename != ''
       id: set_dirname 
@@ -223,11 +223,15 @@ runs:
 
         if [[ -n ${TERM} ]]; then
           center_text() {
-            local text="$1";
-            local term_width=$(tput cols);
-            local text_length=${#text};
-            local padding=$(( (term_width - text_length) / 2 ));
-            printf "%*s\\n" "$((padding + text_length))" "$text"
+            local text="$1"
+            local term_cols=$(tput cols)
+            local text_length=${#text}
+            if (( term_cols > text_length )); then
+              local padding=$(( (term_cols - text_length) / 2 ))
+              printf "%*s%s\n" "$padding" "" "$text"
+            else
+              echo "$text" 
+            fi;
           }
           center_text "XTERM 256-COLOR MODE";
           echo '';
@@ -316,9 +320,9 @@ runs:
           echo "dirname=${{ inputs.dirname }}" >> "$GITHUB_OUTPUT";
         fi;
 
-        center_text "${text10a}";
-        center_text "${text10b}";
-        center_text "${text10c}";
+        center_text "${text10a}" 2>/dev/null;
+        center_text "${text10b}" 2>/dev/null;
+        center_text "${text10c}" 2>/dev/null;
         echo '';
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
@@ -357,8 +361,8 @@ runs:
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           { time -p for f in ${files[@]}; do
-            SEARCH_PATH="${f}";
-            CHECKED_DATE=$(grep -sF "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
+            search_path="${f}";
+            check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
@@ -394,9 +398,9 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${SEARCH_PATH}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                       echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
-                      echo -e "\n####################\nRepaired on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
+                      echo -e "\n####################\nRepaired on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                     elif ${{ inputs.stored }} && ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" || >/dev/null;
@@ -434,9 +438,9 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${SEARCH_PATH}" "${repaired}") ]]; then
+                if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
-                  echo -e "\n####################\nRepaired on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
+                  echo -e "\n####################\nRepaired on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                 elif ${{ inputs.stored }} && ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
@@ -526,8 +530,8 @@ runs:
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           { time -p for f in ${files[@]}; do
-            SEARCH_PATH="${f}";
-            CHECKED_DATE=$(grep -Fs "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
+            search_path="${f}";
+            check_date=$(grep -Fs "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
@@ -537,9 +541,9 @@ runs:
               echo -e "\n\n";
             fi;
             if ${{ inputs.repair }}; then
-              if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${SEARCH_PATH}" "${repaired}") ]]; then
+              if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                 echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
-                echo -e "\n####################\nRepaired on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
+                echo -e "\n####################\nRepaired on ${check_date}\nSkipping $(basename ${f})\n####################\n";
               elif ${{ inputs.stored }} && ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" || >/dev/null;
@@ -702,8 +706,8 @@ runs:
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           { time -p for f in ${files[@]}; do
-            SEARCH_PATH="${f}";
-            CHECKED_DATE=$(grep -sF "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
+            search_path="${f}";
+            check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
             echo "$(dirname ${f})";
@@ -738,9 +742,9 @@ runs:
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${included3}";
                   fi;
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${SEARCH_PATH}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                       echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
-                      echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
+                      echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                     elif ${{ inputs.stored }} && ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                       clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" || >/dev/null;
@@ -778,9 +782,9 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${SEARCH_PATH}" "${repaired}") ]]; then
+                if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
-                  echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
+                  echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                 elif ${{ inputs.stored }} && ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
                   clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" || >/dev/null;
@@ -864,8 +868,8 @@ runs:
             echo -e "\n# Found File Path(s)\n${files}\n";
           fi;
           { time -p for f in ${files[@]}; do
-            SEARCH_PATH="${f}";
-            CHECKED_DATE=$(grep -sF "${SEARCH_PATH}" "${repaired}" | cut -d' ' -f 2-);
+            search_path="${f}";
+            check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
             echo "$(dirname ${f})";
@@ -875,9 +879,9 @@ runs:
               echo -e "\n\n";
             fi;
             if ${{ inputs.repair }}; then
-              if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${SEARCH_PATH}" "${repaired}") ]]; then
+              if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                 echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
-                echo -e "\n####################\nChecked on ${CHECKED_DATE}\nSkipping $(basename ${f})\n####################\n";
+                echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
               elif ${{ inputs.stored }} && ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
                 shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" || >/dev/null;
@@ -1012,54 +1016,45 @@ runs:
         echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.filetext }}\033[0m\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            regex="\${t}$";
-            matches=false
-            searches=$(grep -s "${regex}" "${{ env.database }}");
-            for s in ${searches[@]}; do
-              patterns=$(grep --color=always -sHFan "${{ inputs.filetext }}" "${s}");
-              content=$(grep --color=always -q "${{ inputs.filetext }}" "${s}");
-              if [[ -n ${patterns} ]]; then
-                matches=true
-                counter=$( echo "${patterns}" | grep -c "${{ inputs.filetext }}" );
-                echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
-                echo -e "\n${patterns}\n";
-                if ${{ inputs.content }} && [[ -n ${content} ]]; then
+            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -sHanF "${{ inputs.filetext }}" "{}" \+ -printf "%p\n");
+            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -q "${{ inputs.filetext }}" "{}" \+ -printf "%p\n");
+            if [[ -n ${matches} ]]; then
+              counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
+              echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
+              echo -e "\n${matches}\n";
+              if ${{ inputs.content }}; then
+                for c in ${content[@]}; do
                   count=$((file_count++));
                   echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
-                  echo -e "\n$(dirname ${content})\n":
+                  echo -e "\n$(dirname ${c})\n":
                   echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
-                  batcat --theme=ansi --paging=never --show-all --color=always --style=full "${content}";
+                  batcat --theme=ansi --paging=never --show-all --color=always --style=full "${c}";
                   echo -e "\n####################\nFILE COMPLETED\n####################\n";
-                fi;
+                done;
               fi;
-            done;
-            if [[ ! ${matches} ]]; then
+            else
               echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
             fi;
           done;
-          echo -e "\nScanning Completed!\nText Locator\nExiting....\n";
+          echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          matches=false
-          searches=$(cat "${{ env.database }}");
-          for s in ${searches[@]}; do
-            patterns=$(sudo grep --color=always -HFans "${{ inputs.filetext }}" "${s}");
-            content=$(sudo grep --color=always -q "${{ inputs.filetext }}" "${s}");
-            if [[ -n ${patterns} ]]; then
-              matches=true
-              counter=$( echo "${patterns}" | grep -c "${{ inputs.filetext }}" );
-              echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
-              echo -e "\n${patterns}\n";
-              if ${{ inputs.content }} && [[ -n ${content} ]]; then
+          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -sHanF "${{ inputs.filetext }}" "{}" \+ -printf "%p\n");
+          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -q "${{ inputs.filetext }}" "{}" \+ -printf "%p\n");
+          if [[ -n ${matches} ]]; then
+            counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
+            echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
+            echo -e "\n${matches}\n";
+            if ${{ inputs.content }}; then
+              for c in ${content[@]}; do
                 count=$((file_count++));
                 echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
-                echo -e "\n$(dirname ${content})\n":
+                echo -e "\n$(dirname ${c})\n":
                 echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
-                batcat --theme=ansi --paging=never --show-all --color=always --style=full "${content}";
+                batcat --theme=ansi --paging=never --show-all --color=always --style=full "${c}";
                 echo -e "\n####################\nFILE COMPLETED\n####################\n";
-              fi;
+              done;
             fi;
-          done;
-          if [[ ! ${matches} ]]; then
+          else
             echo -e "\n####################\nPATTERN MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
           fi;
           echo -e "\nScanning Completed!\nPatterns Locator\nExiting...\n";
@@ -1077,7 +1072,7 @@ runs:
         echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.filetext }}\033[0m\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -sHanF "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
             content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
@@ -1099,7 +1094,7 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -HFans "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -sHanF "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
           content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
           if [[ -n ${matches} ]]; then
             counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
@@ -1143,7 +1138,7 @@ runs:
       if: env.update != 'false' && env.file_fixed == 1
       run: |
         echo '';
-        REPAIR_DATE="$(date +%Y%m%d)";
+        repair_date="$(date +%Y%m%d)";
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
@@ -1157,7 +1152,7 @@ runs:
             echo -e "\n####################\nCHECK FILE UPDATED REPOSITORY\n####################\n";
             echo -e "\n####################\nUPDATED FILE(S) LIST:\n####################\n";
             git diff --name-only @{push}@{1} @{push} |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
-            echo -e "\n\t########## ${REPAIR_DATE} ##########\n";
+            echo -e "\n\t########## ${repair_date} ##########\n";
           else
             echo -e "\n####################\nCHECK FILE COULD NOT UPDATED REPO FILE(S)\n####################\n";
             echo 'Retrying again after git fetches branch';
@@ -1169,7 +1164,7 @@ runs:
               echo -e "\n####################\nCHECK FILE UPDATED REPOSITORY\n####################\n";
               echo -e "\n####################\nUPDATED FILE(S) LIST:\n####################\n";
               git diff --name-only @{push}@{1} @{push} |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
-              echo -e "\n\t########## ${REPAIR_DATE} ##########\n";
+              echo -e "\n\t########## ${repair_date} ##########\n";
             else
               echo 'Was git push event successful status ? unknown';
             fi;
@@ -1205,14 +1200,14 @@ runs:
         export TERM=xterm-256color
         if [[ -n ${TERM} ]]; then
           center_text() {
-            local text="$1"
+            local text="$1";
             local term_cols=$(tput cols)
             local text_length=${#text}
             if (( term_cols > text_length )); then
               local padding=$(( (term_cols - text_length) / 2 ))
               printf "%*s%s\n" "$padding" "" "$text"
             else
-              echo "$text" # If text is longer than terminal, just print it
+              echo "$text"
             fi;
           }
         fi;
