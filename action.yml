@@ -1018,7 +1018,7 @@ runs:
         echo -e "\033[5m\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n\033[0m";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" +; -printf "%p\n");
+            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
             content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -q "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
@@ -1041,7 +1041,7 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" +; -printf "%p\n");
+          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
           content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -q "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
           if [[ -n ${matches} ]]; then
             counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
