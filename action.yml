@@ -200,7 +200,7 @@ runs:
         text5a="####################";
         text5b="Database Performance Mode Enabled";
         text5c="####################";
-        text6="Database check_file_list.txt not found exiting"
+        text6="Database not found exiting"
         text7a="####################";
         text7b="Searching directories for $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s)";
         text7c="####################";
@@ -275,12 +275,12 @@ runs:
         fi;
 
         if ${{ inputs.database }}; then
-          sudo find "${file_path}" -type f -name "*" -print > "${GITHUB_WORKSPACE}/check_file_list.txt";
-          if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
+          sudo find "${file_path}" -type f -print > "${GITHUB_WORKSPACE}/database";
+          if [[ -f "${GITHUB_WORKSPACE}/database" ]]; then
             echo -e "\n${text5a}";
             echo -e "\033[1m${text5b}\033[0m";
             echo -e "${text5c}\n";
-            echo "database=${GITHUB_WORKSPACE}/check_file_list.txt" >> "${GITHUB_ENV}";
+            echo "database=${GITHUB_WORKSPACE}/database" >> "${GITHUB_ENV}";
           else
             echo -e "\n${text6a}";
             echo -e "\033[1m${text6b}\033[0m";
@@ -1014,12 +1014,12 @@ runs:
       run: |
         export LC_ALL=C
         file_count=1
-        echo -e "\n####################\n\033[5mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
-        echo -e "\n####################\n\033[5mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
+        echo -e "\033[5m\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n\033[0m";
+        echo -e "\033[5m\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n\033[0m";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" '+' ;);
-            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -q "${{ inputs.pattern }}" "{}" '+' ;);
+            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" "+" ; );
+            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -q "${{ inputs.pattern }}" "{}" "+" ; );
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
@@ -1041,8 +1041,8 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" '+' ;);
-          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -q "${{ inputs.pattern }}" "{}" '+' ;);
+          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" "+" ; );
+          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -q "${{ inputs.pattern }}" "{}" "+" ; );
           if [[ -n ${matches} ]]; then
             counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
@@ -1072,8 +1072,8 @@ runs:
       run: |
         export LC_ALL=C
         file_count=1
-        echo -e "\n####################\n\033[5mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
-        echo -e "\n####################\n\033[5mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
+        echo -e "\033[5m\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n\033[0m";
+        echo -e "\033[5m\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n\033[0m";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
             matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
@@ -1099,8 +1099,8 @@ runs:
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
-          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -q "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
+          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
+          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec sudo grep --color=always -q "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
           if [[ -n ${matches} ]]; then
             counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
@@ -1200,8 +1200,8 @@ runs:
         if [[ -f "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" ]]; then
           echo -e "\nLOGFILE: $(rm -vf ${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log)\n";
         fi;
-        if [[ -f "${GITHUB_WORKSPACE}/check_file_list.txt" ]]; then
-          echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/check_file_list.txt)\n";
+        if [[ -f "${GITHUB_WORKSPACE}/database" ]]; then
+          echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/database)\n";
         fi;
         export TERM=xterm-256color
         bold=$(tput bold)
