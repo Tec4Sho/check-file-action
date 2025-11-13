@@ -1009,57 +1009,62 @@ runs:
       continue-on-error: true
 
 
-    - name: Word Pattern Match
-      if: inputs.pattern != '' && inputs.database != 'false'
+    - name: Word text Match
+      if: inputs.filetext != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
         file_count=1
-        echo -e "\033[5m\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n\033[0m";
-        echo -e "\033[5m\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n\033[0m";
+        echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
+        echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.filetext }}\033[0m\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
-            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -q "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
-            if [[ -n ${matches} ]]; then
-              counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
-              echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
-              { time -p echo -e "\n${matches}\n"
-              echo '| Runtime |'; } 2>&1;
-              if ${{ inputs.content }}; then
-                for c in ${content[@]}; do
+            regex="\${t}$";
+            matches=false
+            searches=$(batcat --paging=never "${{ env.database }}");
+            for s in ${searches[@]}; do
+              patterns=$(grep --color=always -sHFan "${{ inputs.filetext }}" "${s}");
+              content=$(grep --color=always -q "${{ inputs.filetext }}" "${s}");
+              if [[ -n ${patterns} ]]; then
+                matches=true
+                counter=$( echo "${patterns}" | grep -c "${{ inputs.filetext }}" );
+                echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
+                echo -e "\n${patterns}\n";
+                if ${{ inputs.content }} && [[ -n ${content} ]]; then
                   count=$((file_count++));
                   echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
-                  echo -e "\n$(dirname ${c})\n":
+                  echo -e "\n$(dirname ${content})\n":
                   echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
-                  batcat --theme=ansi --paging=never --show-all --color=always --style=full "${c}";
+                  batcat --theme=ansi --paging=never --show-all --color=always --style=full "${content}";
                   echo -e "\n####################\nFILE COMPLETED\n####################\n";
-                done;
+                fi;
               fi;
-            else
-              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') FOUND\n####################\n";
+            done;
+            if [[ ! ${matches} ]]; then
+              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
             fi;
           done;
-          echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
+          echo -e "\nScanning Completed!\nText Locator\nExiting....\n";
         else
-          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
-          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec grep --color=always -q "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
-          if [[ -n ${matches} ]]; then
-            counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
-            echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
-            { time -p echo -e "\n${matches}\n"
-            echo '| Runtime |'; } 2>&1;
-            if ${{ inputs.content }}; then
-              for c in ${content[@]}; do
+          searches=$(batcat --paging=never "${{ env.database }}");
+          for s in ${searches[@]}; do
+            patterns=$(grep --color=always -sHFan "${{ inputs.filetext }}" "${s}");
+            content=$(grep --color=always -q "${{ inputs.filetext }}" "${s}");
+            if [[ -n ${patterns} ]]; then
+              matches=true
+              counter=$( echo "${patterns}" | grep -c "${{ inputs.filetext }}" );
+              echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
+              echo -e "\n${patterns}\n";
+              if ${{ inputs.content }} && [[ -n ${content} ]]; then
                 count=$((file_count++));
                 echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
-                echo -e "\n$(dirname ${c})\n":
-                echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
-                batcat --theme=ansi --paging=never --show-all --color=always --style=full "${c}";
+                echo -e "\n$(dirname ${content})\n":                 echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
+                batcat --theme=ansi --paging=never --show-all --color=always --style=full "${content}";
                 echo -e "\n####################\nFILE COMPLETED\n####################\n";
-              done;
+              fi;
             fi;
-          else
-            echo -e "\n####################\nPATTERN MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') FOUND\n####################\n";
+          done;
+          if [[ ! ${matches} ]]; then
+            echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
           fi;
           echo -e "\nScanning Completed!\nPatterns Locator\nExiting...\n";
         fi;
