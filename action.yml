@@ -11,11 +11,6 @@ inputs:
     type: string
     required: false
     default: 'none'
-  filetext:
-    description: 'Search for text string matches in selected or all files'
-    type: string
-    required: false
-    default: ''
   database:
     description: 'Use file database over find commands slower performance for searches'
     type: boolean 
@@ -23,6 +18,11 @@ inputs:
     default: 'false'
   dirname:
     description: 'Your project root folder if created'
+    type: string
+    required: false
+    default: ''
+  pattern:
+    description: 'Search for patterns matches in filetypes or all files'
     type: string
     required: false
     default: ''
@@ -84,7 +84,7 @@ runs:
 
 
     - name: Installing Dependencies
-      if: inputs.filetext != '' || inputs.filename != ''
+      if: inputs.pattern != '' || inputs.filename != ''
       run: |
         echo '';
         set -o pipefail
@@ -115,10 +115,6 @@ runs:
           sudo apt-get -yq install tput >/dev/null && echo -e "tput dependencies Installed" || echo 'No tput installed for term_width';
           [[ ! $(which tput) ]] && exit 1
         fi;
-
-        export TERM=xterm-256color
-        bold=$(tput bold)
-        normal=$(tput sgr0)
 
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git >/dev/null && echo -e "${text1}" || echo 'No git installed for repo updates';
@@ -183,7 +179,7 @@ runs:
 
     # If text is longer than terminal, just print it. Stretching for desktop/mobile log
     - name: Set Directory Base
-      if: inputs.filetext != '' || inputs.filename != ''
+      if: inputs.pattern != '' || inputs.filename != ''
       id: set_dirname 
       env: 
         default_path: "*" 
@@ -209,28 +205,26 @@ runs:
         text7b="Searching directories for $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s)";
         text7c="####################";
         text8a="####################";
-        text8b="Searching ${{ inputs.filetype }} files for ${{ inputs.filetext }} match(s)";
+        text8b="Searching ${{ inputs.filetype }} files for ${{ inputs.pattern }} match(s)";
         text8c="####################";
         text9a="####################";
-        text9b="Searching all files for $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') match(s)";
+        text9b="Searching all files for $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') match(s)";
         text9c="####################";
         text10a="#####################";
         text10b="# CHECK FILE ACTION #";
         text10c="#####################";
         export TERM=xterm-256color
-        bold=$(tput bold)
-        normal=$(tput sgr0)
 
         if [[ -n ${TERM} ]]; then
           center_text() {
-            local text="$1"
-            local term_cols=$(tput cols)
-            local text_length=${#text}
+            local text="$1";
+            local term_cols="$(tput cols)";
+            local text_length="${#text}";
             if (( term_cols > text_length )); then
-              local padding=$(( (term_cols - text_length) / 2 ))
+              local padding="$(( (term_cols - text_length) / 2 ))";
               printf "%*s%s\n" "$padding" "" "$text"
             else
-              echo "$text" 
+              echo "$text"
             fi;
           }
           center_text "XTERM 256-COLOR MODE";
@@ -300,11 +294,11 @@ runs:
           echo -e "${text7c}\n";
         fi;
 
-        if [[ "${{ inputs.filetext }}" != '' ]] && [[ ${{ inputs.filetype }} != 'none' ]]; then
+        if [[ "${{ inputs.pattern }}" != '' ]] && [[ ${{ inputs.filetype }} != 'none' ]]; then
           echo -e "\n${text8a}";
           echo -e "\033[1m${text8b}\033[0m";
           echo -e "${text8c}\n";
-        elif [[ "${{ inputs.filetext }}" != '' ]]; then
+        elif [[ "${{ inputs.pattern }}" != '' ]]; then
           echo -e "\n${text9a}";
           echo -e "\033[1m${text9b}\033[0m";
           echo -e "${text9c}\n";
@@ -1015,21 +1009,22 @@ runs:
       continue-on-error: true
 
 
-    - name: Word text Match
-      if: inputs.filetext != '' && inputs.database != 'false'
+    - name: Word Pattern Match
+      if: inputs.pattern != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
         file_count=1
         echo -e "\n####################\n\033[5mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
-        echo -e "\n####################\n\033[5mPattern Matching: ${{ inputs.filetext }}\033[0m\n####################\n";
+        echo -e "\n####################\n\033[5mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -sHanF "${{ inputs.filetext }}" "{}" '+' ;);
-            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" '+' ;);
+            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" '+' ;);
+            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec grep --color=always -q "${{ inputs.pattern }}" "{}" '+' ;);
             if [[ -n ${matches} ]]; then
-              counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
+              counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
-              echo -e "\n${matches}\n";
+              { time -p echo -e "\n${matches}\n"
+              echo '| Runtime |'; } 2>&1;
               if ${{ inputs.content }}; then
                 for c in ${content[@]}; do
                   count=$((file_count++));
@@ -1041,17 +1036,18 @@ runs:
                 done;
               fi;
             else
-              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
+              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') FOUND\n####################\n";
             fi;
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -sHanF "${{ inputs.filetext }}" "{}" '+' ;);
-          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -q "${{ inputs.filetext }}" "{}" '+' ;);
+          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" '+' ;);
+          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec grep --color=always -q "${{ inputs.pattern }}" "{}" '+' ;);
           if [[ -n ${matches} ]]; then
-            counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
+            counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
-            echo -e "\n${matches}\n";
+            { time -p echo -e "\n${matches}\n"
+            echo '| Runtime |'; } 2>&1;
             if ${{ inputs.content }}; then
               for c in ${content[@]}; do
                 count=$((file_count++));
@@ -1063,7 +1059,7 @@ runs:
               done;
             fi;
           else
-            echo -e "\n####################\nPATTERN MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
+            echo -e "\n####################\nPATTERN MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') FOUND\n####################\n";
           fi;
           echo -e "\nScanning Completed!\nPatterns Locator\nExiting...\n";
         fi;
@@ -1071,21 +1067,22 @@ runs:
       continue-on-error: true
 
 
-    - name: Word text Match
-      if: inputs.filetext != '' && inputs.database != 'true'
+    - name: Word Pattern Match
+      if: inputs.pattern != '' && inputs.database != 'true'
       run: |
         export LC_ALL=C
         file_count=1
         echo -e "\n####################\n\033[5mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
-        echo -e "\n####################\n\033[5mPattern Matching: ${{ inputs.filetext }}\033[0m\n####################\n";
+        echo -e "\n####################\n\033[5mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           for t in ${{ inputs.filetype }}; do
-            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -sHanF "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
-            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
+            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -q "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
             if [[ -n ${matches} ]]; then
-              counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
+              counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
-              echo -e "\n${matches}\n";
+              { time -p echo -e "\n${matches}\n"
+              echo '| Runtime |'; } 2>&1;
               if ${{ inputs.content }}; then
                 for c in ${content[@]}; do
                   count=$((file_count++));
@@ -1097,17 +1094,18 @@ runs:
                 done;
               fi;
             else
-              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
+              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') FOUND\n####################\n";
             fi;
           done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
-          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -sHanF "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
-          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -q "${{ inputs.filetext }}" "{}" \; -printf "%p\n");
+          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
+          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -q "${{ inputs.pattern }}" "{}" \; -printf "%p\n");
           if [[ -n ${matches} ]]; then
-            counter=$( echo "${matches}" | grep -c "${{ inputs.filetext }}" );
+            counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
-            echo -e "\n${matches}\n";
+            { time -p echo -e "\n${matches}\n"
+            echo '| Runtime |'; } 2>&1;
             if ${{ inputs.content }}; then
               for c in ${content[@]}; do
                 count=$((file_count++));
@@ -1119,7 +1117,7 @@ runs:
               done;
             fi;
           else
-            echo -e "\n####################\nPATTERN MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
+            echo -e "\n####################\nPATTERN MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') FOUND\n####################\n";
           fi;
           echo -e "\nScanning Completed!\nPatterns Locator\nExiting...\n";
         fi;
@@ -1196,7 +1194,7 @@ runs:
 
 
     - name: Delete & Exit
-      if: inputs.filename != '' || inputs.filetext != ''
+      if: inputs.filename != '' || inputs.pattern != ''
       run: |
         date
         if [[ -f "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" ]]; then
@@ -1206,13 +1204,15 @@ runs:
           echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/check_file_list.txt)\n";
         fi;
         export TERM=xterm-256color
+        bold=$(tput bold)
+        normal=$(tput sgr0)
         if [[ -n ${TERM} ]]; then
           center_text() {
             local text="$1";
-            local term_cols=$(tput cols)
-            local text_length=${#text}
+            local term_cols="$(tput cols)";
+            local text_length="${#text}";
             if (( term_cols > text_length )); then
-              local padding=$(( (term_cols - text_length) / 2 ))
+              local padding="$(( (term_cols - text_length) / 2 ))";
               printf "%*s%s\n" "$padding" "" "$text"
             else
               echo "$text"
@@ -1232,10 +1232,10 @@ runs:
 
 
     - name: Filename Check
-      if: inputs.filename == '' && inputs.filetext == ''
+      if: inputs.filename == '' && inputs.pattern == ''
       run: |
         echo ''
-        echo -e "\nNo input provided!\nVariables not set\n• filename\n• filetext\n\t Exiting\n";
+        echo -e "\nNo input provided!\nVariables not set\n• filename\n• pattern\n\t Exiting\n";
       shell: bash
       continue-on-error: true
 
