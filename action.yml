@@ -1018,6 +1018,7 @@ runs:
       run: |
         export LC_ALL=C
         export IFS=$'\n'
+        set -o pipefail
         file_count=1
         echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
         echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
@@ -1028,22 +1029,24 @@ runs:
             searches="$(grep -se "${regex}" "${{ env.database }}" 2>/dev/null)";
             for s in ${searches[@]}; do
               patterns=$(grep --color=always -sHFan "${{ inputs.pattern }}" "${s}");
-              content=$(grep -q "${{ inputs.pattern }}" "${s}");
+              contents=$(grep -q "${{ inputs.pattern }}" "${s}");
               if [[ -n ${patterns} ]]; then
+                pattern=${patterns};
                 matches=true
-                counter=$( echo "${patterns}" | grep -c "${{ inputs.pattern }}" );
+                counter=$( echo "${pattern}" | grep -c "${{ inputs.pattern }}" );
                 echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
-                echo -e "\n${patterns}\n";
-                if ${{ inputs.content }} && [[ -n ${content} ]]; then
+                echo -e "\n${pattern}\n";
+                if ${{ inputs.content }} && [[ -n ${contents} ]]; then
+                  content=${contents};
                   count=$((file_count++));
                   echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
-                  echo -e "\n$(dirname ${content})\n":
+                  echo -e "\n$(dirname ${content})\n":                 
                   echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
                   batcat --theme=ansi --paging=never --show-all --color=always --style=full "${content}";
                   echo -e "\n####################\nFILE COMPLETED\n####################\n";
                 fi;
               fi;
-            done
+            done;
           done
           echo '| Runtime |'; } 2>&1;
           if [[ ! ${matches} ]]; then
@@ -1051,16 +1054,18 @@ runs:
           fi;
           echo -e "\nScanning Completed!\nText Locator\nExiting....\n";
         else
-          searches="$(grep -se '.' "${{ env.database }}" 2>/dev/null)";
+          searches=$(grep -se '.' "${{ env.database }}" 2>/dev/null);
           { time -p for s in ${searches[@]}; do
             patterns=$(grep --color=always -sHFan "${{ inputs.pattern }}" "${s}");
-            content=$(grep -q "${{ inputs.pattern }}" "${s}");
+            contents=$(grep -q "${{ inputs.pattern }}" "${s}");
             if [[ -n ${patterns} ]]; then
+              pattern=${patterns};
               matches=true
-              counter=$( echo "${patterns}" | grep -c "${{ inputs.pattern }}" );
+              counter=$( echo "${pattern}" | grep -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
-              echo -e "\n${patterns}\n";
-              if ${{ inputs.content }} && [[ -n ${content} ]]; then
+              echo -e "\n${pattern}\n";
+              if ${{ inputs.content }} && [[ -n ${contents} ]]; then
+                content=${contents};
                 count=$((file_count++));
                 echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
                 echo -e "\n$(dirname ${content})\n":                 
@@ -1084,6 +1089,7 @@ runs:
       if: inputs.pattern != '' && inputs.database != 'true'
       run: |
         export LC_ALL=C
+        set -o pipefail
         file_count=1
         echo -e "\033[5m\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n\033[0m";
         echo -e "\033[5m\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n\033[0m";
