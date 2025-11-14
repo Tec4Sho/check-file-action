@@ -1027,8 +1027,8 @@ runs:
           time -p for t in ${{ inputs.filetype }}; do
             regex="\${t}$";
             matches=false	
-            echo "searches file_type: ${regex}";
-            searches="$(grep -se "${regex}" "${{ env.database }}" 2>/dev/null)";
+            echo "searches file_type: ${t}";
+            searches="$(grep -se "${t}" "${{ env.database }}" 2>/dev/null)";
             for s in ${searches[@]}; do
               echo 'searching has started'
               patterns=$(grep --color=always -sHFan "${{ inputs.pattern }}" "${s}");
