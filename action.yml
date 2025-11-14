@@ -294,7 +294,7 @@ runs:
           echo -e "${text7c}\n";
         fi;
 
-        if [[ "${{ inputs.pattern }}" != '' ]] && [[ ${{ inputs.filetype }} != 'none' ]]; then
+        if [[ "${{ inputs.pattern }}" != '' ]] && [[ "${{ inputs.filetype }}" != 'none' ]]; then
           echo -e "\n${text8a}";
           echo -e "\033[1m${text8b}\033[0m";
           echo -e "${text8c}\n";
