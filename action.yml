@@ -519,7 +519,7 @@ runs:
           echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
         else
           regex="\${{ inputs.filename }}$";
-          files=$(grep -sE "${{ inputs.filename }}" "${{ env.database }}");
+          files=$(grep -sE "${regex}" "${{ env.database }}");
           echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
         if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
@@ -613,7 +613,7 @@ runs:
           echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
         else
           regex="\${{ inputs.filename }}$";
-          files=$(grep -sE "${{ inputs.filename }}" "${{ env.database }}");
+          files=$(grep -sE "${regex}" "${{ env.database }}");
           echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
         makefile_count=1
@@ -657,7 +657,8 @@ runs:
           files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
           echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
         else
-          files=$(grep -sE "${{ inputs.filename }}" "${{ env.database }}");
+          regex="\${{ inputs.filename }}$";
+          files=$(grep -sE "${regex}" "${{ env.database }}");
           echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
         file_count=1
