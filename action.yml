@@ -1020,18 +1020,18 @@ runs:
         export IFS=$'\n'
         file_count=1
         echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
-        echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.filetext }}\033[0m\n####################\n";
+        echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
         if ${{ inputs.filetype != 'none' }}; then
           { time -p for t in ${{ inputs.filetype }}; do
             regex="\${t}$";
             matches=false	
             searches="$(grep -se "${regex}" "${{ env.database }}" 2>/dev/null)";
             for s in ${searches[@]}; do
-              patterns=$(grep --color=always -sHFan "${{ inputs.filetext }}" "${s}");
-              content=$(grep --color=always -q "${{ inputs.filetext }}" "${s}");
+              patterns=$(grep --color=always -sHFan "${{ inputs.pattern }}" "${s}");
+              content=$(grep -q "${{ inputs.pattern }}" "${s}");
               if [[ -n ${patterns} ]]; then
                 matches=true
-                counter=$( echo "${patterns}" | grep -c "${{ inputs.filetext }}" );
+                counter=$( echo "${patterns}" | grep -c "${{ inputs.pattern }}" );
                 echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
                 echo -e "\n${patterns}\n";
                 if ${{ inputs.content }} && [[ -n ${content} ]]; then
@@ -1047,17 +1047,17 @@ runs:
           done
           echo '| Runtime |'; } 2>&1;
           if [[ ! ${matches} ]]; then
-              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
+              echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') FOUND\n####################\n";
           fi;
           echo -e "\nScanning Completed!\nText Locator\nExiting....\n";
         else
           searches="$(grep -se '.' "${{ env.database }}" 2>/dev/null)";
           { time -p for s in ${searches[@]}; do
-            patterns=$(grep --color=always -sHFan "${{ inputs.filetext }}" "${s}");
-            content=$(grep --color=always -q "${{ inputs.filetext }}" "${s}");
+            patterns=$(grep --color=always -sHFan "${{ inputs.pattern }}" "${s}");
+            content=$(grep -q "${{ inputs.pattern }}" "${s}");
             if [[ -n ${patterns} ]]; then
               matches=true
-              counter=$( echo "${patterns}" | grep -c "${{ inputs.filetext }}" );
+              counter=$( echo "${patterns}" | grep -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
               echo -e "\n${patterns}\n";
               if ${{ inputs.content }} && [[ -n ${content} ]]; then
@@ -1072,7 +1072,7 @@ runs:
           done
           echo '| Runtime |'; } 2>&1;
           if [[ ! ${matches} ]]; then
-            echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.filetext }} | sed 's/[\/\$]//g') FOUND\n####################\n";
+            echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') FOUND\n####################\n";
           fi;
           echo -e "\nScanning Completed!\nPatterns Locator\nExiting...\n";
         fi;
