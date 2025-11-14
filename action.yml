@@ -1028,10 +1028,10 @@ runs:
             regex="\${t}$";
             matches=false	
             echo "searches file_type: ${t}";
-            searches="$(grep -se "${t}" "${{ env.database }}" 2>/dev/null)";
+            searches=$(grep -sF "${t}" "${{ env.database }}");
             for s in ${searches[@]}; do
               echo 'searching has started'
-              patterns=$(grep --color=always -sHFan "${{ inputs.pattern }}" "${s}");
+              patterns=$(grep -sHFan "${{ inputs.pattern }}" "${s}");
               contents=$(grep -q "${{ inputs.pattern }}" "${s}");
               if [[ -n ${patterns} ]]; then
                 echo 'patterns found'
