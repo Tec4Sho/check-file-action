@@ -1028,14 +1028,14 @@ runs:
             regex="${type}";
             matches=false	
             echo "searches file_type: ${regex}";
-            searches=$(grep -sF "${type}" "${{ env.database }}");
+            searches=$(grep -sE "\${type}$" "${{ env.database }}");
             for search in ${searches[@]}; do
               echo "Scanning $search";
-              patterns=$(grep -snHF "${{ inputs.pattern }}" "${search}");
-              contents=$(grep -q "${{ inputs.pattern }}" "${search}");
+              patterns=$(grep -snHF "${{ inputs.pattern }}" "${search}" 2>/dev/null);
+              contents=$(grep -q "${{ inputs.pattern }}" "${search}" 2>/dev/null);
               if [[ -n ${patterns} ]]; then
-                echo 'patterns found'
                 pattern=${patterns};
+                echo "$pattern found"
                 matches=true
                 counter=$( echo "${pattern}" | grep -c "${{ inputs.pattern }}" );
                 echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
@@ -1059,10 +1059,10 @@ runs:
           fi;
           echo -e "\nScanning Completed!\nText Locator\nExiting....\n";
         else
-          searches=$(grep -se '.' "${{ env.database }}" 2>/dev/null);
+          searches=$(grep -s '.' "${{ env.database }}");
           { time -p for s in ${searches[@]}; do
-            patterns=$(grep --color=always -sHFan "${{ inputs.pattern }}" "${s}");
-            contents=$(grep -q "${{ inputs.pattern }}" "${s}");
+            patterns=$(grep --color=always -sHFan "${{ inputs.pattern }}" "${s}" 2>/dev/null);
+            contents=$(grep -q "${{ inputs.pattern }}" "${s}" 2>/dev/null);
             if [[ -n ${patterns} ]]; then
               pattern=${patterns};
               matches=true
