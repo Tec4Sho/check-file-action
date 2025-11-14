@@ -1024,7 +1024,7 @@ runs:
           { time -p for t in ${{ inputs.filetype }}; do
             regex="\${t}$";
             matches=false	
-            searches="$(grep -se "${regex}" "${{ inputs.database }}" 2>/dev/null)";
+            searches="$(grep -se "${regex}" "${{ env.database }}" 2>/dev/null)";
             for s in ${searches[@]}; do
               patterns=$(grep --color=always -sHFan "${{ inputs.filetext }}" "${s}");
               content=$(grep --color=always -q "${{ inputs.filetext }}" "${s}");
@@ -1050,7 +1050,7 @@ runs:
           fi;
           echo -e "\nScanning Completed!\nText Locator\nExiting....\n";
         else
-          searches="$(grep -se '.' "${{ inputs.database }}" 2>/dev/null)";
+          searches="$(grep -se '.' "${{ env.database }}" 2>/dev/null)";
           { time -p for s in ${searches[@]}; do
             patterns=$(grep --color=always -sHFan "${{ inputs.filetext }}" "${s}");
             content=$(grep --color=always -q "${{ inputs.filetext }}" "${s}");
