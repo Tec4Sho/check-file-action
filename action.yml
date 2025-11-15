@@ -1016,8 +1016,8 @@ runs:
     - name: Word text Match
       if: inputs.pattern != '' && inputs.database != 'false'
       run: |
-        export LC_ALL=C
-        set -o pipefail
+        #export LC_ALL=C
+        #set -o pipefail
         file_count=1
         echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
         echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
@@ -1046,8 +1046,8 @@ runs:
           echo '| Runtime |'; } 2>&1;
           echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
         else
-          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \;);
-          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec sudo grep -q "${{ inputs.pattern }}" "{}" \;);
+          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \;);
+          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*" -exec sudo grep -q "${{ inputs.pattern }}" "{}" \;);
           { time -p if [[ -n ${matches} ]]; then
             counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
