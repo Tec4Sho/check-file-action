@@ -1032,24 +1032,16 @@ runs:
             for search in ${searches[@]}; do
               echo "Scanning $search";
               patterns=$(sudo grep -sHFan "${{ inputs.pattern }}" "${search}");
-              contents=$(sudo grep -q "${{ inputs.pattern }}" "${search}");
+             # contents=$(sudo grep -q "${{ inputs.pattern }}" "${search}");
               if [[ -n ${patterns} ]]; then
                 pattern=${patterns};
                 echo "$pattern found"
+                contents=false
                 matches=true
                 counter=$( echo "${pattern}" | grep -c "${{ inputs.pattern }}" );
                 echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
                 echo -e "\n${pattern}\n";
-                if ${{ inputs.content }} && [[ -n ${contents} ]]; then
-                  echo 'contents found'
-                  content=${contents};
-                  count=$((file_count++));
-                  echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
-                  echo -e "\n$(dirname ${content})\n":                 
-                  echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
-                  batcat --theme=ansi --paging=never --show-all --color=always --style=full "${content}";
-                  echo -e "\n####################\nFILE COMPLETED\n####################\n";
-                fi;
+                
               fi;
             done;
           done
