@@ -1023,8 +1023,8 @@ runs:
         echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
           { time -p for type in ${{ inputs.filetype }}; do
-            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -print0 | xargs -0 -P $(nproc --all) grep --color=always -sHanF "${{ inputs.pattern }}" 2>/dev/null);
-            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -print0 | xargs -P $(nproc --all) grep -q "${{ inputs.pattern }}" 2>/dev/null);
+            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -print | xargs -P $(nproc --all) grep --color=always -sHanF "${{ inputs.pattern }}" 2>/dev/null);
+            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -print | xargs -P $(nproc --all) grep -q "${{ inputs.pattern }}" 2>/dev/null);
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
