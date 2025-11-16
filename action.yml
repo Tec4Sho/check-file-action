@@ -1019,7 +1019,7 @@ runs:
 
 
     - name: Word text Match
-      if: inputs.pattern != '' && inputs.database != 'true'
+      if: inputs.pattern != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
         set +e
