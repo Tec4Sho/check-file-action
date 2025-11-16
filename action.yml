@@ -1027,9 +1027,9 @@ runs:
         echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
         echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
-          types=$(echo ${{ inputs.filetype }} | sed 's/^\.//');
+          types=$(echo "${{ inputs.filetype }}" | sed 's/^\.//');
           for type in ${types[@]}; do
-            matches=$(sudo rg -j $(nproc --all) -sHFn "${{ inputs.pattern }}" -t ${type} 2>/dev/null
+            matches=$(sudo rg -j $(nproc --all) -sHFn "${{ inputs.pattern }}" -t ${type} 2>/dev/null);
             matches=${matches};
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
