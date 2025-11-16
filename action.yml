@@ -95,7 +95,7 @@ runs:
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
         sudo apt-get update -yq >/dev/null 2>&1;
-        
+        text0="\n####################\ngit dependencies Installed\n####################\n";
         text1="\n####################\ngit dependencies Installed\n####################\n";
         text2="\n####################\nansi2txt dependencies Installed\n####################\n";
         text3="\n####################\nca-certificates dependencies Installed\n####################\n";
@@ -117,8 +117,12 @@ runs:
         fi;
 
         if [[ ! $(which git) ]]; then
-          sudo apt-get -yq install git >/dev/null && echo -e "${text1}" || echo 'No git installed for repo updates';
+          sudo apt-get -yq install git >/dev/null && echo -e "${text0}" || echo 'No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
+        fi;
+
+        if [[ ! $(which rg) ]] && [[ "${{ inputs.pattern }}" != '' ]] && ${{ inputs.database }}; then
+          sudo apt-get -yq install ripgrep >/dev/null && echo -e "${text1}" || echo 'No ripgrep installed for pattern matching;
         fi;
 
         if [[ ! $(which ansi2txt) ]] && ${{ inputs.report }}; then
@@ -1016,15 +1020,16 @@ runs:
     - name: Word text Match
       if: inputs.pattern != '' && inputs.database != 'false'
       run: |
-        #export LC_ALL=C
+        export LC_ALL=C
         set -o pipefail
         file_count=1
         echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
         echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
+        { time -p
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
-          for type in ${{ inputs.filetype }}; do
-            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; 2>/dev/null);
-            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; 2>/dev/null);
+          { time -p for type in ${{ inputs.filetype }}; do
+            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -exec sudo rg --color always -sHanF "${{ inputs.pattern }}" "{}" \; 2>/dev/null);
+            content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -exec sudo rg -q "${{ inputs.pattern }}" "{}" \; 2>/dev/null);
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
@@ -1042,11 +1047,12 @@ runs:
             else
               echo -e "\n####################\nPATTERN MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') FOUND\n####################\n";
             fi;
-          done;
+          done
+          echo '| Runtime |'; } 2>&1;
           echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
         else
-          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; 2>/dev/null);
-          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; 2>/dev/null);
+          matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec sudo rg --color always -sHanF "${{ inputs.pattern }}" "{}" \; 2>/dev/null);
+          content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec sudo rg -q "${{ inputs.pattern }}" "{}" \; 2>/dev/null);
           if [[ -n ${matches} ]]; then
             counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
@@ -1065,7 +1071,8 @@ runs:
             echo -e "\n####################\nPATTERN MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') FOUND\n####################\n";
           fi;
           echo -e "\nScanning Completed!\nPatterns Locator\nExiting...\n";
-        fi;
+        fi
+        echo '| Runtime |'; } 2>&1;
       shell: bash
       continue-on-error: true
 
