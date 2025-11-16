@@ -1084,9 +1084,9 @@ runs:
       if: inputs.pattern != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
-        set -o pipefail
-        find . -type f -print | xargs -r -P "$(nproc --all)" sudo rg -l "${{ inputs.pattern }}" 2>/dev/null
-        echo 'completed ';
+        set +e
+        time -p sudo find . -type f -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" "${{ inputs.pattern }}" 2>/dev/null;
+        echo 'completed '
       shell: bash
       continue-on-error: true
       
