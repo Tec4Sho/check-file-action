@@ -1053,7 +1053,7 @@ runs:
           done;
           echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
         else
-          matches=$(time -p sudo rg -j $(nproc --all) --color always -sHFn "${{ inputs.pattern }}" );
+          matches=$(rg -j $(nproc --all) --color always -Fn "${{ inputs.pattern }}" );
           matches=${matches};
           if [[ -n ${matches} ]]; then
             counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
