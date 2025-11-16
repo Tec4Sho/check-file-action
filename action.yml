@@ -1022,21 +1022,22 @@ runs:
       if: inputs.pattern != '' && inputs.database != 'true'
       run: |
         export LC_ALL=C
-        set -o pipefail
+        set +e
         file_count=1
         echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
         echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
-          types=$(echo "${{ inputs.filetype }}" | sed 's/^\.//');
           for type in ${types[@]}; do
-            matches=$(sudo rg -j $(nproc --all) -sHFn "${{ inputs.pattern }}" -t ${type} );
+            echo '| Runtime |';
+            matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
             matches=${matches};
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
               echo -e "\n${matches}\n";
               if ${{ inputs.content }}; then
-                content=$(sudo rg -j $(nproc --all) -l "${{ inputs.pattern }}" -t ${type} );
+                echo '| Runtime |';
+                content=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
                 content=${content};
                 for c in ${content[@]}; do
                   count=$((file_count++));
@@ -1053,14 +1054,16 @@ runs:
           done;
           echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
         else
-          matches=$(rg -j $(nproc --all) --color always -Fn "${{ inputs.pattern }}" );
+          echo '| Runtime |';
+          matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
           matches=${matches};
           if [[ -n ${matches} ]]; then
             counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
             echo -e "\n${matches}\n";
             if ${{ inputs.content }}; then
-              content=(time -p sudo rg -j $(nproc --all) -l "${{ inputs.pattern }}" );
+              echo '| Runtime |';
+              content=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
               content=${content};
               for c in ${content[@]}; do
                 count=$((file_count++));
@@ -1080,34 +1083,25 @@ runs:
       continue-on-error: true
 
 
-    - name: Word text Match
-      if: inputs.pattern != '' && inputs.database != 'false'
-      run: |
-        export LC_ALL=C
-        set +e
-        time -p sudo find . -type f -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" "${{ inputs.pattern }}" 2>/dev/null;
-        echo 'completed '
-      shell: bash
-      continue-on-error: true
-      
-
     - name: Word Pattern Match
       if: inputs.pattern != '' && inputs.database != 'true'
       run: |
-        set -o pipefail
+        set +e
         file_count=1
         echo -e "\033[1m\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n\033[0m";
         echo -e "\033[1m\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n\033[0m";
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
-          { time -p for t in ${{ inputs.filetype }}; do
-            matches=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
+          for type in ${{ inputs.filetype }}; do
+            echo '| Runtime |';
+            matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
             matches=${matches};
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
               echo -e "\n${matches}\n";
               if ${{ inputs.content }}; then
-                content=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${t}" -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
+                echo '| Runtime |';
+                content=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
                 content=${content};
                 for c in ${content[@]}; do
                   count=$((file_count++));
@@ -1121,10 +1115,10 @@ runs:
             else
               echo -e "\n####################\nTEXT MATCH FINISHED SEARCHING\nNO $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') FOUND\n####################\n";
             fi;
-          done
-          echo '| Runtime |'; } 2>&1;
+          done;
           echo -e "\nScanning Completed!\nText Locator\nExiting!\t .....\n";
         else
+          echo '| Runtime |';
           matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
           matches=${matches};
           if [[ -n ${matches} ]]; then
@@ -1132,6 +1126,7 @@ runs:
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
             echo -e "\n${matches}\n";
             if ${{ inputs.content }}; then
+              echo '| Runtime |';
               content=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
               content=${content};
               for c in ${content[@]}; do
