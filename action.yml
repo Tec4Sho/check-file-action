@@ -1085,7 +1085,7 @@ runs:
       run: |
         export LC_ALL=C
         set -o pipefail
-        test=$(time find  -type f -print0 | xargs -0 -P $(nproc) grep -l "${{ inputs.pattern }}" 2>/dev/null;) 2>&1;
+        test=$(time -p sudo find -type f -print0 | xargs -0 -P $(nproc --all) rg -l ${{ inputs.pattern }}) 2>&1;
         echo "${test}";
       shell: bash
       continue-on-error: true
