@@ -1085,10 +1085,11 @@ runs:
       run: |
         export LC_ALL=C
         set -o pipefail
-        time -p sudo find . -type f -print | xargs -r -P "$(nproc --all)" sudo rg -l "${{ inputs.pattern }}"
-        echo 'completed '
+        find . -type f -print | xargs -r -P "$(nproc --all)" sudo rg -l "${{ inputs.pattern }}" 2>/dev/null
+        echo 'completed ';
       shell: bash
       continue-on-error: true
+      
 
     - name: Word Pattern Match
       if: inputs.pattern != '' && inputs.database != 'true'
