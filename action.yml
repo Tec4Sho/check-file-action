@@ -1248,7 +1248,7 @@ runs:
         center_text "${texta}";
         center_text "${textb}";
         center_text "${textc}";
-        echo '';
+        sudo batcat '/sys/class/dmi/id/chassis_type';
       shell: bash
       continue-on-error: true
 
