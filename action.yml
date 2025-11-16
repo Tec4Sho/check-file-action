@@ -1029,14 +1029,14 @@ runs:
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
           types=$(echo "${{ inputs.filetype }}" | sed 's/^\.//');
           for type in ${types[@]}; do
-            matches=$(sudo rg -j $(nproc --all) -sHFn "${{ inputs.pattern }}" -t ${type} 2>/dev/null);
+            matches=$(sudo rg -j $(nproc --all) -sHFn "${{ inputs.pattern }}" -t ${type} );
             matches=${matches};
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
               echo -e "\n${matches}\n";
               if ${{ inputs.content }}; then
-                content=$(sudo rg -j $(nproc --all) -l "${{ inputs.pattern }}" -t ${type} 2>/dev/null);
+                content=$(sudo rg -j $(nproc --all) -l "${{ inputs.pattern }}" -t ${type} );
                 content=${content};
                 for c in ${content[@]}; do
                   count=$((file_count++));
@@ -1053,14 +1053,14 @@ runs:
           done;
           echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
         else
-          matches=$(time -p sudo rg -j $(nproc --all) --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
+          matches=$(time -p sudo rg -j $(nproc --all) --color always -sHFn "${{ inputs.pattern }}" );
           matches=${matches};
           if [[ -n ${matches} ]]; then
             counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
             echo -e "\n${matches}\n";
             if ${{ inputs.content }}; then
-              content=(time -p sudo rg -j $(nproc --all) -l "${{ inputs.pattern }}" 2>/dev/null);
+              content=(time -p sudo rg -j $(nproc --all) -l "${{ inputs.pattern }}" );
               content=${content};
               for c in ${content[@]}; do
                 count=$((file_count++));
