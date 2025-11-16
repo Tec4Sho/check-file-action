@@ -96,7 +96,7 @@ runs:
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
         sudo apt-get update -yq >/dev/null 2>&1;
         text0="\n####################\ngit dependencies Installed\n####################\n";
-        text1="\n####################\ngit dependencies Installed\n####################\n";
+        text1="\n####################\nripgrep dependencies Installed\n####################\n";
         text2="\n####################\nansi2txt dependencies Installed\n####################\n";
         text3="\n####################\nca-certificates dependencies Installed\n####################\n";
         text4="\n####################\ncppcheck dependencies Installed\n####################\n";
@@ -1027,7 +1027,7 @@ runs:
         echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
         echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
-          types=$(echo ${{ inputs.filetype }} | sed 's/^\.//'));
+          types=$(echo ${{ inputs.filetype }} | sed 's/^\.//');
           for type in ${types[@]}; do
             matches=$(sudo rg -j $(nproc --all) -sHFn "${{ inputs.pattern }}" -t ${type} 2>/dev/null
             matches=${matches};
