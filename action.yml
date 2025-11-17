@@ -97,14 +97,15 @@ runs:
       uses: actions/github-script@v6
       with:
         script: |
-          const { github, context, core, glob, io, exec, require } = script;
-          core.info('Hello from Check File Action!');
-          const issue = await github.rest.issues.get({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          issue_number: 1 // Example: get issue #1
-          });
-          core.info(`Issue title: ${issue.data.title}`);
+          if (window.matchMedia("(min-width: 400px)").matches) {
+          /* the viewport is at least 400 pixels wide */
+            echo 'mobile=true' >> "${GITHUB_ENV}";
+            return true;
+          } else {
+          /* the viewport is less than 400 pixels wide */
+            echo 'mobile=true' >> "${GITHUB_ENV}";
+            return false;
+          }
       continue-on-error: true
 
 
@@ -262,8 +263,6 @@ runs:
               echo "$text"
             fi;
           }
-          center_text "XTERM 256-COLOR MODE";
-          echo '';
         fi;
 
         if ${{ inputs.rootdir }}; then
@@ -349,7 +348,7 @@ runs:
           echo "dirname=${{ inputs.dirname }}" >> "$GITHUB_OUTPUT";
         fi;
         
-        if [[ -n $(node ./scripts/mobile.js 2>/dev/null) ]]; then
+        if [[ -n $(node ./scripts/mobile.js 2>/dev/null) ]] || [[ -n $(node ./scripts/view.js 2>/dev/null) ]]; then
           center_text "${text10a}" 2>/dev/null;
           center_text "${text10b}" 2>/dev/null;
           center_text "${text10c}" 2>/dev/null;
@@ -1278,14 +1277,22 @@ runs:
             fi;
           }
         fi;
+        
         texta="######################";
         textb="# CHECK FILE EXITING #";
         textc="######################";
-        echo '';
-        center_text "${texta}";
-        center_text "${textb}";
-        center_text "${textc}";
-        echo '';
+
+        if ! {{ env.mobile }}; then
+          echo '';
+          center_text "${texta}";
+          center_text "${textb}";
+          center_text "${textc}";
+          echo '';
+        else
+          echo -e "\n${texta}";
+          echo -e "${textb}";
+          echo -e "${textc}\n";
+        fi;
       shell: bash
       continue-on-error: true
 
@@ -1298,4 +1305,4 @@ runs:
       shell: bash
       continue-on-error: true
 
-## version v1.1.5 beta
+## Version 2.0.0 beta 1
