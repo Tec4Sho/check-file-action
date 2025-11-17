@@ -75,11 +75,36 @@ inputs:
 runs:
   using: composite
   steps:
+
     - name: Set up Go 1.25.3
       if: inputs.filename != ''
-      uses: actions/setup-go@v2 
-      with: 
+      uses: actions/setup-go@v2
+      with:
         go-version: 1.25.3
+      continue-on-error: true
+
+
+    - name: Setup Node.js
+      if: inputs.filename != '' || inputs.pattern != ''
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+      continue-on-error: true
+
+
+    - name: Run JavaScript
+      if: inputs.filename != '' || inputs.pattern != ''
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { github, context, core, glob, io, exec, require } = script;
+          core.info('Hello from Check File Action!');
+          const issue = await github.rest.issues.get({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          issue_number: 1 // Example: get issue #1
+          });
+          core.info(`Issue title: ${issue.data.title}`);
       continue-on-error: true
 
 
@@ -111,8 +136,13 @@ runs:
         file=$(sudo find ${GITHUB_WORKSPACE} -type f -name "checkmake.ini" -print -quit);
         path='/home/runner/checkmake.ini';
 
+        if [[ ! $(which npm) ]]; then
+          sudo npm install >/dev/null && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo 'No npm installed for term_width';
+          [[ ! $(which tput) ]] && exit 1
+        fi;
+
         if [[ ! $(which tput) ]]; then
-          sudo apt-get -yq install tput >/dev/null && echo -e "tput dependencies Installed" || echo 'No tput installed for term_width';
+          sudo apt-get -yq install tput >/dev/null && echo -e "\n####################\ntput dependencies Installed\n####################\n" || echo 'No tput installed for term_width';
           [[ ! $(which tput) ]] && exit 1
         fi;
 
@@ -318,10 +348,17 @@ runs:
         else
           echo "dirname=${{ inputs.dirname }}" >> "$GITHUB_OUTPUT";
         fi;
+        
+        if [[ -n $(node ./scripts/mobile.js 2>/dev/null) ]]; then
+          center_text "${text10a}" 2>/dev/null;
+          center_text "${text10b}" 2>/dev/null;
+          center_text "${text10c}" 2>/dev/null;
+        else
+          echo "${text10a}" 2>/dev/null;
+          echo "${text10b}" 2>/dev/null;
+          echo "${text10c}" 2>/dev/null;
+        fi;
 
-        center_text "${text10a}" 2>/dev/null;
-        center_text "${text10b}" 2>/dev/null;
-        center_text "${text10c}" 2>/dev/null;
         echo '';
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
@@ -1248,7 +1285,7 @@ runs:
         center_text "${texta}";
         center_text "${textb}";
         center_text "${textc}";
-        sudo batcat '/sys/class/dmi/id/chassis_type';
+        echo '';
       shell: bash
       continue-on-error: true
 
