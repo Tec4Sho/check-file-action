@@ -97,7 +97,7 @@ runs:
 
 
     - name: Installing Dependencies
-      if: inputs.pattern != '' || inputs.filename != ''
+      if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
       run: |
         echo '';
         set -o pipefail
@@ -207,7 +207,7 @@ runs:
 
     # If text is longer than terminal, just print it. Stretching for desktop/mobile log
     - name: Set Directory Base
-      if: inputs.pattern != '' || inputs.filename != ''
+      if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
       id: set_dirname 
       env: 
         default_path: "*" 
@@ -1190,11 +1190,14 @@ runs:
       if: inputs.project != 'false'
       run: |
         echo '';
+        echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+        echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
           cmake ..
-          cmake --build . && echo "file_fixed=1" >> "${GITHUB_ENV}";
+          cmake --build . |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error building repository project";
+          echo "file_fixed=1" >> "${GITHUB_ENV}";
         else
           echo 'Error .git directory not found ???';
         fi;
@@ -1213,6 +1216,8 @@ runs:
           git config --global user.name "${{ github.actor }}";
           git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com";
           git config --global credential.helper store
+          git config --global http.lowSpeedLimit 0
+          git config --global http.lowSpeedTime 999999
           git add .
           git commit -m "check-file-action repaired errors in ${{ inputs.filename }} file(s)";
           git push origin "${{ github.ref }}";
@@ -1255,10 +1260,24 @@ runs:
       continue-on-error: true
 
 
+    - name: Uploading ${{ inputs.filename }} Error Report
+      if: inputs.report != 'false' && inputs.project != 'false'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./${{ github.repository }}_build.log
+        name: Check File Action Build Report For ${{ github.repository }} Repository.
+        tag_name: ${{ github.run_id }}
+      continue-on-error: true
+
+
     - name: Delete & Exit
-      if: inputs.filename != '' || inputs.pattern != ''
+      if: inputs.filename != '' || inputs.pattern != '' || inputs.project != 'false'
       run: |
         date
+        if [[ -f "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" ]]; then
+          echo -e "\nPROJECT: $(rm -vf ${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log)\n";
+        fi;
         if [[ -f "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" ]]; then
           echo -e "\nLOGFILE: $(rm -vf ${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log)\n";
         fi;
