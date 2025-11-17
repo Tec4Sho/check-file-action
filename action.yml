@@ -124,6 +124,15 @@ runs:
         file=$(sudo find ${GITHUB_WORKSPACE} -type f -name "checkmake.ini" -print -quit);
         path='/home/runner/checkmake.ini';
 
+        if [[ ! -n $(apt list --installed | grep -F 'clang-tidy' >/dev/null) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }} || ${{ inputs.project }}; then
+          sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e "${text5}" || echo 'No clang-tidy installed Exiting';
+          [[ ! -n $(apt list --installed | grep -F 'clang-tidy' >/dev/null) ]] && exit 1
+        fi;
+
+        if [[ ! -n $(apt list --installed | grep -F 'build-essential' >/dev/null) ]] && ${{ inputs.project }}; then
+          sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo 'No build-essential installed for use by cmake';
+        fi;
+
         if [[ ! $(which npm) ]]; then
           sudo npm install >/dev/null && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo 'No npm installed for term_width';
           [[ ! $(which tput) ]] && exit 1
@@ -160,11 +169,6 @@ runs:
         if [[ ! $(which cppcheck) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           sudo apt-get -yq install cppcheck >/dev/null && echo -e "${text4}" || echo 'No cppcheck installed Exiting';
           [[ ! $(which cppcheck) ]] && exit 1
-        fi;
-
-        if [[ ! $(which clang-tidy) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }} || ${{ inputs.project }}; then
-          sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e "${text5}" || echo 'No clang-tidy installed Exiting';
-          [[ ! $(which clang-tidy) ]] && exit 1
         fi;
 
         if [[ ! $(which shellharden) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.repair }}; then
@@ -1192,9 +1196,6 @@ runs:
         echo '';
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
-        if [[ ! -n $(apt list --installed | grep build-essential) ]]; then
-          sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n";
-        fi;
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
