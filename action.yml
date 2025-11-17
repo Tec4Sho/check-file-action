@@ -97,14 +97,17 @@ runs:
       uses: actions/github-script@v6
       with:
         script: |
-          if (window.matchMedia("(min-width: 400px)").matches) {
-          /* the viewport is at least 400 pixels wide */
-            echo 'mobile=true' >> "${GITHUB_ENV}";
-            return true;
-          } else {
-          /* the viewport is less than 400 pixels wide */
-            echo 'mobile=true' >> "${GITHUB_ENV}";
-            return false;
+          const core = require('@actions/core');
+          try {
+            if (window.matchMedia("(min-width: 400px)").matches) {
+              const myValue = "true";
+              core.exportVariable('mobile', false);
+            } else {
+              const myValue = "false";
+              core.exportVariable('mobile', true);
+            fi
+          } catch (error) {
+            core.setFailed(error.message);
           }
       continue-on-error: true
 
@@ -1282,7 +1285,7 @@ runs:
         textb="# CHECK FILE EXITING #";
         textc="######################";
 
-        if ! {{ env.mobile }}; then
+        if [[ ! ${mobile} ]]; then
           echo '';
           center_text "${texta}";
           center_text "${textb}";
