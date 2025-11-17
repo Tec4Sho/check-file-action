@@ -26,18 +26,13 @@ inputs:
     type: string
     required: false
     default: ''
+  project:
+    description: 'Fix Errors found while building project with cmake'
+    type: boolean
+    required: false
+    default: 'false'
   rootdir:
     description: 'Search will start from root (/) if true'
-    type: boolean
-    required: false
-    default: 'false'
-  content:
-    description: 'Search will list dir contents of found filename if true'
-    type: boolean
-    required: false
-    default: 'false'
-  include:
-    description: 'Check include files called by C/C++ filename searches if true'
     type: boolean
     required: false
     default: 'false'
@@ -56,13 +51,13 @@ inputs:
     type: boolean
     required: false
     default: 'false'
-  update:
-    description: 'Errors repaired with check-file will push changes to remote repository'
+  content:
+    description: 'Search will list dir contents of found filename if true'
     type: boolean
     required: false
     default: 'false'
-  stored:
-    description: 'Check files with errors repaired are skipped if ran again'
+  include:
+    description: 'Check include files called by C/C++ filename searches if true'
     type: boolean
     required: false
     default: 'false'
@@ -71,6 +66,16 @@ inputs:
     type: number
     required: false
     default: 0
+  stored:
+    description: 'Check files with errors repaired are skipped if ran again'
+    type: boolean
+    required: false
+    default: 'false'
+  update:
+    description: 'Errors repaired with check-file will push changes to remote repository'
+    type: boolean
+    required: false
+    default: 'false'
 
 runs:
   using: composite
@@ -85,7 +90,6 @@ runs:
 
 
     - name: Setup Node.js
-      if: inputs.filename != '' || inputs.pattern != ''
       uses: actions/setup-node@v3
       with:
         node-version: '16'
@@ -125,6 +129,11 @@ runs:
           [[ ! $(which tput) ]] && exit 1
         fi;
 
+        if [[ ! $(which cmake) ]] && ${{ inputs.project }}; then
+          sudo apt-get -yq install cmake >/dev/null >/dev/null && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo 'No cmake installed for term_width';
+          [[ ! $(which cmake) ]] && exit 1
+        fi;
+
         if [[ ! $(which tput) ]]; then
           sudo apt-get -yq install tput >/dev/null && echo -e "\n####################\ntput dependencies Installed\n####################\n" || echo 'No tput installed for term_width';
           [[ ! $(which tput) ]] && exit 1
@@ -153,7 +162,7 @@ runs:
           [[ ! $(which cppcheck) ]] && exit 1
         fi;
 
-        if [[ ! $(which clang-tidy) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}; then
+        if [[ ! $(which clang-tidy) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }} || ${{ inputs.project }}; then
           sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e "${text5}" || echo 'No clang-tidy installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
@@ -1176,6 +1185,22 @@ runs:
       shell: bash
       continue-on-error: true
 
+
+    - name: Fix & Build Project
+      if: inputs.project != 'false'
+      run: |
+        echo '';
+        repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
+        if [[ -d ${repository} ]]; then
+          cd "${repository%/*}";
+          cmake ..
+          cmake --build . && echo "file_fixed=1" >> "${GITHUB_ENV}";
+        else
+          echo 'Error .git directory not found ???';
+        fi;
+      shell: bash
+      continue-on-error: true
+
       
     - name: Repository Update
       if: env.update != 'false' && env.file_fixed == 1
@@ -1269,7 +1294,7 @@ runs:
 
 
     - name: Filename Check
-      if: inputs.filename == '' && inputs.pattern == ''
+      if: inputs.filename == '' && inputs.pattern == '' && inputs.project != 'true'
       run: |
         echo ''
         echo -e "\nNo input provided!\nVariables not set\n• filename\n• pattern\n\t Exiting\n";
