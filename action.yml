@@ -1192,15 +1192,17 @@ runs:
         echo '';
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
-        if [[ ! -n $(apt-get list --installed | grep build-essential) ]]; then
+        if [[ ! -n $(apt list --installed | grep build-essential) ]]; then
           sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n";
         fi;
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
           cmake .
-          time -p cmake --build . |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error building repository project";
-          echo "file_fixed=1" >> "${GITHUB_ENV}";
+          build=$(time -p cmake --build . |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error building repository project");
+          if [[ -n ${build} ]]; then
+            echo "file_fixed=1" >> "${GITHUB_ENV}";
+          fi;
         else
           echo 'Error .git directory not found ???';
         fi;
@@ -1209,7 +1211,7 @@ runs:
 
       
     - name: Repository Update
-      if: env.update != 'false' && env.file_fixed == 1
+      if: env.update == 'true' && env.file_fixed == 1
       run: |
         echo '';
         repair_date="$(date +%Y%m%d)";
@@ -1263,8 +1265,8 @@ runs:
       continue-on-error: true
 
 
-    - name: Uploading ${{ inputs.filename }} Error Report
-      if: inputs.report != 'false' && inputs.project != 'false'
+    - name: Uploading ${{ github.repository }} Build Report
+      if: inputs.report != 'false' && inputs.project != 'false' && env.file_error == 1
       uses: softprops/action-gh-release@v1
       with:
         files: |
