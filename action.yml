@@ -1192,13 +1192,14 @@ runs:
         echo '';
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
-        if [[ ! -n $(apt list --installed | grep build-essential) ]]; then
-          sudo apt-get-yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n";
+        if [[ ! -n $(apt-get list --installed | grep build-essential) ]]; then
+          sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n";
         fi;
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
-          cmake --build . |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error building repository project";
+          cmake .
+          time -p cmake --build . |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error building repository project";
           echo "file_fixed=1" >> "${GITHUB_ENV}";
         else
           echo 'Error .git directory not found ???';
