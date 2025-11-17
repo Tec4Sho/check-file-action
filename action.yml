@@ -97,17 +97,17 @@ runs:
       uses: actions/github-script@v6
       with:
         script: |
-          const core = require('@actions/core');
+          const core1 = require('@actions/core');
           try {
             if (window.matchMedia("(min-width: 400px)").matches) {
               const myValue = "true";
-              core.exportVariable('mobile', false);
+              core1.exportVariable('mobile', false);
             } else {
               const myValue = "false";
-              core.exportVariable('mobile', true);
+              core1.exportVariable('mobile', true);
             fi
           } catch (error) {
-            core.setFailed(error.message);
+            core1.setFailed(error.message);
           }
       continue-on-error: true
 
