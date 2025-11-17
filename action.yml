@@ -124,12 +124,12 @@ runs:
         file=$(sudo find ${GITHUB_WORKSPACE} -type f -name "checkmake.ini" -print -quit);
         path='/home/runner/checkmake.ini';
 
-        if [[ ! -n $(apt list --installed | grep -F 'clang-tidy' >/dev/null) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }} || ${{ inputs.project }}; then
+        if [[ ! -n $(sudo dpkg-query -l | grep 'clang-tidy' >/dev/null) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
           sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e "${text5}" || echo 'No clang-tidy installed Exiting';
-          [[ ! -n $(apt list --installed | grep -F 'clang-tidy' >/dev/null) ]] && exit 1
+          [[ ! -n $(sudo dpkg-query -l | grep 'clang-tidy' >/dev/null) ]] && exit 1
         fi;
 
-        if [[ ! -n $(apt list --installed | grep -F 'build-essential' >/dev/null) ]] && ${{ inputs.project }}; then
+        if [[ ! -n $(sudo dpkg-query -l | grep 'build-essential' >/dev/null) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo 'No build-essential installed for use by cmake';
         fi;
 
@@ -1193,7 +1193,8 @@ runs:
     - name: Fix & Build Project
       if: inputs.project != 'false'
       run: |
-        echo '';
+        export LC_ALL=C
+        set +e
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
