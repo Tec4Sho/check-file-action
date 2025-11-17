@@ -92,26 +92,6 @@ runs:
       continue-on-error: true
 
 
-    - name: Run JavaScript
-      if: inputs.filename != '' || inputs.pattern != ''
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const core1 = require('@actions/core');
-          try {
-            if (window.matchMedia("(min-width: 400px)").matches) {
-              const myValue = "true";
-              core1.exportVariable('mobile', false);
-            } else {
-              const myValue = "false";
-              core1.exportVariable('mobile', true);
-            fi
-          } catch (error) {
-            core1.setFailed(error.message);
-          }
-      continue-on-error: true
-
-
     - name: Installing Dependencies
       if: inputs.pattern != '' || inputs.filename != ''
       run: |
@@ -259,26 +239,29 @@ runs:
             local text="$1";
             local term_cols="$(tput cols)";
             local text_length="${#text}";
-            if (( term_cols > text_length )); then
+            if [[ -n $(node ./scripts/mobile.js 2>/dev/null) ]] || [[ -n $(node ./scripts/view.js 2>/dev/null) ]]; then
               local padding="$(( (term_cols - text_length) / 2 ))";
-              printf "%*s%s\n" "$padding" "" "$text"
+              local text="$(echo $1 | tr -d '\n')";
+              print '';
+              printf "%*s%s\n" "${padding}" "" "${text}"
+              print '';
             else
-              echo "$text"
+              echo -e "${text}"
             fi;
           }
         fi;
 
         if ${{ inputs.rootdir }}; then
-          echo -e "\n${text1a}";
-          echo -e "\033[5m${text1b}\033[0m";
-          echo -e "${text1c}";
+          center_text "\n${text1a}";
+          center_text "${text1b}";
+          center_text "${text1c}";
           echo -e '\n~/\n';
           echo 'file_path=/' >> "${GITHUB_ENV}";
           file_path=/
         else
-          echo -e "\n${text2a}";
-          echo -e "\033[5m${text2b}\033[0m";
-          echo -e "${text2c}";
+          center_text "\n${text2a}";
+          center_text "${text2b}";
+          center_text "${text2c}";
           echo -e "\n${GITHUB_WORKSPACE}\n";
           echo "file_path=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
           file_path=${GITHUB_WORKSPACE}
@@ -287,25 +270,25 @@ runs:
         if ${{ inputs.stored }} && ${{ env.update }} && [[ -d ${repository} ]]; then
           repository="${repository%/*}/${repair_file}";
           if [[ -f ${repository} ]]; then
-            echo -e "\n${text3a}";
-            echo -e "\033[1m${text3b}\033[0m";
-            echo -e "${text3c}\n";
+            center_text "\n${text3a}";
+            center_text "${text3b}";
+            center_text "${text3c}\n";
           else
-            echo -e "\n${text4a}";
-            echo -e "\033[1m${text4b}\033[0m";
-            echo -e "${text4c}\n";
+            center_text "\n${text4a}";
+            center_text "${text4b}";
+            center_text "${text4c}\n";
             date '+%Y%m%d' > "${repository}" || exit 1
           fi;
         elif ${{ inputs.stored }} && [[ -d ${repository} ]]; then
           repository="${repository%/*}/${repair_file}";
           if [[ -f ${repository} ]]; then
-            echo -e "\n${text3a}";
-            echo -e "\033[1m${text3b}\033[0m";
-            echo -e "${text3c}\n";
+            center_text "\n${text3a}";
+            center_text "${text3b}";
+            center_text "${text3c}\n";
           else
-            echo -e "\n${text4a}";
-            echo -e "\033[1m${text4b}\033[0m";
-            echo -e "${text4c}\n";
+            center_text "\n${text4a}";
+            center_text "${text4b}";
+            center_text "${text4c}\n";
             date '+%Y%m%d' > "${repository}" || exit 1
           fi;
           echo 'update=true' >> "${GITHUB_ENV}";
@@ -314,31 +297,31 @@ runs:
         if ${{ inputs.database }}; then
           sudo find "${file_path}" -type f -print > "${GITHUB_WORKSPACE}/database";
           if [[ -f "${GITHUB_WORKSPACE}/database" ]]; then
-            echo -e "\n${text5a}";
-            echo -e "\033[1m${text5b}\033[0m";
-            echo -e "${text5c}\n";
+            center_text "\n${text5a}";
+            center_text "${text5b}";
+            center_text "${text5c}\n";
             echo "database=${GITHUB_WORKSPACE}/database" >> "${GITHUB_ENV}";
           else
-            echo -e "\n${text6a}";
-            echo -e "\033[1m${text6b}\033[0m";
-            echo -e "${text6c}\n" && exit 1
+            center_text "\n${text6a}";
+            center_text "${text6b}";
+            center_text "${text6c}\n" && exit 1
           fi;
         fi;
 
         if [[ "${{ inputs.filename }}" != '' ]]; then
-          echo -e "\n${text7a}";
-          echo -e "\033[1m${text7b}\033[0m";
-          echo -e "${text7c}\n";
+          center_text "\n${text7a}";
+          center_text "${text7b}";
+          center_text "${text7c}\n";
         fi;
 
         if [[ "${{ inputs.pattern }}" != '' ]] && [[ "${{ inputs.filetype }}" != 'none' ]]; then
-          echo -e "\n${text8a}";
-          echo -e "\033[1m${text8b}\033[0m";
-          echo -e "${text8c}\n";
+          center_text "\n${text8a}";
+          center_text "${text8b}";
+          center_text "${text8c}\n";
         elif [[ "${{ inputs.pattern }}" != '' ]]; then
-          echo -e "\n${text9a}";
-          echo -e "\033[1m${text9b}\033[0m";
-          echo -e "${text9c}\n";
+          center_text "\n${text9a}";
+          center_text "${text9b}";
+          center_text "${text9c}\n";
         fi;
       
         if [[ "${{ inputs.dirname }}" == '' ]]; then
@@ -351,16 +334,9 @@ runs:
           echo "dirname=${{ inputs.dirname }}" >> "$GITHUB_OUTPUT";
         fi;
         
-        if [[ -n $(node ./scripts/mobile.js 2>/dev/null) ]] || [[ -n $(node ./scripts/view.js 2>/dev/null) ]]; then
-          center_text "${text10a}" 2>/dev/null;
-          center_text "${text10b}" 2>/dev/null;
-          center_text "${text10c}" 2>/dev/null;
-        else
-          echo "${text10a}" 2>/dev/null;
-          echo "${text10b}" 2>/dev/null;
-          echo "${text10c}" 2>/dev/null;
-        fi;
-
+        center_text "\n${text10a}" 2>/dev/null;
+        center_text "${text10b}" 2>/dev/null;
+        center_text "${text10c}\n" 2>/dev/null;
         echo '';
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
@@ -1265,18 +1241,19 @@ runs:
           echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/database)\n";
         fi;
         export TERM=xterm-256color
-        bold=$(tput bold)
-        normal=$(tput sgr0)
         if [[ -n ${TERM} ]]; then
           center_text() {
             local text="$1";
             local term_cols="$(tput cols)";
             local text_length="${#text}";
-            if (( term_cols > text_length )); then
+            if [[ -n $(node ./scripts/mobile.js 2>/dev/null) ]] || [[ -n $(node ./scripts/view.js 2>/dev/null) ]]; then
               local padding="$(( (term_cols - text_length) / 2 ))";
-              printf "%*s%s\n" "$padding" "" "$text"
+              local text="$(echo $1 | tr -d '\n')";
+              print '';
+              printf "%*s%s\n" "${padding}" "" "${text}"
+              print '';
             else
-              echo "$text"
+              echo -e "${text}"
             fi;
           }
         fi;
@@ -1284,18 +1261,9 @@ runs:
         texta="######################";
         textb="# CHECK FILE EXITING #";
         textc="######################";
-
-        if [[ ! ${mobile} ]]; then
-          echo '';
-          center_text "${texta}";
-          center_text "${textb}";
-          center_text "${textc}";
-          echo '';
-        else
-          echo -e "\n${texta}";
-          echo -e "${textb}";
-          echo -e "${textc}\n";
-        fi;
+        center_text "\n${texta}";
+        center_text "${textb}";
+        center_text "${textc}\n";
       shell: bash
       continue-on-error: true
 
