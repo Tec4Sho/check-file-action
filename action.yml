@@ -1202,17 +1202,18 @@ runs:
         set +e
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
+        if ! ${{ inputs.update }}; then
+          echo 'update=false' >> "${GITHUB_ENV}";
+        fi;
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
           mkdir build
-          cd build
-          cmake ..
-          cmake --build .
+          cmake -G Ninja -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
           #clang-tidy-11 -format-style=file -header-filter=. -p build
-          build=$(time -p cmake -G Ninja -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error building repository project");
+          build=$(time -p cmake --build build --config Release |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error building repository project");
           if [[ -n ${build} ]]; then
-            echo "file_fixed=1" >> "${GITHUB_ENV}";
+            echo 'file_fixed=1' >> "${GITHUB_ENV}";
           fi;
         else
           echo 'Error .git directory not found ???';
