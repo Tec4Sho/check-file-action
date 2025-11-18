@@ -1247,11 +1247,11 @@ runs:
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
           mkdir -p build
-          cmake -G Ninja -S . -B build
+          cmake -G Ninja -S . -Bn build
           cmake --build build --config Release
           if [[ -f "${para_file}" ]]; then
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT...\n####################\n';
-            time -p $(clang-tidy @${para_file} --fix-errors --fix-notes |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log") || echo "Error: $? Building repository project";
+            time -p clang-tidy @${para_file} --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
             check_build=true
           fi;
           if ${{ env.update }}; then
