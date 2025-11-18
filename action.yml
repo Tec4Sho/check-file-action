@@ -1211,21 +1211,47 @@ runs:
         check_build=false
         compile_cmd=$(sudo find ${{ env.file_path }} -type f -name 'compile_commands.json' -print -quit);
         clang_file=$(sudo find ${{ env.file_path }} -type f -name '.clang-tidy' -print -quit);
-        repository=$(sudo find ${{ env.file_path }} -type d -name ".git" -print -quit);
+        src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
+        file_list=$(sudo find ${{ env.file_path }} -type f \( -name "*.c*" -o -name "*.t*" \) -print);
+        dirs_list=$(sudo find ${{ env.file_path }} -type d \( -name 'src' -o -name 'include' \) -print);
+        para_file='clang_tidy_params.txt';
+        para_list='
+        -checks=clang-diagnostic,clang-analyzer,cppcoreguidelines,modernize,modernize-use-nullptr,readability-identifier-naming
+        -header-filter=.*
+        -fix
+        -fix-errors
+        --
+        -std=c++17
+        ';
         if [[ -f "${clang_file}" ]]; then
           echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
         elif [[ ! -f "${clang_file}" ]]; then
-          echo -e '\n####################\n\t.clang-tidy not found exiting...\n####################\n';
+          echo -e '\n####################\n\t.clang-tidy not found...\n####################\n';
+        fi;
+        echo -e "${para_list}" >> "${src_tree%/*}/${para_file}";
+        IFS=$'\n';
+        for dir in ${dirs_list}; do
+          echo -e "-I${dir}" >> "${src_tree%/*}/${para_file}";
+        done;
+        para_base="${src_tree%/*}/${para_file}";
+        echo -e "${file_list}" >> "${src_tree%/*}/${para_file}";
+        if [[ -f "${para_base}" ]]; then
+          echo -e "\n####################\n\t${para_file} created continuing...\n####################\n";
+        elif [[ ! -f "${para_base}" ]]; then
+          echo -e '\n####################\n\t${para_file} not found exiting...\n####################\n';
           exit 1
         fi;
-        if [[ -d "${repository}" ]]; then
-          cd "${repository%/*}";
+        if [[ -f "${compile_cmd}" ]]; then
+          echo -e "\n####################\n\tcompile_commands.json created continuing...\n####################\n";
+        fi;
+        if [[ -d "${src_tree}" ]]; then
+          cd "${src_tree%/*}";
           mkdir -p build
           cmake -G Ninja -S . -B build
           cmake --build build --config Release
-          if [[ -f "${compile_cmd}" ]]; then
-            echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
-            clang-tidy -p build/ |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error: $? Building repository project";
+          if [[ -f "${para_file}" ]]; then
+            echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT...\n####################\n';
+            clang-tidy @${para_file} |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error: $? Building repository project";
             check_build=true
           fi;
           # check_build=$(time -p clang-tidy -j "$(nproc --all)" --fix --fix-errors --fix-notes -p="${repository%/*}/build" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log") || echo "Error: $? Building repository project";
