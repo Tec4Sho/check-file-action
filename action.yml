@@ -1215,33 +1215,19 @@ runs:
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
-          clang_file=$(sudo find . -type f -name '.clang-tidy' -print -quit);
+          clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
           file_list=$(sudo find . -type f \( -name "*\${{ inputs.filetype }}" -o -name "*\.c" -o -name "*\.cpp" \) -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
-          params_file='clang_tidy_params.txt';
           if [[ -f "${clang_file}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
-            cat "${clang_file}" | sed 's/^---//; s/\.\.\.$//' > "${params_file}";
-            echo -e '
-            -fix-errors
-            --
-            ' >> "${params_file}";
-          elif [[ ! -f "${clang_file}" ]]; then
-            echo -e '\n####################\n\t.clang-tidy not found creating checklist...\n####################\n';
-            para_list='
-            -checks=clang-diagnostic,clang-analyzer,cppcoreguidelines,modernize,modernize-use-nullptr,readability-identifier-naming
-            -header-filter=.*
-            -fix
-            -fix-errors
-            --
-            ';
-            echo -e "${para_list}" > "${params_file}";
           fi;
           IFS=$'\n';
           for dir in ${dirs_list[@]}; do
-            echo -e " -I${dir}" >> "${params_file}";
+            if [[ $(echo ${dir} | grep -sw include) ]]; then
+              echo " -I${dir}" >> "${clang_file}";
+            fi;
           done;
-          echo -e "${file_list}" >> "${params_file}";
+          echo -e "${file_list}" >> "${clang_file}";
           mkdir -p build
           cmake -G Ninja -S . -B build
           cmake --build build
@@ -1250,18 +1236,20 @@ runs:
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
             time -p clang-tidy --fix-errors -p build  |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
             check_build=true
-          elif [[ -f "${params_file}" ]]; then
-            echo -e "\n####################\n\t${params_file} created continuing...\n####################\n";
+          elif [[ -f "${clang_file}" ]]; then
+            echo -e "\n####################\n\t${clang_file} created continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
-            time -p clang-tidy @${params_file} --fix-errors --fix-notes -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
+            time -p clang-tidy @${clang_file} -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
             check_build=true
+          else
+            echo -e "\n####################\n\t${clang_file} missing in repo Exiting...\n####################\n";
           fi;
-          if [[ ! -f "${params_file}" ]] && [[ ! -f "${compile_json}" ]]; then
-            echo -e '\n####################\n\t${params_file} not created\n\tcompile_commands.json not created\nExiting...\n####################\n';
+          if [[ ! -f "${clang_file}" ]] && [[ ! -f "${compile_json}" ]]; then
+            echo -e '\n####################\n\t${clang_file} not found\n\tcompile_commands.json not created\nExiting...\n####################\n';
             exit 1
           fi;
           if [[ ${update} ]]; then
-            rm -vf "${params_file}";
+            rm -vf "${clang_file}";
           fi;
           if [[ ${check_build} ]]; then
             echo 'file_fixed=1' >> "${GITHUB_ENV}";
