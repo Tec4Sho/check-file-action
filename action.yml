@@ -1216,6 +1216,7 @@ runs:
           cd "${src_tree%/*}";
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
+          clang_run=$(sudo find ~/ -type f -name 'run-clang-tidy.py' -print -quit);
           file_list=$(sudo find . -type f \( -name "*\${{ inputs.filetype }}" -o -name "*\.c" -o -name "*\.cpp" \) -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
           if [[ -f "${clang_file}" ]]; then
@@ -1236,13 +1237,18 @@ runs:
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
             time -p clang-tidy --fix-errors -p build  |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
             check_build=true
+          elif [[ -f "${clang_run}" ]]; then
+            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
+            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING PROJECT\n####################\n';
+            time -p run-clang-tidy.py -p=build/ -fix -checks=-*,readability-* -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
+            check_build=true
           elif [[ -f "${clang_file}" ]]; then
             echo -e "\n####################\n\t${clang_file} created continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
             time -p clang-tidy @${clang_file} -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
             check_build=true
           else
-            echo -e "\n####################\n\t${clang_file} missing in repo Exiting...\n####################\n";
+            echo -e "\n####################\n\tclang files missing in repo Exiting...\n####################\n";
           fi;
           if [[ ! -f "${clang_file}" ]] && [[ ! -f "${compile_json}" ]]; then
             echo -e '\n####################\n\t${clang_file} not found\n\tcompile_commands.json not created\nExiting...\n####################\n';
