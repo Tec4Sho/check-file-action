@@ -1205,14 +1205,16 @@ runs:
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
         fi;
+        build=false
+        export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
           mkdir build
-          cmake -G Ninja -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake -G Ninja -S . -B build
           #clang-tidy-11 -format-style=file -header-filter=. -p build
-          build=$(time -p cmake --build build --config Release |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error building repository project");
-          if [[ -n ${build} ]]; then
+          time -p cmake --build build --config Release |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" && build=true || echo "Error building repository project";
+          if [[ ${build} ]]; then
             echo 'file_fixed=1' >> "${GITHUB_ENV}";
           fi;
         else
