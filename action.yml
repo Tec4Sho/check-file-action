@@ -1223,7 +1223,7 @@ runs:
           mkdir -p build
           cmake -G Ninja -S . -B build
           cmake --build build --config Release
-          if [[ -n "${compile_cmd}" ]]; then
+          if [[ -f "${compile_cmd}" ]]; then
             echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
             clang-tidy -p build/ |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error: $? Building repository project";
             check_build=true
