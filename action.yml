@@ -1208,22 +1208,22 @@ runs:
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
         fi;
-        compile_commands=$(sudo find ${{ env.file_path }} -type f -name 'compile_commands.json' -print -quit);
         check_build=false
+        compile_cmd=$(sudo find ${{ env.file_path }} -type f -name 'compile_commands.json' -print -quit);
         clang_file=$(sudo find ${{ env.file_path }} -type f -name '.clang-tidy' -print -quit);
-        repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
+        repository=$(sudo find ${{ env.file_path }} -type d -name ".git" -print -quit);
         if [[ -f "${clang_file}" ]]; then
           echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
         elif [[ ! -f "${clang_file}" ]]; then
           echo -e '\n####################\n\t.clang-tidy not found exiting...\n####################\n';
           exit 1
         fi;
-        if [[ -d ${repository} ]]; then
+        if [[ -d "${repository}" ]]; then
           cd "${repository%/*}";
           mkdir -p build
-          cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Release
+          cmake -G Ninja -S . -B build
           cmake --build build --config Release
-          if [[ ${compile_commands} ]]; then
+          if [[ -n "${compile_cmd}" ]]; then
             echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
             clang-tidy -p build/ |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error: $? Building repository project";
             check_build=true
