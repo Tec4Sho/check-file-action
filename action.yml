@@ -1221,7 +1221,7 @@ runs:
           mkdir build
           cmake -G Ninja -S . -B build
           cmake --build build --config Release 
-          check_build=$(time -p clang-tidy --config-file="${clang_file}" --fix-errors --fix-notes -p build |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log") || echo "Error building repository project";
+          check_build=$(time -p clang-tidy-11 --fix --fix-errors --fix-notes -p build |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log") || echo "Error: $? Building repository project";
           if [[ -n ${check_build} ]]; then
             echo 'file_fixed=1' >> "${GITHUB_ENV}";
           fi;
