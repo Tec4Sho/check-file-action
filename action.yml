@@ -377,8 +377,7 @@ runs:
           files=$(grep -sE "${regex}" "${{ env.database }}");
           echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
-        file_path=$(grep -sF -m 1 '.clang-tidy' "${{ env.database }}");
-        clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
+        clang_file=$(grep -sF -m 1 '.clang-tidy' "${{ env.database }}");
         repaired=$(grep -sF -m 1 'check-file-repaired.txt' "${{ env.database }}");
         count2=0
         checked=false
@@ -386,9 +385,11 @@ runs:
         include_count=1
         if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
-          if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
-            echo -e '\n####################\n\t.clang-tidy found copying...\n####################\n';
-            sudo cp -vf "${file_path}" "${clang_file}";
+          if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
+            echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
+          elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair }}; then
+            echo -e '\n####################\n\t.clang-tidy not found exiting...\n####################\n';
+            exit 1
           fi;
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n";
@@ -728,9 +729,8 @@ runs:
         export LC_ALL=C
         set -o pipefail
         files=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
-        file_path=$(sudo find ${{ env.file_path }} -type f -name '.clang-tidy' -print -quit);
+        clang_file=$(sudo find ${{ env.file_path }} -type f -name '.clang-tidy' -print -quit);
         file_type=$(echo ${{ inputs.filename }} | sed 's/.*\.\([^.]*\)$/\1/');
-        clang_file=${GITHUB_WORKSPACE}/.clang-tidy;
         repaired=$(sudo find ${{ env.file_path }} -type f -name 'check-file-repaired.txt' -print -quit);
         count2=0
         checked=false
@@ -738,9 +738,11 @@ runs:
         include_count=1
         if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
-          if [[ -f "${file_path}" ]] && ${{ inputs.repair }}; then
-            echo -e '\n####################\n\t.clang-tidy found copying...\n####################\n';
-            sudo cp -vf "${file_path}" "${clang_file}";
+          if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
+            echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
+          elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair }}; then
+            echo -e '\n####################\n\t.clang-tidy not found exiting...\n####################\n';
+            exit 1
           fi;
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n";
@@ -1198,6 +1200,7 @@ runs:
     - name: Fix & Build Project
       if: inputs.project != 'false'
       run: |
+        export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export LC_ALL=C
         set +e
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -1205,16 +1208,21 @@ runs:
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
         fi;
-        build=false
-        export CMAKE_EXPORT_COMPILE_COMMANDS=ON
+        clang_file=$(sudo find ${{ env.file_path }} -type f -name '.clang-tidy' -print -quit);
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
+        if [[ -f "${clang_file}" ]]; then
+          echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
+        elif [[ ! -f "${clang_file}" ]]; then
+          echo -e '\n####################\n\t.clang-tidy not found exiting...\n####################\n';
+          exit 1
+        fi;
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
           mkdir build
           cmake -G Ninja -S . -B build
-          #clang-tidy-11 -format-style=file -header-filter=. -p build
-          time -p cmake --build build --config Release |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" && build=true || echo "Error building repository project";
-          if [[ ${build} ]]; then
+          cmake --build build --config Release 
+          check_build=$(time -p clang-tidy --config-file="${clang_file}" --fix-errors --fix-notes -p build |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log") || echo "Error building repository project";
+          if [[ -n ${check_build} ]]; then
             echo 'file_fixed=1' >> "${GITHUB_ENV}";
           fi;
         else
