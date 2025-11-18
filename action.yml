@@ -1200,13 +1200,15 @@ runs:
     - name: Fix & Build Project
       if: inputs.project != 'false'
       run: |
-        export CMAKE_EXPORT_COMPILE_COMMANDS=ON
+        export CMAKE_EXPORT_COMPILE_COMMANDS=1
         export LC_ALL=C
         set +e
+        update=true
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
+          update=false
         fi;
         check_build=false
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
@@ -1214,12 +1216,12 @@ runs:
           cd "${src_tree%/*}";
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name '.clang-tidy' -print -quit);
-          file_list=$(sudo find . -type f \( -name "*\${{ inputs.filetype }}" -o -name "*\.c" -name "*\.cpp" \) -print);
+          file_list=$(sudo find . -type f \( -name "*\${{ inputs.filetype }}" -o -name "*\.c" -o -name "*\.cpp" \) -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
           params_file='clang_tidy_params.txt';
           if [[ -f "${clang_file}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
-            cat "$(${clang_file} | sed 's/^---//; s/\.\.\.$//')" >> "${params_file}";
+            cat "${clang_file}" | sed 's/^---//; s/\.\.\.$//' > "${params_file}";
             echo -e '
             -fix-errors
             --
@@ -1233,7 +1235,7 @@ runs:
             -fix-errors
             --
             ';
-            echo -e "${para_list}" >> "${params_file}";
+            echo -e "${para_list}" > "${params_file}";
           fi;
           IFS=$'\n';
           for dir in ${dirs_list[@]}; do
@@ -1242,23 +1244,23 @@ runs:
           echo -e "${file_list}" >> "${params_file}";
           mkdir -p build
           cmake -G Ninja -S . -B build
-          cmake --build build -- -n
+          cmake --build build
           if [[ -f "${compile_json}" ]]; then
             echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
-            time -p clang-tidy -p build --fix-errors |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
+            time -p clang-tidy --fix-errors -p build  |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
             check_build=true
           elif [[ -f "${params_file}" ]]; then
             echo -e "\n####################\n\t${params_file} created continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
-            time -p clang-tidy @${params_file} --fix-errors --fix-notes -- -I. |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
+            time -p clang-tidy @${params_file} --fix-errors --fix-notes -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
             check_build=true
           fi;
           if [[ ! -f "${params_file}" ]] && [[ ! -f "${compile_json}" ]]; then
             echo -e '\n####################\n\t${params_file} not created\n\tcompile_commands.json not created\nExiting...\n####################\n';
             exit 1
           fi;
-          if ${{ env.update }}; then
+          if [[ ${update} ]]; then
             rm -vf "${params_file}";
           fi;
           if [[ ${check_build} ]]; then
