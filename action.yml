@@ -1219,9 +1219,9 @@ runs:
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
           mkdir build
-          cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja -S . -B build
-          cmake --build build --config Release
-          run-clang-tidy.py -p=build/ -j "$(nproc --all)" --fix |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error: $? Building repository project";
+          cmake -G Ninja -S . -B build
+          cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON --build build --config Release
+          python run-clang-tidy.py -p=build/ -j "$(nproc --all)" --fix |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error: $? Building repository project";
           # check_build=$(time -p clang-tidy -j "$(nproc --all)" --fix --fix-errors --fix-notes -p="${repository%/*}/build" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log") || echo "Error: $? Building repository project";
           if [[ -n ${check_build} ]]; then
             echo 'file_fixed=1' >> "${GITHUB_ENV}";
