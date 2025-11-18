@@ -1209,53 +1209,57 @@ runs:
           echo 'update=false' >> "${GITHUB_ENV}";
         fi;
         check_build=false
-        compile_cmd=$(sudo find ${{ env.file_path }} -type f -name 'compile_commands.json' -print -quit);
-        clang_file=$(sudo find ${{ env.file_path }} -type f -name '.clang-tidy' -print -quit);
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
-        file_list=$(sudo find ${{ env.file_path }} -type f \( -name "*\${{ inputs.filetype }}" -o -name "*\.c" -name "*\.cpp" \) -print);
-        dirs_list=$(sudo find ${{ env.file_path }} -type d -name 'include' -print);
-        para_file='clang_tidy_params.txt';
-        if [[ -f "${clang_file}" ]]; then
-          echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
-          cat "${clang_file}" >> "${src_tree%/*}/${para_file}";
-        elif [[ ! -f "${clang_file}" ]]; then
-          echo -e '\n####################\n\t.clang-tidy not found creating checks...\n####################\n';
-          para_list='
-          -checks=clang-diagnostic,clang-analyzer,cppcoreguidelines,modernize,modernize-use-nullptr,readability-identifier-naming
-          -header-filter=.*
-          -fix
-          -fix-errors
-          --
-          ';
-          echo -e "${para_list}" >> "${src_tree%/*}/${para_file}";
-        fi;
-        IFS=$'\n';
-        for dir in ${dirs_list[@]}; do
-          echo -e " -I${dir}" >> "${src_tree%/*}/${para_file}";
-        done;
-        para_base="${src_tree%/*}/${para_file}";
-        echo -e "${file_list}" >> "${src_tree%/*}/${para_file}";
-        if [[ -f "${para_base}" ]]; then
-          echo -e "\n####################\n\t${para_file} created continuing...\n####################\n";
-        elif [[ ! -f "${para_base}" ]]; then
-          echo -e '\n####################\n\t${para_file} not found exiting...\n####################\n';
-          exit 1
-        fi;
-        if [[ -f "${compile_cmd}" ]]; then
-          echo -e "\n####################\n\tcompile_commands.json created continuing...\n####################\n";
-        fi;
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
+          compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
+          clang_file=$(sudo find . -type f -name '.clang-tidy' -print -quit);
+          file_list=$(sudo find . -type f \( -name "*\${{ inputs.filetype }}" -o -name "*\.c" -name "*\.cpp" \) -print);
+          dirs_list=$(sudo find . -type d -name 'include' -print);
+          params_file='clang_tidy_params.txt';
+          if [[ -f "${clang_file}" ]]; then
+            echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
+            cat "$(${clang_file} | sed 's/^---//; s/\.\.\.$//')" >> "${params_file}";
+            echo -e '
+            -fix-errors
+            --
+            ' >> "${params_file}";
+          elif [[ ! -f "${clang_file}" ]]; then
+            echo -e '\n####################\n\t.clang-tidy not found creating checklist...\n####################\n';
+            para_list='
+            -checks=clang-diagnostic,clang-analyzer,cppcoreguidelines,modernize,modernize-use-nullptr,readability-identifier-naming
+            -header-filter=.*
+            -fix
+            -fix-errors
+            --
+            ';
+            echo -e "${para_list}" >> "${params_file}";
+          fi;
+          IFS=$'\n';
+          for dir in ${dirs_list[@]}; do
+            echo -e " -I${dir}" >> "${params_file}";
+          done;
+          echo -e "${file_list}" >> "${params_file}";
           mkdir -p build
-          cmake -G Ninja -S . -Bn build
-          cmake --build build --config Release
-          if [[ -f "${para_file}" ]]; then
-            echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT...\n####################\n';
-            time -p clang-tidy @${para_file} --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
+          cmake -G Ninja -S . -B build
+          cmake --build build -- -n
+          if [[ -f "${compile_json}" ]]; then
+            echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
+            echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
+            time -p clang-tidy -p build --fix-errors |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
+            check_build=true
+          elif [[ -f "${params_file}" ]]; then
+            echo -e "\n####################\n\t${params_file} created continuing...\n####################\n";
+            echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
+            time -p clang-tidy @${params_file} --fix-errors --fix-notes -- -I. |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
             check_build=true
           fi;
+          if [[ ! -f "${params_file}" ]] && [[ ! -f "${compile_json}" ]]; then
+            echo -e '\n####################\n\t${params_file} not created\n\tcompile_commands.json not created\nExiting...\n####################\n';
+            exit 1
+          fi;
           if ${{ env.update }}; then
-           rm -vf "${para_base}";
+            rm -vf "${params_file}";
           fi;
           if [[ ${check_build} ]]; then
             echo 'file_fixed=1' >> "${GITHUB_ENV}";
