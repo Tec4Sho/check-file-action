@@ -791,7 +791,7 @@ runs:
                       echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                     elif ${{ inputs.stored }} && ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                      clang-tidy "${f}" -j "$(nproc --all)" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" || >/dev/null;
+                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" || >/dev/null;
                       if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                         echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
                       else
@@ -801,7 +801,7 @@ runs:
                       fixed=true
                     elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                      clang-tidy "${f}" -j "$(nproc --all)" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" || >/dev/null;
+                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- "${include_paths}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" || >/dev/null;
                       if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                         echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                       else
@@ -1208,6 +1208,7 @@ runs:
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
         fi;
+        compile_commands=$(sudo find ${{ env.file_path }} -type f -name 'compile_commands.json' -print -quit);
         check_build=false
         clang_file=$(sudo find ${{ env.file_path }} -type f -name '.clang-tidy' -print -quit);
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
@@ -1220,9 +1221,13 @@ runs:
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
           mkdir -p build
-          cmake -G Ninja -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Release
           cmake --build build --config Release
-          clang-tidy -p build/ -j "$(nproc --all)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error: $? Building repository project";
+          if [[ ${compile_commands} ]]; then
+            echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
+            clang-tidy -p build/ |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error: $? Building repository project";
+            check_build=true
+          fi;
           # check_build=$(time -p clang-tidy -j "$(nproc --all)" --fix --fix-errors --fix-notes -p="${repository%/*}/build" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log") || echo "Error: $? Building repository project";
           if [[ ${check_build} ]]; then
             echo 'file_fixed=1' >> "${GITHUB_ENV}";
