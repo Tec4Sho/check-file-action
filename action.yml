@@ -479,7 +479,7 @@ runs:
                   echo -e "\n####################\nRepaired on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                 elif ${{ inputs.stored }} && ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${f}" -j "$(nproc --all)" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
                   else
@@ -489,7 +489,7 @@ runs:
                   fixed=true
                 elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${f}" -j "$(nproc --all)" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"$(dirname "${f}" | cut -d'/' -f -7)" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
@@ -1212,26 +1212,26 @@ runs:
         compile_cmd=$(sudo find ${{ env.file_path }} -type f -name 'compile_commands.json' -print -quit);
         clang_file=$(sudo find ${{ env.file_path }} -type f -name '.clang-tidy' -print -quit);
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
-        file_list=$(sudo find ${{ env.file_path }} -type f \( -name "*.c*" -o -name "*.t*" \) -print);
-        dirs_list=$(sudo find ${{ env.file_path }} -type d \( -name 'src' -o -name 'include' \) -print);
+        file_list=$(sudo find ${{ env.file_path }} -type f \( -name "*\${{ inputs.filetype }}" -o -name "*\.c" -name "*\.cpp" \) -print);
+        dirs_list=$(sudo find ${{ env.file_path }} -type d -name 'include' -print);
         para_file='clang_tidy_params.txt';
-        para_list='
-        -checks=clang-diagnostic,clang-analyzer,cppcoreguidelines,modernize,modernize-use-nullptr,readability-identifier-naming
-        -header-filter=.*
-        -fix
-        -fix-errors
-        --
-        -std=c++17
-        ';
         if [[ -f "${clang_file}" ]]; then
           echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
+          cat "${clang_file}" >> "${src_tree%/*}/${para_file}";
         elif [[ ! -f "${clang_file}" ]]; then
-          echo -e '\n####################\n\t.clang-tidy not found...\n####################\n';
+          echo -e '\n####################\n\t.clang-tidy not found creating checks...\n####################\n';
+          para_list='
+          -checks=clang-diagnostic,clang-analyzer,cppcoreguidelines,modernize,modernize-use-nullptr,readability-identifier-naming
+          -header-filter=.*
+          -fix
+          -fix-errors
+          --
+          ';
+          echo -e "${para_list}" >> "${src_tree%/*}/${para_file}";
         fi;
-        echo -e "${para_list}" >> "${src_tree%/*}/${para_file}";
         IFS=$'\n';
-        for dir in ${dirs_list}; do
-          echo -e "-I${dir}" >> "${src_tree%/*}/${para_file}";
+        for dir in ${dirs_list[@]}; do
+          echo -e " -I${dir}" >> "${src_tree%/*}/${para_file}";
         done;
         para_base="${src_tree%/*}/${para_file}";
         echo -e "${file_list}" >> "${src_tree%/*}/${para_file}";
@@ -1251,10 +1251,12 @@ runs:
           cmake --build build --config Release
           if [[ -f "${para_file}" ]]; then
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT...\n####################\n';
-            clang-tidy @${para_file} |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Error: $? Building repository project";
+            time -p $(clang-tidy @${para_file} --fix-errors --fix-notes |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log") || echo "Error: $? Building repository project";
             check_build=true
           fi;
-          # check_build=$(time -p clang-tidy -j "$(nproc --all)" --fix --fix-errors --fix-notes -p="${repository%/*}/build" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log") || echo "Error: $? Building repository project";
+          if ${{ env.update }}; then
+           rm -vf "${para_base}";
+          fi;
           if [[ ${check_build} ]]; then
             echo 'file_fixed=1' >> "${GITHUB_ENV}";
           fi;
