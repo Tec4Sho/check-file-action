@@ -372,6 +372,15 @@ runs:
       continue-on-error: false
 
 
+    - name: Clone llvm Project
+      if: inputs.project == 'true'
+      uses: actions/checkout@v4
+      with:
+        repository: https://github.com/llvm/llvm-project.git
+        path: ./${{ steps.set_dirname.outputs.dirname }}/${{ github.event.inputs.DEVICE_PATH }}/llvm-project
+        ref: main
+
+
     - name: Check & Repair (Clang-tools)
       if: inputs.filename != '' && inputs.database != 'false'
       run: |
@@ -1236,9 +1245,13 @@ runs:
           clang_run=$(sudo find / \( -path /proc -prune -o -path /sys -prune \) -type f -name 'run-clang-tidy.py' -print -quit 2>/dev/null);
           file_list=$(sudo find . -type f -name "*\${filetype}" -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
-          build_dir=$(sudo find . -type d -name 'build' -print -quit);
+          cmakelist=$(sudo find . -type f -iname 'CMakeLists.txt' -print -quit);
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
+          fi;
+          if [[ -f "${cmakelist}" ]]; then
+            echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################\n';
+            cp -vf "${cmakelist}" ./llvm-project/
           fi;
           IFS=$'\n';
           if [[ -f "${clang_file}" ]]; then
@@ -1246,23 +1259,23 @@ runs:
             if [[ -n "${dirs_list}" ]]; then
               echo -e '\n####################\n\tinclude directories found continuing...\n####################\n';
               for dir in ${dirs_list[@]}; do
-                if [[ -d "$(echo ${dir} | grep -swF include)" ]]; then
+                if [[ -d "$(echo ${dir} | grep -sqwF include)" ]]; then
                   echo "${dir}" | sed 's/^\.\///' >> "${clang_file}";
                 fi;
               done;
             fi;
             if [[ -n "${file_list}" ]]; then
               echo -e '\n####################\n\t${typefile} file(s) found continuing...\n####################\n';
-              echo -e "${file_list}" >> "${clang_file}";
+              echo "${file_list}" >> "${clang_file}";
             fi;
           fi;
-          git config --global user.name "${{ github.actor }}";
-          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com";
-          git clone https://github.com/llvm/llvm-project.git || echo "Errors: ( $? ) cloning llvm project";
-          mkdir -p build-ninja && echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
+          # mkdir -p build
+          if [[ -d llvm-project ]]; then
+            echo -e '\n####################\n\tllvm-project directory found continuing...\n####################\n';
+          fi;
          # cmake -G Ninja -S . -B build-ninja
          # cmake --build build-ninja
-          cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON llvm-project
+          cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON llvm-project || echo "Errors: ( $? ) cmake no llvm-project dir?";
           if [[ -f "${compile_json}" ]]; then
             echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
