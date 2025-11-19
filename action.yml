@@ -376,7 +376,7 @@ runs:
       if: inputs.project == 'true'
       uses: actions/checkout@v4
       with:
-        repository: https://github.com/llvm/llvm-project.git
+        repository: llvm/llvm-project.git
         path: ./${{ steps.set_dirname.outputs.dirname }}/${{ github.event.inputs.DEVICE_PATH }}/llvm-project
         ref: main
 
