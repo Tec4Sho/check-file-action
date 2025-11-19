@@ -1209,7 +1209,7 @@ runs:
     - name: Check Build Project
       if: inputs.project != 'false'
       run: |
-        export CMAKE_EXPORT_COMPILE_COMMANDS=1
+        export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export LC_ALL=C
         #set +e
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
@@ -1217,7 +1217,9 @@ runs:
         check_build=false
         filetype='.c';
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
+        version=$(cmake --version);
         update=true
+        echo -e "\n####################\nChecking cmake: ${version}\n####################\n";
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
           update=false
@@ -1226,8 +1228,8 @@ runs:
           filetype=${{ inputs.filetype }}
         fi;
         if [[ -d "${src_tree}" ]]; then
+          echo -e "\n####################\nChecking for ${filetype} file(s)\n####################\n";
           cd "${src_tree%/*}";
-          generate_json=$(sudo find / -type f -name 'generate_compdb.py' -print -quit);
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
           clang_tidy=$(sudo find . -type f -name '.clang-tidy' -print -quit);
@@ -1244,28 +1246,20 @@ runs:
             if [[ -n "${dirs_list}" ]]; then
               echo -e '\n####################\n\tinclude directories found continuing...\n####################\n';
               for dir in ${dirs_list[@]}; do
-                if [[ -d "$(echo ${dir} | grep -sFw include)" ]]; then
-                  echo " -I${dir}" >> "${clang_file}";
+                if [[ -d "$(echo ${dir} | grep -swF include)" ]]; then
+                  echo "${dir}" | sed 's/^\.\///' >> "${clang_file}";
                 fi;
               done;
             fi;
-            echo -e " ${file_list}" >> "${clang_file}";
-          fi;
-          if [[ -d "${build_dir}" ]]; then
-            echo -e '\n####################\n\tbuild directory found continuing...\n####################\n';
-            cd "${build_dir}";
-            cmake -G Ninja -S "${src_tree%/*}" -B .
-            cmake --build .
-            if [[ -f "${generate_json}" ]]; then
-              echo -e '\n####################\n\tgenerate_compdb.py file found continuing...\n####################\n';
-              ${generate_json} -p . > compile_commands.json 
+            if [[ -n "${file_list}" ]]; then
+              echo -e '\n####################\n\t${typefile} file(s) found continuing...\n####################\n';
+              echo -e "${file_list}" >> "${clang_file}";
             fi;
-            cd "${src_tree%/*}";
-          else
-            mkdir -p build
-            cmake -G Ninja -S . -B build
-            cmake --build build
           fi;
+          mkdir -p build
+          echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
+          cmake -G Ninja -S . -B build
+          cmake --build build
           if [[ -f "${compile_json}" ]]; then
             echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
