@@ -1207,43 +1207,50 @@ runs:
         export CMAKE_EXPORT_COMPILE_COMMANDS=1
         export LC_ALL=C
         #set +e
-        update=true
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
+        check_build=false
+        filetype='.c';
+        src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
+        update=true
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
           update=false
         fi;
-        check_build=false
-        src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
+        if [[ "${{ inputs.filetype }}" != 'none' ]]; then
+          filetype=${{ inputs.filetype }}
+        fi;
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
           clang_tidy=$(sudo find . -type f -name '.clang-tidy' -print -quit);
           clang_run=$(sudo find / -type f -name 'run-clang-tidy.py' -print -quit);
-          file_list=$(sudo find . -type f \( -name "*\${{ inputs.filetype }}" -o -name "*\.c" -o -name "*\.cpp" \) -print);
+          file_list=$(sudo find . -type f -name "*\${filetype}" -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
           build_dir=$(sudo find . -type d -name 'build' -print -quit);
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           fi;
           IFS=$'\n';
-          echo ' ' >> "${clang_file}";
-          if [[ -n "${dirs_list}" ]]; then
-            echo -e '\n####################\n\tinclude directories found continuing...\n####################\n';
-            for dir in ${dirs_list[@]}; do
-              if [[ -n "$(echo ${dir} | grep -sw include)" ]]; then
-                echo " -I${dir}" | sed 's/^\.\///' >> "${clang_file}";
-              fi;
-            done;
+          if [[ -f "${clang_file}" ]]; then
+            echo ' ' >> "${clang_file}";
+            if [[ -n "${dirs_list}" ]]; then
+              echo -e '\n####################\n\tinclude directories found continuing...\n####################\n';
+              for dir in ${dirs_list[@]}; do
+                if [[ -n "$(echo ${dir} | grep -sw include)" ]]; then
+                  echo " -I${dir}" | sed 's/^\.\///' >> "${clang_file}";
+                fi;
+              done;
+            fi;
+            echo -e "${file_list}" >> "${clang_file}";
           fi;
-          echo -e "${file_list}" >> "${clang_file}";
           if [[ -d "${build_dir}" ]]; then
             echo -e '\n####################\n\tbuild directory found continuing...\n####################\n';
             cd "${build_dir}";
             cmake -G Ninja -S "${src_tree%/*}" -B .
             cmake --build .
+            cd "${src_tree%/*}";
           else
             mkdir -p build
             cmake -G Ninja -S . -B build
@@ -1268,7 +1275,7 @@ runs:
             echo -e "\n####################\n\tclang files missing in repo Exiting...\n####################\n";
           fi;
           if [[ ! -f "${clang_file}" ]] && [[ ! -f "${compile_json}" ]]; then
-            echo -e '\n####################\n\t${clang_file} not found\n\tcompile_commands.json not created\nExiting...\n####################\n';
+            echo -e "\n####################\n\t${clang_file} not found\n\tcompile_commands.json not created\nExiting...\n####################\n";
             exit 1
           fi;
           if [[ ${update} ]]; then
