@@ -112,7 +112,7 @@ runs:
         text2="\n####################\nansi2txt dependencies Installed\n####################\n";
         text3="\n####################\nca-certificates dependencies Installed\n####################\n";
         text4="\n####################\ncppcheck dependencies Installed\n####################\n";
-        text5="\n####################\nclang-tidy dependencies Installed\n####################\n";
+        text5="\n####################\nclang-tools dependencies Installed\n####################\n";
         text6="\n####################\nshellharden dependencies Installed\n####################\n";
         text7="\n####################\nshellcheck dependencies Installed\n####################\n";
         text8="\n####################\ncheckmake dependencies Installed\n####################\n";
@@ -124,8 +124,8 @@ runs:
         path='/home/runner/checkmake.ini';
 
         if [[ ! -n $(clang-tidy --version 2>/dev/null) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-17 main"
+          wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null;
+          sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-17 main" >/dev/null;
           sudo apt-get update -yq >/dev/null 2>&1;
           sudo apt-get install -yq clang-17 clang-format-17 clang-tidy-17 clangd-17 >/dev/null && echo -e "${text5}" || echo 'No clang-tools installed Exiting';
           [[ ! -n $(clang-tidy --version 2>/dev/null) ]] && exit 1
@@ -1201,7 +1201,7 @@ runs:
       continue-on-error: true
 
 
-    - name: Fix & Build Project
+    - name: Check Build Project
       if: inputs.project != 'false'
       run: |
         export CMAKE_EXPORT_COMPILE_COMMANDS=1
@@ -1221,7 +1221,7 @@ runs:
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
           clang_tidy=$(sudo find . -type f -name '.clang-tidy' -print -quit);
-          clang_run=$(sudo find ~/ -type f -name 'run-clang-tidy.py' -print -quit);
+          clang_run=$(sudo find / -type f -name 'run-clang-tidy.py' -print -quit);
           file_list=$(sudo find . -type f \( -name "*\${{ inputs.filetype }}" -o -name "*\.c" -o -name "*\.cpp" \) -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
           build_dir=$(sudo find . -type d -name 'build' -print -quit);
