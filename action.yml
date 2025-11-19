@@ -133,16 +133,16 @@ runs:
           sudo apt-get update -yq >/dev/null 2>&1;
         fi;
 
-        if [[ ! $(which llvm) ]]; then
+        if [[ ! $(llvm-config --version 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install llvm llvm-18-dev lld-18 libclang-18-dev >/dev/null && echo -e "\n####################\nllvm tools dependencies Installed\n####################\n" || echo 'No llvm tools installed for project build';
-          [[ ! $(which llvm) ]] && exit 1
+          [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
 
         if [[ ! -n $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo 'No build-essential installed for project build';
         fi;
 
-        if [[ ! $(which ninja) ]]; then
+        if [[ ! $(which ninja) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install ninja-build >/dev/null && echo -e "\n####################\nninja dependencies Installed\n####################\n" || echo 'No ninja installed for project build';
           [[ ! $(which ninja) ]] && exit 1
         fi;
