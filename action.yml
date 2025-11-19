@@ -1242,10 +1242,10 @@ runs:
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
           clang_tidy=$(sudo find . -type f -name '.clang-tidy' -print -quit);
-          clang_run=$(sudo find / -type f -name "*-clang-tidy.py" \( -path /proc -prune -o -path /sys -prune -o \) -print -quit 2>/dev/null);
+          clang_run=$(sudo find / -type f -name run-clang-tidy.py" \( -path /proc -prune -o -path /sys -prune -o \) -print -quit 2>/dev/null);
           file_list=$(sudo find . -type f -name "*\${filetype}" -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
-          cmakelist=$(sudo find . -type f -path /llvm-project -prune -name 'CMakeLists.txt' -print -quit);
+          cmakelist=$(sudo find . -type f -name 'CMakeLists.txt' -path /llvm-project -prune -o -print -quit);
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           fi;
