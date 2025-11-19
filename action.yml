@@ -107,7 +107,6 @@ runs:
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list;
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
-        sudo apt-get update -yq >/dev/null 2>&1;
         text0="\n####################\ngit dependencies Installed\n####################\n";
         text1="\n####################\nripgrep dependencies Installed\n####################\n";
         text2="\n####################\nansi2txt dependencies Installed\n####################\n";
@@ -125,8 +124,13 @@ runs:
         path='/home/runner/checkmake.ini';
 
         if [[ ! -n $(clang-tidy --version 2>/dev/null) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
-          sudo apt-get -yq install clang-tidy clang-format >/dev/null && echo -e "${text5}" || echo 'No clang-tidy installed Exiting';
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-17 main"
+          sudo apt-get update -yq >/dev/null 2>&1;
+          sudo apt-get install -yq clang-17 clang-format-17 clang-tidy-17 clangd-17 >/dev/null && echo -e "${text5}" || echo 'No clang-tools installed Exiting';
           [[ ! -n $(clang-tidy --version 2>/dev/null) ]] && exit 1
+        else
+          sudo apt-get update -yq >/dev/null 2>&1;
         fi;
 
         if [[ ! -n $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
@@ -1202,7 +1206,7 @@ runs:
       run: |
         export CMAKE_EXPORT_COMPILE_COMMANDS=1
         export LC_ALL=C
-        set +e
+        #set +e
         update=true
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
@@ -1216,22 +1220,35 @@ runs:
           cd "${src_tree%/*}";
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
+          clang_tidy=$(sudo find . -type f -name '.clang-tidy' -print -quit);
           clang_run=$(sudo find ~/ -type f -name 'run-clang-tidy.py' -print -quit);
           file_list=$(sudo find . -type f \( -name "*\${{ inputs.filetype }}" -o -name "*\.c" -o -name "*\.cpp" \) -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
-          if [[ -f "${clang_file}" ]]; then
+          build_dir=$(sudo find . -type d -name 'build' -print -quit);
+          if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           fi;
           IFS=$'\n';
-          for dir in ${dirs_list[@]}; do
-            if [[ $(echo ${dir} | grep -sw include) ]]; then
-              echo " -I${dir}" >> "${clang_file}";
-            fi;
-          done;
+          echo ' ' >> "${clang_file}";
+          if [[ -n "${dirs_list}" ]]; then
+            echo -e '\n####################\n\tinclude directories found continuing...\n####################\n';
+            for dir in ${dirs_list[@]}; do
+              if [[ -n "$(echo ${dir} | grep -sw include)" ]]; then
+                echo " -I${dir}" | sed 's/^\.\///' >> "${clang_file}";
+              fi;
+            done;
+          fi;
           echo -e "${file_list}" >> "${clang_file}";
-          mkdir -p build
-          cmake -G Ninja -S . -B build
-          cmake --build build
+          if [[ -d "${build_dir}" ]]; then
+            echo -e '\n####################\n\tbuild directory found continuing...\n####################\n';
+            cd "${build_dir}";
+            cmake -G Ninja -S "${src_tree%/*}" -B .
+            cmake --build .
+          else
+            mkdir -p build
+            cmake -G Ninja -S . -B build
+            cmake --build build
+          fi;
           if [[ -f "${compile_json}" ]]; then
             echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
