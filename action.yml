@@ -1225,7 +1225,7 @@ runs:
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
         check_build=false
         filetype='.c';
-        src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
+        src_tree=$(sudo find ${{ env.file_path }} -type d -path /llvm-project -prune -name '.git' -print -quit);
         version=$(cmake --version);
         update=true
         echo -e "\n####################\nChecking: ${version}\n####################\n";
@@ -1242,16 +1242,16 @@ runs:
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
           clang_tidy=$(sudo find . -type f -name '.clang-tidy' -print -quit);
-          clang_run=$(sudo find / \( -path /proc -prune -o -path /sys -prune \) -type f -name 'run-clang-tidy.py' -print -quit 2>/dev/null);
+          clang_run=$(sudo find / \( -path /proc -prune -o -path /sys -prune \) -type f -name "*-clang-tidy.py" -print -quit 2>/dev/null);
           file_list=$(sudo find . -type f -name "*\${filetype}" -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
-          cmakelist=$(sudo find . -type f -iname 'CMakeLists.txt' -print -quit);
+          cmakelist=$(sudo find . -type f -path /llvm-project -prune -name 'CMakeLists.txt' -print -quit);
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           fi;
           if [[ -f "${cmakelist}" ]]; then
             echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################\n';
-            cp -vf "${cmakelist}" ./llvm-project/
+            #cp -vf "${cmakelist}" ./llvm-project/
           fi;
           IFS=$'\n';
           if [[ -f "${clang_file}" ]]; then
@@ -1275,13 +1275,13 @@ runs:
           fi;
          # cmake -G Ninja -S . -B build-ninja
          # cmake --build build-ninja
-          cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON llvm-project || echo "Errors: ( $? ) cmake no llvm-project dir?";
+          cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON llvm-project # || echo "Errors: ( $? ) cmake missing or malformed CMakeList.txt ?";
           if [[ -f "${compile_json}" ]]; then
             echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
-            ln -vsf $PWD/compile_commands.json llvm-project 2>/dev/null
-            time -p make check-all && clang-check llvm-project || echo "Errors: ( $? ) checking project files";
-            # clang-tidy --fix-errors -p llvm-project |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
+            ln -vs "${compile_json}" llvm-project 2>/dev/null
+            #time -p make check-all && clang-check llvm-project || echo "Errors: ( $? ) checking project files";
+            time -p clang-tidy --fix-errors -p llvm-project/ |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
             check_build=true
           elif [[ -f "${clang_run}" ]]; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
