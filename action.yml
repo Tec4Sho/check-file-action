@@ -127,10 +127,15 @@ runs:
           wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null;
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-17 main" >/dev/null;
           sudo apt-get update -yq >/dev/null 2>&1;
-          sudo apt-get install -yq clang-17 clang-format-17 clang-tidy-17 clangd-17 >/dev/null && echo -e "${text5}" || echo 'No clang-tools installed Exiting';
+          sudo apt-get install -yq clang clang-17 clang-format clang-tidy clangd >/dev/null && echo -e "${text5}" || echo 'No clang-tools installed Exiting';
           [[ ! -n $(clang-tidy --version 2>/dev/null) ]] && exit 1
         else
           sudo apt-get update -yq >/dev/null 2>&1;
+        fi;
+
+        if [[ ! $(which llvm) ]]; then
+          sudo apt-get -yq install llvm llvm-18-dev lld-18 libclang-18-dev >/dev/null && echo -e "\n####################\nllvm tools dependencies Installed\n####################\n" || echo 'No llvm tools installed for project build';
+          [[ ! $(which llvm) ]] && exit 1
         fi;
 
         if [[ ! -n $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
@@ -138,7 +143,7 @@ runs:
         fi;
 
         if [[ ! $(which ninja) ]]; then
-          sudo apt-get install ninja-build >/dev/null && echo -e "\n####################\nninja dependencies Installed\n####################\n" || echo 'No ninja installed for project build';
+          sudo apt-get -yq install ninja-build >/dev/null && echo -e "\n####################\nninja dependencies Installed\n####################\n" || echo 'No ninja installed for project build';
           [[ ! $(which ninja) ]] && exit 1
         fi;
 
@@ -1222,6 +1227,7 @@ runs:
         fi;
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
+          generate_json=$(sudo find / -type f -name 'generate_compdb.py' -print -quit);
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
           clang_tidy=$(sudo find . -type f -name '.clang-tidy' -print -quit);
@@ -1243,13 +1249,17 @@ runs:
                 fi;
               done;
             fi;
-            echo -e "${file_list}" >> "${clang_file}";
+            echo -e " ${file_list}" >> "${clang_file}";
           fi;
           if [[ -d "${build_dir}" ]]; then
             echo -e '\n####################\n\tbuild directory found continuing...\n####################\n';
             cd "${build_dir}";
             cmake -G Ninja -S "${src_tree%/*}" -B .
             cmake --build .
+            if [[ -f "${generate_json}" ]]; then
+              echo -e '\n####################\n\tgenerate_compdb.py file found continuing...\n####################\n';
+              ${generate_json} -p . > compile_commands.json 
+            fi;
             cd "${src_tree%/*}";
           else
             mkdir -p build
