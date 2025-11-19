@@ -1238,8 +1238,8 @@ runs:
             if [[ -n "${dirs_list}" ]]; then
               echo -e '\n####################\n\tinclude directories found continuing...\n####################\n';
               for dir in ${dirs_list[@]}; do
-                if [[ -n "$(echo ${dir} | grep -sw include)" ]]; then
-                  echo " -I${dir}" | sed 's/^\.\///' >> "${clang_file}";
+                if [[ -d "$(echo ${dir} | grep -sFw include)" ]]; then
+                  echo " -I${dir}" >> "${clang_file}";
                 fi;
               done;
             fi;
