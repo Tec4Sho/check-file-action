@@ -127,14 +127,14 @@ runs:
           wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null;
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-17 main" >/dev/null;
           sudo apt-get update -yq >/dev/null 2>&1;
-          sudo apt-get install -yq clang clang-17 clang-format clang-tidy clangd >/dev/null && echo -e "${text5}" || echo 'No clang-tools installed Exiting';
+          sudo apt-get install -yq clang clangd clang-tools >/dev/null && echo -e "${text5}" || echo 'No clang-tools installed Exiting';
           [[ ! -n $(clang-tidy --version 2>/dev/null) ]] && exit 1
         else
           sudo apt-get update -yq >/dev/null 2>&1;
         fi;
 
         if [[ ! $(llvm-config --version 2>/dev/null) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install llvm llvm-18-dev lld-18 libclang-18-dev >/dev/null && echo -e "\n####################\nllvm tools dependencies Installed\n####################\n" || echo 'No llvm tools installed for project build';
+          sudo apt-get -yq install llvm llvm-dev lld libclang-dev >/dev/null && echo -e "\n####################\nllvm tools dependencies Installed\n####################\n" || echo 'No llvm tools installed for project build';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
 
@@ -1219,7 +1219,7 @@ runs:
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
         version=$(cmake --version);
         update=true
-        echo -e "\n####################\nChecking cmake: ${version}\n####################\n";
+        echo -e "\n####################\nChecking: ${version}\n####################\n";
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
           update=false
@@ -1233,7 +1233,7 @@ runs:
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
           clang_tidy=$(sudo find . -type f -name '.clang-tidy' -print -quit);
-          clang_run=$(sudo find / -type f -name 'run-clang-tidy.py' -print -quit);
+          clang_run=$(sudo find / \( -path /proc -prune -o -path /sys -prune \) -type f -name 'run-clang-tidy.py' -print -quit 2>/dev/null);
           file_list=$(sudo find . -type f -name "*\${filetype}" -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
           build_dir=$(sudo find . -type d -name 'build' -print -quit);
@@ -1256,19 +1256,24 @@ runs:
               echo -e "${file_list}" >> "${clang_file}";
             fi;
           fi;
-          mkdir -p build
-          echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
-          cmake -G Ninja -S . -B build
-          cmake --build build
+          git config --global user.name "${{ github.actor }}";
+          git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com";
+          git clone https://github.com/llvm/llvm-project.git || echo "Errors: ( $? ) cloning llvm project";
+          mkdir -p build-ninja && echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
+         # cmake -G Ninja -S . -B build-ninja
+         # cmake --build build-ninja
+          cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON llvm-project
           if [[ -f "${compile_json}" ]]; then
             echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
             echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
-            time -p clang-tidy --fix-errors -p build  |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
+            ln -vsf $PWD/compile_commands.json llvm-project 2>/dev/null
+            time -p make check-all && clang-check llvm-project || echo "Errors: ( $? ) checking project files";
+            # clang-tidy --fix-errors -p llvm-project |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
             check_build=true
           elif [[ -f "${clang_run}" ]]; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING PROJECT\n####################\n';
-            time -p run-clang-tidy.py -p=build/ -fix -checks=-*,readability-* -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
+            time -p run-clang-tidy.py -p=build-ninja/ -fix -checks=-*,readability-* -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
             check_build=true
           elif [[ -f "${clang_file}" ]]; then
             echo -e "\n####################\n\t${clang_file} created continuing...\n####################\n";
