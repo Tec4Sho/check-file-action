@@ -393,6 +393,8 @@ runs:
         repository: Tec4Sho/llvm-project.git
         path: ./${{ steps.set_dirname.outputs.dirname }}/${{ github.event.inputs.DEVICE_PATH }}/llvm-project
         ref: main
+        fetch-depth: 1 # Fetch only the latest
+      continue-on-error: true
 
 
     - name: Check & Repair (Clang-tools)
