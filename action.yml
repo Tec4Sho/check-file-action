@@ -1,6 +1,15 @@
 name: Check File Action
 description: 'Check file - Add filename to check for errors or text Word to search for within workspace files'
 inputs:
+  analysis:
+    description: 'Analyze all project files using options 1 2 or 3'
+    required: false
+    default: 1
+    type: choice
+    options:
+    - 1 # uses clang_tidy_params.txt for smaller simple repos.
+    - 2 # uses run-clang-tidy.py for parallelism of file scanning.
+    - 3 # uses compile_commands.json for maximum project build scans.
   filename:
     description: 'Check for filename or search for text word matches'
     type: string
@@ -150,6 +159,11 @@ runs:
         if [[ ! $(which cmake) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install cmake >/dev/null >/dev/null && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo 'No cmake installed for project build';
           [[ ! $(which cmake) ]] && exit 1
+        fi;
+
+        if [[ ! $(which python3) ]] && ${{ inputs.project }} && ${{ inputs.analysis = 2 }}; then
+          sudo apt-get -yq install python3 >/dev/null >/dev/null && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo 'No python3 installed for project build';
+          [[ ! $(which python3) ]] && exit 1
         fi;
 
         if [[ ! $(which npm) ]]; then
@@ -1224,35 +1238,40 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
         check_build=false
-        filetype='.c';
+        file_type='.c';
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -path /llvm-project -prune -o -print -quit);
         version=$(cmake --version);
         update=true
         echo -e "\n####################\nChecking: ${version}\n####################\n";
+
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
           update=false
         fi;
+
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
-          filetype=${{ inputs.filetype }}
+          file_type=${{ inputs.filetype }}
         fi;
+
         if [[ -d "${src_tree}" ]]; then
-          echo -e "\n####################\nChecking for ${filetype} file(s)\n####################\n";
+          echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n";
           cd "${src_tree%/*}";
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
           clang_tidy=$(sudo find . -type f -name '.clang-tidy' -print -quit);
-          clang_run=$(sudo find / -type f -name run-clang-tidy.py" \( -path /proc -prune -o -path /sys -prune -o \) -print -quit 2>/dev/null);
-          file_list=$(sudo find . -type f -name "*\${filetype}" -print);
+          clang_run=$(sudo find . -type f -name 'run-clang-tidy.py' -path 'llvm-project' -print -quit);
+          file_list=$(sudo find . -type f -name "*\${file_type}" -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
           cmakelist=$(sudo find . -type f -name 'CMakeLists.txt' -path /llvm-project -prune -o -print -quit);
+
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           fi;
+
           if [[ -f "${cmakelist}" ]]; then
             echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################\n';
-            #cp -vf "${cmakelist}" ./llvm-project/
           fi;
+
           IFS=$'\n';
           if [[ -f "${clang_file}" ]]; then
             echo ' ' >> "${clang_file}";
@@ -1269,45 +1288,67 @@ runs:
               echo "${file_list}" >> "${clang_file}";
             fi;
           fi;
-          # mkdir -p build
+
           if [[ -d llvm-project ]]; then
             echo -e '\n####################\n\tllvm-project directory found continuing...\n####################\n';
           fi;
-         # cmake -G Ninja -S . -B build-ninja
-         # cmake --build build-ninja
-          cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON llvm-project # || echo "Errors: ( $? ) cmake missing or malformed CMakeList.txt ?";
-          if [[ -f "${compile_json}" ]]; then
-            echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
-            echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
-            ln -vs "${compile_json}" llvm-project 2>/dev/null
-            #time -p make check-all && clang-check llvm-project || echo "Errors: ( $? ) checking project files";
-            time -p clang-tidy --fix-errors -p llvm-project/ |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
-            check_build=true
-          elif [[ -f "${clang_run}" ]]; then
-            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
-            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING PROJECT\n####################\n';
-            time -p run-clang-tidy.py -p=build-ninja/ -fix -checks=-*,readability-* -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
-            check_build=true
-          elif [[ -f "${clang_file}" ]]; then
-            echo -e "\n####################\n\t${clang_file} created continuing...\n####################\n";
-            echo -e '\n####################\nCLANG-TIDY ANALYZING PROJECT\n####################\n';
-            time -p clang-tidy @${clang_file} -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" || echo "Errors: ( $? ) checking project files";
-            check_build=true
-          else
-            echo -e "\n####################\n\tclang files missing in repo Exiting...\n####################\n";
+           # cmake -G Ninja -S . -B build-ninja
+           # cmake --build build-ninja
+          cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON llvm-project || echo "Errors: ( $? ) cmake missing or malformed CMakeList.txt ?";
+
+          if [[ -f "${clang_file}" ]] && ${{ inputs.analyze = 1 }}; then
+            echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
+            echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND JSON\n####################\n';
+            { time -p \
+            clang-tidy @${clang_file} -- -I"${src_tree%/*}" \
+            check_build=true \
+            echo -e '\n|RUNTIME|';
+            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Errors: ( $? ) checking project files";
+          elif [[ ! -f "${clang_file}" ]] && ${{ inputs.analyze = 1 }}; then
+            echo -e "\n####################\n\tclang_tidy_params.txt missing in repo Exiting...\n####################\n";
           fi;
+
+          if [[ -f "${compile_json}" ]] && ${{ inputs.analysis = 2 }}; then
+            echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
+            echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND JSON\n####################\n';
+            cp -v "${compile_json}" './llvm-project/' 2>/dev/null;
+            { time -p \
+            clang-tidy --config-file="${clang_tidy}" --fix-errors -p llvm-project/ \
+            check_build=true \
+            echo -e '\n|RUNTIME|';
+            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Errors: ( $? ) checking project files";
+          elif [[ ! -f "${compile_json}" ]] && ${{ inputs.analysis = 2 }}; then
+            echo -e "\n####################\n\trun-clang-tidy.py missing in repo Exiting...\n####################\n";
+          fi;
+
+          if [[ -f "${clang_run}" ]] && ${{ inputs.analysis = 3 }}; then
+            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
+            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING COMPILE COMMAND JSON\n####################\n';
+            { time -p \
+            ./llvm-project/clang-tools-extra/clang-tidy/tool/run-clang-tidy.py -fix -checks=-*,readability-* -j "$(nproc--all)" -p=llvm-project/ \
+            check_build=true \
+            echo -e '\n|RUNTIME|';
+            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Errors: ( $? ) checking project files";
+          elif [[ ! -f "${clang_run}" ]] && ${{ inputs.analyze = 3 }}; then
+            echo -e "\n####################\n\tcompile_commands.json missing in repo Exiting...\n####################\n";
+          fi;
+
           if [[ ! -f "${clang_file}" ]] && [[ ! -f "${compile_json}" ]]; then
             echo -e "\n####################\n\t${clang_file} not found\n\tcompile_commands.json not created\nExiting...\n####################\n";
             exit 1
           fi;
+
           if [[ ${update} ]]; then
-            rm -vf "${clang_file}";
+            echo -e "\nCLANG-PARAMS: $(rm -vf ${clang_file})\n";
+            echo -e "\nLLVM-PROJECT: $(rm -vR llvm-project/)\n";
           fi;
+
           if [[ ${check_build} ]]; then
+            echo -e "\n####################\n\tProject Checked Exiting...\n####################\n";
             echo 'file_fixed=1' >> "${GITHUB_ENV}";
           fi;
         else
-          echo 'Error .git directory not found ???';
+          echo 'Error .git directory not found?';
         fi;
       shell: bash
       continue-on-error: true
@@ -1383,8 +1424,8 @@ runs:
       if: inputs.filename != '' || inputs.pattern != '' || inputs.project != 'false'
       run: |
         date
-        if [[ -f "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log" ]]; then
-          echo -e "\nPROJECT: $(rm -vf ${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | sed 's/[\/\$]//g')_build.log)\n";
+        if [[ -f "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" ]]; then
+          echo -e "\nPROJECT: $(rm -vf ${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log)\n";
         fi;
         if [[ -f "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" ]]; then
           echo -e "\nLOGFILE: $(rm -vf ${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log)\n";
