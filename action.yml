@@ -1266,9 +1266,9 @@ runs:
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print);
         update=true
         echo -e "\n####################\n${cmake_version}\n####################\n";
-        echo -e "\n####################\n${llvm_version}\n####################\n";
-        echo -e "\n####################\n${verify_config}\n####################\n";
-        echo -e "\n####################\n${clang_checks}\n####################\n";
+        echo -e "\n####################\nllvm version ${llvm_version}\n####################\n";
+        echo -e "\n####################\nclang-tidy check: ${verify_config}\n####################\n";
+        echo -e "\n####################\nClang-Tidy List\n\t${clang_checks}\n####################\n";
         
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
@@ -1334,7 +1334,7 @@ runs:
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING CLANG PARAMS FILE\n####################\n';
             { time -p \
-              clang-tidy @clang_tidy_params.txt 2>/dev/null;
+              clang-tidy @clang_tidy_params.txt --fix-errors 2>/dev/null;
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
