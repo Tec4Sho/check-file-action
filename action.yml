@@ -1313,7 +1313,7 @@ runs:
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING CLANG PARAMS FILE\n####################\n';
             { time -p \
-            clang-tidy @"${clang_file}" -- -I"${src_tree%/*}";
+            clang-tidy @clang_tidy_params.txt;
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Errors: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
