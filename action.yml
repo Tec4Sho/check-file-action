@@ -1096,7 +1096,7 @@ runs:
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
           for type in ${types[@]}; do
             echo '| Runtime |';
-            matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
+            matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
             matches=${matches};
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
@@ -1160,7 +1160,7 @@ runs:
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
           for type in ${{ inputs.filetype }}; do
             echo '| Runtime |';
-            matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*${type}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
+            matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*.${type}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
             matches=${matches};
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
@@ -1250,19 +1250,20 @@ runs:
         fi;
 
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
-          file_type=${{ inputs.filetype }};
+          file_type="${{ inputs.filetype }}"
         fi;
         
         if [[ -d "${src_tree}" ]]; then
           echo -e "\n####################\nChecking Repository ${src_tree}\n####################\n";
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n";
+
           cd "${src_tree%/*}";
-          filetype="\${file_type}$";
+
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
           clang_tidy=$(sudo find . -type f -name '.clang-tidy' -print -quit);
           clang_run=$(sudo find . -type f -name 'run-clang-tidy.py' -print -quit);
-          file_list=$(sudo find . -type f -print | grep -se "${filetype}");
+          file_list=$(sudo find . -type f -name "*.${file_type}" -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
           cmakelist=$(sudo find . -type f -name 'CMakeLists.txt' -print | grep -v llvm-project);
 
