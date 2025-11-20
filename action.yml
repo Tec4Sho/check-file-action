@@ -390,7 +390,7 @@ runs:
       if: inputs.project == 'true'
       uses: actions/checkout@v4
       with:
-        repository: llvm/llvm-project.git
+        repository: Tec4Sho/llvm-project.git
         path: ./${{ steps.set_dirname.outputs.dirname }}/${{ github.event.inputs.DEVICE_PATH }}/llvm-project
         ref: main
 
@@ -1250,19 +1250,19 @@ runs:
         fi;
 
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
-          file_type=${{ inputs.filetype }}
+          file_type=${{ inputs.filetype }};
         fi;
         
         if [[ -d "${src_tree}" ]]; then
           echo -e "\n####################\nChecking Repository ${src_tree}\n####################\n";
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n";
           cd "${src_tree%/*}";
-          filetype="*\$file_type";
+          filetype="\${file_type}$";
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
           clang_tidy=$(sudo find . -type f -name '.clang-tidy' -print -quit);
           clang_run=$(sudo find . -type f -name 'run-clang-tidy.py' -print -quit);
-          file_list=$(sudo find . -type f -name "$filetype" -print);
+          file_list=$(sudo find . -type f -print | grep -se "${filetype}");
           dirs_list=$(sudo find . -type d -name 'include' -print);
           cmakelist=$(sudo find . -type f -name 'CMakeLists.txt' -print | grep -v llvm-project);
 
@@ -1361,9 +1361,12 @@ runs:
       run: |
         echo '';
         repair_date="$(date +%Y%m%d)";
-        repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
+        repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print | grep -v llvm-project);
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
+          if ${{ inputs.project }}; then
+            git config --global --add safe.directory .
+          fi;
           git config --global user.name "${{ github.actor }}";
           git config --global user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com";
           git config --global credential.helper store
@@ -1389,6 +1392,9 @@ runs:
               echo -e "\n####################\nUPDATED FILE(S) LIST:\n####################\n";
               git diff --name-only @{push}@{1} @{push} |& tee -a "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log";
               echo -e "\n\t########## ${repair_date} ##########\n";
+              if ${{ inputs.project }}; then
+                git status 2>/dev/null;
+              fi;
             else
               echo 'Was git push event successful status ? unknown';
             fi;
