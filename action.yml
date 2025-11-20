@@ -1252,15 +1252,17 @@ runs:
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
           file_type=${{ inputs.filetype }}
         fi;
-
+        
         if [[ -d "${src_tree}" ]]; then
+          echo -e "\n####################\nChecking Repository ${src_tree}\n####################\n";
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n";
           cd "${src_tree%/*}";
+          filetype="*\$file_type";
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_file=$(sudo find . -type f -name 'clang_tidy_params.txt' -print -quit);
           clang_tidy=$(sudo find . -type f -name '.clang-tidy' -print -quit);
           clang_run=$(sudo find . -type f -name 'run-clang-tidy.py' -path 'llvm-project' -print -quit);
-          file_list=$(sudo find . -type f -name "*\${file_type}" -print);
+          file_list=$(sudo find . -type f -name "$filetype" -print);
           dirs_list=$(sudo find . -type d -name 'include' -print);
           cmakelist=$(sudo find . -type f -name 'CMakeLists.txt' -path /llvm-project -prune -o -print -quit);
 
@@ -1284,7 +1286,7 @@ runs:
               done;
             fi;
             if [[ -n "${file_list}" ]]; then
-              echo -e '\n####################\n\t${typefile} file(s) found continuing...\n####################\n';
+              echo -e '\n####################\n\t${file_type} file(s) found continuing...\n####################\n';
               echo "${file_list}" >> "${clang_file}";
             fi;
           fi;
@@ -1298,7 +1300,7 @@ runs:
 
           if [[ -f "${clang_file}" ]] && ${{ inputs.analysis == 1 }}; then
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
-            echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND JSON\n####################\n';
+            echo -e '\n####################\nCLANG-TIDY ANALYZING CLANG PARAMS FILE\n####################\n';
             { time -p \
             clang-tidy @${clang_file} -- -I"${src_tree%/*}" \
             check_build=true \
@@ -1310,7 +1312,7 @@ runs:
 
           if [[ -f "${compile_json}" ]] && ${{ inputs.analysis == 2 }}; then
             echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
-            echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND JSON\n####################\n';
+            echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
             cp -v "${compile_json}" './llvm-project/' 2>/dev/null;
             { time -p \
             clang-tidy --config-file="${clang_tidy}" --fix-errors -p llvm-project/ \
@@ -1323,7 +1325,7 @@ runs:
 
           if [[ -f "${clang_run}" ]] && ${{ inputs.analysis == 3 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
-            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING COMPILE COMMAND JSON\n####################\n';
+            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
             { time -p \
             ./llvm-project/clang-tools-extra/clang-tidy/tool/run-clang-tidy.py -fix -checks=-*,readability-* -j "$(nproc--all)" -p=llvm-project/ \
             check_build=true \
