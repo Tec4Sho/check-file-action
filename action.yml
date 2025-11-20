@@ -1296,7 +1296,7 @@ runs:
            # cmake --build build-ninja
           cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON llvm-project || echo "Errors: ( $? ) cmake missing or malformed CMakeList.txt ?";
 
-          if [[ -f "${clang_file}" ]] && ${{ inputs.analyze == 1 }}; then
+          if [[ -f "${clang_file}" ]] && ${{ inputs.analysis == 1 }}; then
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND JSON\n####################\n';
             { time -p \
@@ -1304,7 +1304,7 @@ runs:
             check_build=true \
             echo -e '\n|RUNTIME|';
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Errors: ( $? ) checking project files";
-          elif [[ ! -f "${clang_file}" ]] && ${{ inputs.analyze == 1 }}; then
+          elif [[ ! -f "${clang_file}" ]] && ${{ inputs.analysis == 1 }}; then
             echo -e "\n####################\n\tclang_tidy_params.txt missing in repo Exiting...\n####################\n";
           fi;
 
@@ -1317,11 +1317,11 @@ runs:
             check_build=true \
             echo -e '\n|RUNTIME|';
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Errors: ( $? ) checking project files";
-          elif [[ ! -f "${compile_json}" ]] && ${{ inputs.analysis = 2 }}; then
+          elif [[ ! -f "${compile_json}" ]] && ${{ inputs.analysis == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py missing in repo Exiting...\n####################\n";
           fi;
 
-          if [[ -f "${clang_run}" ]] && ${{ inputs.analysis = 3 }}; then
+          if [[ -f "${clang_run}" ]] && ${{ inputs.analysis == 3 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING COMPILE COMMAND JSON\n####################\n';
             { time -p \
@@ -1329,7 +1329,7 @@ runs:
             check_build=true \
             echo -e '\n|RUNTIME|';
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Errors: ( $? ) checking project files";
-          elif [[ ! -f "${clang_run}" ]] && ${{ inputs.analyze = 3 }}; then
+          elif [[ ! -f "${clang_run}" ]] && ${{ inputs.analysis = 3 }}; then
             echo -e "\n####################\n\tcompile_commands.json missing in repo Exiting...\n####################\n";
           fi;
 
