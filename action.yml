@@ -1265,17 +1265,21 @@ runs:
         verify_config=$(clang-tidy --verify-config 2>/dev/null);
         cmake_version=$(cmake --version);
         clang_checks=$(clang-tidy --list-checks 2>/dev/null);
+        gcc_version=$(gcc --version);
+        gpp_version=$(g++ --version);
         check_build=false
         file_type='c';
         compiler=$(dpkg -l | grep -iF 'compiler' | tr -d 'ii');
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print);
         update=true
 
-        echo -e "\n####################\n${clang_version}\n####################\n";
-        echo -e "\n####################\n${cmake_version}\n####################\n";
-        echo -e "\n####################\nVerify Clang-Tidy Config: ${verify_config}\n####################\n";
-        echo -e "\n####################\nClang-Tidy List ##\n${clang_checks}\n####################\n";
-        
+        echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n";
+        echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n";
+        echo -e "\n####################\nCompiler: ${clang_version}\n####################\n";
+        echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n";
+        echo -e "\n####################\nVerify: clang-tidy config ${verify_config}\n####################\n";
+        echo -e "\n####################\n# Clang Tools List #\n${clang_checks}\n####################\n";
+
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
           update=false

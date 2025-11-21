@@ -1,5 +1,5 @@
 ---
-Checks:                '-*,clang-diagnostic,clang-analyzer,modernize'
+Checks:                '-*,clang-diagnostic-*,clang-analyzer-*,modernize*'
 WarningsAsErrors:      ''
 HeaderFileExtensions:         ['', 'h','hh','hpp','hxx']
 ImplementationFileExtensions: ['c','cc','cpp','cxx']
@@ -8,7 +8,6 @@ InheritParentConfig:   true
 User:                  user
 SystemHeaders:         true
 UseColor:              true
-AnalyzeTemporaryDtors: false
 FormatStyle:           none
 CheckOptions:
   - key:             modernize-loop-convert.MaxCopySize
