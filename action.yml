@@ -1357,7 +1357,8 @@ runs:
             echo -e '\n|RUNTIME|';
             check_build=true
           elif [[ ! -f "${clang_file}" ]] && ${{ inputs.analysis == 1 }} && ! ${{ inputs.build }}; then
-            echo -e "\n####################\n\tclang_tidy_params.txt missing in repo Exiting...\n####################\n";
+            echo -e "\n####################\n\tparameter-file missing in repo Exiting...\n####################\n";
+            exit 1
           fi;
 
           if [[ -f "${clang_run}" ]] && ${{ inputs.analysis == 2 }} && ! ${{ inputs.build }}; then
@@ -1382,6 +1383,7 @@ runs:
             check_build=true
           elif [[ ! -f "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]] && ${{ inputs.analysis == 2 }} && ! ${{ inputs.build }}; then
             echo -e "\n####################\n\tcompile_commands.json missing in repo Exiting...\n####################\n";
+            exit 1
           fi;
 
           if [[ -s "${compile_json}" ]] && ${{ inputs.analysis == 3 }} && ! ${{ inputs.build }}; then
@@ -1394,10 +1396,6 @@ runs:
             check_build=true
           elif [[ ! -f "${compile_json}" ]] && ${{ inputs.analysis == 3 }} && ! ${{ inputs.build }}; then
             echo -e "\n####################\n\trun-clang-tidy.py missing in repo Exiting...\n####################\n";
-          fi;
-
-          if [[ ! -s "${clang_file}" ]] && [[ ! -s "${compile_json}" ]]; then
-            echo -e "\n####################\n\t${clang_file} not found\n\tcompile_commands.json not created or empty\nExiting...\n####################\n";
             exit 1
           fi;
 
@@ -1405,7 +1403,7 @@ runs:
             echo -e "\nCLANG-PARAMS: $(rm -vf ${clang_file} 2>/dev/null)\n";
           fi;
 
-          echo -e "\n####################\n\t#Full Compiler List#\n${compiler_list}\n####################\n";
+          echo -e "\n####################\n# Installed Compiler #\n${compiler_list}\n####################\n";
 
           if [[ ${check_build} ]]; then
             echo -e '\n####################\n\tProject Checked Exiting...\n####################\n';
