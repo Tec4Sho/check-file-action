@@ -237,6 +237,8 @@ runs:
           fi;
         elif [[ -n ${file} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           sudo cp -vf "${file}" "${path}" 2>/dev/null;
+        elif [[ ! -n ${file} ]]; then
+          echo -e '\ncheckmake.ini file missing, needed for checkmake to function properly\n';
         fi;
 
         if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
@@ -1320,6 +1322,10 @@ runs:
             if [[ -d 'build' ]]; then
               echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
               cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "Error: ( $? ) cmake missing or malformed CMakeList.txt (?)";
+              if ${{ inputs.report }}; then
+                echo 'build_files=1' >> "${GITHUB_ENV}";
+                cp -Rf ./build 
+              fi;
             fi;
           fi;
 
@@ -1469,11 +1475,23 @@ runs:
       continue-on-error: true
 
 
-    - name: Uploading ${{ github.repository }} Project Report
+    - name: Uploading ${{ github.repository }} Project Report 1
       if: inputs.report != 'false' && inputs.project != 'false' && env.file_error == 1
       uses: softprops/action-gh-release@v1
       with:
         files: |
+          ./$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log
+        name: Check File Action Build Report For ${{ github.repository }} Repository.
+        tag_name: ${{ github.run_id }}
+      continue-on-error: true
+
+
+    - name: Uploading ${{ github.repository }} Project Report 2
+      if: inputs.report != 'false' && inputs.project != 'false' && env.build_files == 1
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./build/*
           ./$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log
         name: Check File Action Build Report For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
