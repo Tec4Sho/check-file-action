@@ -1294,7 +1294,7 @@ runs:
 
           cd "${src_tree%/*}";
           cmake_list='CMakeLists.txt';
-          clang_file='clang_tidy_params.txt';
+          clang_file='parameter-file';
           clang_tidy='.clang-tidy';
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_run=$(sudo find / -type f -name 'run-clang-tidy.py' -print -quit 2>/dev/null);
@@ -1347,7 +1347,7 @@ runs:
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING CLANG PARAMS FILE\n####################\n';
             { time -p \
-              clang-tidy @clang_tidy_params.txt;
+              clang-tidy @parameter-file --fix --fix-errors --fix-notes --quiet -- -I"${src_tree%/*}";
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
@@ -1359,8 +1359,8 @@ runs:
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
             { time -p \
-              python3 "${clang_run}" -fix -checks=-*,readability-* -j "$(nproc--all)" -p=build/ && \
-              python3 "${clang_run}" -fix -checks=-*,llvm-header-guard extra/clang-tidy \
+              python3 "${clang_run}" -p build/ -fix -checks=-*,readability-* -j "$(nproc--all)" && \
+              python3 "${clang_run}" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
               -header-filter=extra/clang-tidy;
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
@@ -1369,8 +1369,8 @@ runs:
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
             { time -p \
-              python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -fix -checks=-*,readability-* -j "$(nproc--all)" -p=build/ && \
-              python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -fix -checks=-*,llvm-header-guard extra/clang-tidy \
+              python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,readability-* -j "$(nproc--all)" && \
+              python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
               -header-filter=extra/clang-tidy;
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
@@ -1384,7 +1384,7 @@ runs:
             echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
             cp -v "${compile_json}" './build/' 2>/dev/null;
             { time -p \
-              clang-tidy --config-file="${clang_tidy}" --fix-errors -p build/;
+              clang-tidy -p build/ --config-file="${clang_tidy}" --fix-errors;
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Error: ( $? ) checking project files";
             check_build=true
           elif [[ ! -f "${compile_json}" ]] && ${{ inputs.analysis == 3 }} && ! ${{ inputs.build }}; then
