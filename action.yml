@@ -1261,7 +1261,7 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
        
-        clang_version=$(clang-tidy --version);
+        clang_version=$(clang --version);
         verify_config=$(clang-tidy --verify-config 2>/dev/null);
         cmake_version=$(cmake --version);
         clang_checks=$(clang-tidy --list-checks 2>/dev/null);
@@ -1269,7 +1269,6 @@ runs:
         gpp_version=$(g++ --version);
         check_build=false
         file_type='c';
-        compiler=$(dpkg -l | grep -iF 'compiler' | tr -d 'ii');
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print);
         update=true
 
@@ -1400,8 +1399,6 @@ runs:
           if [[ ${update} ]] && ${{ inputs.analysis == 1 }}; then
             echo -e "\nCLANG-PARAMS: $(rm -vf ${clang_file} 2>/dev/null)\n";
           fi;
-
-          echo -e "\n####################\nCompilers List:\n${compiler}\n####################\n";
 
           if [[ ${check_build} ]]; then
             echo -e "\n####################\n\tProject Checked Exiting...\n####################\n";
