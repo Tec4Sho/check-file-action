@@ -1318,6 +1318,10 @@ runs:
               cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "Error: ( $? ) cmake missing or malformed CMakeList.txt (?)";
               cmake --build build || echo "Error: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)";
               check_build=true
+              if ${{ inputs.report }}; then
+                echo 'build_files=1' >> "${GITHUB_ENV}";
+                cp -Rf ./build ${GITHUB_WORKSPACE}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
+              fi;
             fi;      
           else
             mkdir -p build
@@ -1326,7 +1330,7 @@ runs:
               cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "Error: ( $? ) cmake missing or malformed CMakeList.txt (?)";
               if ${{ inputs.report }}; then
                 echo 'build_files=1' >> "${GITHUB_ENV}";
-                cp -Rf ./build ${GITHUB_WORKSPACE}/
+                cp -Rf ./build ${GITHUB_WORKSPACE}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
               fi;
             fi;
           fi;
@@ -1471,7 +1475,7 @@ runs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          ./${{ inputs.filename }}_error.log
+          ./"${{ inputs.filename }}_error.log"
         name: Check File Action Errors Report For ${{ inputs.filename }} File(s).
         tag_name: ${{ github.run_id }}
       continue-on-error: true
@@ -1482,7 +1486,7 @@ runs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          ./$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log
+          ./"$(echo ${{ github.repository }} | cut -d'/' -f 2-)"_project.log
         name: Check File Action Build Report For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
       continue-on-error: true
@@ -1494,7 +1498,6 @@ runs:
       with:
         files: |
           ./build/*
-          ./$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log
         name: Check File Action Build Report For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
       continue-on-error: true
