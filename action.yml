@@ -1353,7 +1353,7 @@ runs:
             echo -e '\n####################\nCLANG-TIDY ANALYZING CLANG PARAMS FILE\n####################\n';
             { time -p \
               clang-tidy @parameter-file --fix --fix-errors --fix-notes --quiet -- -I"${src_tree%/*}";
-            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Error: ( $? ) checking project files";
+            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
           elif [[ ! -f "${clang_file}" ]] && ${{ inputs.analysis == 1 }} && ! ${{ inputs.build }}; then
@@ -1368,7 +1368,7 @@ runs:
               python3 "${clang_run}" -p build/ -fix -checks=-*,readability-* -j "$(nproc--all)" && \
               python3 "${clang_run}" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
               -header-filter=extra/clang-tidy;
-            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Error: ( $? ) checking project files";
+            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
           elif [[ ! -f "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]] && ${{ inputs.analysis == 2 }} && ! ${{ inputs.build }}; then
@@ -1378,7 +1378,7 @@ runs:
               python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,readability-* -j "$(nproc--all)" && \
               python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
               -header-filter=extra/clang-tidy;
-            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Error: ( $? ) checking project files";
+            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
           elif [[ ! -f "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]] && ${{ inputs.analysis == 2 }} && ! ${{ inputs.build }}; then
@@ -1392,7 +1392,7 @@ runs:
             cp -v "${compile_json}" './build/' 2>/dev/null;
             { time -p \
               clang-tidy -p build/ --config-file="${clang_tidy}" --fix-errors;
-            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" || echo "Error: ( $? ) checking project files";
+            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
             check_build=true
           elif [[ ! -f "${compile_json}" ]] && ${{ inputs.analysis == 3 }} && ! ${{ inputs.build }}; then
             echo -e "\n####################\n\trun-clang-tidy.py missing in repo Exiting...\n####################\n";
@@ -1484,7 +1484,7 @@ runs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          ./"$(echo ${{ github.repository }} | cut -d'/' -f 2-)"_project.log
+          ./"${{ github.actor }}_project.log"
         name: Check File Action Build Report For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
       continue-on-error: true
@@ -1506,7 +1506,7 @@ runs:
       run: |
         date
         if [[ -f "${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log" ]]; then
-          echo -e "\nPROJECT: $(rm -vf ${GITHUB_WORKSPACE}/$(echo ${{ github.repository }} | cut -d'/' -f 2)_project.log)\n";
+          echo -e "\nPROJECT: $(rm -vf ${GITHUB_WORKSPACE}/${{ github.actor }}_project.log)\n";
         fi;
         if [[ -f "${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log" ]]; then
           echo -e "\nLOGFILE: $(rm -vf ${GITHUB_WORKSPACE}/$(echo ${{ inputs.filename }} | sed 's/[\/\$]//g')_error.log)\n";
@@ -1514,6 +1514,15 @@ runs:
         if [[ -f "${GITHUB_WORKSPACE}/database" ]]; then
           echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/database)\n";
         fi;
+      shell: bash
+      continue-on-error: true
+
+
+    - name: Action Check
+      if: inputs.filename == '' && inputs.pattern == '' && inputs.project != 'true'
+      run: |
+        echo ''
+        echo -e '\nNo input provided!\nSet input option.\n• filename: none\n• pattern: none\n• project: false\n\tNothing To Do?\n';
       shell: bash
       continue-on-error: true
 
@@ -1527,7 +1536,7 @@ runs:
             local text="$1";
             local term_cols="$(tput cols)";
             local text_length="${#text}";
-            if [[ -n $(node ./scripts/mobile.js 2>/dev/null) ]] || [[ -n $(node ./scripts/view.js 2>/dev/null) ]]; then
+            if [[ -n $(node ${{ github.action_path }}/scripts/mobile.js 2>/dev/null) ]] || [[ -n $(node ${{ github.action_path }}/scripts/view.js 2>/dev/null) ]]; then
               local padding="$(( (term_cols - text_length) / 2 ))";
               local text="$(echo $1 | tr -d '\n')";
               print '';
@@ -1547,13 +1556,5 @@ runs:
       shell: bash
       continue-on-error: true
 
-
-    - name: Filename Check
-      if: inputs.filename == '' && inputs.pattern == '' && inputs.project != 'true'
-      run: |
-        echo ''
-        echo -e "\nNo input provided!\nVariables not set\n• filename\n• pattern\n\t Exiting\n";
-      shell: bash
-      continue-on-error: true
 
 ## Version 2.0.0 Professional (beta 3)
