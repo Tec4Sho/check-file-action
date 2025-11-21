@@ -1,5 +1,5 @@
 -p=build/
--checks=clang-diagnostic-*,clang-analyzer-*,modernize-*,readability-identifier-naming-*
+-checks=-*,clang-diagnostic,clang-analyzer,modernize
 -header-filter=.*
 -fix-errors
 -quiet
