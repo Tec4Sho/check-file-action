@@ -1261,6 +1261,7 @@ runs:
         echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
        
+        compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         clang_version=$(clang --version);
         verify_config=$(clang-tidy --verify-config 2>/dev/null);
         cmake_version=$(cmake --version);
@@ -1400,11 +1401,13 @@ runs:
             echo -e "\nCLANG-PARAMS: $(rm -vf ${clang_file} 2>/dev/null)\n";
           fi;
 
+          echo -e "\n####################\n\t#Full Compiler List#\n${compiler_list}\n####################\n";
+
           if [[ ${check_build} ]]; then
-            echo -e "\n####################\n\tProject Checked Exiting...\n####################\n";
+            echo -e '\n####################\n\tProject Checked Exiting...\n####################\n';
             echo 'file_fixed=1' >> "${GITHUB_ENV}";
           else
-            echo -e "\n####################\n\tProject Not Checked Exiting...\n####################\n";
+            echo -e '\n####################\n\tProject Not Checked Exiting...\n####################\n';
           fi;
         else
           echo 'Error .git directory not found?';
