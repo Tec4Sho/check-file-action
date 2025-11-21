@@ -430,7 +430,7 @@ runs:
         file_count=1
         include_count=1
         if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair }}; then
@@ -609,7 +609,7 @@ runs:
           echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
         if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n";
             awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}' "${files}";
@@ -705,7 +705,7 @@ runs:
         fi;
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "file_found=1" >> "${GITHUB_ENV}";
           { time -p for f in ${files[@]}; do
             count4=$((makefile_count++));
@@ -751,7 +751,7 @@ runs:
         fi;
         file_count=1
         if [[ -n ${files} ]]; then
-          echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           { time -p for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
@@ -787,7 +787,7 @@ runs:
         file_count=1
         include_count=1
         if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair }}; then
@@ -958,7 +958,7 @@ runs:
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n";
             awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}' "${files}";
@@ -1047,7 +1047,7 @@ runs:
         file_type="${file_name##*.}";
         makefile_count=1
         if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           { time -p for f in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
@@ -1085,7 +1085,7 @@ runs:
         file_type="${file_name##*.}";
         file_count=1
         if [[ -n ${files} ]]; then
-          echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           { time -p for f in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
@@ -1112,8 +1112,8 @@ runs:
         export LC_ALL=C
         set +e
         file_count=1
-        echo -e "\n####################\n\033[1mWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\033[0m\n####################\n";
-        echo -e "\n####################\n\033[1mPattern Matching: ${{ inputs.pattern }}\033[0m\n####################\n";
+        echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+        echo -e "\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n";
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
           for type in ${types[@]}; do
             echo '| Runtime |';
@@ -1176,8 +1176,8 @@ runs:
       run: |
         set +e
         file_count=1
-        echo -e "\033[1m\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n\033[0m";
-        echo -e "\033[1m\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n\033[0m";
+        echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
+        echo -e "\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n";
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
           for type in ${{ inputs.filetype }}; do
             echo '| Runtime |';
@@ -1352,7 +1352,7 @@ runs:
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING CLANG PARAMS FILE\n####################\n';
             { time -p \
-              clang-tidy @parameter-file --fix --fix-errors --fix-notes --quiet -- -I"${src_tree%/*}";
+              clang-tidy @parameter-file;
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
