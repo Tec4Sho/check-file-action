@@ -1277,8 +1277,8 @@ runs:
         echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n";
         echo -e "\n####################\nCompiler: ${clang_version}\n####################\n";
         echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n";
-        echo -e "\n####################\nVerify: clang-tidy config ${verify_config}\n####################\n";
-        echo -e "\n####################\n# Clang Tools List #\n${clang_checks}\n####################\n";
+        echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n";
+        echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n";
 
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
