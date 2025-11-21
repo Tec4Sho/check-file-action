@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.10) # Specifies the minimum required CMake vers
 # ... other project settings ... #
 project(MyProject VERSION 1.0 LANGUAGES C)
 
+message(STATUS "GitHub Workspace: $ENV{GITHUB_WORKSPACE}")
+
 set(LLVM_ENABLE_PROJECTS clang;clang-tools-extra)
 
 # .set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # does not produce the json file on wrong cmake version 
@@ -40,9 +42,13 @@ find_program(CLANG_TIDY_EXE "clang-tidy")
     message(WARNING "clang-tidy not found! Static analysis will be skipped.")
   endif()
 
-file(GLOB_RECURSE SOURCES "main.c")
+file(GLOB_RECURSE SOURCES "*.c")
 
 add_executable(MyProject ${SOURCES}) # Creates an executable target named "MyProject" from sources file
+
+file(GLOB_RECURSE INCLUDES LIST_DIRECTORIES true "$ENV{GITHUB_WORKSPACE}/*")
+
+include_directories(${INCLUDES})
 
 # .add_executable(MyProject main.cpp) 
 
