@@ -1,9 +1,0 @@
--p=build/
--checks=-*,clang-diagnostic-*,clang-analyzer-*,modernize*
--header-filter=.*
--fix-errors
--quiet
--fix
-
---
-
