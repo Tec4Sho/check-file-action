@@ -1,9 +1,8 @@
 -p=build/
--checks=-*,clang-diagnostic-*,clang-analyzer-*,modernize*,clang-analyzer-cplusplus*
+-checks=-*,clang-diagnostic*,clang-analyzer-*,modernize*,clang-analyzer-cplusplus*
 -header-filter=.*
 -fix-errors
 -quiet
 -fix
 
---
 
