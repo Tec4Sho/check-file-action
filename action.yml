@@ -1300,7 +1300,7 @@ runs:
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_run=$(sudo find / -type f -name 'run-clang-tidy.py' -print -quit 2>/dev/null);
           file_list=$(sudo find . -type f -name "*.${file_type}" -print);
-          dirs_list=$(sudo find . -type d -name 'include' -print);
+          included=$(sudo find . -type d -name 'include' -print -quit);
           IFS=$'\n';
 
           if [[ -s "${clang_tidy}" ]]; then
@@ -1337,13 +1337,9 @@ runs:
 
           if [[ -s "${clang_file}" ]] && ${{ inputs.analysis == 1 }} && ! ${{ inputs.build }}; then
             echo ' ' >> "${clang_file}";
-            if [[ -n "${dirs_list}" ]]; then
+            if [[ -d "${included}" ]]; then
               echo -e '\n####################\n\tinclude directories found continuing...\n####################\n';
-              for dir in ${dirs_list[@]}; do
-                if [[ -d "$(echo ${dir} | grep -sqwF include)" ]]; then
-                  echo "${dir}" | sed 's/^\.\///' >> "${clang_file}";
-                fi;
-              done;
+              echo " -I${included}" | sed 's/^\.\///' >> "${clang_file}";
             fi;
             if [[ -n "${file_list}" ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
