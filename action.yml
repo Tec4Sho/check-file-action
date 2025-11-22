@@ -1274,7 +1274,7 @@ runs:
             echo ' ' >> "${clang_file}";
             if [[ -d "${included}" ]]; then
               echo -e '\n####################\n\tinclude directories found continuing...\n####################\n';
-              echo -n "${included//.\//}" >> "${clang_file}";
+              sudo sed -i "/-I/s/$/${included//.\//}/" "${clang_file}";
             fi;
             if [[ "${file_list}" ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
@@ -1282,9 +1282,8 @@ runs:
             fi;
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING CLANG PARAMS FILE\n####################\n';
-            { time -p clang-tidy @parameter-file --quiet; } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${repository}_project.log" || echo "Error: ( $? ) checking project files";
+            { time -p clang-tidy @parameter-file && check_build=true; } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${repository}_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
-            check_build=true
           elif [[ ! -e "${clang_file}" ]] && ${{ inputs.analysis == 1 }} && ! ${{ inputs.build }}; then
             echo -e "\n####################\n\tparameter-file missing in repo Exiting...\n####################\n";
             exit 1
@@ -1331,7 +1330,7 @@ runs:
             echo -e "\nCLANG-PARAMS: $(rm -vf ${clang_file} 2>/dev/null)\n";
           fi;
 
-          echo -e "\n####################\n# Installed Compiler #\n${compiler_list}\n####################\n";
+          echo -e "\n####################\n# INSTALLED COMPILERS #\n${compiler_list}\n####################\n";
 
           if [[ ${check_build} ]]; then
             echo -e '\n####################\n\tProject Checked Exiting...\n####################\n';
