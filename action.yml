@@ -4,7 +4,7 @@ inputs:
   analysis:
     description: 'Analyze all project files using options 1 2 or 3'
     required: false
-    default: 1
+    default: 0
     type: choice
     options:
     - 1 # parameter-file for simple repository checks.
