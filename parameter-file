@@ -1,8 +1,8 @@
--p=build/
--checks=-*,clang-diagnostic*,clang-analyzer-*,modernize*,clang-analyzer-cplusplus*
--header-filter=.*
--fix-errors
--quiet
--fix
-
-
+## NOTE: When editing always leave '--extra-arg=' as last line and '-I' as final argument.
+# -p build/
+--checks=-*,clang-diagnostic-*,clang-analyzer-*,modernize*,clang-analyzer-cplusplus*
+--header-filter=.*
+--fix
+--fix-errors
+--quiet
+--extra-arg=-std=c90 -I
