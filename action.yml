@@ -4,7 +4,7 @@ inputs:
   analysis:
     description: 'Analyze all project files using options 1 2 or 3'
     required: false
-    default: 0
+    default: 1
     type: choice
     options:
     - 1 # parameter-file for simple repository checks.
@@ -1279,9 +1279,7 @@ runs:
             fi;
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING CLANG PARAMS FILE\n####################\n';
-            { time -p \
-              clang-tidy @parameter-file --quiet;
-            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
+            { time -p clang-tidy @parameter-file --quiet; } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
           elif [[ ! -e "${clang_file}" ]] && ${{ inputs.analysis == 1 }} && ! ${{ inputs.build }}; then
