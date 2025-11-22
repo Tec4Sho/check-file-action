@@ -1279,7 +1279,7 @@ runs:
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING CLANG PARAMS FILE\n####################\n';
             { time -p \
-              clang-tidy @parameter-file;
+              clang-tidy @parameter-file --quiet;
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true

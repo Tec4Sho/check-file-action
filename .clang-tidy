@@ -1,5 +1,5 @@
 ---
-Checks:                '-*,clang-diagnostic-*,clang-analyzer-*,modernize*'
+Checks:                '-*,clang-diagnostic-*,clang-analyzer-*,modernize*,clang-analyzer-cplusplus*'
 WarningsAsErrors:      ''
 HeaderFileExtensions:         ['', 'h','hh','hpp','hxx']
 ImplementationFileExtensions: ['c','cc','cpp','cxx']
