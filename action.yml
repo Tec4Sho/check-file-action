@@ -7,9 +7,9 @@ inputs:
     default: 1
     type: choice
     options:
-    - 1 # uses clang_tidy_params.txt for smaller simple repos.
-    - 2 # uses run-clang-tidy.py for parallelism of file scanning.
-    - 3 # uses compile_commands.json for maximum project build scans.
+    - 1 # parameter-file for simple repository checks.
+    - 2 # compile_commands.json for full project checks.
+    - 3 # run-clang-tidy.py for fast parallel file checks.
   filename:
     description: 'Check for filename or search for text word matches'
     type: string
@@ -165,7 +165,7 @@ runs:
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
 
-        if [[ ! -n $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
+        if [[ ! $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo 'No build-essential installed for project build';
         fi;
 
@@ -297,12 +297,12 @@ runs:
         text10c="#####################";
         export TERM=xterm-256color
 
-        if [[ -n ${TERM} ]]; then
+        if [[ ${TERM} ]]; then
           center_text() {
             local text="$1";
             local term_cols="$(tput cols)";
             local text_length="${#text}";
-            if [[ -n $(node ${{ github.action_path }}/scripts/mobile.js 2>/dev/null) ]] || [[ -n $(node ${{ github.action_path }}/scripts/view.js 2>/dev/null) ]]; then
+            if [[ $(node ${{ github.action_path }}/scripts/mobile.js 2>/dev/null) ]] || [[ $(node ${{ github.action_path }}/scripts/view.js 2>/dev/null) ]]; then
               local padding="$(( (term_cols - text_length) / 2 ))";
               local text="$(echo $1 | tr -d '\n')";
               print '';
@@ -371,13 +371,13 @@ runs:
           fi;
         fi;
 
-        if [[ "${{ inputs.filename }}" != '' ]]; then
+        if [[ -n "${{ inputs.filename }}" ]]; then
           center_text "\n${text7a}";
           center_text "${text7b}";
           center_text "${text7c}\n";
         fi;
 
-        if [[ "${{ inputs.pattern }}" != '' ]] && [[ "${{ inputs.filetype }}" != 'none' ]]; then
+        if [[ -n "${{ inputs.pattern }}" ]] && [[ "${{ inputs.filetype }}" != 'none' ]]; then
           center_text "\n${text8a}";
           center_text "${text8b}";
           center_text "${text8c}\n";
@@ -387,7 +387,7 @@ runs:
           center_text "${text9c}\n";
         fi;
       
-        if [[ "${{ inputs.dirname }}" == '' ]]; then
+        if [[ -z "${{ inputs.dirname }}" ]]; then
           if [ -z "${{ github.event.inputs.DEVICE_PATH }}" ]; then 
             echo "dirname=${{ env.default_path }}" >> "$GITHUB_OUTPUT";
           else 
@@ -415,7 +415,7 @@ runs:
         set -o pipefail
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
+        if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
           echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
         else
@@ -429,7 +429,7 @@ runs:
         checked=false
         file_count=1
         include_count=1
-        if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
+        if [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
@@ -473,7 +473,7 @@ runs:
                 if [[ -f "$(dirname ${f})/${included1}" ]]; then
                   awk '!seen[$0]++' "$(dirname ${f})/${included1}" > "$(dirname ${f})/${included2}";
                 fi;
-                if [[ -n ${header} ]] && [[ -n ${include_paths} ]]; then
+                if [[ ${header} ]] && [[ -n ${include_paths} ]]; then
                   if ${{ inputs.content }}; then
                     included3=$(dirname ${f})/${included2}
                     echo -e "\n####################\n\tFILE PATH(S) (${count2})\n####################\n";
@@ -583,7 +583,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
-        elif [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        elif [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n";
         fi;
       shell: bash
@@ -600,7 +600,7 @@ runs:
         repaired=$(grep -sF -m 1 'check-file-repaired.txt' "${{ env.database }}");
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
+        if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
           echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
         else
@@ -608,7 +608,7 @@ runs:
           files=$(grep -sE "${regex}" "${{ env.database }}");
           echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
-        if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
+        if [[ $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n";
@@ -681,7 +681,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
-        elif [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
+        elif [[ $(echo "${file_type}" | egrep -i "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n";
         fi;
       shell: bash
@@ -695,7 +695,7 @@ runs:
         set -o pipefail
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
+        if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
           echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
         else
@@ -704,7 +704,7 @@ runs:
           echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
         makefile_count=1
-        if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
+        if [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           echo "file_found=1" >> "${GITHUB_ENV}";
           { time -p for f in ${files[@]}; do
@@ -727,7 +727,7 @@ runs:
           echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count4}\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "file_found=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
+        elif [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING MK FILES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n";
         fi;
       shell: bash
@@ -741,7 +741,7 @@ runs:
         set -o pipefail
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        if [[ -n $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
+        if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
           files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
           echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
         else
@@ -750,7 +750,7 @@ runs:
           echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
         file_count=1
-        if [[ -n ${files} ]]; then
+        if [[ ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           { time -p for f in ${files[@]}; do
             count5=$((file_count++));
@@ -786,7 +786,7 @@ runs:
         checked=false
         file_count=1
         include_count=1
-        if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
+        if [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
@@ -939,7 +939,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
-        elif [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        elif [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n";
         fi;
       shell: bash
@@ -957,7 +957,7 @@ runs:
         files=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
+        if [[ $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n";
@@ -1030,7 +1030,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
-        elif [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
+        elif [[ $(echo "${file_type}" | egrep -i "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n";
         fi;
       shell: bash
@@ -1046,7 +1046,7 @@ runs:
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         makefile_count=1
-        if [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
+        if [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           { time -p for f in ${files[@]}; do
             count4=$((makefile_count++));
@@ -1068,7 +1068,7 @@ runs:
           echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count4}\n";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           echo "file_found=1" >> "${GITHUB_ENV}";
-        elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
+        elif [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING MK FILES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n";
         fi;
       shell: bash
@@ -1084,7 +1084,7 @@ runs:
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         file_count=1
-        if [[ -n ${files} ]]; then
+        if [[ ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ steps.set_dirname.outputs.dirname }}\n####################\n";
           { time -p for f in ${files[@]}; do
             count5=$((file_count++));
@@ -1145,7 +1145,7 @@ runs:
           echo '| Runtime |';
           matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
           matches=${matches};
-          if [[ -n ${matches} ]]; then
+          if [[ ${matches} ]]; then
             counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
             echo -e "\n${matches}\n";
@@ -1183,7 +1183,7 @@ runs:
             echo '| Runtime |';
             matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "*.${type}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
             matches=${matches};
-            if [[ -n ${matches} ]]; then
+            if [[ ${matches} ]]; then
               counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
               echo -e "\n${matches}\n";
@@ -1209,7 +1209,7 @@ runs:
           echo '| Runtime |';
           matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
           matches=${matches};
-          if [[ -n ${matches} ]]; then
+          if [[ ${matches} ]]; then
             counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
             echo -e "\n${matches}\n";
@@ -1356,37 +1356,12 @@ runs:
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
-          elif [[ ! -f "${clang_file}" ]] && ${{ inputs.analysis == 1 }} && ! ${{ inputs.build }}; then
+          elif [[ ! -e "${clang_file}" ]] && ${{ inputs.analysis == 1 }} && ! ${{ inputs.build }}; then
             echo -e "\n####################\n\tparameter-file missing in repo Exiting...\n####################\n";
             exit 1
           fi;
 
-          if [[ -f "${clang_run}" ]] && ${{ inputs.analysis == 2 }} && ! ${{ inputs.build }}; then
-            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
-            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
-            { time -p \
-              python3 "${clang_run}" -p build/ -fix -checks=-*,readability-* -j "$(nproc--all)" && \
-              python3 "${clang_run}" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
-              -header-filter=extra/clang-tidy;
-            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
-            echo -e '\n|RUNTIME|';
-            check_build=true
-          elif [[ ! -f "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]] && ${{ inputs.analysis == 2 }} && ! ${{ inputs.build }}; then
-            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
-            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
-            { time -p \
-              python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,readability-* -j "$(nproc--all)" && \
-              python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
-              -header-filter=extra/clang-tidy;
-            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
-            echo -e '\n|RUNTIME|';
-            check_build=true
-          elif [[ ! -f "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]] && ${{ inputs.analysis == 2 }} && ! ${{ inputs.build }}; then
-            echo -e "\n####################\n\tcompile_commands.json missing in repo Exiting...\n####################\n";
-            exit 1
-          fi;
-
-          if [[ -s "${compile_json}" ]] && ${{ inputs.analysis == 3 }} && ! ${{ inputs.build }}; then
+          if [[ -s "${compile_json}" ]] && ${{ inputs.analysis == 2 }} && ! ${{ inputs.build }}; then
             echo -e '\n####################\n\tcompile_commands.json created continuing...\n####################\n';
             echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
             cp -v "${compile_json}" './build/' 2>/dev/null;
@@ -1394,8 +1369,33 @@ runs:
               clang-tidy -p build/ --config-file="${clang_tidy}" --fix-errors;
             } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
             check_build=true
-          elif [[ ! -f "${compile_json}" ]] && ${{ inputs.analysis == 3 }} && ! ${{ inputs.build }}; then
+          elif [[ ! -e "${compile_json}" ]] && ${{ inputs.analysis == 2 }} && ! ${{ inputs.build }}; then
             echo -e "\n####################\n\trun-clang-tidy.py missing in repo Exiting...\n####################\n";
+            exit 1
+          fi;
+
+          if [[ -x "${clang_run}" ]] && ${{ inputs.analysis == 3 }} && ! ${{ inputs.build }}; then
+            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
+            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
+            { time -p \
+              "${clang_run}" -p build/ -fix -checks=-*,readability-* -j "$(nproc--all)" && \
+              "${clang_run}" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
+                -header-filter=extra/clang-tidy;
+            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
+            echo -e '\n|RUNTIME|';
+            check_build=true
+          elif [[ -x "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]] && ${{ inputs.analysis == 3 }} && ! ${{ inputs.build }}; then
+            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
+            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
+            { time -p \
+              python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,readability-* -j "$(nproc--all)" && \
+              python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
+                -header-filter=extra/clang-tidy;
+            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
+            echo -e '\n|RUNTIME|';
+            check_build=true
+          elif [[ ! -e "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]] && ${{ inputs.analysis == 3 }} && ! ${{ inputs.build }}; then
+            echo -e "\n####################\n\tcompile_commands.json missing in repo Exiting...\n####################\n";
             exit 1
           fi;
 
@@ -1496,6 +1496,7 @@ runs:
       with:
         files: |
           ./build/*
+          ./"${{ github.actor }}_project.log"
         name: Check File Action Build Report For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
       continue-on-error: true
