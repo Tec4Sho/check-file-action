@@ -1223,8 +1223,10 @@ runs:
         if [[ -d "${src_tree}" ]]; then
           echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n";
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n";
-
+          
           cd "${src_tree%/*}";
+
+          repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
           cmake_list='CMakeLists.txt';
           clang_file='parameter-file';
           clang_tidy='.clang-tidy';
@@ -1232,8 +1234,8 @@ runs:
           clang_run=$(sudo find / -type f -name 'run-clang-tidy.py' -print -quit 2>/dev/null);
           file_list=$(sudo find . -type f -name "*.${file_type}" -print);
           included=$(sudo find . -type d -name 'include' -print -quit);
-          IFS=$'\n';
-
+          echo "repository=${repository}" >> "${GITHUB_ENV}";
+          
           if [[ -s "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           fi;
@@ -1261,14 +1263,14 @@ runs:
               cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "Error: ( $? ) cmake missing or malformed CMakeList.txt (?)";
               if ${{ inputs.report }}; then
                 echo 'build_files=1' >> "${GITHUB_ENV}";
-                cp -Rf ./build ${GITHUB_WORKSPACE}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
+                cp -Rf ./build ${GITHUB_WORKSPACE} && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
               fi;
             fi;
           fi;
 
           if [[ -s "${clang_file}" ]] && ${{ inputs.analysis == 1 }} && ! ${{ inputs.build }}; then
             echo ' ' >> "${clang_file}";
-            if [[ -n "${file_list}" ]]; then
+            if [[ "${file_list}" ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
               echo "${file_list}" >> "${clang_file}";
               echo -e '\n--\n' >> "${clang_file}";
@@ -1279,7 +1281,7 @@ runs:
             fi;
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING CLANG PARAMS FILE\n####################\n';
-            { time -p clang-tidy @parameter-file --quiet; } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
+            { time -p clang-tidy @parameter-file --quiet; } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${repository}_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
           elif [[ ! -e "${clang_file}" ]] && ${{ inputs.analysis == 1 }} && ! ${{ inputs.build }}; then
@@ -1293,7 +1295,7 @@ runs:
             cp -v "${compile_json}" './build/' 2>/dev/null;
             { time -p \
               clang-tidy -p build/ --config-file="${clang_tidy}" --fix-errors;
-            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
+            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${repository}_project.log" || echo "Error: ( $? ) checking project files";
             check_build=true
           elif [[ ! -e "${compile_json}" ]] && ${{ inputs.analysis == 2 }} && ! ${{ inputs.build }}; then
             echo -e "\n####################\n\trun-clang-tidy.py missing in repo Exiting...\n####################\n";
@@ -1307,7 +1309,7 @@ runs:
               "${clang_run}" -p build/ -fix -checks=-*,readability-* -j "$(nproc--all)" && \
               "${clang_run}" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
                 -header-filter=extra/clang-tidy;
-            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
+            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${repository}_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
           elif [[ -x "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]] && ${{ inputs.analysis == 3 }} && ! ${{ inputs.build }}; then
@@ -1317,7 +1319,7 @@ runs:
               python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,readability-* -j "$(nproc--all)" && \
               python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
                 -header-filter=extra/clang-tidy;
-            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${{ github.actor }}_project.log" || echo "Error: ( $? ) checking project files";
+            } 2>&1 | tee -a "${GITHUB_WORKSPACE}/${repository}_project.log" || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
           elif [[ ! -e "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]] && ${{ inputs.analysis == 3 }} && ! ${{ inputs.build }}; then
@@ -1410,7 +1412,7 @@ runs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          ./"${{ github.actor }}_project.log"
+          ./"${{ env.repository }}_project.log"
         name: Check File Action Build Report For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
       continue-on-error: true
@@ -1422,7 +1424,6 @@ runs:
       with:
         files: |
           ./build/*
-          ./"${{ github.actor }}_project.log"
         name: Check File Action Build Report For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
       continue-on-error: true
