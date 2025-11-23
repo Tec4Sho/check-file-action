@@ -1274,7 +1274,7 @@ runs:
             echo ' ' >> "${clang_file}";
             if [[ -d "${included}" ]]; then
               echo -e '\n####################\n\tinclude directories found continuing...\n####################\n';
-              sudo sed -i "s/-I/-I${included//.\//}/g" "${clang_file}";
+              sudo sed -i "s|-I|-I${included//.\//}|g" "${clang_file}";
             fi;
             if [[ "${file_list}" ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
