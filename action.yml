@@ -1274,8 +1274,8 @@ runs:
             echo ' ' >> "${clang_file}";
             if [[ "${file_list}" ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
+              echo -e '\n--\n' >> "${clang_file}";
               echo -e "\n${file_list}\n" >> "${clang_file}";
-              echo '--' >> "${clang_file}";
             else	
               echo -e "\nNo ${file_type} files found searching repository\nExiting...\n";
               exit 1
