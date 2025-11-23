@@ -1,9 +1,6 @@
-##### NOTE: https://clang.llvm.org/extra/clang-tidy/ 
-##### Check above for proper information editing rules.
-# -p build/
---checks=-*,clang-diagnostic-*,clang-analyzer-*,modernize*,clang-analyzer-cplusplus*
---header-filter=.*
+-p build/
 --fix
 --fix-errors
 --quiet
 --extra-arg=-std=c90
+--

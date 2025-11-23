@@ -5,6 +5,10 @@ project(MyProject VERSION 1.0 LANGUAGES C)
 
 message(STATUS "Workspace Project Path: $ENV{GITHUB_WORKSPACE}")
 
+# .set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
+
+set(CMAKE_C_CLANG_TIDY "clang-tidy")
+
 set(LLVM_ENABLE_PROJECTS clang;clang-tools-extra)
 
 # .set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -Werror -pedantic")
