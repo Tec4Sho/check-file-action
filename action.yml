@@ -1230,7 +1230,7 @@ runs:
           clang_tidy='.clang-tidy';
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_run=$(sudo find / -type f -name 'run-clang-tidy.py' -print -quit 2>/dev/null);
-          file_list=$(sudo find . -type f -name "*.${file_type}" -print);
+          file_list=$(sudo find . -type f -name "*.${file_type}" -print -quit);
           included=$(sudo find . -type d -name 'include' -print -quit);
           echo "repository=${repository}" >> "${GITHUB_ENV}";
           
@@ -1274,7 +1274,7 @@ runs:
             echo ' ' >> "${clang_file}";
             if [[ -d "${included}" ]]; then
               echo -e '\n####################\n\tinclude directories found continuing...\n####################\n';
-              #echo -e "-I${included//.\//}" >> "${clang_file}";
+              echo -e "-I${included//.\//}" >> "${clang_file}";
             fi;
             if [[ "${file_list}" ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
