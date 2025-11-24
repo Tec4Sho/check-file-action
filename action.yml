@@ -397,7 +397,7 @@ runs:
           echo "dirname=${{ inputs.dirname }}" >> "$GITHUB_OUTPUT";
         fi;
 
-        if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analysis > 0 }}
+        if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analysis > 0 }}; then
           center_text "::warning:: inputs.project and inputs.filename enabled\ninputs.analysis was disabled\nSet to inputs.analysis: 0";
           echo "analysis=0" >> "$GITHUB_OUTPUT";
         else
@@ -1365,23 +1365,23 @@ runs:
       if: inputs.report != 'false'
       run: |
         echo '';
-        Filename1="${GITHUB_WORKSPACE}/${{ env.repository }}_project.log";
-        Filename2="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log"
         min_size_bytes=50000000
-        filesize1=$(stat -c%s "$Filename1");
-        filesize2=$(stat -c%s "$Filename2");
+        filename1="${GITHUB_WORKSPACE}/${{ env.repository }}_project.log";
+        filename2="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log"
+        filesize1=$(stat -c%s "$filename1");
+        filesize2=$(stat -c%s "$filename2");
         if [[ -s "${GITHUB_WORKSPACE}/${{ env.repository }}_project.log" ]]; then
           ansi2txt "${GITHUB_WORKSPACE}/${{ env.repository }}_project.log" > "${GITHUB_WORKSPACE}/${{ env.repository }}_project1.log";
           mv -vf "${GITHUB_WORKSPACE}/${{ env.repository }}_project1.log" > "${GITHUB_WORKSPACE}/${{ env.repository }}_project.log";
           if (( filesize1 > min_size_bytes )); then
-            split -b 25M ${{ env.repository }}_project.log part_
+            split -b 25M "${{ env.repository }}_project.log" 'part_'
           fi;
         fi;
         if [[ -s "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" ]]; then
           ansi2txt "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" > "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error1.log";
           mv -vf "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error1.log" > "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
           if (( filesize2 > min_size_bytes )); then
-            split -b 25M ${{ inputs.filename }}_error.log part_
+            split -b 25M "${{ inputs.filename }}_error.log" 'part_'
           fi;
         fi;
       shell: bash
