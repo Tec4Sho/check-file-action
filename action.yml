@@ -610,7 +610,8 @@ runs:
         compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
         clang_file=$(grep -sF -m 1 '.clang-tidy' "${{ env.database }}");
         repaired=$(grep -sF -m 1 'check-file-repaired.txt' "${{ env.database }}");
-        src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print);
+        includes=$(sudo find ${{ env.file_path }} -type d -name 'include' -print -quit);
+        src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
         count2=0
         checked=false
         file_count=1
@@ -681,7 +682,7 @@ runs:
                   fi;
                 else
                   echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                  cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem:"{}" --project="${compile_json}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                  cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --project="${compile_json}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
@@ -721,7 +722,7 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
-                cppcheck --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" --includes-file="${src_tree%/*}/include/" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                cppcheck -j "$(nproc --all)" --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" -I"${includes}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
                 if [[ ${PIPESTATUS[0]} == 0 ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                 else
@@ -732,7 +733,7 @@ runs:
             fi;
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n";
-              cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" --includes-file="${src_tree%/*}/include" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+              cppcheck -j "$(nproc --all)" --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" -I"${includes}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -968,6 +969,7 @@ runs:
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         repaired=$(sudo find ${{ env.file_path }} -type f -name 'check-file-repaired.txt' -print -quit);
+        includes=$(sudo find ${{ env.file_path }} -type d -name 'include' -print -quit);
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print);
         count2=0
         checked=false
@@ -1026,7 +1028,7 @@ runs:
                   fi;
                 else
                   echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                  cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --includes-file="${src_tree%/*}/include" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                  cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" -I"${includes}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
