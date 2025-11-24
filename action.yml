@@ -406,6 +406,9 @@ runs:
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
         echo 'file_error=0' >> "${GITHUB_ENV}";
+        echo "file1_parted=0" >> "${GITHUB_ENV}";
+        echo "file2_parted=0" >> "${GITHUB_ENV}";
+        
       shell: bash
       continue-on-error: false
 
@@ -1402,24 +1405,26 @@ runs:
       if: inputs.report != 'false'
       run: |
         echo '';
-        min_size_bytes=$((25 * 1024 * 1024))
+        set +e
+        min_size_bytes=$((25 * 1024 * 1024));
         filename1="${GITHUB_WORKSPACE}/${{ env.repository }}_project.log";
-        filename2="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log"
-        
-        if [[ -f "${filename1}" ]]; then
+        filename2="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+        if [[ -s "${filename1}" ]]; then
           filesize1=$(sudo stat -c%s "$filename1" 2>/dev/null);
           ansi2txt "${GITHUB_WORKSPACE}/${{ env.repository }}_project.log" > "${GITHUB_WORKSPACE}/${{ env.repository }}_project1.log";
           mv -vf "${GITHUB_WORKSPACE}/${{ env.repository }}_project1.log" > "${GITHUB_WORKSPACE}/${{ env.repository }}_project.log";
           if (( filesize1 > min_size_bytes )); then
             split -b 25M "${{ env.repository }}_project.log" 'part_'
+            echo "file1_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
-        if [[ -f "$${filename2}" ]]; then
+        if [[ -s "$${filename2}" ]]; then
           filesize2=$(sudo stat -c%s "$filename2" 2>/dev/null);
           ansi2txt "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" > "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error1.log";
           mv -vf "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error1.log" > "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
           if (( filesize2 > min_size_bytes )); then
             split -b 25M "${{ inputs.filename }}_error.log" 'part_'
+            echo "file2_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
       shell: bash
@@ -1487,23 +1492,41 @@ runs:
 
 
     - name: Uploading ${{ inputs.filename }} Error Report Artifact
-      if: inputs.report != 'false' && inputs.filename != '' && env.file_error == 1
+      if: inputs.report != 'false' && inputs.filename != '' && env.file_error == 1 && env.file2_parted == 0
       uses: actions/upload-artifact@v4
       with:
-        name: "Check ${{ inputs.filename }} File(s) Report"
+        name: Check ${{ inputs.filename }} File(s) Report
+        path: ./"${{ inputs.filename }}_error.log";
+      continue-on-error: true
+
+
+    - name: Uploading ${{ github.repository }} Project Report Artifact
+      if: inputs.report != 'false' && inputs.project != 'false' && env.check_build != 'false' && env.file1_parted == 0
+      uses: actions/upload-artifact@v4
+      with:
+        name: Clang ${{ env.filetype }} File(s) Report
+        path: ./"${{ env.repository }}_project.log";
+      continue-on-error: true
+
+
+    - name: Uploading ${{ inputs.filename }} Error Report Artifact
+      if: inputs.report != 'false' && inputs.filename != '' && env.file_error == 1 && env.file2_parted == 1
+      uses: actions/upload-artifact@v4
+      with:
+        name: Check ${{ inputs.filename }} File(s) Report
         path: |
-          "${{ inputs.filename }}_error.log";
+          ./"${{ inputs.filename }}_error.log";
           ./part_*
       continue-on-error: true
 
 
     - name: Uploading ${{ github.repository }} Project Report Artifact
-      if: inputs.report != 'false' && inputs.project != 'false' && env.check_build != 'false'
+      if: inputs.report != 'false' && inputs.project != 'false' && env.check_build != 'false' && env.file1_parted == 1
       uses: actions/upload-artifact@v4
       with:
-        name: "Clang ${{ env.filetype }} File(s) Report"
+        name: Clang ${{ env.filetype }} File(s) Report
         path: |
-          "${{ env.repository }}_project.log";
+          ./"${{ env.repository }}_project.log";
           ./part_*
       continue-on-error: true
 
