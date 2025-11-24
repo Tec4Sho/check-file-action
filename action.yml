@@ -721,8 +721,8 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
-                cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" --includes-file="${src_tree%/*}/include" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
-                if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
+                cppcheck --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" --includes-file="${src_tree%/*}/include/" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                if [[ ${PIPESTATUS[0]} == 0 ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                 else
                   echo -e "\n####################\nCHECK-FILE FOUND ERROR(S)\n####################\n";
