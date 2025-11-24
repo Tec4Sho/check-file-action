@@ -41,7 +41,12 @@ inputs:
     required: false
     default: 'false'
   rootdir:
-    description: 'Search will start from root (/) if true'
+    description: 'Search will start from root (/)'
+    type: boolean
+    required: false
+    default: 'false'
+  release:
+    description: 'Upload build files for compile_commands.json'
     type: boolean
     required: false
     default: 'false'
@@ -484,7 +489,7 @@ runs:
               cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
               cmake --build build || echo "::error:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)";
               check_build=true
-              if ${{ inputs.report }}; then
+              if ${{ inputs.release }}; then
                 echo 'build_files=1' >> "${GITHUB_ENV}";
                 cp -Rf ./build ${GITHUB_WORKSPACE}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
               fi;
@@ -1496,7 +1501,8 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: Check ${{ inputs.filename }} File(s) Report
-        path: ./"${{ inputs.filename }}_error.log";
+        path: ${{ inputs.filename }}_error.log
+        include-hidden-files: true
       continue-on-error: true
 
 
@@ -1505,7 +1511,8 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: Clang ${{ env.filetype }} File(s) Report
-        path: ./"${{ env.repository }}_project.log";
+        path: ${{ env.repository }}_project.log
+        include-hidden-files: true
       continue-on-error: true
 
 
@@ -1517,6 +1524,7 @@ runs:
         path: |
           ./"${{ inputs.filename }}_error.log";
           ./part_*
+        include-hidden-files: true
       continue-on-error: true
 
 
@@ -1528,6 +1536,7 @@ runs:
         path: |
           ./"${{ env.repository }}_project.log";
           ./part_*
+        include-hidden-files: true
       continue-on-error: true
 
 
