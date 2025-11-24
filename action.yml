@@ -607,6 +607,7 @@ runs:
           files=$(grep -sE "${regex}" "${{ env.database }}");
           echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
         fi;
+        compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
         clang_file=$(grep -sF -m 1 '.clang-tidy' "${{ env.database }}");
         repaired=$(grep -sF -m 1 'check-file-repaired.txt' "${{ env.database }}");
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print);
@@ -614,14 +615,22 @@ runs:
         checked=false
         file_count=1
         include_count=1
+        build_cache='build';
         if [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair }}; then
-            echo -e '\n####################\n\t.clang-tidy not found exiting...\n####################\n';
+            echo -e "\n####################\n::error:: .clang-tidy not found exiting...\n####################\n";
             exit 1
           fi;
+          if [[ -f "${compile_json}" ]] && ${{ inputs.include }}; then
+            echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################\n';
+          elif [[ ! -f "${compile_json}" ]] && ${{ inputs.include }}; then
+            echo -e "\n####################\n::error:: compile_commands.json not found exiting...\n####################\n";
+            exit 1
+          fi;
+          mkdir -p ${build_cache};
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n";
             awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}' "${files}";
@@ -645,7 +654,7 @@ runs:
                     echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                   elif ${{ inputs.stored }} && ${{ env.update }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}/include" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
                     if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                       echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
                     else
@@ -656,7 +665,7 @@ runs:
                     fixed=true
                   elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}/include" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
                     if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                       echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                     else
@@ -667,7 +676,7 @@ runs:
                   fi;
                 else
                   echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                  cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem:"{}" -j "$(nproc --all)" --includes-file="${included3}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                  cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem:"{}" --project="${compile_json}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
@@ -707,7 +716,7 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
-                cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem:"{}" -j "$(nproc --all)" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem:"{}" -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                 else
@@ -718,7 +727,7 @@ runs:
             fi;
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n";
-              cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem:"{}" -j "$(nproc --all)" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+              cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem:"{}" -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -961,7 +970,7 @@ runs:
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair }}; then
-            echo -e '\n####################\n\t::error:: .clang-tidy file not found exiting...\n####################\n';
+            echo -e '\n####################\n::error:: .clang-tidy file not found exiting...\n####################\n';
             exit 1
           fi;
           if ${{ inputs.content }}; then
@@ -987,7 +996,7 @@ runs:
                     echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                   elif ${{ inputs.stored }} && ${{ env.update }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}/include" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
                     if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                       echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
                     else
@@ -998,7 +1007,7 @@ runs:
                     fixed=true
                   elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}/include" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
                     if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                       echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                     else
@@ -1009,7 +1018,7 @@ runs:
                   fi;
                 else
                   echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                  cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --includes-file="${included3}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                  cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --includes-file="${src_tree%/*}/include" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
