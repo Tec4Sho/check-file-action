@@ -588,7 +588,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
-        set -o pipefail
+        set +e
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
@@ -637,7 +637,7 @@ runs:
                     echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                   elif ${{ inputs.stored }} && ${{ env.update }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                     if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                       echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
                     else
@@ -647,7 +647,7 @@ runs:
                     fixed=true
                   elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                     if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                       echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                     else
@@ -657,7 +657,7 @@ runs:
                   fi;
                 else
                   echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                  cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --includes-file="${included3}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                  cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --includes-file="${included3}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
@@ -674,7 +674,7 @@ runs:
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                 elif ${{ inputs.stored }} && ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
                   else
@@ -684,7 +684,7 @@ runs:
                   fixed=true
                 elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
@@ -694,7 +694,7 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
-                cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                 else
@@ -704,7 +704,7 @@ runs:
             fi;
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n";
-              cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+              cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -735,7 +735,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false' && env.file_found == 0 
       run: |
         export LC_ALL=C
-        set -o pipefail
+        set +e
         fixed=false
         shellcheck_count=1
         repaired=$(grep -sF -m 1 'check-file-repaired.txt' "${{ env.database }}");
@@ -773,7 +773,7 @@ runs:
                 echo -e "\n####################\nRepaired on ${check_date}\nSkipping $(basename ${f})\n####################\n";
               elif ${{ inputs.stored }} && ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-                shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                shellharden --syntax-suggest --transform "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                   echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
                 else
@@ -783,7 +783,7 @@ runs:
                 fixed=true
               elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-                shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                shellharden --syntax-suggest --transform "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                   echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND ${f}\n####################\n";
                 else
@@ -794,7 +794,7 @@ runs:
             fi;
             if ${{ inputs.recheck }}; then
               echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-              shellcheck --norc --severity=warning --color=always "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+              shellcheck --norc --severity=warning --color=always "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -802,7 +802,7 @@ runs:
               fi;
             elif ! ${{ inputs.repair }}; then
               echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-              shellcheck --norc --severity=warning --color=always "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+              shellcheck --norc --severity=warning --color=always "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -833,7 +833,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false' && env.file_found == 0
       run: |
         export LC_ALL=C
-        set -o pipefail
+        set +e
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
@@ -858,7 +858,7 @@ runs:
               echo -e "\n\n";
             fi;
             echo -e "\n####################\nCHECKMAKE ANALYZING $(basename ${f}) FOR ERROR(S) ($count4)\n####################\n";
-            checkmake "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+            checkmake "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
             if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
               echo -e "\n####################\nCHECKMAKE NO ERRORS FOUND ${f}\n####################\n";
             else
@@ -879,7 +879,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false' && env.file_found == 0 
       run: |
         export LC_ALL=C
-        set -o pipefail
+        set +e
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
@@ -917,7 +917,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true'
       run: |
         export LC_ALL=C
-        set -o pipefail
+        set +e
         files=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         clang_file=$(sudo find ${{ env.file_path }} -type f -name '.clang-tidy' -print -quit);
         file_name="${{ inputs.filename }}";
@@ -933,7 +933,7 @@ runs:
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair }}; then
-            echo -e '\n####################\n\t.clang-tidy not found exiting...\n####################\n';
+            echo -e '\n####################\n\t::error:: .clang-tidy file not found exiting...\n####################\n';
             exit 1
           fi;
           if ${{ inputs.content }}; then
@@ -959,7 +959,7 @@ runs:
                     echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                   elif ${{ inputs.stored }} && ${{ env.update }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                     if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                       echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
                     else
@@ -969,7 +969,7 @@ runs:
                     fixed=true
                   elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                    clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                     if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                       echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                     else
@@ -979,7 +979,7 @@ runs:
                   fi;
                 else
                   echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                  cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --includes-file="${included3}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                  cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --includes-file="${included3}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
@@ -996,7 +996,7 @@ runs:
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                 elif ${{ inputs.stored }} && ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
                   else
@@ -1006,7 +1006,7 @@ runs:
                   fixed=true
                 elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                   if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
@@ -1016,7 +1016,7 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
-                cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                 else
@@ -1026,7 +1026,7 @@ runs:
             fi;
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n";
-              cppcheck --verbose --force --enable=all --std=c++11 --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+              cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -1057,7 +1057,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true' && env.file_found == 0 
       run: |
         export LC_ALL=C
-        set -o pipefail
+        set +e
         fixed=false
         shellcheck_count=1
         repaired=$(sudo find ${{ env.file_path }} -type f -name 'check-file-repaired.txt' -print -quit);
@@ -1088,7 +1088,7 @@ runs:
                 echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
               elif ${{ inputs.stored }} && ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-                shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                shellharden --syntax-suggest --transform "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                   echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
                 else
@@ -1098,7 +1098,7 @@ runs:
                 fixed=true
               elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-                shellharden --syntax-suggest --transform "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+                shellharden --syntax-suggest --transform "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                   echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND ${f}\n####################\n";
                 else
@@ -1109,7 +1109,7 @@ runs:
             fi;
             if ${{ inputs.recheck }}; then
               echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-              shellcheck --norc --severity=warning --color=always "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+              shellcheck --norc --severity=warning --color=always "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -1117,7 +1117,7 @@ runs:
               fi;
             elif ! ${{ inputs.repair }}; then
               echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-              shellcheck --norc --severity=warning --color=always "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+              shellcheck --norc --severity=warning --color=always "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -1148,7 +1148,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true' && env.file_found == 0
       run: |
         export LC_ALL=C
-        set -o pipefail
+        set +e
         files=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
@@ -1165,7 +1165,7 @@ runs:
               echo -e "\n\n";
             fi;
             echo -e "\n####################\nCHECKMAKE ANALYZING $(basename ${f}) FOR ERROR(S) ($count4)\n####################\n";
-            checkmake "${f}" |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: $?" 2>/dev/null;
+            checkmake "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::warning:: $?";
             if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
               echo -e "\n####################\nCHECKMAKE NO ERRORS FOUND ${f}\n####################\n";
             else
@@ -1186,7 +1186,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'true' && env.file_found == 0 
       run: |
         export LC_ALL=C
-        set -o pipefail
+        set +e
         files=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ steps.set_dirname.outputs.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";

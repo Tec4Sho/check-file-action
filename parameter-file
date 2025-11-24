@@ -1,6 +1,5 @@
-# -p build/
 --fix
 --fix-errors
 --quiet
 --extra-arg=-std=c99
---
+
