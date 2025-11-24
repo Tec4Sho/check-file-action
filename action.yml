@@ -288,7 +288,7 @@ runs:
         text9b="Searching all files for $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') match(s)";
         text9c="####################";
         text10a="#####################";
-        text10b="# CHECK FILE ACTION #";
+        text10b="\033[1m# CHECK FILE ACTION #\033[0m";
         text10c="#####################";
         export TERM=xterm-256color
 
@@ -1513,7 +1513,7 @@ runs:
           }
         fi;
         texta="######################";
-        textb="# CHECK FILE EXITING #";
+        textb="#\033[1m CHECK FILE EXITING \033[0m#";
         textc="######################";
         center_text "\n${texta}";
         center_text "${textb}";
