@@ -615,7 +615,7 @@ runs:
         checked=false
         file_count=1
         include_count=1
-        build_cache='build';
+        build_cache='build_cache';
         if [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
@@ -630,7 +630,12 @@ runs:
             echo -e "\n####################\n::error:: compile_commands.json not found exiting...\n####################\n";
             exit 1
           fi;
-          mkdir -p ${build_cache};
+          if [[ -d "${src_tree%/*}/${build_cache}" ]]; then
+             cp -Rf "${src_tree%/*}/${build_cache}" "$PWD" 2>/dev/null;
+          else
+             mkdir -p "${build_cache}";
+          fi;
+          
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n";
             awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}' "${files}";
@@ -716,7 +721,7 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
-                cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem:"{}" -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" "${f}" -- -I"${src_tree%/*}/include" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                 else
@@ -727,7 +732,7 @@ runs:
             fi;
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n";
-              cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem:"{}" -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+              cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" "${f}" -- -I"${src_tree%/*}/include" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -750,6 +755,9 @@ runs:
           fi;
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
+          fi;
+          if ${{ inputs.update }}; then
+            cp -Rf "${build_cache}" "${src_tree%/*}" 2>/dev/null;
           fi;
         elif [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n";
@@ -1505,18 +1513,28 @@ runs:
       continue-on-error: true
 
 
-    - name: Uploading ${{ inputs.filename }} Error Report Artifact
-      if: inputs.report != 'false' && inputs.filename != '' && env.file_error == 1 && env.file2_parted == 0
+    - name: Uploading build_cache Checked Report Artifacts
+      if: inputs.report != 'false' && inputs.filename != '' && env.file_error == 1 && inputs.stored == 'true'
       uses: actions/upload-artifact@v4
       with:
-        name: Check ${{ inputs.filename }} File(s) Report
+        name: Cppcheck Checked File(s) Report Artifacts
+        path: build_cache
+        include-hidden-files: true
+      continue-on-error: true
+
+
+    - name: Uploading ${{ inputs.filename }} Error Report Artifact
+      if: inputs.report != 'false' && inputs.filename != '' && env.file_error == 1
+      uses: actions/upload-artifact@v4
+      with:
+        name: Checked ${{ inputs.filename }} File(s) Report
         path: ${{ inputs.filename }}_error.log
         include-hidden-files: true
       continue-on-error: true
 
 
     - name: Uploading ${{ env.repository }} Project Report Artifact
-      if: inputs.report != 'false' && inputs.project != 'false' && env.check_build != 'false' && env.file1_parted == 0
+      if: inputs.report != 'false' && inputs.project != 'false' && env.check_build != 'false'
       uses: actions/upload-artifact@v4
       with:
         name: Clang ${{ env.filetype }} File(s) Report
@@ -1525,26 +1543,22 @@ runs:
       continue-on-error: true
 
 
-    - name: Uploading ${{ inputs.filename }} Error Report Artifact
+    - name: Uploading ${{ inputs.filename }} Error Report Artifacts
       if: inputs.report != 'false' && inputs.filename != '' && env.file_error == 1 && env.file2_parted == 1
       uses: actions/upload-artifact@v4
       with:
-        name: Check ${{ inputs.filename }} File(s) Report
-        path: |
-          ${{ inputs.filename }}_error.log
-          part_*
+        name: Checked ${{ inputs.filename }} File(s) Split Report
+        path: part_*
         include-hidden-files: true
       continue-on-error: true
 
 
-    - name: Uploading ${{ github.repository }} Project Report Artifact
+    - name: Uploading ${{ github.repository }} Project Report Artifacts
       if: inputs.report != 'false' && inputs.project != 'false' && env.check_build != 'false' && env.file1_parted == 1
       uses: actions/upload-artifact@v4
       with:
-        name: Clang ${{ env.filetype }} File(s) Report
-        path: |
-          ${{ env.repository }}_project.log
-          part_*
+        name: Clang ${{ env.filetype }} File(s) Split Report
+        path: part_*
         include-hidden-files: true
       continue-on-error: true
 
