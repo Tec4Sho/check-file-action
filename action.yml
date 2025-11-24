@@ -415,7 +415,7 @@ runs:
       continue-on-error: false
 
 
-      - name: Check Build Project
+    - name: Check Build Project
       if: inputs.project != 'false'
       run: |
         export LLVM_ENABLE_THREADS=ON
