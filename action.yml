@@ -398,7 +398,7 @@ runs:
         fi;
 
         if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analysis > 0 }}; then
-          center_text "::warning:: inputs.project and inputs.filename enabled\ninputs.analysis was disabled\nSet to inputs.analysis: 0";
+          center_text "::warning:: inputs.project and inputs.filename both enabled sets inputs.analysis to disabled\nTo remove this warning set #\ninputs.analysis: 0\n";
           echo "analysis=0" >> "$GITHUB_OUTPUT";
         else
           echo "analysis=${{ inputs.analysis }}" >> "$GITHUB_OUTPUT";
@@ -442,6 +442,7 @@ runs:
         echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n";
         echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n";
         echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n";
+        echo 'check_build=false' >> "${GITHUB_ENV}";
 
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
@@ -470,11 +471,11 @@ runs:
           included=$(sudo find . -type d -name 'include' -print -quit);
           echo "repository=${repository}" >> "${GITHUB_ENV}";
           
-          if [[ -s "${clang_tidy}" ]]; then
+          if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           fi;
 
-          if [[ -s "${cmake_list}" ]]; then
+          if [[ -f "${cmake_list}" ]]; then
             echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################\n';
           fi;
 
@@ -510,7 +511,7 @@ runs:
             echo -e '\n####################\n\trun-clang-tidy.py located in system continuing...\n####################\n';
           fi;
 
-          if [[ -s "${clang_file}" ]] && ${{ env.analysis == 1 }} && ! ${{ inputs.build }}; then
+          if [[ -f "${clang_file}" ]] && ${{ env.analysis == 1 }} && ! ${{ inputs.build }}; then
             echo ' ' >> "${clang_file}";
             if [[ "${file_list}" ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
@@ -530,7 +531,7 @@ runs:
             exit 1
           fi;
 
-          if [[ -s "${compile_json}" ]] && ${{ env.analysis == 2 }} && ! ${{ inputs.build }}; then
+          if [[ -f "${compile_json}" ]] && ${{ env.analysis == 2 }} && ! ${{ inputs.build }}; then
             echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################\n';
             echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
             { time -p \
@@ -1368,16 +1369,16 @@ runs:
         min_size_bytes=50000000
         filename1="${GITHUB_WORKSPACE}/${{ env.repository }}_project.log";
         filename2="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log"
-        filesize1=$(stat -c%s "$filename1");
-        filesize2=$(stat -c%s "$filename2");
-        if [[ -s "${GITHUB_WORKSPACE}/${{ env.repository }}_project.log" ]]; then
+        filesize1=$(sudo stat -c%s "$filename1" 2>/dev/null);
+        filesize2=$(sudo stat -c%s "$filename2" 2>/dev/null);
+        if [[ -f "${GITHUB_WORKSPACE}/${{ env.repository }}_project.log" ]]; then
           ansi2txt "${GITHUB_WORKSPACE}/${{ env.repository }}_project.log" > "${GITHUB_WORKSPACE}/${{ env.repository }}_project1.log";
           mv -vf "${GITHUB_WORKSPACE}/${{ env.repository }}_project1.log" > "${GITHUB_WORKSPACE}/${{ env.repository }}_project.log";
           if (( filesize1 > min_size_bytes )); then
             split -b 25M "${{ env.repository }}_project.log" 'part_'
           fi;
         fi;
-        if [[ -s "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" ]]; then
+        if [[ -f "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" ]]; then
           ansi2txt "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" > "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error1.log";
           mv -vf "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error1.log" > "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
           if (( filesize2 > min_size_bytes )); then
@@ -1454,7 +1455,7 @@ runs:
       with:
         name: "Check ${{ inputs.filename }} File(s) Report"
         path: |
-          "${{ inputs.filename }}_error.log"
+          "${{ inputs.filename }}_error.log";
           ./part_*
       continue-on-error: true
 
@@ -1465,7 +1466,7 @@ runs:
       with:
         name: "Clang ${{ env.filetype }} File(s) Report"
         path: |
-          "${{ env.repository }}_project.log"
+          "${{ env.repository }}_project.log";
           ./part_*
       continue-on-error: true
 
@@ -1491,7 +1492,7 @@ runs:
       if: inputs.filename == '' && inputs.pattern == '' && inputs.project != 'true'
       run: |
         echo ''
-        echo -e '\nNo input provided!\nSet input option.\n• filename: none\n• pattern: none\n• project: false\n\tNothing To Do?\n';
+        echo -e "\n::error::No input provided to • filename: none • pattern: none • project: false\n\tNothing To Do! ?\n";
       shell: bash
       continue-on-error: true
 
