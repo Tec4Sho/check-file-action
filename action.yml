@@ -398,7 +398,7 @@ runs:
         fi;
 
         if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analysis > 0 }}; then
-          center_text "::warning:: inputs.project and inputs.filename both enabled sets inputs.analysis to disabled\nTo remove this warning set #\ninputs.analysis: 0\n";
+          center_text "::warning:: inputs.project: and inputs.filename: both enabled disables inputs.analysis:\nTo remove this warning use ( inputs.analysis: 0 )\n";
           echo "analysis=0" >> "${GITHUB_ENV}";
         else
           echo "analysis=${{ inputs.analysis }}" >> "${GITHUB_ENV}";
@@ -721,7 +721,7 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
-                cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" "${f}" -- -I"${src_tree%/*}/include" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+                cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" --includes-file="${src_tree%/*}/include" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
                 if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                 else
@@ -732,7 +732,7 @@ runs:
             fi;
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n";
-              cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" "${f}" -- -I"${src_tree%/*}/include" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
+              cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem -j "$(nproc --all)" --cppcheck-build-dir="${build_cache}" --includes-file="${src_tree%/*}/include" "${f}" 2>/dev/null |& tee -a "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" || echo "::error:: exit-code: ( $? )";
               if [[ ${PIPESTATUS[0]} == 0 ]] && [[ ${PIPESTATUS[1]} == 0 ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
               else
