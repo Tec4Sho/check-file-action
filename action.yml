@@ -613,7 +613,7 @@ runs:
         compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
         clang_file=$(grep -sF -m 1 '.clang-tidy' "${{ env.database }}");
         repaired=$(grep -sF -m 1 'check-file-repaired.txt' "${{ env.database }}");
-        includes=$(sudo find ${{ env.file_path }} -type d -name 'include' | awk 'NR==1');
+        includes=$(sudo find ${{ env.file_path }} -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | head -n 1 | cut -d' ' -f 2-);
         included='include_file.txt';
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
         count2=0
