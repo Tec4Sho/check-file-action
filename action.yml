@@ -614,6 +614,7 @@ runs:
         clang_file=$(grep -sF -m 1 '.clang-tidy' "${{ env.database }}");
         repaired=$(grep -sF -m 1 'check-file-repaired.txt' "${{ env.database }}");
         includes=$(sudo find ${{ env.file_path }} -type d -name 'include' -print -quit);
+        included='include_file.txt';
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
         count2=0
         checked=false
@@ -697,6 +698,9 @@ runs:
                 echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${f}) NOT PRESENT\n####################\n\n";
               fi;
             else
+              if [[ -d "${includes}" ]]; then
+                echo "${includes}" > "${included}" && echo -e "\n####################\ninclude directory path added\n####################\n${includes}\n";
+              fi;
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
@@ -725,7 +729,7 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
-                cppcheck -j "$(nproc --all)" --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" -I"${includes}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                cppcheck -j "$(nproc --all)" --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --includes-file="${included}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                 else
@@ -736,7 +740,7 @@ runs:
             fi;
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n";
-              cppcheck -j "$(nproc --all)" --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" -I"${includes}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+              cppcheck -j "$(nproc --all)" --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --includes-file="${included}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
               if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -976,6 +980,7 @@ runs:
         error_log="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
         repaired=$(sudo find ${{ env.file_path }} -type f -name 'check-file-repaired.txt' -print -quit);
         includes=$(sudo find ${{ env.file_path }} -type d -name 'include' -print -quit);
+        included='include_file.txt';
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print);
         count2=0
         checked=false
@@ -1005,7 +1010,8 @@ runs:
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "{f}";
             fi;
             if ${{ inputs.include }}; then
-              if [[ -d "${src_tree%/*}" ]] && [[ -d "${src_tree%/*}/include" ]]; then
+              if [[ -d "${src_tree%/*}" ]] && [[ -d "${includes}" ]]; then
+                echo "${includes}" > "${included}" && echo -e "\n####################\ninclude directory path added\n####################\n${includes}\n";
                 if ${{ inputs.repair }}; then
                   if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                     echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
@@ -1034,7 +1040,7 @@ runs:
                   fi;
                 else
                   echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                  cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" -I"${includes}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                  cppcheck --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --includes-file="${included}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                   else
