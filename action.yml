@@ -596,7 +596,7 @@ runs:
       if: inputs.filename != '' && inputs.database != 'false'
       run: |
         export LC_ALL=C
-        set +e
+        set -o pipefail
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
