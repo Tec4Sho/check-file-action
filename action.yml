@@ -641,9 +641,7 @@ runs:
           else
              mkdir -p "${build_cache}";
           fi;
-          if [[ "${includes}" ]]; then
-            echo "${includes}" > "${included}" && echo -e "\n####################\ninclude directory path added\n####################\n\n${includes}\n";
-          fi;
+          
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n";
             awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}' "${files}";
@@ -729,7 +727,7 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
-                cppcheck -j "$(nproc --all)" --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --includes-file="${included}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                cppcheck -j "$(nproc --all)" --quiet --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                 else
