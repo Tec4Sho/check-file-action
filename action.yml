@@ -663,9 +663,9 @@ runs:
                 for i in ${includes[@]}; do
                   final="${i}";
                   count2=$((include_count++));
-                  header=$(sudo find ${{ env.FILE_PATH }} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ env.dirname }}" \) -name "$(basename ${i})" -print -quit);
+                  header=$(sudo find ${src_tree%/*} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ env.dirname }}" \) -name "$(basename ${i})" -print -quit);
                   for h in ${header[@]}; do
-                    echo "${h}" >> "${included}";
+                    echo "${h#./}" >> "${included}";
                   done;
                 done;
                 if [[ ${header} ]]; then
