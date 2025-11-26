@@ -359,7 +359,7 @@ runs:
         fi;
 
         if ${{ inputs.database }}; then
-          sudo find "${file_path}" -type f -print > "${GITHUB_WORKSPACE}/database";
+          sudo find "${file_path}" -type f -print | sort -t/ -k1.2 > "${GITHUB_WORKSPACE}/database";
           if [[ -s "${GITHUB_WORKSPACE}/database" ]]; then
             center_text "\n${text5a}";
             center_text "${text5b}";
@@ -613,7 +613,8 @@ runs:
         compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
         clang_file=$(grep -sF -m 1 '.clang-tidy' "${{ env.database }}");
         repaired=$(grep -sF -m 1 'check-file-repaired.txt' "${{ env.database }}");
-        includes=$(sudo find ${{ env.file_path }} -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | head -n 1 | cut -d' ' -f 2-);
+        #includes=$(sudo find ${{ env.file_path }} -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | head -n 1 | cut -d' ' -f 2-);
+        includes=$(grep -sF 'include' "${{ env.database }}");
         included='include_file.txt';
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
         count2=0
@@ -640,7 +641,9 @@ runs:
           else
              mkdir -p "${build_cache}";
           fi;
-          
+          if [[ "${includes}" ]]; then
+            echo "${includes}" > "${included}" && echo -e "\n####################\ninclude directory path added\n####################\n\n${includes}\n";
+          fi;
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n";
             awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}' "${files}";
@@ -698,9 +701,6 @@ runs:
                 echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${f}) NOT PRESENT\n####################\n\n";
               fi;
             else
-              if [[ -d "${includes}" ]]; then
-                echo "${includes}" > "${included}" && echo -e "\n####################\ninclude directory path added\n####################\n${includes}\n";
-              fi;
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
@@ -729,7 +729,7 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
-                cppcheck -j "$(nproc --all)" --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --includes-file="${included}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                cppcheck -j "$(nproc --all)" --verbose --force --enable=all --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --includes-file="${included}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                 else
