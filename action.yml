@@ -614,7 +614,7 @@ runs:
         clang_file=$(grep -sF -m 1 '.clang-tidy' "${{ env.database }}");
         repaired=$(grep -sF -m 1 'check-file-repaired.txt' "${{ env.database }}");
         #includes=$(sudo find ${{ env.file_path }} -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | head -n 1 | cut -d' ' -f 2-);
-        includes=$(grep -sF 'include' "${{ env.database }}");
+        includes=$(sudo find ${{ env.file_path }} -type d -name 'include' -printf '%d\t%p\n' | sort -n | cut -f2-);
         included='include_file.txt';
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
         count2=0
