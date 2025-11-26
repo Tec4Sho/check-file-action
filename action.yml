@@ -656,18 +656,23 @@ runs:
             fi;
             if ${{ inputs.include }}; then
               includes=$(sudo find $(dirname ${f}) -name $(basename ${f}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
-              included='include_files.txt';
+              include1="${GITHUB_WORKSPACE}/include_file1.txt";
+              include2="${GITHUB_WORKSPACE}/include_file2.txt";
               if [[ ${includes} ]]; then
                 echo -e "\n# Found Include File(s):\n${includes}\n";
                 echo > "${included}";
+                cd "${src_tree%/*}";
                 for i in ${includes[@]}; do
                   final="${i}";
                   count2=$((include_count++));
-                  header=$(sudo find ${src_tree%/*} -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ env.dirname }}" \) -name "$(basename ${i})" -print -quit);
+                  header=$(sudo find . -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ env.dirname }}" \) -name "$(basename ${i})" -print -quit);
                   for h in ${header[@]}; do
-                    echo "${h#./}" >> "${included}";
+                    echo "$(dirname ${h#./})" >> "${include1}";
                   done;
                 done;
+                if [[ -s "${include1}" ]]; then
+                  awk '!seen[$0]++' "${include1}" > "${include2}";
+                fi;
                 if [[ ${header} ]]; then
                   if ${{ inputs.content }}; then
                     echo -e "\n####################\n\tFILE PATH(S) (${count2})\n####################\n";
@@ -679,7 +684,7 @@ runs:
                       echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
                     elif ${{ inputs.stored }} && ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}/include" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                       if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                         echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
                       else
@@ -690,7 +695,7 @@ runs:
                       fixed=true
                     elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}/include" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                       if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                         echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                       else
@@ -701,7 +706,7 @@ runs:
                     fi;
                   else
                     echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                    cppcheck --verbose --force --enable=all --report-progress --suppress=* --includes-file="${included}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                    cppcheck --verbose --force --enable=all --report-progress --suppress=* --includes-file="${include1}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                     if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                     else
