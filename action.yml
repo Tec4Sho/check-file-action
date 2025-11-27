@@ -610,6 +610,7 @@ runs:
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
         checked=false
         count2=0
+        github=${GITHUB_WORKSPACE};
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
@@ -646,7 +647,7 @@ runs:
           fi;
           if [[ -f "${src_tree%/*}/${cppchecks}" ]]; then
              echo -e '\n####################\n\t${cppchecks} found continuing...\n####################\n';
-             cp -Rf "${src_tree%/*}/${cppchecks}" "$PWD" 2>/dev/null;
+             cp -f "${src_tree%/*}/${cppchecks}" "$PWD" 2>/dev/null;
              cppchecks=$(cat ${cppchecks} | tr -d ' \n');
           else
              cppchecks=all
@@ -687,10 +688,11 @@ runs:
                     echo "$(dirname ${h#./})" >> "${include1}";
                   done;
                 done;
+                cd "${github}";
                 if [[ -f "${include1}" ]]; then
                   awk '!seen[$0]++' "${include1}" > "${include2}";
                 fi;
-                if [[ ${header} ]]; then
+                if [[ ${include2} ]]; then
                   if ${{ inputs.content }}; then
                     echo -e "\n####################\n\tFILE PATH(S) (${count2})\n####################\n";
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
