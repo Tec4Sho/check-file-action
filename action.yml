@@ -739,7 +739,7 @@ runs:
               else
                 echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${f}) NOT PRESENT\n####################\n\n";
               fi;
-              echo -e "\n::notice:: Number of $(basename ${f}) include file(s): ${count2}\n";
+              echo -e "\n::notice:: Number of $(basename ${f}) include file(s): ${count2}\n" |& tee -a "${error_log}";
               include_count=1
             else
               if ${{ inputs.repair }}; then
@@ -801,9 +801,9 @@ runs:
             fi;
           done; echo '| Runtime |'; } 2>&1
           if ${{ inputs.include }}; then
-            echo -e "\n::notice:: Total number of include file(s) was: ${count3}\n";
+            echo -e "\n::notice:: Total number of include file(s) was: ${count3}\n" |& tee -a "${error_log}";
           fi;
-          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
+          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count1}\n" |& tee -a "${error_log}";
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${errors}" ]]; then
@@ -923,7 +923,7 @@ runs:
               fi;
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count3}\n";
+          echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count3}\n" |& tee -a "${error_log}";
           echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${errors}" ]]; then
@@ -988,7 +988,7 @@ runs:
               errors=true
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count4}\n";
+          echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count4}\n" |& tee -a "${error_log}";
           echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
           if [[ "${errors}" ]]; then
             echo "file_error=1" >> "${GITHUB_ENV}";
