@@ -740,7 +740,7 @@ runs:
                 echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${f}) NOT PRESENT\n####################\n\n";
               fi;
               echo -e "\n::notice:: Number of $(basename ${f}) include file(s): ${count2}\n";
-              count2=0
+              include_count=0
             else
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
