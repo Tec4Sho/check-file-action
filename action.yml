@@ -139,6 +139,7 @@ runs:
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list;
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
+        sudo apt-get update -yq >/dev/null 2>&1;
         text0="\n####################\ngit dependencies Installed\n####################\n";
         text1="\n####################\nripgrep dependencies Installed\n####################\n";
         text2="\n####################\nansi2txt dependencies Installed\n####################\n";
@@ -148,21 +149,16 @@ runs:
         text6="\n####################\nshellharden dependencies Installed\n####################\n";
         text7="\n####################\nshellcheck dependencies Installed\n####################\n";
         text8="\n####################\ncheckmake dependencies Installed\n####################\n";
-        text9="\n####################\ncheckmake.ini found copying\n####################\n";
-        text10="\n####################\nbatcat dependencies Installed\n####################\n";
+        text9="\n####################\nbatcat dependencies Installed\n####################\n";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        file=$(sudo find ${GITHUB_WORKSPACE} -type f -name "checkmake.ini" -print -quit);
-        path='/home/runner/checkmake.ini';
-
-        if [[ ! -n $(clang-tidy --version 2>/dev/null) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
+        
+        if [[ ! $(clang-tidy --version 2>/dev/null) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
           wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null;
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-17 main" >/dev/null;
           sudo apt-get update -yq >/dev/null 2>&1;
-          sudo apt-get install -yq clang clangd clang-tools >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
-          [[ ! -n $(clang-tidy --version 2>/dev/null) ]] && exit 1
-        else
-          sudo apt-get update -yq >/dev/null 2>&1;
+          sudo apt-get install -yq clang clangd clang-tools clang-tidy >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
+          [[ ! $(clang-tidy --version 2>/dev/null) ]] && exit 1
         fi;
 
         if [[ ! $(llvm-config --version 2>/dev/null) ]] && ${{ inputs.project }}; then
@@ -237,10 +233,6 @@ runs:
         if [[ ! $(which checkmake) ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "${text8}" || echo -e '::error::No checkmake installed Exiting';
           [[ ! $(which checkmake) ]] && exit 1
-          if [[ -n ${file} ]]; then
-            echo -e "${text9}";
-            sudo cp -vf "${file}" "${path}" 2>/dev/null;
-          fi;
         fi;
 
         if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
@@ -249,7 +241,7 @@ runs:
           echo -e "\nalias batcat='bat'" | sudo tee -a ~/.bashrc >/dev/null;
           export BAT_THEME="ansi";
         elif [[ ! $(which batcat) ]]; then
-          sudo apt-get -yq install bat >/dev/null && echo -e "${text10}" || echo -e '::error::No batcat installed Exiting';
+          sudo apt-get -yq install bat >/dev/null && echo -e "${text9}" || echo -e '::error::No batcat installed Exiting';
           [[ ! $(which batcat) ]] && exit 1
           export BAT_THEME="ansi";
         fi;
@@ -543,9 +535,7 @@ runs:
           if [[ -f "${compile_json}" ]] && ${{ env.analysis == 2 }} && ! ${{ inputs.build }}; then
             echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################\n';
             echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
-            { time -p \
-              clang-tidy -p build/ --config-file="${clang_tidy}" --fix-errors;
-            } 2>&1 | tee -a "${project_log}" || echo "Error: ( $? ) checking project files";
+            { time -p clang-tidy -p build/ --config-file="${clang_tidy}" --fix-errors; } 2>&1 | tee -a "${project_log}" || echo "Error: ( $? ) checking project files";
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ ! -e "${compile_json}" ]] && ${{ env.analysis == 2 }} && ! ${{ inputs.build }}; then
@@ -950,6 +940,8 @@ runs:
         set +e
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
+        file=$(sudo find ${GITHUB_WORKSPACE} -type f -name "checkmake.ini" -print -quit);
+        path='/home/runner/checkmake.ini';
         error_log="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
@@ -970,6 +962,10 @@ runs:
           fi;
           clang_file=$(sudo find ${{ env.file_path }} -type f -name '.clang-tidy' -print -quit);
           repaired=$(sudo find ${{ env.file_path }} -type f -name 'check-file-repaired.txt' -print -quit);
+        fi;
+        if [[ ${file} ]]; then
+          echo -e "\n####################\ncheckmake.ini found copying\n####################\n";
+          sudo cp -vf "${file}" "${path}" 2>/dev/null;
         fi;
         makefile_count=1
         if [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
