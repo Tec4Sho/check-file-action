@@ -472,7 +472,7 @@ runs:
           clang_tidy='.clang-tidy';
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_run=$(sudo find / -type f -name 'run-clang-tidy.py' -print -quit 2>/dev/null);
-          file_list=$(sudo find . -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2-);
+          file_list=$(sudo find . -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | head -n1 | cut -d' ' -f 2-);
           included=$(sudo find . -type d -name 'include' -print -quit);
           echo "repository=${repository}" >> "${GITHUB_ENV}";
           
@@ -515,7 +515,7 @@ runs:
           if [[ -e "${clang_run}" ]]; then
             echo -e '\n####################\n\trun-clang-tidy.py located in system continuing...\n####################\n';
           fi;
-
+          cat $file_list;
           if [[ -f "${clang_file}" ]] && ${{ env.analysis == 1 }} && ! ${{ inputs.build }}; then
             echo ' ' >> "${clang_file}";
             if [[ "${file_list}" ]]; then
