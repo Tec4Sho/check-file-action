@@ -645,6 +645,7 @@ runs:
             exit 1
           fi;
           if [[ -f "${src_tree%/*}/${cppchecks}" ]]; then
+             echo -e '\n####################\n\t${cppchecks} found continuing...\n####################\n';
              cp -Rf "${src_tree%/*}/${cppchecks}" "$PWD" 2>/dev/null;
              cppchecks=$(cat ${cppchecks} | tr -d ' \n');
           else
@@ -722,7 +723,7 @@ runs:
                     fi;
                   else
                     echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                    cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --includes-file="${include2}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                    cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --checkers-report="$(basename ${f})" --includes-file="${include2}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                     if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                     else
