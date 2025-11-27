@@ -687,20 +687,15 @@ runs:
                   final="${i}";
                   count2=$((include_count++));
                   header=$(sudo find . -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ env.dirname }}" \) -name "$(basename ${i})" -print -quit);
-                  for h in ${header[@]}; do
-                    echo "$(dirname ${h#./})" >> "${include1}";
-                  done;
+                  if [[ -f "${header}" ]]; then
+                    echo "$(dirname ${header#./})" >> "${include1}";
+                  fi;
                 done;
-                cd "${github}";
                 IFS=${SAVEIFS}
                 if [[ -f "${include1}" ]]; then
                   awk '!seen[$0]++' "${include1}" > "${include2}";
                 fi;
                 if [[ -f "${include2}" ]]; then
-                  if ${{ inputs.content }}; then
-                    echo -e "\n####################\n\tFILE PATH(S) (${count2})\n####################\n";
-                    batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
-                  fi;
                   if ${{ inputs.repair }}; then
                     if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                       echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
@@ -729,7 +724,7 @@ runs:
                     fi;
                   else
                     echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                    cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --includes-file="${include2}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                    cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --includes-file="${include2}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                     if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                     else
@@ -741,6 +736,7 @@ runs:
               else
                 echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${f}) NOT PRESENT\n####################\n\n";
               fi;
+              echo -e "\nTotal number of ${{ inputs.filename }} include file(s) added is: ${count2}\n";
             else
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
