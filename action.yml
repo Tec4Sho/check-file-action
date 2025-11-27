@@ -101,9 +101,9 @@ inputs:
     default: 1
     type: choice
     options:
-    -1 # Log to terminal and file.
-    -2 # Log to file only.
-    -3 # Log to terminal only.
+    - 1 # Log to terminal and file.
+    - 2 # Log to file only.
+    - 3 # Log to terminal only.
   build:
     description: 'Fix Errors found while building repository project'
     type: boolean
