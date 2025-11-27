@@ -668,19 +668,19 @@ runs:
             awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}' "${files}";
             echo -e '\t--------------------\n';
           fi;
-          { time -p for f in ${files[@]}; do
+          { time -p eval ${files[@]} | while IFS= read -r file; do
             search_path="${f}";
             check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
-            echo "$(dirname ${f})";
+            echo "$(dirname ${file})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
-              batcat --theme=ansi --paging=never --show-all --color=always --style=full "{f}";
+              batcat --theme=ansi --paging=never --show-all --color=always --style=full "{file}";
             fi;
             if ${{ inputs.include }}; then
               IFS=$'\n';
-              includes=$(sudo find $(dirname ${f}) -name $(basename ${f}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
+              includes=$(sudo find $(dirname ${file}) -name $(basename ${file}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
               include1="${GITHUB_WORKSPACE}/include_file1.txt";
               include2="${GITHUB_WORKSPACE}/include_file2.txt";
               if [[ ${includes} ]]; then
@@ -691,14 +691,14 @@ runs:
                   final="${i}";
                   count2=$((include_count++));
                   count3=$((include_total++));
-                  header=$(sudo find . -type f \( -path "*/$(dirname ${i})/*" -o -path "*/$(dirname ${f})/*" -o -path "*" \) -name "$(basename ${i})" -print -quit);
+                  header=$(sudo find . -type f \( -path "*/$(dirname ${i})/*" -o -path "*/$(dirname ${file})/*" -o -path "*" \) -name "$(basename ${i})" -print -quit);
                   if [[ -f "${header}" ]]; then
                     echo "$(dirname ${header#./})" >> "${include1}";
                   else
                     echo -e "\n::notice:: include source file ${i} is missing\n"
                   fi;
                 done;
-                IFS=${SAVEIFS}
+                IFS=${SAVEIFS};
                 if [[ -f "${include1}" ]]; then
                   awk '!seen[$0]++' "${include1}" > "${include2}";
                 fi;
@@ -706,12 +706,12 @@ runs:
                   if ${{ inputs.repair }}; then
                     if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                       echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
-                      echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
+                      echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n";
                     elif ${{ inputs.stored }} && ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
-                      if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
-                        echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
+                      clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                      if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                        echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n";
                       else
                         echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n";
                         errors=true
@@ -720,9 +720,9 @@ runs:
                       fixed=true
                     elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                      clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
-                      if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
-                        echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+                      clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                      if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                        echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
                       else
                         echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
                         errors=true
@@ -731,9 +731,9 @@ runs:
                     fi;
                   else
                     echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                    cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --includes-file="${include2}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
-                    if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
-                      echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+                    cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --includes-file="${include2}" "${file}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                    if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                      echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
                     else
                       echo -e "\n####################\nCHECK-FILE FOUND ERROR(S)\n####################\n";
                       errors=true
@@ -741,31 +741,31 @@ runs:
                   fi;
                 fi;
               else
-                echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${f}) NOT PRESENT\n####################\n\n";
+                echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${file}) NOT PRESENT\n####################\n\n";
               fi;
-              echo -e "\n::notice:: Number of $(basename ${f}) include file(s): ${count2}\n" |& tee -a "${error_log}";
+              echo -e "\n::notice:: Number of $(basename ${file}) include file(s): ${count2}\n" |& tee -a "${error_log}";
               include_count=1
             else
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
-                  echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${f})\n####################\n";
+                  echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n";
                 elif ${{ inputs.stored }} && ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
-                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
-                    echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                    echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n";
                   else
                     echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n";
                     errors=true
                   fi;
-                  echo "${f} $(date)" >> "${repaired}";
+                  echo "${file} $(date)" >> "${repaired}";
                   fixed=true
                 elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${f}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
-                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
-                    echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                    echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
                   else
                     echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
                     errors=true
@@ -775,12 +775,12 @@ runs:
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
                 if ${{ inputs.stored }}; then
-                  cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --project="${compile_json}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                  cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --project="${compile_json}" "${file}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                 else
-                  cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --project="${compile_json}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                  cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --project="${compile_json}" "${file}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                 fi;
-                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
-                  echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                  echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
                 else
                   echo -e "\n####################\nCHECK-FILE FOUND ERROR(S)\n####################\n";
                   errors=true
@@ -790,8 +790,8 @@ runs:
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n";
               cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=* --quiet "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
-              if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
-                echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
+              if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
               else
                 echo -e "\n####################\nRECHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
                 errors=true
@@ -799,7 +799,7 @@ runs:
             fi;
             if ${{ inputs.number > 0 }}; then
               if [[ ${{ inputs.number }} -eq ${count1} ]]; then
-                echo -e "\nFile ${count1} checking auto stopped at $(basename ${f})\n";
+                echo -e "\nFile ${count1} checking auto stopped at $(basename ${file})\n";
                 break;
               fi;
             fi;
