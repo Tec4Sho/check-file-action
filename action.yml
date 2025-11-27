@@ -472,10 +472,15 @@ runs:
           clang_tidy='.clang-tidy';
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           clang_run=$(sudo find / -type f -name 'run-clang-tidy.py' -print -quit 2>/dev/null);
-          file_list=$(sudo find . -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | head -n1 | cut -d' ' -f 2-);
           included=$(sudo find . -type d -name 'include' -print -quit);
           echo "repository=${repository}" >> "${GITHUB_ENV}";
           
+          file_list() {
+            sudo find . -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
+              echo "${file#./}"
+            done
+          }
+
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           fi;
@@ -484,8 +489,8 @@ runs:
             echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################\n';
           fi;
 
+          mkdir -p build
           if ${{ inputs.build }}; then
-            mkdir -p build
             if [[ -d 'build' ]]; then
               echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
               cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
@@ -497,7 +502,6 @@ runs:
               fi;
             fi;      
           else
-            mkdir -p build
             if [[ -d 'build' ]]; then
               echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
               cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
@@ -515,12 +519,12 @@ runs:
           if [[ -e "${clang_run}" ]]; then
             echo -e '\n####################\n\trun-clang-tidy.py located in system continuing...\n####################\n';
           fi;
-          cat $file_list;
+
           if [[ -f "${clang_file}" ]] && ${{ env.analysis == 1 }} && ! ${{ inputs.build }}; then
             echo ' ' >> "${clang_file}";
-            if [[ "${file_list}" ]]; then
+            if [[ `file_list` ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
-              echo -e "${file_list}" >> "${clang_file}";
+              file_list >> "${clang_file}";
             else	
               echo -e "\n::error::No ${file_type} files found searching repository\nExiting...\n";
               exit 1
