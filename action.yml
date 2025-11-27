@@ -647,7 +647,7 @@ runs:
             exit 1
           fi;
           if [[ -f "${src_tree%/*}/${cppchecks}" ]]; then
-             echo -e "\n####################\n\t${cppchecks} found continuing...\n####################\n\n";
+             echo -e "\n####################\n\t${cppchecks} found continuing...\n####################\n";
              cp -vf "${src_tree%/*}/${cppchecks}" "${github}" 2>/dev/null;
              cppchecks=$(cat ${cppchecks} | tr -d ' \n');
           else
@@ -686,11 +686,11 @@ runs:
                 for i in ${includes[@]}; do
                   final="${i}";
                   count2=$((include_count++));
-                  header=$(sudo find . -type f \( -path "*/$(dirname ${i})/*" -o -path "${{ env.dirname }}" \) -name "$(basename ${i})" -print -quit);
+                  header=$(sudo find . -type f \( -path "*/$(dirname ${i})/*" -o -path "*/$(dirname ${f})/*" -o -path "*" \) -name "$(basename ${i})" -print -quit);
                   if [[ -f "${header}" ]]; then
                     echo "$(dirname ${header#./})" >> "${include1}";
                   else
-                    echo "\n::notice::include source file ${i} is missing\n"
+                    echo -e "\n::notice:: include source file ${i} is missing\n"
                   fi;
                 done;
                 IFS=${SAVEIFS}
@@ -738,7 +738,7 @@ runs:
               else
                 echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${f}) NOT PRESENT\n####################\n\n";
               fi;
-              echo -e "\n::notice::Total number of ${{ inputs.filename }} include file(s): ${count2}\n";
+              echo -e "\n::notice:: Total number of ${{ inputs.filename }} include file(s): ${count2}\n";
             else
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
