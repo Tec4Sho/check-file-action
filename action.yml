@@ -601,6 +601,7 @@ runs:
         set +e
         SAVEIFS=${IFS}
         include_count=1
+        include_total=1
         compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
         build_cache='build_cache';
         file_count=1
@@ -647,17 +648,16 @@ runs:
             exit 1
           fi;
           if [[ -f "${src_tree%/*}/${cppchecks}" ]]; then
-             echo -e "\n####################\n\t${cppchecks} found continuing...\n####################\n";
-             cp -vf "${src_tree%/*}/${cppchecks}" "${github}" 2>/dev/null;
+             cp -f "${src_tree%/*}/${cppchecks}" "${github}" 2>/dev/null && echo -e "\n####################\n\t${cppchecks} found continuing...\n####################\n";
              cppchecks=$(cat ${cppchecks} | tr -d ' \n');
           else
              cppchecks=all
           fi;
           if [[ -d "${src_tree%/*}/${build_cache}" ]]; then
              echo -e '\n####################\n\tbuild_cache found continuing...\n####################\n';
-             cp -Rf "${src_tree%/*}/${build_cache}" "$PWD" 2>/dev/null;
+             cp -Rf "${src_tree%/*}/${build_cache}" "${github}" 2>/dev/null;
           else
-             mkdir -p "${build_cache}";
+             mkdir -p "${github}/${build_cache}";
           fi;
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n";
@@ -686,6 +686,7 @@ runs:
                 for i in ${includes[@]}; do
                   final="${i}";
                   count2=$((include_count++));
+                  count3=$((include_total++));
                   header=$(sudo find . -type f \( -path "*/$(dirname ${i})/*" -o -path "*/$(dirname ${f})/*" -o -path "*" \) -name "$(basename ${i})" -print -quit);
                   if [[ -f "${header}" ]]; then
                     echo "$(dirname ${header#./})" >> "${include1}";
@@ -725,7 +726,7 @@ runs:
                       fixed=true
                     fi;
                   else
-                    echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
+                    echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
                     cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --includes-file="${include2}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                     if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
@@ -738,7 +739,8 @@ runs:
               else
                 echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${f}) NOT PRESENT\n####################\n\n";
               fi;
-              echo -e "\n::notice:: Total number of ${{ inputs.filename }} include file(s): ${count2}\n";
+              echo -e "\n::notice:: Number of $(basename ${f}) include file(s): ${count2}\n";
+              count2=0
             else
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
@@ -768,7 +770,11 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
-                cppcheck -j "$(nproc --all)" --quiet --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --project="${compile_json}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                if ${{ inputs.stored }}; then
+                  cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --project="${compile_json}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                else
+                  cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --project="${compile_json}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                fi;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                 else
@@ -779,7 +785,7 @@ runs:
             fi;
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n";
-              cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=* --cppcheck-build-dir="${build_cache}" --quiet "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+              cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=* --quiet "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
               if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -794,7 +800,10 @@ runs:
               fi;
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
+          if ${{ inputs.include }}; then
+            echo -e "\n::notice:: Total number of include file(s) was: ${count3}\n";
+          fi;
+          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${errors}" ]]; then
@@ -803,8 +812,8 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
-          if ${{ inputs.update }}; then
-            cp -Rf "${build_cache}" "${src_tree%/*}" 2>/dev/null;
+          if ${{ inputs.stored }}; then
+            cp -Rf "${github}/${build_cache}" "${src_tree%/*}" 2>/dev/null && echo -e "\n${build_cache} directory copied"
           fi;
         elif [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n";
