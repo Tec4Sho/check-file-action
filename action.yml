@@ -95,6 +95,15 @@ inputs:
     type: boolean
     required: false
     default: 'false'
+  output:
+    description: 'Output log stdout type 1,2 or 3'
+    required: false
+    default: 1
+    type: choice
+    options:
+    -1 # Log to terminal and file.
+    -2 # Log to file only.
+    -3 # Log to terminal only.
   build:
     description: 'Fix Errors found while building repository project'
     type: boolean
@@ -441,6 +450,18 @@ runs:
         echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n";
         echo 'check_build=false' >> "${GITHUB_ENV}";
 
+        process_input() {
+          while IFS= read -r log; do
+            if [[ ${{ inputs.output == 1 }} ]]; then
+              echo "$log" | tee -a "${project_log}";
+            elif [[ ${{ inputs.output == 2 }} ]]; then
+              echo "$log" >> "${project_log}";
+            elif [[ ${{ inputs.output == 3 }} ]]; then
+              echo "$log";
+            fi;
+          done;
+        }
+
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
           update=false
@@ -523,7 +544,7 @@ runs:
             fi;
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY ANALYZING CLANG PARAMS FILE\n####################\n';
-            { time -p clang-tidy @parameter-file; } 2>&1 | tee -a "${project_log}" || echo "Error: ( $? ) checking project files";
+            { time -p clang-tidy @parameter-file; } 2>&1 | process_input || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -535,7 +556,7 @@ runs:
           if [[ -f "${compile_json}" ]] && ${{ env.analysis == 2 }} && ! ${{ inputs.build }}; then
             echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################\n';
             echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
-            { time -p clang-tidy -p build/ --config-file="${clang_tidy}" --fix-errors; } 2>&1 | tee -a "${project_log}" || echo "Error: ( $? ) checking project files";
+            { time -p clang-tidy -p build/ --config-file="${clang_tidy}" --fix-errors; } 2>&1 | process_input || echo "Error: ( $? ) checking project files";
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ ! -e "${compile_json}" ]] && ${{ env.analysis == 2 }} && ! ${{ inputs.build }}; then
@@ -550,7 +571,7 @@ runs:
               "${clang_run}" -p build/ -fix -checks=-*,readability-* -j "$(nproc --all)" && \
               "${clang_run}" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
                 -header-filter=extra/clang-tidy;
-            } 2>&1 | tee -a "${project_log}" || echo "Error: ( $? ) checking project files";
+            } 2>&1 | process_input || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -561,7 +582,7 @@ runs:
               python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,readability-* -j "$(nproc --all)" && \
               python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
                 -header-filter=extra/clang-tidy;
-            } 2>&1 | tee -a "${project_log}" || echo "Error: ( $? ) checking project files";
+            } 2>&1 | process_input || echo "Error: ( $? ) checking project files";
             echo -e '\n|RUNTIME|';
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
