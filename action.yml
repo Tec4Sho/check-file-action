@@ -599,6 +599,7 @@ runs:
       run: |
         export LC_ALL=C
         set +e
+        SAVEIFS=${IFS}
         include_count=1
         compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
         build_cache='build_cache';
@@ -646,13 +647,14 @@ runs:
             exit 1
           fi;
           if [[ -f "${src_tree%/*}/${cppchecks}" ]]; then
-             echo -e '\n####################\n\t${cppchecks} found continuing...\n####################\n';
-             cp -f "${src_tree%/*}/${cppchecks}" "$PWD" 2>/dev/null;
+             echo -e "\n####################\n\t${cppchecks} found continuing...\n####################\n\n";
+             cp -vf "${src_tree%/*}/${cppchecks}" "${github}" 2>/dev/null;
              cppchecks=$(cat ${cppchecks} | tr -d ' \n');
           else
              cppchecks=all
           fi;
           if [[ -d "${src_tree%/*}/${build_cache}" ]]; then
+             echo -e '\n####################\n\tbuild_cache found continuing...\n####################\n';
              cp -Rf "${src_tree%/*}/${build_cache}" "$PWD" 2>/dev/null;
           else
              mkdir -p "${build_cache}";
@@ -673,6 +675,7 @@ runs:
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "{f}";
             fi;
             if ${{ inputs.include }}; then
+              IFS=$'\n';
               includes=$(sudo find $(dirname ${f}) -name $(basename ${f}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
               include1="${GITHUB_WORKSPACE}/include_file1.txt";
               include2="${GITHUB_WORKSPACE}/include_file2.txt";
@@ -689,10 +692,11 @@ runs:
                   done;
                 done;
                 cd "${github}";
+                IFS=${SAVEIFS}
                 if [[ -f "${include1}" ]]; then
                   awk '!seen[$0]++' "${include1}" > "${include2}";
                 fi;
-                if [[ ${include2} ]]; then
+                if [[ -f "${include2}" ]]; then
                   if ${{ inputs.content }}; then
                     echo -e "\n####################\n\tFILE PATH(S) (${count2})\n####################\n";
                     batcat --theme=ansi --paging=never --show-all --color=always --style=full "${f}";
@@ -725,7 +729,7 @@ runs:
                     fi;
                   else
                     echo -e "\n\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                    cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --checkers-report="$(basename ${f})" --includes-file="${include2}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
+                    cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --includes-file="${include2}" "${f}" 2>/dev/null |& tee -a "${error_log}" || echo "::error:: exit-code: ( $? )";
                     if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${f}\n####################\n";
                     else
@@ -792,7 +796,7 @@ runs:
               fi;
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\nTotal number of $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s) checked is: ${count1}\n";
+          echo -e "\nTotal number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
           echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${errors}" ]]; then
