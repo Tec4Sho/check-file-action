@@ -653,9 +653,9 @@ runs:
           process_input() {
             while IFS= read -r log; do
               if [[ ${{ inputs.output == 1 }} ]]; then
-                echo "$log" | tee -a "${project_log}";
+                echo "$log" | tee -a "${error_log}";
               elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo "$log" >> "${project_log}";
+                echo "$log" >> "${error_log}";
               elif [[ ${{ inputs.output == 3 }} ]]; then
                 echo "$log";
               fi;
@@ -883,9 +883,9 @@ runs:
           process_input() {
             while IFS= read -r log; do
               if [[ ${{ inputs.output == 1 }} ]]; then
-                echo "$log" | tee -a "${project_log}";
+                echo "$log" | tee -a "${error_log}";
               elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo "$log" >> "${project_log}";
+                echo "$log" >> "${error_log}";
               elif [[ ${{ inputs.output == 3 }} ]]; then
                 echo "$log";
               fi;
@@ -1016,9 +1016,9 @@ runs:
           process_input() {
             while IFS= read -r log; do
               if [[ ${{ inputs.output == 1 }} ]]; then
-                echo "$log" | tee -a "${project_log}";
+                echo "$log" | tee -a "${error_log}";
               elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo "$log" >> "${project_log}";
+                echo "$log" >> "${error_log}";
               elif [[ ${{ inputs.output == 3 }} ]]; then
                 echo "$log";
               fi;
@@ -1257,22 +1257,22 @@ runs:
         set +e
         min_size_bytes=$((25 * 1024 * 1024));
         filename1="${GITHUB_WORKSPACE}/${{ env.repository }}_project.log";
-        filename2="${error_log}";
+        filename2="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
         if [[ -s "${filename1}" ]]; then
-          filesize1=$(sudo stat -c%s "$filename1" 2>/dev/null);
-          ansi2txt "${GITHUB_WORKSPACE}/${{ env.repository }}_project.log" > "${GITHUB_WORKSPACE}/${{ env.repository }}_project1.log";
-          mv -vf "${GITHUB_WORKSPACE}/${{ env.repository }}_project1.log" > "${GITHUB_WORKSPACE}/${{ env.repository }}_project.log";
+          filesize1=$(sudo stat -c%s "${filename1}" 2>/dev/null);
+          ansi2txt "${filename1}" > "${filename1}.tmp";
+          mv -vf "${filename1}.tmp" "${filename1}";
           if (( filesize1 > min_size_bytes )); then
-            split -b 25M "${{ env.repository }}_project.log" 'part_'
+            split -b 25M "${filename1}" 'part_'
             echo "file1_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
-        if [[ -s "$${filename2}" ]]; then
-          filesize2=$(sudo stat -c%s "$filename2" 2>/dev/null);
-          ansi2txt "${error_log}" > "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error1.log";
-          mv -vf "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error1.log" > "${error_log}";
+        if [[ -s "${filename2}" ]]; then
+          filesize2=$(sudo stat -c%s "${filename2}" 2>/dev/null);
+          ansi2txt "${filename2}" > "${filename2}.tmp";
+          mv -vf "${filename2}.tmp" "${filename2}";
           if (( filesize2 > min_size_bytes )); then
-            split -b 25M "${{ inputs.filename }}_error.log" 'part_'
+            split -b 25M "${filename2}" 'part_'
             echo "file2_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
@@ -1284,15 +1284,16 @@ runs:
       if: env.update == 'true' && env.file_fixed == 1
       run: |
         echo '';
+        error_log="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
         repair_date="$(date +%Y%m%d)";
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name ".git" -print -quit);
         if [[ -d ${repository} ]]; then
           process_input() {
             while IFS= read -r log; do
               if [[ ${{ inputs.output == 1 }} ]]; then
-                echo "$log" | tee -a "${project_log}";
+                echo "$log" | tee -a "${error_log}";
               elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo "$log" >> "${project_log}";
+                echo "$log" >> "${error_log}";
               elif [[ ${{ inputs.output == 3 }} ]]; then
                 echo "$log";
               fi;
