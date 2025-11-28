@@ -691,7 +691,7 @@ runs:
             awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}' "${files}";
             echo -e '\t--------------------\n';
           fi;
-          { time -p echo "${files[@]}" | while IFS= read -r file; do
+          { time -p for file in "${files[@]}"; do
             search_path="${file}";
             check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
