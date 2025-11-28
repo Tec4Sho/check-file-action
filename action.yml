@@ -416,7 +416,7 @@ runs:
         echo 'file_error=0' >> "${GITHUB_ENV}";
         echo "file1_parted=0" >> "${GITHUB_ENV}";
         echo "file2_parted=0" >> "${GITHUB_ENV}";
-        
+        echo 'build_cache=false' >> "${GITHUB_ENV}";
       shell: bash
       continue-on-error: false
 
@@ -505,25 +505,12 @@ runs:
           fi;
 
           mkdir -p build
-          if ${{ inputs.build }}; then
-            if [[ -d 'build' ]]; then
-              echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
-              cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
-              cmake --build build || echo "::error:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)";
-              check_build=true
-              if ${{ inputs.upload }}; then
-                echo 'build_files=1' >> "${GITHUB_ENV}";
-                cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
-              fi;
-            fi;      
-          else
-            if [[ -d 'build' ]]; then
-              echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
-              cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
-              if ${{ inputs.upload }}; then
-                echo 'build_files=1' >> "${GITHUB_ENV}";
-                cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
-              fi;
+          if [[ -d 'build' ]]; then
+            echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
+            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
+            if ${{ inputs.upload }}; then
+              echo 'build_files=1' >> "${GITHUB_ENV}";
+              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
             fi;
           fi;
           
@@ -535,61 +522,87 @@ runs:
             echo -e '\n####################\n\trun-clang-tidy.py located in system continuing...\n####################\n';
           fi;
 
-          if [[ -f "${clang_file}" ]] && ${{ env.analysis == 1 }} && ! ${{ inputs.build }}; then
+          if [[ -f "${clang_file}" ]] && ${{ env.analysis == 1 }}; then
             echo ' ' >> "${clang_file}";
             if [[ `file_list` ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
               file_list >> "${clang_file}";
             else	
-              echo -e "\n::error::No ${file_type} files found searching repository\nExiting...\n";
+              echo -e "\n::error:: No ${file_type} files found searching repository\nExiting...\n";
               exit 1
             fi;
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
-            echo -e '\n####################\nCLANG-TIDY ANALYZING CLANG PARAMS FILE\n####################\n';
-            { time -p clang-tidy @parameter-file; } 2>&1 | process_input || echo "Error: ( $? ) checking project files";
-            echo -e '\n|RUNTIME|';
-            check_build=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
-          elif [[ ! -e "${clang_file}" ]] && ${{ env.analysis == 1 }} && ! ${{ inputs.build }}; then
-            echo -e "\n####################\n\t::error::parameter-file missing in repo Exiting...\n####################\n";
+            echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n';
+            if [[ -e "compile_commands.json" ]]; then
+              echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################\n';
+              echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n';
+              { time -p clang-tidy @parameter-file -p build/ --config-file="${clang_tidy}" --fix-errors; } 2>&1 | process_input || echo "::error:: ( $? ) checking project files";
+              echo -e '\n|RUNTIME|';
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            else
+              echo -e "\n####################\n\t::error:: compile_commands.json missing in repo Exiting...\n####################\n";
+              exit 1
+            fi;
+          elif [[ ! -e "${clang_file}" ]] && ${{ env.analysis == 1 }}; then
+            echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n";
             exit 1
           fi;
 
-          if [[ -e "compile_commands.json" ]] && ${{ env.analysis == 2 }} && ! ${{ inputs.build }}; then
-            echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################\n';
-            echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
-            { time -p clang-tidy -p build/ --config-file="${clang_tidy}" --fix-errors; } 2>&1 | process_input || echo "Error: ( $? ) checking project files";
-            check_build=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
-          elif [[ ! -e "${compile_json}" ]] && ${{ env.analysis == 2 }} && ! ${{ inputs.build }}; then
-            echo -e "\n####################\n\t::error::compile_commands.json missing in repo Exiting...\n####################\n";
+          if [[ -f "${clang_file}" ]] && ${{ env.analysis == 2 }}; then
+            echo ' ' >> "${clang_file}";
+            if [[ `file_list` ]]; then
+              echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
+              file_list >> "${clang_file}";
+            else	
+              echo -e "\n::error:: No ${file_type} files found searching repository\nExiting...\n";
+              exit 1
+            fi;
+            echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
+            echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n';
+            if [[ -x "${clang_run}" ]]; then
+              echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
+              echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
+              { time -p \
+                "${clang_run}" -p build/ -fix -checks=-*,readability-* -j "$(nproc --all)" && \
+                "${clang_run}" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
+                  -header-filter=extra/clang-tidy;
+              } 2>&1 | process_input || echo "::error:: ( $? ) checking project files";
+              echo -e '\n|RUNTIME|';
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            elif [[ -x "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]]; then
+              echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
+              echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
+              { time -p \
+                python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,readability-* -j "$(nproc --all)" && \
+                python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
+                  -header-filter=extra/clang-tidy;
+              } 2>&1 | process_input || echo "::error:: ( $? ) checking project files";
+              echo -e '\n|RUNTIME|';
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            else
+              echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n";
+              exit 1
+            fi;
+          elif [[ ! -e "${clang_file}" ]] && ${{ env.analysis == 2 }}; then
+            echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n";
             exit 1
           fi;
 
-          if [[ -x "${clang_run}" ]] && ${{ env.analysis == 3 }} && ! ${{ inputs.build }}; then
-            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
-            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
-            { time -p \
-              "${clang_run}" -p build/ -fix -checks=-*,readability-* -j "$(nproc --all)" && \
-              "${clang_run}" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
-                -header-filter=extra/clang-tidy;
-            } 2>&1 | process_input || echo "Error: ( $? ) checking project files";
-            echo -e '\n|RUNTIME|';
-            check_build=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
-          elif [[ -x "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]] && ${{ env.analysis == 3 }} && ! ${{ inputs.build }}; then
-            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
-            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
-            { time -p \
-              python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,readability-* -j "$(nproc --all)" && \
-              python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
-                -header-filter=extra/clang-tidy;
-            } 2>&1 | process_input || echo "Error: ( $? ) checking project files";
-            echo -e '\n|RUNTIME|';
-            check_build=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
-          elif [[ ! -e "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]] && ${{ env.analysis == 3 }} && ! ${{ inputs.build }}; then
-            echo -e "\n####################\n\t::error::run-clang-tidy.py missing in repo Exiting...\n####################\n";
+          if [[ -d 'build' ]] && ${{ env.analysis == 3 }}; then
+            echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
+              cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
+              cmake --build build || echo "::error:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)";
+              check_build=true
+              if ${{ inputs.upload }}; then
+                echo 'build_files=1' >> "${GITHUB_ENV}";
+                cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
+              fi;
+            fi;
+          elif [[ ! -d 'build' ]] && ${{ env.analysis == 3 }}; then
+            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n";
             exit 1
           fi;
 
@@ -669,10 +682,10 @@ runs:
             echo -e "\n####################\n::error:: .clang-tidy not found exiting...\n####################\n";
             exit 1
           fi;
-          if [[ -f "${compile_json}" ]] && ${{ inputs.include }}; then
+          if [[ -f "${compile_json}" ]] && ! ${{ inputs.include }}; then
             echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################\n';
-          elif [[ ! -f "${compile_json}" ]] && ${{ inputs.include }}; then
-            echo -e "\n####################\n::error:: compile_commands.json not found exiting...\n####################\n";
+          elif [[ ! -f "${compile_json}" ]] && ! ${{ inputs.include }}; then
+            echo -e "\n####################\n::error:: compile_commands.json not found\nUse inputs.project: true to create it exiting...\n####################\n";
             exit 1
           fi;
           if [[ -f "${src_tree%/*}/${cppchecks}" ]]; then
@@ -684,6 +697,7 @@ runs:
           if [[ -d "${src_tree%/*}/${build_cache}" ]]; then
              echo -e '\n####################\n\tbuild_cache found continuing...\n####################\n';
              cp -Rf "${src_tree%/*}/${build_cache}" "${github}" 2>/dev/null;
+             echo 'build_cache=true' >> "${GITHUB_ENV}";
           else
              mkdir -p "${github}/${build_cache}";
           fi;
@@ -800,6 +814,7 @@ runs:
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
                 if ${{ inputs.stored }}; then
                   cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --project="${compile_json}" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+                  echo 'build_cache=true' >> "${GITHUB_ENV}";
                 else
                   cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --project="${compile_json}" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
                 fi;
@@ -840,7 +855,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
-          if ${{ inputs.stored }}; then
+          if ${{ inputs.stored }} && [[ -d "${build_cache}" ]]; then
             cp -Rf "${github}/${build_cache}" "${src_tree%/*}" 2>/dev/null && echo -e "\n${build_cache} directory copied"
           fi;
         elif [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
@@ -1344,7 +1359,7 @@ runs:
 
 
     - name: Uploading ${{ github.repository }} Project Build Release
-      if: inputs.report != 'false' && inputs.project != 'false' && env.build_files == 1
+      if: inputs.build != 'false' && inputs.project != 'false' && env.build_files == 1
       uses: softprops/action-gh-release@v1
       with:
         files: build/*
