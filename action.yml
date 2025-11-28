@@ -553,7 +553,7 @@ runs:
             exit 1
           fi;
 
-          if [[ -f "${compile_json}" ]] && ${{ env.analysis == 2 }} && ! ${{ inputs.build }}; then
+          if [[ -e "compile_commands.json" ]] && ${{ env.analysis == 2 }} && ! ${{ inputs.build }}; then
             echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################\n';
             echo -e '\n####################\nCLANG-TIDY ANALYZING COMPILE COMMAND FILE\n####################\n';
             { time -p clang-tidy -p build/ --config-file="${clang_tidy}" --fix-errors; } 2>&1 | process_input || echo "Error: ( $? ) checking project files";
