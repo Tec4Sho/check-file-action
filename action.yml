@@ -631,11 +631,11 @@ runs:
         github=${GITHUB_WORKSPACE};
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
+            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
             echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
           else
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}");
+            files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
             echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
           fi;
           clang_file=$(grep -sF -m 1 '.clang-tidy' "${{ env.database }}");
