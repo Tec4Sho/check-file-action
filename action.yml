@@ -560,7 +560,8 @@ runs:
             fi;
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n';
-            if [[ -x "${clang_run}" ]]; then
+            if [[ -e "${clang_run}" ]]; then
+              sudo chmod -v 0755 "${clang_run}" 2>/dev/null;
               echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
               echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
               { time -p \
@@ -571,7 +572,8 @@ runs:
               echo -e '\n|RUNTIME|';
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
-            elif [[ -x "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]]; then
+            elif [[ -e "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]]; then
+              sudo chmod -v 0755 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" 2>/dev/null;
               echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
               echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
               { time -p \
