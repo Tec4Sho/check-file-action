@@ -45,11 +45,6 @@ inputs:
     type: boolean
     required: false
     default: 'false'
-  release:
-    description: 'Upload build files for compile_commands.json'
-    type: boolean
-    required: false
-    default: 'false'
   recheck:
     description: 'Recheck files repaired by check-file'
     type: boolean
@@ -92,6 +87,11 @@ inputs:
     default: 'false'
   update:
     description: 'Errors repaired with check-file will push changes to remote repository'
+    type: boolean
+    required: false
+    default: 'false'
+  upload:
+    description: 'Upload build files for compile_commands.json'
     type: boolean
     required: false
     default: 'false'
@@ -439,6 +439,7 @@ runs:
         check_build=false
         file_type='c';
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print);
+        github=${GITHUB_WORKSPACE};
         update=true
 
         echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
@@ -510,18 +511,18 @@ runs:
               cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
               cmake --build build || echo "::error:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)";
               check_build=true
-              if ${{ inputs.release }}; then
+              if ${{ inputs.upload }}; then
                 echo 'build_files=1' >> "${GITHUB_ENV}";
-                cp -Rf ./build ${GITHUB_WORKSPACE}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
+                cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
               fi;
             fi;      
           else
             if [[ -d 'build' ]]; then
               echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
               cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
-              if ${{ inputs.release }}; then
+              if ${{ inputs.upload }}; then
                 echo 'build_files=1' >> "${GITHUB_ENV}";
-                cp -Rf ./build ${GITHUB_WORKSPACE}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
+                cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
               fi;
             fi;
           fi;
