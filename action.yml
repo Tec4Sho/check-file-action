@@ -732,7 +732,7 @@ runs:
                       echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n";
                     elif ${{ inputs.stored }} && ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                      clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+                      clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe\nStatus [0]: ${PIPESTATUS[0]}\nStatus [1]: ${PIPESTATUS[1]}";
                       if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                         echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n";
                       else
@@ -743,7 +743,7 @@ runs:
                       fixed=true
                     elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                      clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+                      clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
                       if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                         echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
                       else
@@ -754,7 +754,7 @@ runs:
                     fi;
                   else
                     echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                    cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --includes-file="${include2}" "${file}" 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+                    cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --includes-file="${include2}" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
                     if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
                     else
@@ -775,7 +775,7 @@ runs:
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n";
                 elif ${{ inputs.stored }} && ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n";
                   else
@@ -786,7 +786,7 @@ runs:
                   fixed=true
                 elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
                   else
@@ -798,9 +798,9 @@ runs:
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
                 if ${{ inputs.stored }}; then
-                  cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --project="${compile_json}" "${file}" 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+                  cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --project="${compile_json}" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
                 else
-                  cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --project="${compile_json}" "${file}" 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+                  cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --project="${compile_json}" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
                 fi;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
@@ -812,7 +812,7 @@ runs:
             fi;
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n";
-              cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=* --quiet "${f}" 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+              cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=* --quiet "${f}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
               if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
               else
@@ -914,7 +914,7 @@ runs:
                 echo -e "\n####################\nRepaired on ${check_date}\nSkipping $(basename ${f})\n####################\n";
               elif ${{ inputs.stored }} && ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-                shellharden --syntax-suggest --transform "${f}" 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+                shellharden --syntax-suggest --transform "${f}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${f}\n";
                 else
@@ -925,7 +925,7 @@ runs:
                 fixed=true
               elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-                shellharden --syntax-suggest --transform "${f}" 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+                shellharden --syntax-suggest --transform "${f}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND ${f}\n####################\n";
                 else
@@ -937,7 +937,7 @@ runs:
             fi;
             if ${{ inputs.recheck }}; then
               echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-              shellcheck --norc --severity=warning --color=always "${f}" 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+              shellcheck --norc --severity=warning --color=always "${f}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
               if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -946,7 +946,7 @@ runs:
               fi;
             elif ! ${{ inputs.repair }}; then
               echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${f}) FOR ERROR(S) ($count3)\n####################\n\n";
-              shellcheck --norc --severity=warning --color=always "${f}" 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+              shellcheck --norc --severity=warning --color=always "${f}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
               if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${f}\n####################\n";
               else
@@ -1035,7 +1035,7 @@ runs:
               echo -e "\n\n";
             fi;
             echo -e "\n####################\nCHECKMAKE ANALYZING $(basename ${f}) FOR ERROR(S) ($count4)\n####################\n";
-            checkmake "${f}" 2>/dev/null |& process_input || echo "::error:: exit-code: ( $? )";
+            checkmake "${f}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
             if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${f}.*error:" "${error_log}") ]]; then
               echo -e "\n####################\nCHECKMAKE NO ERRORS FOUND ${f}\n####################\n";
             else
