@@ -519,7 +519,7 @@ runs:
             if [[ -d 'build' ]]; then
               echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
               cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
-              if ${{ inputs.report }}; then
+              if ${{ inputs.release }}; then
                 echo 'build_files=1' >> "${GITHUB_ENV}";
                 cp -Rf ./build ${GITHUB_WORKSPACE}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
               fi;
@@ -1353,7 +1353,7 @@ runs:
 
 
     - name: Uploading build_cache Checked Report Artifacts
-      if: inputs.report != 'false' && inputs.filename != '' && env.file_error == 1 && inputs.stored == 'true'
+      if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1 && inputs.stored == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: Cppcheck Checked File(s) Report Artifacts
@@ -1363,7 +1363,7 @@ runs:
 
 
     - name: Uploading ${{ inputs.filename }} Error Report Artifact
-      if: inputs.report != 'false' && inputs.filename != '' && env.file_error == 1
+      if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1
       uses: actions/upload-artifact@v4
       with:
         name: Checked ${{ inputs.filename }} File(s) Report
@@ -1383,7 +1383,7 @@ runs:
 
 
     - name: Uploading ${{ inputs.filename }} Error Report Artifacts
-      if: inputs.report != 'false' && inputs.filename != '' && env.file_error == 1 && env.file2_parted == 1
+      if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1 && env.file2_parted == 1
       uses: actions/upload-artifact@v4
       with:
         name: Checked ${{ inputs.filename }} File(s) Split Report
@@ -1393,7 +1393,7 @@ runs:
 
 
     - name: Uploading ${{ github.repository }} Project Report Artifacts
-      if: inputs.report != 'false' && inputs.project != 'false' && env.check_build != 'false' && env.file1_parted == 1
+      if: inputs.report != 'false' && inputs.project != 'false' && env.check_build == 'true' && env.file1_parted == 1
       uses: actions/upload-artifact@v4
       with:
         name: Clang ${{ env.filetype }} File(s) Split Report
