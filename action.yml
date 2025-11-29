@@ -485,7 +485,7 @@ runs:
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n';
             if [[ "${files_list}" ]]; then
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n';
-              { time -p clang-tidy @parameter-file --fix-errors; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+              { time -p clang-tidy @parameter-file --fix-errors --quiet; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
               echo -e '\n|RUNTIME|\n';
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -504,10 +504,10 @@ runs:
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
-            sudo chmod -v 0755 "${clang_run}" 2>/dev/null;
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
+            sudo chmod -v 0755 "${clang_run}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
-            { time -p "${clang_run}" file_list -p build -config-file="${clang_tidy}" -use-color -quiet -fix -j "$(nproc --all)"; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+            { time -p "${clang_run}" -p build -config-file="${clang_tidy}" -use-color -quiet -fix -j "$(nproc --all)"; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
             echo -e '\n|RUNTIME|\n';
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
