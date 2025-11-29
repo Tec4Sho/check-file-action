@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.19) # Specifies the minimum required CMake version
 
 # ... other project settings ... #
-project(MyProject PUBLIC VERSION 1.0 LANGUAGES C)
+project(MyProject VERSION 1.0 LANGUAGES C)
 
-message(STATUS "Workspace Project Path: $ENV{GITHUB_WORKSPACE}")
+message(STATUS "Workspace Path: $ENV{GITHUB_WORKSPACE}")
 
 # .set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
 
@@ -13,7 +13,13 @@ set(LLVM_ENABLE_PROJECTS clang;clang-tools-extra)
 
 # .set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -Werror -pedantic")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -pedantic -std=c90")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
+
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
+
+# .set(CMAKE_C_FLAGS_DEBUG "put your flags") set(CMAKE_C_FLAGS_MINSIZEREL "put your flags") set(CMAKE_C_FLAGS_RELWITHDEBINFO "put your flags") set(CMAKE_C_FLAGS_RELEASE "put your flags")
+
+# .set(CMAKE_CXX_FLAGS_DEBUG "put your flags") set(CMAKE_CXX_FLAGS_MINSIZEREL "put your flags") set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "put your flags") set(CMAKE_CXX_FLAGS_RELEASE "put your 
 
 # .set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # does not produce the json file on wrong cmake version 
 
@@ -37,18 +43,6 @@ set(CMAKE_C_EXTENSIONS ON) # Enables compiler-specific extensions for C
 
 set(CMAKE_C_COMPILER clang) # Sets the C compiler
 
-find_program(CLANG_TIDY_EXE "clang-tidy")
-  if(CLANG_TIDY_EXE)
-    message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
-    # Configure clang-tidy to run with all checks and fix errors
-    # .set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=*;-header-filter=.;-fix")
-    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=*;-fix;-header-filter=^((?!third_party/).)*$")
-    # You can also specify specific checks instead of -checks=*
-    # .set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=modernize-loop-convert,readability-identifier-naming;-fix")
-  else()
-    message(WARNING "clang-tidy not found! Static analysis will be skipped.")
-  endif()
-
 # .set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES OFF) 
 
 set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON)
@@ -57,7 +51,7 @@ file(GLOB_RECURSE SOURCES "*.c")
 
 add_executable(MyProject ${SOURCES}) # Creates an executable target named "MyProject" from source files
 
-target_include_directories(MyProject PUBLIC 'include')
+# .target_include_directories(MyProject PUBLIC 'include')
 
 # .file(GLOB_RECURSE INCLUDES LIST_DIRECTORIES true "include")
 
@@ -104,6 +98,18 @@ set_target_properties(MyProject PROPERTIES C_STANDARD 99)
 # .target_include_directories(MyProject PUBLIC ${LIBCONFIG_INCLUDE_DIRS})
 
 # .target_link_libraries(MyProject PUBLIC ${LIBCONFIG_LINK_LIBRARES})
+
+find_program(CLANG_TIDY_EXE "clang-tidy")
+  if(CLANG_TIDY_EXE)
+    message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
+    # Configure clang-tidy to run with all checks and fix errors
+    # .set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=*;-header-filter=.;-fix")
+    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=-*,clang-diagnostic*,clang-analyzer-*,modernize*,clang-analyzer-cplusplus*';-fix;-header-filter=^((?!third_party/).)*$")
+    # You can also specify specific checks instead of -checks=*
+    # .set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=modernize-loop-convert,readability-identifier-naming;-fix")
+  else()
+    message(WARNING "clang-tidy not found! Static analysis will be skipped.")
+  endif()
 
 execute_process(
     COMMAND ${CMAKE_COMMAND} -E create_symlink

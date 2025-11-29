@@ -3,7 +3,7 @@ Checks:                '-*,clang-diagnostic*,clang-analyzer-*,modernize*,clang-a
 WarningsAsErrors:      ''
 HeaderFileExtensions:         ['', 'h','hh','hpp','hxx']
 ImplementationFileExtensions: ['c','cc','cpp','cxx']
-HeaderFilterRegex:     '.*'
+HeaderFilterRegex:     "^((?!third_party/).)*$"
 InheritParentConfig:   true
 User:                  user
 SystemHeaders:         true
