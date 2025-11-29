@@ -485,7 +485,7 @@ runs:
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n';
             if [[ "${files_list}" ]]; then
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n';
-              { time -p clang-tidy @parameter-file --config-file="${clang_tidy}" --fix-errors; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+              { time -p clang-tidy @parameter-file --fix-errors; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
               echo -e '\n|RUNTIME|\n';
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -496,38 +496,23 @@ runs:
             echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n";
             exit 1
           fi;
-          if [[ -f "${clang_file}" ]] && ${{ env.analysis == 2 }}; then
-            echo ' ' >> "${clang_file}";
-            if [[ $(file_list) ]]; then
-              echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
-              file_list >> "${clang_file}";
-            else	
-              echo -e "\n::error:: No ${file_type} files found searching repository\nExiting...\n";
-              exit 1
-            fi;
-            echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
-            echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n';
-            if [[ $(which run-clang-tidy.py) ]]; then
-              echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
-              echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
-              { time -p run-clang-tidy.py -regex ".*\.${file_type}" -p build/ -fix -j "$(nproc --all)"; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
-              echo -e '\n|RUNTIME|\n';
-              check_build=true
-              echo 'check_build=true' >> "${GITHUB_ENV}";
-            elif [[ -e "${clang_run}" ]]; then
-              sudo chmod -v 0755 "${clang_run}" 2>/dev/null;
-              echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
-              echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
-              { time -p "${clang_run}" -regex ".*\.${file_type}" -p build/ -fix -j "$(nproc --all)"; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
-              echo -e '\n|RUNTIME|\n';
-              check_build=true
-              echo 'check_build=true' >> "${GITHUB_ENV}";
-            else
-              echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n";
-              exit 1
-            fi;
-          elif [[ ! -e "${clang_file}" ]] && ${{ env.analysis == 2 }}; then
-            echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n";
+          if [[ $(which run-clang-tidy.py) ]] && ${{ env.analysis == 2 }}; then
+            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
+            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
+            { time -p run-clang-tidy.py -p ${CMAKE_BINARY_DIR} -config-file="${clang_tidy}" -use-color -quiet -fix -j "$(nproc --all)"; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+            echo -e '\n|RUNTIME|\n';
+            check_build=true
+            echo 'check_build=true' >> "${GITHUB_ENV}";
+          elif [[ -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
+            sudo chmod -v 0755 "${clang_run}" 2>/dev/null;
+            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
+            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
+            { time -p "${clang_run}" -p ${CMAKE_BINARY_DIR} -config-file="${clang_tidy}" -use-color -quiet -fix -j "$(nproc --all)"; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+            echo -e '\n|RUNTIME|\n';
+            check_build=true
+            echo 'check_build=true' >> "${GITHUB_ENV}";
+          elif [[ ! -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
+            echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n";
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ env.analysis == 3 }}; then
