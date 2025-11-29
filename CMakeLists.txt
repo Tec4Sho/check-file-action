@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19) # Specifies the minimum required CMake version
 
 # ... other project settings ... #
-project(MyProject VERSION 1.0 LANGUAGES C)
+project(MyProject PUBLIC VERSION 1.0 LANGUAGES C)
 
 message(STATUS "Workspace Project Path: $ENV{GITHUB_WORKSPACE}")
 
@@ -53,11 +53,11 @@ find_program(CLANG_TIDY_EXE "clang-tidy")
 
 set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON)
 
-target_include_directories(MyProject PRIVATE include)
-
 file(GLOB_RECURSE SOURCES "*.c")
 
 add_executable(MyProject ${SOURCES}) # Creates an executable target named "MyProject" from source files
+
+target_include_directories(MyProject PUBLIC 'include')
 
 # .file(GLOB_RECURSE INCLUDES LIST_DIRECTORIES true "include")
 

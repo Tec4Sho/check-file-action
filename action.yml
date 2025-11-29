@@ -145,7 +145,6 @@ runs:
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list;
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
-        sudo apt-get autoclean -yq >/dev/null 2>&1;
         sudo apt-get update -yq >/dev/null 2>&1;
         text0="\n####################\ngit dependencies Installed\n####################\n";
         text1="\n####################\nripgrep dependencies Installed\n####################\n";
@@ -161,9 +160,9 @@ runs:
         file_type="${file_name##*.}";
         if [[ ! $(clang-tidy --version 2>/dev/null) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
           wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null;
-          sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-17 main" >/dev/null;
+          sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
           sudo apt-get update -yq >/dev/null 2>&1;
-          sudo apt-get install -yq clang clangd clang-tools clang-tidy >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
+          sudo apt-get install -yq clang clangd clang-tidy clang-tools >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
           [[ ! $(clang-tidy --version 2>/dev/null) ]] && exit 1
         fi;
         if [[ ! $(llvm-config --version 2>/dev/null) ]] && ${{ inputs.project }}; then
@@ -446,7 +445,7 @@ runs:
           clang_file='parameter-file';
           clang_tidy='.clang-tidy';
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
-          clang_run=$(sudo find / -type f -name 'run-clang-tidy.py' -print -quit 2>/dev/null);
+          clang_run=${{ github.action_path }}/scripts/tools/run-clang-tidy.py
           included=$(sudo find . -type d -name 'include' -print -quit);
           echo "repository=${repository}" >> "${GITHUB_ENV}";
           file_list() {
@@ -470,10 +469,7 @@ runs:
             fi;
           fi;
           if [[ -e 'compile_commands.json' ]]; then
-            echo -e '\n####################\n\tcompile_commands.json file symlink continuing...\n####################\n';
-          fi;
-          if [[ -e "${clang_run}" ]]; then
-            echo -e '\n####################\n\trun-clang-tidy.py located in system continuing...\n####################\n';
+            echo -e '\n####################\n\tcompile_commands.json file symlinked continuing...\n####################\n';
           fi;
           if [[ -f "${clang_file}" ]] && ${{ env.analysis == 1 }}; then
             echo ' ' >> "${clang_file}";
@@ -488,7 +484,6 @@ runs:
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n';
             if [[ "${files_list}" ]]; then
-              echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################\n';
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n';
               { time -p clang-tidy @parameter-file --config-file="${clang_tidy}" --fix-errors; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
               echo -e '\n|RUNTIME|\n';
@@ -512,19 +507,18 @@ runs:
             fi;
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n';
-            if [[ -e "${clang_run}" ]]; then
-              sudo chmod -v 0755 "${clang_run}" 2>/dev/null;
+            if [[ $(which run-clang-tidy.py) ]]; then
               echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
               echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
               { time -p run-clang-tidy.py @parameter-file -p build/ -fix -checks=-*,readability-*,llvm-header-guard extra/clang-tidy -j "$(nproc --all)" -header-filter=extra/clang-tidy; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
               echo -e '\n|RUNTIME|\n';
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
-            elif [[ -e "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]]; then
-              sudo chmod -v 0755 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" 2>/dev/null;
+            elif [[ -e "${clang_run}" ]]; then
+              sudo chmod -v 0755 "${clang_run}" 2>/dev/null;
               echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
               echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
-              { time -p python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" @parameter-file -p build/ -fix -checks=-*,readability-*,llvm-header-guard extra/clang-tidy -j "$(nproc --all)" -header-filter=extra/clang-tidy; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+              { time -p "${clang_run}" @parameter-file -p build/ -fix -checks=-*,readability-*,llvm-header-guard extra/clang-tidy -j "$(nproc --all)" -header-filter=extra/clang-tidy; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
               echo -e '\n|RUNTIME|\n';
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
