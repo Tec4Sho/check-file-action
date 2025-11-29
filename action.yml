@@ -121,13 +121,11 @@ runs:
         go-version: 1.25.3
       continue-on-error: true
 
-
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '16'
       continue-on-error: true
-
 
     - name: Setup Clang Compiler 
       if: inputs.project == 'true'
@@ -135,7 +133,6 @@ runs:
       with:
         compiler: ${{ inputs.compiler }}
       continue-on-error: true
-
 
     - name: Installing Dependencies
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
@@ -162,7 +159,6 @@ runs:
         text9="\n####################\nbatcat dependencies Installed\n####################\n";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        
         if [[ ! $(clang-tidy --version 2>/dev/null) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
           wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null;
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-17 main" >/dev/null;
@@ -170,81 +166,65 @@ runs:
           sudo apt-get install -yq clang clangd clang-tools clang-tidy >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
           [[ ! $(clang-tidy --version 2>/dev/null) ]] && exit 1
         fi;
-
         if [[ ! $(llvm-config --version 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install llvm llvm-dev lld libclang-dev >/dev/null && echo -e "\n####################\nllvm tools dependencies Installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
-
         if [[ ! $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
         fi;
-
         if [[ ! $(which cmake) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install cmake >/dev/null >/dev/null && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build';
           [[ ! $(which cmake) ]] && exit 1
         fi;
-
         if [[ ! $(which python3) ]] && ${{ inputs.project }} && ${{ inputs.analysis == 2 }}; then
           sudo apt-get -yq install python3 >/dev/null >/dev/null && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo -e '::error::No python3 installed for project build';
           [[ ! $(which python3) ]] && exit 1
         fi;
-
         if [[ ! $(which npm) ]]; then
           sudo npm install >/dev/null && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
           [[ ! $(which tput) ]] && exit 1
         fi;
-
         if [[ ! $(which tput) ]]; then
           sudo apt-get -yq install tput >/dev/null && echo -e "\n####################\ntput dependencies Installed\n####################\n" || echo -e '::error::No tput installed for term_width';
           [[ ! $(which tput) ]] && exit 1
         fi;
-
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core >/dev/null && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
-
         if [[ ! $(which rg) ]] && [[ "${{ inputs.pattern }}" != '' ]] && ${{ inputs.database }}; then
           sudo apt-get -yq install ripgrep >/dev/null && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
-
         if [[ ! $(which ansi2txt) ]] && ${{ inputs.report }}; then
           sudo apt-get -yq install ansi2txt >/dev/null && echo -e "${text2}" || echo -e '::error::No ansi2txt installed for cleaning log report';
         fi;
-
         if [[ ! $(which update-ca-certificates) ]]; then
           sudo apt-get -yq install ca-certificates >/dev/null && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
-
         if [[ ! $(which cppcheck) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           sudo apt-get -yq install cppcheck >/dev/null && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
           [[ ! $(which cppcheck) ]] && exit 1
         fi;
-
         if [[ ! $(which shellharden) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.repair }}; then
           wget -qO 'shellharden.tar.gz' 'https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-gnu.tar.gz';
           sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e "${text6}" || echo -e '::error::No shellharden installed Exiting';
           [[ ! $(which shellharden) ]] && exit 1
         fi;
-
         if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
           sudo apt-get -yq install shellcheck >/dev/null && echo -e "${text7}" || echo -e '::error::No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1
         fi;
-
         if [[ $(which checkmake) ]] && [[ -n ${file} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           sudo cp -vf "${file}" "${path}" 2>/dev/null;
         elif [[ ! -n ${file} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           echo -e '\ncheckmake.ini file missing, needed for checkmake to function properly\n';
         fi;
-
         if [[ ! $(which checkmake) ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "${text8}" || echo -e '::error::No checkmake installed Exiting';
           [[ ! $(which checkmake) ]] && exit 1
         fi;
-
         if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
           sudo ln -sf ~/usr/bin/bat ~/usr/bin/batcat >/dev/null || echo -e '::error::No batcat installed Exiting';
           [[ ! $(which batcat) ]] && exit 1
@@ -255,13 +235,11 @@ runs:
           [[ ! $(which batcat) ]] && exit 1
           export BAT_THEME="ansi";
         fi;
-
         echo 'update=${{ inputs.update }}' >> "${GITHUB_ENV}";
         sudo apt-get --fix-broken install -yq >/dev/null 2>&1;
       shell: bash
       continue-on-error: false
 
-    
     - name: Set Directory Base
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
       id: set_dirname 
@@ -299,7 +277,6 @@ runs:
         text10b="\033[1m# CHECK FILE ACTION #\033[0m";
         text10c="#####################";
         export TERM=xterm-256color
-
         if [[ ${TERM} ]]; then
           center_text() {
             local text="$1";
@@ -316,7 +293,6 @@ runs:
             fi;
           }
         fi;
-
         if ${{ inputs.rootdir }}; then
           center_text "\n${text1a}";
           center_text "${text1b}";
@@ -332,7 +308,6 @@ runs:
           echo "file_path=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
           file_path=${GITHUB_WORKSPACE}
         fi;
-
         if ${{ inputs.stored }} && ${{ env.update }} && [[ -d ${repository} ]]; then
           repository="${repository%/*}/${repair_file}";
           if [[ -f ${repository} ]]; then
@@ -359,7 +334,6 @@ runs:
           fi;
           echo 'update=true' >> "${GITHUB_ENV}";
         fi;
-
         if ${{ inputs.database }}; then
           sudo find "${file_path}" -type f -print | sort -t/ -k1.2 > "${GITHUB_WORKSPACE}/database";
           if [[ -s "${GITHUB_WORKSPACE}/database" ]]; then
@@ -373,13 +347,11 @@ runs:
             center_text "${text6c}\n" && exit 1
           fi;
         fi;
-
         if [[ -n "${{ inputs.filename }}" ]]; then
           center_text "\n${text7a}";
           center_text "${text7b}";
           center_text "${text7c}\n";
         fi;
-
         if [[ -n "${{ inputs.pattern }}" ]] && [[ "${{ inputs.filetype }}" != 'none' ]]; then
           center_text "\n${text8a}";
           center_text "${text8b}";
@@ -389,7 +361,6 @@ runs:
           center_text "${text9b}";
           center_text "${text9c}\n";
         fi;
-      
         if [[ -z "${{ inputs.dirname }}" ]]; then
           if [ -z "${{ github.event.inputs.DEVICE_PATH }}" ]; then 
             echo "dirname=${{ env.default_path }}" >> "${GITHUB_ENV}";
@@ -399,14 +370,12 @@ runs:
         else
           echo "dirname=${{ inputs.dirname }}" >> "${GITHUB_ENV}";
         fi;
-
         if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analysis > 0 }}; then
           center_text "::warning:: inputs.project: and inputs.filename: both enabled disables inputs.analysis:\nTo remove this warning use ( inputs.analysis: 0 )\n";
           echo "analysis=0" >> "${GITHUB_ENV}";
         else
           echo "analysis=${{ inputs.analysis }}" >> "${GITHUB_ENV}";
         fi;
-
         center_text "\n${text10a}" 2>/dev/null;
         center_text "${text10b}" 2>/dev/null;
         center_text "${text10c}\n" 2>/dev/null;
@@ -419,7 +388,6 @@ runs:
         echo 'build_cache=false' >> "${GITHUB_ENV}";
       shell: bash
       continue-on-error: false
-
 
     - name: Check Build Project
       if: inputs.project != 'false'
@@ -441,7 +409,6 @@ runs:
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print);
         github=${GITHUB_WORKSPACE};
         update=true
-
         echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
         echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n";
@@ -451,7 +418,6 @@ runs:
         echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n";
         echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n";
         echo 'check_build=false' >> "${GITHUB_ENV}";
-
         process_input() {
           while IFS= read -r log; do
             if [[ ${{ inputs.output == 1 }} ]]; then
@@ -463,24 +429,18 @@ runs:
             fi;
           done;
         }
-
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
           update=false
         fi;
-
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
-          file_type="${{ inputs.filetype }}"
+          file_type="${{ inputs.filetype }}";
         fi;
-        
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
-
         if [[ -d "${src_tree}" ]]; then
           echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n";
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n";
-          
           cd "${src_tree%/*}";
-
           repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
           cmake_list='CMakeLists.txt';
           clang_file='parameter-file';
@@ -489,21 +449,17 @@ runs:
           clang_run=$(sudo find / -type f -name 'run-clang-tidy.py' -print -quit 2>/dev/null);
           included=$(sudo find . -type d -name 'include' -print -quit);
           echo "repository=${repository}" >> "${GITHUB_ENV}";
-          
           file_list() {
             sudo find . -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
               echo "${file#./}"
             done
           }
-
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
           fi;
-
           if [[ -f "${cmake_list}" ]]; then
             echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################\n';
           fi;
-
           mkdir -p build
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
@@ -513,42 +469,38 @@ runs:
               cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
             fi;
           fi;
-          
           if [[ -e 'compile_commands.json' ]]; then
             echo -e '\n####################\n\tcompile_commands.json file symlink continuing...\n####################\n';
           fi;
-
           if [[ -e "${clang_run}" ]]; then
             echo -e '\n####################\n\trun-clang-tidy.py located in system continuing...\n####################\n';
           fi;
-
           if [[ -f "${clang_file}" ]] && ${{ env.analysis == 1 }}; then
             echo ' ' >> "${clang_file}";
+            files_list=false
             if [[ `file_list` ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
               file_list >> "${clang_file}";
+              files_list=true
             else	
               echo -e "\n::error:: No ${file_type} files found searching repository\nExiting...\n";
-              exit 1
             fi;
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n';
-            if [[ -e "compile_commands.json" ]]; then
+            if [[ "${files_list}" ]]; then
               echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################\n';
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n';
-              { time -p clang-tidy @parameter-file -p build/ --config-file="${clang_tidy}" --fix-errors; } 2>&1 | process_input || echo "::error:: ( $? ) checking project files";
-              echo -e '\n|RUNTIME|';
+              { time -p clang-tidy @parameter-file --config-file="${clang_tidy}" --fix-errors; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+              echo -e '\n|RUNTIME|\n';
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             else
-              echo -e "\n####################\n\t::error:: compile_commands.json missing in repo Exiting...\n####################\n";
               exit 1
             fi;
           elif [[ ! -e "${clang_file}" ]] && ${{ env.analysis == 1 }}; then
             echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n";
             exit 1
           fi;
-
           if [[ -f "${clang_file}" ]] && ${{ env.analysis == 2 }}; then
             echo ' ' >> "${clang_file}";
             if [[ `file_list` ]]; then
@@ -564,24 +516,16 @@ runs:
               sudo chmod -v 0755 "${clang_run}" 2>/dev/null;
               echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
               echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
-              { time -p \
-                "${clang_run}" -p build/ -fix -checks=-*,readability-* -j "$(nproc --all)" && \
-                "${clang_run}" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
-                  -header-filter=extra/clang-tidy;
-              } 2>&1 | process_input || echo "::error:: ( $? ) checking project files";
-              echo -e '\n|RUNTIME|';
+              { time -p run-clang-tidy.py @parameter-file -p build/ -fix -checks=-*,readability-*,llvm-header-guard extra/clang-tidy -j "$(nproc --all)" -header-filter=extra/clang-tidy; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+              echo -e '\n|RUNTIME|\n';
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -e "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" ]]; then
               sudo chmod -v 0755 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" 2>/dev/null;
               echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
               echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
-              { time -p \
-                python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,readability-* -j "$(nproc --all)" && \
-                python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build/ -fix -checks=-*,llvm-header-guard extra/clang-tidy \
-                  -header-filter=extra/clang-tidy;
-              } 2>&1 | process_input || echo "::error:: ( $? ) checking project files";
-              echo -e '\n|RUNTIME|';
+              { time -p python3 "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" @parameter-file -p build/ -fix -checks=-*,readability-*,llvm-header-guard extra/clang-tidy -j "$(nproc --all)" -header-filter=extra/clang-tidy; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+              echo -e '\n|RUNTIME|\n';
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             else
@@ -592,7 +536,6 @@ runs:
             echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n";
             exit 1
           fi;
-
           if [[ -d 'build' ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
               cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
@@ -607,13 +550,10 @@ runs:
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n";
             exit 1
           fi;
-
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
-            echo -e "\nCLANG-PARAMS: $(rm -vf ${clang_file} 2>/dev/null)\n";
+            echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n";
           fi;
-
           echo -e "\n####################\n# INSTALLED COMPILERS #\n${compiler_list}\n####################\n";
-
           if [[ ${check_build} ]]; then
             echo -e '\n####################\n\tProject Checked Exiting...\n####################\n';
           else
@@ -624,7 +564,6 @@ runs:
         fi;
       shell: bash
       continue-on-error: true
-
 
     - name: Check & Repair (Clang-tools)
       if: inputs.filename != ''
@@ -866,7 +805,6 @@ runs:
       shell: bash
       continue-on-error: true
 
-
     - name: Check Shell Files
       if: inputs.filename != '' && env.file_found == 0 
       run: |
@@ -994,7 +932,6 @@ runs:
       shell: bash
       continue-on-error: true
 
-
     - name: Check Makefile Files
       if: inputs.filename != '' && env.file_found == 0
       run: |
@@ -1073,7 +1010,6 @@ runs:
       shell: bash
       continue-on-error: true
 
-
     - name: Check All Files
       if: inputs.filename != '' && env.file_found == 0 
       run: |
@@ -1123,29 +1059,37 @@ runs:
       shell: bash
       continue-on-error: true
 
-
     - name: Word text Match
-      if: inputs.pattern != '' && inputs.database != 'false'
+      if: inputs.pattern != ''
       run: |
         export LC_ALL=C
         set +e
         file_count=1
+        if ${{ inputs.database }}; then
+          matched1=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
+          content1=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
+          matched2=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
+          content2=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
+        else
+          matched1=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*.${type}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
+          content1=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*.${type}" -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
+          matched2=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
+          content2=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
+        fi;
         echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
         echo -e "\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n";
         if [[ "${{ inputs.filetype }}" != 'none' ]]; then
           for type in ${types[@]}; do
             echo '| Runtime |';
-            matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
-            matches=${matches};
+            matches=${matched1};
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
               echo -e "\n${matches}\n";
               if ${{ inputs.content }}; then
                 echo '| Runtime |';
-                content=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
-                content=${content};
-                for c in ${content[@]}; do
+                contents=${content1};
+                for c in ${contents[@]}; do
                   count=$((file_count++));
                   echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
                   echo -e "\n$(dirname ${c})\n":
@@ -1161,16 +1105,14 @@ runs:
           echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
         else
           echo '| Runtime |';
-          matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
-          matches=${matches};
+          matches=${matched2};
           if [[ ${matches} ]]; then
             counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
             echo -e "\n${matches}\n";
             if ${{ inputs.content }}; then
               echo '| Runtime |';
-              content=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
-              content=${content};
+              content=${content2};
               for c in ${content[@]}; do
                 count=$((file_count++));
                 echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
@@ -1187,71 +1129,6 @@ runs:
         fi;
       shell: bash
       continue-on-error: true
-
-
-    - name: Word Pattern Match
-      if: inputs.pattern != '' && inputs.database != 'true'
-      run: |
-        set +e
-        file_count=1
-        echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
-        echo -e "\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n";
-        if [[ "${{ inputs.filetype }}" != 'none' ]]; then
-          for type in ${{ inputs.filetype }}; do
-            echo '| Runtime |';
-            matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*.${type}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
-            matches=${matches};
-            if [[ ${matches} ]]; then
-              counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
-              echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
-              echo -e "\n${matches}\n";
-              if ${{ inputs.content }}; then
-                echo '| Runtime |';
-                content=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*${type}" -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
-                content=${content};
-                for c in ${content[@]}; do
-                  count=$((file_count++));
-                  echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
-                  echo -e "\n$(dirname ${c})\n":
-                  echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
-                  batcat --theme=ansi --paging=never --show-all --color=always --style=full "${c}";
-                  echo -e "\n####################\nFILE COMPLETED\n####################\n";
-                done;
-              fi;
-            else
-              echo -e "\n####################\n::warning::PATTERN MATCH FINISHED SEARCHING NO ${{ inputs.pattern }} FOUND\n####################\n";
-            fi;
-          done;
-          echo -e "\nScanning Completed!\nPattern Locator\nExiting!\t .....\n";
-        else
-          echo '| Runtime |';
-          matches=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
-          matches=${matches};
-          if [[ ${matches} ]]; then
-            counter=$( echo "${matches}" | grep -c "${{ inputs.pattern }}" );
-            echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
-            echo -e "\n${matches}\n";
-            if ${{ inputs.content }}; then
-              echo '| Runtime |';
-              content=$(time -p sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
-              content=${content};
-              for c in ${content[@]}; do
-                count=$((file_count++));
-                echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
-                echo -e "\n$(dirname ${c})\n":
-                echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
-                batcat --theme=ansi --paging=never --show-all --color=always --style=full "${c}";
-                echo -e "\n####################\nFILE COMPLETED\n####################\n";
-              done;
-            fi;
-          else
-            echo -e "\n####################\n::warning::PATTERN MATCH FINISHED SEARCHING NO ${{ inputs.pattern }} FOUND\n####################\n";
-          fi;
-          echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
-        fi;
-      shell: bash
-      continue-on-error: true
-
 
     - name: Directory Contains
       if: inputs.filename != '' && inputs.content != 'false'
@@ -1266,7 +1143,6 @@ runs:
         fi;
       shell: bash
       continue-on-error: true
-
 
     - name: Cleanup Artifacts Report
       if: inputs.report != 'false'
@@ -1296,7 +1172,6 @@ runs:
         fi;
       shell: bash
       continue-on-error: true
-
       
     - name: Repository Update
       if: env.update == 'true' && env.file_fixed == 1
@@ -1359,7 +1234,6 @@ runs:
       shell: bash
       continue-on-error: true
 
-
     - name: Uploading ${{ github.repository }} Project Build Release
       if: inputs.build != 'false' && inputs.project != 'false' && env.build_files == 1
       uses: softprops/action-gh-release@v1
@@ -1368,7 +1242,6 @@ runs:
         name: Check File Action Build Report For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
       continue-on-error: true
-
 
     - name: Uploading build_cache Checked Report Artifacts
       if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1 && inputs.stored == 'true'
@@ -1379,7 +1252,6 @@ runs:
         include-hidden-files: true
       continue-on-error: true
 
-
     - name: Uploading ${{ inputs.filename }} Error Report Artifact
       if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1
       uses: actions/upload-artifact@v4
@@ -1388,7 +1260,6 @@ runs:
         path: ${{ inputs.filename }}_error.log
         include-hidden-files: true
       continue-on-error: true
-
 
     - name: Uploading ${{ env.repository }} Project Report Artifact
       if: inputs.report != 'false' && inputs.project != 'false' && env.check_build != 'false'
@@ -1399,7 +1270,6 @@ runs:
         include-hidden-files: true
       continue-on-error: true
 
-
     - name: Uploading ${{ inputs.filename }} Error Report Artifacts
       if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1 && env.file2_parted == 1
       uses: actions/upload-artifact@v4
@@ -1409,7 +1279,6 @@ runs:
         include-hidden-files: true
       continue-on-error: true
 
-
     - name: Uploading ${{ github.repository }} Project Report Artifacts
       if: inputs.report != 'false' && inputs.project != 'false' && env.check_build == 'true' && env.file1_parted == 1
       uses: actions/upload-artifact@v4
@@ -1418,7 +1287,6 @@ runs:
         path: part_*
         include-hidden-files: true
       continue-on-error: true
-
 
     - name: Delete Files
       if: inputs.filename != '' || inputs.pattern != '' || inputs.project != 'false'
@@ -1436,7 +1304,6 @@ runs:
       shell: bash
       continue-on-error: true
 
-
     - name: Action Check
       if: inputs.filename == '' && inputs.pattern == '' && inputs.project != 'true'
       run: |
@@ -1445,8 +1312,7 @@ runs:
       shell: bash
       continue-on-error: true
 
-
-    - name: Exiting 
+    - name: Exiting
       run: |
         echo '';
         export TERM=xterm-256color
@@ -1474,6 +1340,4 @@ runs:
         center_text "${textc}\n";
       shell: bash
       continue-on-error: true
-
-
 ## Version 2.0.0 Professional (beta 5)
