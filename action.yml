@@ -488,7 +488,7 @@ runs:
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n' | process_input;
             if [[ "${files_list}" ]]; then
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-              { time -p clang-tidy @parameter-file --fix-errors --quiet 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files" | process_input;
+              { time -p clang-tidy @parameter-file --fix-errors 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files" | process_input;
               if [[ $? -eq 0 ]]; then
                 echo -e '\n|RUNTIME|\n' | process_input;
                 check_build=true
