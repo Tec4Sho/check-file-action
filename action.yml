@@ -400,6 +400,7 @@ runs:
         verify_config=$(clang-tidy --verify-config 2>/dev/null);
         cmake_version=$(cmake --version);
         clang_checks=$(clang-tidy --list-checks 2>/dev/null);
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         gcc_version=$(gcc --version);
         gpp_version=$(g++ --version);
@@ -441,7 +442,6 @@ runs:
           echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n" | process_input;
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n" | process_input;
           cd "${src_tree%/*}";
-          repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
           cmake_list='CMakeLists.txt';
           clang_file='parameter-file';
           clang_tidy='.clang-tidy';
@@ -504,7 +504,7 @@ runs:
           if [[ $(which run-clang-tidy.py) ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time -p run-clang-tidy.py -p build -config-file="${clang_tidy}" -use-color -quiet -fix-error -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+            { time -p run-clang-tidy.py -p build -use-color -quiet -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
             if [[ $? -eq 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -514,7 +514,7 @@ runs:
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time -p "${clang_run}" -p build -config-file="${clang_tidy}" -use-color -quiet -fix-error -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+            { time -p "${clang_run}" -p build -fix-errors -use-color -quiet -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
             if [[ $? -eq 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
