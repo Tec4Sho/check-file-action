@@ -138,7 +138,7 @@ def get_tidy_invocation(
         start.append(f"-extra-arg-before={arg}")
     start.append(f"-p={build_path}")
     if fix_errors:
-        start.append("-fix-errors")
+        start.append("--fix-errors")
     if quiet:
         start.append("-quiet")
     if config_file_path:
@@ -384,6 +384,7 @@ async def run_tidy(
         args.config_file,
         args.config,
         args.line_filter,
+        args.fix_errors,
         args.use_color,
         args.plugins,
         args.warnings_as_errors,
@@ -520,6 +521,7 @@ async def main() -> None:
         help="Files to be processed (regex on path).",
     )
     parser.add_argument("-fix", action="store_true", help="apply fix-its.")
+    parser.add_argument("-fix-errors", action="store_true", help="apply fix-its.")
     parser.add_argument(
         "-format", action="store_true", help="Reformat code after applying fixes."
     )
@@ -646,6 +648,7 @@ async def main() -> None:
             args.config,
             args.line_filter,
             args.use_color,
+            args.fix_errors,
             args.plugins,
             args.warnings_as_errors,
             args.exclude_header_filter,
@@ -761,6 +764,17 @@ async def main() -> None:
             returncode = 1
 
     if args.fix:
+        if not args.hide_progress:
+            print("Applying fixes ...")
+        try:
+            assert export_fixes_dir
+            apply_fixes(args, clang_apply_replacements_binary, export_fixes_dir)
+        except:
+            print("Error applying fixes.\n", file=sys.stderr)
+            traceback.print_exc()
+            returncode = 1
+
+    if args.fix_errors:
         if not args.hide_progress:
             print("Applying fixes ...")
         try:

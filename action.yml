@@ -504,7 +504,7 @@ runs:
           if [[ $(which run-clang-tidy.py) ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time -p run-clang-tidy.py -p build -use-color -quiet -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+            { time -p run-clang-tidy.py -p build -use-color -quiet -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files" | process_input;
             if [[ $? -eq 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -514,7 +514,7 @@ runs:
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time -p "${clang_run}" -p build -fix-errors -use-color -quiet -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
+            { time -p "${clang_run}" -p build -fix-errors -use-color -quiet -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files" | process_input;
             if [[ $? -eq 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -525,7 +525,7 @@ runs:
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ env.analysis == 3 }}; then
-            echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
+            echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             { time -p cmake --build build; } 2>&1 || echo "::error:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)" | process_input;
             if [[ $? -eq 0 ]]; then
