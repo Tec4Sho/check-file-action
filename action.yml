@@ -413,14 +413,14 @@ runs:
         process_input() {
           while IFS= read -r log; do
             if [[ ${{ inputs.output == 1 }} ]]; then
-              echo "${log}" | tee -a "${project_log}";
+              echo -e "${log}" | tee -a "${project_log}";
             elif [[ ${{ inputs.output == 2 }} ]]; then
-              echo "${log}" >> "${project_log}";
+              echo -e "${log}" >> "${project_log}";
             elif [[ ${{ inputs.output == 3 }} ]]; then
-              echo "${log}";
+              echo -e "${log}";
             fi;
           done;
-        }
+        } 2>/dev/null;
         echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n" | process_input;
         echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n" | process_input;
@@ -463,7 +463,7 @@ runs:
           mkdir -p build
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             if [[ $? -eq 0 ]]; then
               if ${{ inputs.upload }}; then
                 echo 'build_files=1' >> "${GITHUB_ENV}";
@@ -488,7 +488,7 @@ runs:
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n' | process_input;
             if [[ "${files_list}" ]]; then
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-              { time -p clang-tidy @parameter-file --fix-errors 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files" | process_input;
+              { time clang-tidy @parameter-file --fix-errors 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
               if [[ $? -eq 0 ]]; then
                 echo -e '\n|RUNTIME|\n' | process_input;
                 check_build=true
@@ -504,7 +504,7 @@ runs:
           if [[ $(which run-clang-tidy.py) ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time -p run-clang-tidy.py -p build -use-color -quiet -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files" | process_input;
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
             if [[ $? -eq 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -512,10 +512,10 @@ runs:
             fi;
           elif [[ -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
-            sudo chmod -v 0755 "${clang_run}" 2>/dev/null;
+            sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time -p "${clang_run}" -p build -fix-errors -use-color -quiet -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files" | process_input;
-            if [[ $? -eq 0 ]]; then
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
+            if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -526,8 +526,8 @@ runs:
           fi;
           if [[ -d 'build' ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
-            { time -p cmake --build build; } 2>&1 || echo "::error:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)" | process_input;
+            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+            { time cmake --build build; } 2>&1 || echo "::warning:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)" | process_input;
             if [[ $? -eq 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -550,7 +550,7 @@ runs:
               fi;
             done;
             if [[ ${count} -gt 1 ]]; then
-              echo -e "\n::notice:: ${count} ${file_type} file(s) were found with errors\nCheck them for FIX-IT applied in ${project_log##*/}" | process_input;
+              echo -e "\n::notice:: ${count} ${file_type} file(s) were found with errors\nCheck them for Fix-its applied in ${project_log##*/}" | process_input;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
@@ -611,14 +611,14 @@ runs:
           process_input() {
             while IFS= read -r log; do
               if [[ ${{ inputs.output == 1 }} ]]; then
-                echo "${log}" | tee -a "${project_log}";
+                echo -e "${log}" | tee -a "${project_log}";
               elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo "${log}" >> "${project_log}";
+                echo -e "${log}" >> "${project_log}";
               elif [[ ${{ inputs.output == 3 }} ]]; then
-                echo "${log}";
+                echo -e "${log}";
               fi;
             done;
-          }
+          } 2>&1;
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
@@ -842,14 +842,14 @@ runs:
           process_input() {
             while IFS= read -r log; do
               if [[ ${{ inputs.output == 1 }} ]]; then
-                echo "${log}" | tee -a "${project_log}";
+                echo -e "${log}" | tee -a "${project_log}";
               elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo "${log}" >> "${project_log}";
+                echo -e "${log}" >> "${project_log}";
               elif [[ ${{ inputs.output == 3 }} ]]; then
-                echo "${log}";
+                echo -e "${log}";
               fi;
             done;
-          }
+          } 2>&1;
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n";
@@ -974,14 +974,14 @@ runs:
           process_input() {
             while IFS= read -r log; do
               if [[ ${{ inputs.output == 1 }} ]]; then
-                echo "${log}" | tee -a "${project_log}";
+                echo -e "${log}" | tee -a "${project_log}";
               elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo "${log}" >> "${project_log}";
+                echo -e "${log}" >> "${project_log}";
               elif [[ ${{ inputs.output == 3 }} ]]; then
-                echo "${log}";
+                echo -e "${log}";
               fi;
             done;
-          }
+          } 2>&1;
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
           { time -p for file in ${files[@]}; do
             count4=$((makefile_count++));
@@ -1160,7 +1160,7 @@ runs:
           ansi2txt "${filename1}" > "${filename1}.tmp";
           mv -vf "${filename1}.tmp" "${filename1}";
           if (( filesize1 > min_size_bytes )); then
-            split -b 25M "${filename1}" 'part_'
+            split -l 100000 "${filename1}" 'part_'
             echo "file1_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
@@ -1169,7 +1169,7 @@ runs:
           ansi2txt "${filename2}" > "${filename2}.tmp";
           mv -vf "${filename2}.tmp" "${filename2}";
           if (( filesize2 > min_size_bytes )); then
-            split -b 25M "${filename2}" 'part_'
+            split -l 100000 "${filename2}" 'part_'
             echo "file2_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
