@@ -409,26 +409,26 @@ runs:
         github=${GITHUB_WORKSPACE};
         update=true
         count=1
-        echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
-        echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
-        echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n";
-        echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n";
-        echo -e "\n####################\nCompiler: ${clang_version}\n####################\n";
-        echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n";
-        echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n";
-        echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n";
-        echo 'check_build=false' >> "${GITHUB_ENV}";
         process_input() {
           while IFS= read -r log; do
             if [[ ${{ inputs.output == 1 }} ]]; then
-              echo "$log" | tee -a "${project_log}";
+              echo "${log}" | tee -a "${project_log}";
             elif [[ ${{ inputs.output == 2 }} ]]; then
-              echo "$log" >> "${project_log}";
+              echo "${log}" >> "${project_log}";
             elif [[ ${{ inputs.output == 3 }} ]]; then
-              echo "$log";
+              echo "${log}";
             fi;
           done;
         }
+        echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
+        echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n" | process_input;
+        echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n" | process_input;
+        echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n" | process_input;
+        echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;
+        echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;
+        echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n" | process_input;
+        echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n" | process_input;
+        echo 'check_build=false' >> "${GITHUB_ENV}";
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
           update=false
@@ -438,8 +438,8 @@ runs:
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -d "${src_tree}" ]]; then
-          echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n";
-          echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n";
+          echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n" | process_input;
+          echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n" | process_input;
           cd "${src_tree%/*}";
           repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
           cmake_list='CMakeLists.txt';
@@ -455,82 +455,82 @@ runs:
             done
           }
           if [[ -f "${clang_tidy}" ]]; then
-            echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
+            echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n' | process_input;
           fi;
           if [[ -f "${cmake_list}" ]]; then
-            echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################\n';
+            echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################\n' | process_input;
           fi;
           mkdir -p build
           if [[ -d 'build' ]]; then
-            echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
-            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
+            echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
+            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             if ${{ inputs.upload }}; then
               echo 'build_files=1' >> "${GITHUB_ENV}";
-              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
+              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
             fi;
           fi;
           if [[ -e 'compile_commands.json' ]]; then
-            echo -e '\n####################\n\tcompile_commands.json file symlinked continuing...\n####################\n';
+            echo -e '\n####################\n\tcompile_commands.json file symlinked continuing...\n####################\n' | process_input;
           fi;
           if [[ -f "${clang_file}" ]] && ${{ env.analysis == 1 }}; then
             echo ' ' >> "${clang_file}";
             files_list=false
             if [[ `file_list` ]]; then
-              echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n";
+              echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n" | process_input;
               file_list >> "${clang_file}";
               files_list=true
             else	
-              echo -e "\n::error:: No ${file_type} files found searching repository\nExiting...\n";
+              echo -e "\n::error:: No ${file_type} files found searching repository\nExiting...\n" | process_input;
             fi;
-            echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n";
-            echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n';
+            echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n" | process_input;
+            echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n' | process_input;
             if [[ "${files_list}" ]]; then
-              echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n';
-              { time -p clang-tidy @parameter-file --fix-errors --quiet 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
-              echo -e '\n|RUNTIME|\n';
+              echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
+              { time -p clang-tidy @parameter-file --fix-errors --quiet 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files" | process_input;
+              echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             else
               exit 1
             fi;
           elif [[ ! -e "${clang_file}" ]] && ${{ env.analysis == 1 }}; then
-            echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n";
+            echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
           if [[ $(which run-clang-tidy.py) ]] && ${{ env.analysis == 2 }}; then
-            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
-            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
+            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
+            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
             { time -p run-clang-tidy.py -p build -config-file="${clang_tidy}" -use-color -quiet -fix -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
             echo -e '\n|RUNTIME|\n';
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
-            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n";
+            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null;
-            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n';
+            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
             { time -p "${clang_run}" -p build -config-file="${clang_tidy}" -use-color -quiet -fix -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::error:: ( $? ) checking project files";
             echo -e '\n|RUNTIME|\n';
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ ! -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
-            echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n";
+            echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n';
-            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)";
-            cmake --build build || echo "::error:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)";
+            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::error:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+            cmake --build build || echo "::error:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)" | process_input;
             check_build=true
             if ${{ inputs.upload }}; then
               echo 'build_files=1' >> "${GITHUB_ENV}";
-              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n';
+              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
             fi;
           elif [[ ! -d 'build' ]] && ${{ env.analysis == 3 }}; then
-            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n";
+            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
           if [[ -s "${project_log}" ]]; then
-            echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n";
+            echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;
             for file in $(file_list); do
               err=$(grep -sE "${file}.*error:" "${project_log}" 2>/dev/null);
               if [[ "${err}" ]]; then
@@ -538,20 +538,20 @@ runs:
               fi;
             done;
             if [[ ${count} -gt 1 ]]; then
-              echo -e "\n::notice:: ${count} ${file_type} file(s) were found with errors\nCheck them for FIX-IT applied in ${project_log##*/}";
+              echo -e "\n::notice:: ${count} ${file_type} file(s) were found with errors\nCheck them for FIX-IT applied in ${project_log##*/}" | process_input;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
-            echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n";
+            echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n" | process_input;
           fi;
-          echo -e "\n####################\n# INSTALLED COMPILERS #\n${compiler_list}\n####################\n";
+          echo -e "\n####################\n# INSTALLED COMPILERS #\n${compiler_list}\n####################\n" | process_input;
           if [[ ${check_build} ]]; then
-            echo -e '\n####################\n\tProject Checked Exiting...\n####################\n';
+            echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
           else
-            echo -e '\n####################\n\tProject Not Checked Exiting...\n####################\n';
+            echo -e '\n####################\n\tProject Not Checked Exiting...\n####################\n' | process_input;
           fi;
         else
-          echo -e '::error:: .git directory not found?';
+          echo -e '::error:: .git directory not found?' | process_input;
         fi;
       shell: bash
       continue-on-error: true
@@ -599,11 +599,11 @@ runs:
           process_input() {
             while IFS= read -r log; do
               if [[ ${{ inputs.output == 1 }} ]]; then
-                echo "$log" | tee -a "${error_log}";
+                echo "${log}" | tee -a "${project_log}";
               elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo "$log" >> "${error_log}";
+                echo "${log}" >> "${project_log}";
               elif [[ ${{ inputs.output == 3 }} ]]; then
-                echo "$log";
+                echo "${log}";
               fi;
             done;
           }
@@ -830,11 +830,11 @@ runs:
           process_input() {
             while IFS= read -r log; do
               if [[ ${{ inputs.output == 1 }} ]]; then
-                echo "$log" | tee -a "${error_log}";
+                echo "${log}" | tee -a "${project_log}";
               elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo "$log" >> "${error_log}";
+                echo "${log}" >> "${project_log}";
               elif [[ ${{ inputs.output == 3 }} ]]; then
-                echo "$log";
+                echo "${log}";
               fi;
             done;
           }
@@ -962,11 +962,11 @@ runs:
           process_input() {
             while IFS= read -r log; do
               if [[ ${{ inputs.output == 1 }} ]]; then
-                echo "$log" | tee -a "${error_log}";
+                echo "${log}" | tee -a "${project_log}";
               elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo "$log" >> "${error_log}";
+                echo "${log}" >> "${project_log}";
               elif [[ ${{ inputs.output == 3 }} ]]; then
-                echo "$log";
+                echo "${log}";
               fi;
             done;
           }
