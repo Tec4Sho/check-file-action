@@ -89,7 +89,6 @@ def find_compilation_database(path: str) -> str:
 def get_tidy_invocation(
     f: Optional[str],
     clang_tidy_binary: str,
-    fix_errors: bool,
     checks: str,
     tmpdir: Optional[str],
     build_path: str,
@@ -137,8 +136,6 @@ def get_tidy_invocation(
     for arg in extra_arg_before:
         start.append(f"-extra-arg-before={arg}")
     start.append(f"-p={build_path}")
-    if fix_errors:
-        start.append("--fix-errors")
     if quiet:
         start.append("-quiet")
     if config_file_path:
@@ -384,7 +381,6 @@ async def run_tidy(
         args.config_file,
         args.config,
         args.line_filter,
-        args.fix_errors,
         args.use_color,
         args.plugins,
         args.warnings_as_errors,
@@ -648,7 +644,6 @@ async def main() -> None:
             args.config,
             args.line_filter,
             args.use_color,
-            args.fix_errors,
             args.plugins,
             args.warnings_as_errors,
             args.exclude_header_filter,
@@ -774,17 +769,7 @@ async def main() -> None:
             traceback.print_exc()
             returncode = 1
 
-    if args.fix_errors:
-        if not args.hide_progress:
-            print("Applying fixes ...")
-        try:
-            assert export_fixes_dir
-            apply_fixes(args, clang_apply_replacements_binary, export_fixes_dir)
-        except:
-            print("Error applying fixes.\n", file=sys.stderr)
-            traceback.print_exc()
-            returncode = 1
-
+ 
     if delete_fixes_dir:
         assert export_fixes_dir
         shutil.rmtree(export_fixes_dir)
