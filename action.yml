@@ -408,6 +408,7 @@ runs:
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print);
         github=${GITHUB_WORKSPACE};
         update=true
+        count=1
         echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n";
         echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n";
@@ -527,6 +528,18 @@ runs:
           elif [[ ! -d 'build' ]] && ${{ env.analysis == 3 }}; then
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n";
             exit 1
+          fi;
+          if [[ -s "${project_log}" ]]; then
+            echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n";
+            for file in $(file_list); do
+              err=$(grep -sE "${file}.*error:" "${project_log}" 2>/dev/null);
+              if [[ "${err}" ]]; then
+                count=$((count++));
+              fi;
+            done;
+            if [[ ${count} -gt 1 ]]; then
+              echo -e "\n::notice:: ${count} ${file_type} file(s) were found with errors\nCheck them for FIX-IT applied in ${project_log##*/}";
+            fi;
           fi;
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n";
