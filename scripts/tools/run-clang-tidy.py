@@ -517,7 +517,7 @@ async def main() -> None:
         help="Files to be processed (regex on path).",
     )
     parser.add_argument("-fix", action="store_true", help="apply fix-its.")
-    parser.add_argument("-fix-errors", action="store_true", help="apply fix-its.")
+    parser.add_argument("-fix-errors", action="store_true", help="apply fix-its, continuing.")
     parser.add_argument(
         "-format", action="store_true", help="Reformat code after applying fixes."
     )
@@ -594,7 +594,7 @@ async def main() -> None:
 
     clang_tidy_binary = find_binary(args.clang_tidy_binary, "clang-tidy", build_path)
 
-    if args.fix:
+    if args.fix or fix-errors:
         clang_apply_replacements_binary = find_binary(
             args.clang_apply_replacements_binary, "clang-apply-replacements", build_path
         )
@@ -758,7 +758,7 @@ async def main() -> None:
             traceback.print_exc()
             returncode = 1
 
-    if args.fix:
+    if args.fix or fix-errors:
         if not args.hide_progress:
             print("Applying fixes ...")
         try:
@@ -769,14 +769,12 @@ async def main() -> None:
             traceback.print_exc()
             returncode = 1
 
- 
     if delete_fixes_dir:
         assert export_fixes_dir
         shutil.rmtree(export_fixes_dir)
     if profile_dir:
         shutil.rmtree(profile_dir)
     sys.exit(returncode)
-
 
 if __name__ == "__main__":
     try:
