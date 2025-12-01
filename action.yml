@@ -394,7 +394,7 @@ runs:
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export LC_ALL=C
-        set +e
+        set -o pipefail
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         clang_version=$(clang --version);
         verify_config=$(clang-tidy --verify-config 2>/dev/null);
@@ -412,11 +412,11 @@ runs:
         count=1
         process_input() {
           while IFS= read -r log; do
-            if [[ ${{ inputs.output == 1 }} ]]; then
+            if {{ inputs.output == 1 }}; then
               echo -e "${log}" | tee -a "${project_log}";
-            elif [[ ${{ inputs.output == 2 }} ]]; then
+            elif ${{ inputs.output == 2 }}; then
               echo -e "${log}" >> "${project_log}";
-            elif [[ ${{ inputs.output == 3 }} ]]; then
+            elif ${{ inputs.output == 3 }}; then
               echo -e "${log}";
             fi;
           done;
@@ -488,7 +488,7 @@ runs:
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n' | process_input;
             if [[ "${files_list}" ]]; then
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-              { time clang-tidy @parameter-file --fix-errors 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
+              { time clang-tidy @parameter-file 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
               if [[ $? -eq 0 ]]; then
                 echo -e '\n|RUNTIME|\n' | process_input;
                 check_build=true
@@ -1242,15 +1242,24 @@ runs:
       uses: softprops/action-gh-release@v1
       with:
         files: build/*
-        name: Check File Action Build Report For ${{ github.repository }} Repository.
+        name: Build File(s) For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
       continue-on-error: true
 
-    - name: Uploading build_cache Checked Report Artifacts
+    - name: Uploading Build Files Artifacts
+      if: inputs.upload != 'false' && inputs.project != '' && env.build_files == 1
+      uses: actions/upload-artifact@v4
+      with:
+        name: Clang Build File(s)
+        path: build
+        include-hidden-files: true
+      continue-on-error: true
+
+    - name: Uploading Build_Cache Artifacts
       if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1 && inputs.stored == 'true'
       uses: actions/upload-artifact@v4
       with:
-        name: Cppcheck Checked File(s) Report Artifacts
+        name: Cppcheck Checked File(s)
         path: build_cache
         include-hidden-files: true
       continue-on-error: true
@@ -1259,7 +1268,7 @@ runs:
       if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1
       uses: actions/upload-artifact@v4
       with:
-        name: Checked ${{ inputs.filename }} File(s) Report
+        name: Repo ${{ inputs.filename }} File(s) Report
         path: ${{ inputs.filename }}_error.log
         include-hidden-files: true
       continue-on-error: true
@@ -1268,7 +1277,7 @@ runs:
       if: inputs.report != 'false' && inputs.project != 'false' && env.check_build != 'false'
       uses: actions/upload-artifact@v4
       with:
-        name: Clang ${{ env.filetype }} File(s) Report
+        name: Repo ${{ env.filetype }} File(s) Report
         path: ${{ env.repository }}_project.log
         include-hidden-files: true
       continue-on-error: true
@@ -1277,7 +1286,7 @@ runs:
       if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1 && env.file2_parted == 1
       uses: actions/upload-artifact@v4
       with:
-        name: Checked ${{ inputs.filename }} File(s) Split Report
+        name: Repo ${{ inputs.filename }} File(s) Split Report
         path: part_*
         include-hidden-files: true
       continue-on-error: true
@@ -1286,7 +1295,7 @@ runs:
       if: inputs.report != 'false' && inputs.project != 'false' && env.check_build == 'true' && env.file1_parted == 1
       uses: actions/upload-artifact@v4
       with:
-        name: Clang ${{ env.filetype }} File(s) Split Report
+        name: Repo ${{ env.filetype }} File(s) Split Report
         path: part_*
         include-hidden-files: true
       continue-on-error: true
