@@ -355,7 +355,7 @@ runs:
           center_text "\n${text8a}";
           center_text "${text8b}";
           center_text "${text8c}\n";
-        elif [[ "${{ inputs.pattern }}" != '' ]]; then
+        elif [[ -z "${{ inputs.pattern }}" ]]; then
           center_text "\n${text9a}";
           center_text "${text9b}";
           center_text "${text9c}\n";
@@ -420,7 +420,7 @@ runs:
               echo -e "${log}";
             fi;
           done;
-        } 2>/dev/null;
+        } 2>&1;
         echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n" | process_input;
         echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n" | process_input;
@@ -434,7 +434,7 @@ runs:
           echo 'update=false' >> "${GITHUB_ENV}";
           update=false
         fi;
-        if [[ "${{ inputs.filetype }}" != 'none' ]]; then
+        if ${{ inputs.filetype != 'none' }}; then
           file_type="${{ inputs.filetype }}";
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
@@ -463,8 +463,9 @@ runs:
           mkdir -p build
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
+            cmake -DGITHUB_PROJECT_NAME="${repository}" . || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
-            if [[ $? -eq 0 ]]; then
+            if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               if ${{ inputs.upload }}; then
                 echo 'build_files=1' >> "${GITHUB_ENV}";
                 cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
@@ -489,7 +490,7 @@ runs:
             if [[ "${files_list}" ]]; then
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
               { time clang-tidy @parameter-file 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
-              if [[ $? -eq 0 ]]; then
+              if [[ "${PIPESTATUS[0]}" == 0 ]]; then
                 echo -e '\n|RUNTIME|\n' | process_input;
                 check_build=true
                 echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -505,7 +506,7 @@ runs:
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
             { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
-            if [[ $? -eq 0 ]]; then
+            if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -526,9 +527,10 @@ runs:
           fi;
           if [[ -d 'build' ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
+            cmake -DGITHUB_PROJECT_NAME="${repository}" . || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             { time cmake --build build; } 2>&1 || echo "::warning:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)" | process_input;
-            if [[ $? -eq 0 ]]; then
+            if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -549,7 +551,7 @@ runs:
                 count=$((count++));
               fi;
             done;
-            if [[ ${count} -gt 1 ]]; then
+            if [[ "${count}" -gt 1 ]]; then
               echo -e "\n::notice:: ${count} ${file_type} file(s) were found with errors\nCheck them for Fix-its applied in ${project_log##*/}" | process_input;
             fi;
           fi;
@@ -572,7 +574,6 @@ runs:
       if: inputs.filename != ''
       run: |
         export LC_ALL=C
-        set +e
         SAVEIFS=${IFS}
         include_count=1
         include_total=1
@@ -587,6 +588,17 @@ runs:
         checked=false
         count2=0
         github=${GITHUB_WORKSPACE};
+        process_input() {
+          while IFS= read -r log; do
+            if {{ inputs.output == 1 }}; then
+              echo -e "${log}" | tee -a "${error_log}";
+            elif ${{ inputs.output == 2 }}; then
+              echo -e "${log}" >> "${error_log}";
+            elif ${{ inputs.output == 3 }}; then
+              echo -e "${log}";
+            fi;
+          done;
+        } 2>&1;
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
@@ -608,56 +620,45 @@ runs:
           repaired=$(sudo find ${{ env.file_path }} -type f -name 'check-file-repaired.txt' -print -quit);
         fi;
         if [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
-          process_input() {
-            while IFS= read -r log; do
-              if [[ ${{ inputs.output == 1 }} ]]; then
-                echo -e "${log}" | tee -a "${project_log}";
-              elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo -e "${log}" >> "${project_log}";
-              elif [[ ${{ inputs.output == 3 }} ]]; then
-                echo -e "${log}";
-              fi;
-            done;
-          } 2>&1;
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
-            echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n';
+            echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n' | process_input
           elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair }}; then
-            echo -e "\n####################\n::error:: .clang-tidy not found exiting...\n####################\n";
+            echo -e "\n####################\n::error:: .clang-tidy not found exiting...\n####################\n" | process_input
             exit 1
           fi;
           if [[ -f "${compile_json}" ]] && ! ${{ inputs.include }}; then
-            echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################\n';
+            echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################\n' | process_input 
           elif [[ ! -f "${compile_json}" ]] && ! ${{ inputs.include }}; then
-            echo -e "\n####################\n::error:: compile_commands.json not found\nUse inputs.project: true to create it exiting...\n####################\n";
+            echo -e "\n####################\n::error:: compile_commands.json not found\nUse inputs.project: true to create it exiting...\n####################\n" | process_input
             exit 1
           fi;
           if [[ -f "${src_tree%/*}/${cppchecks}" ]]; then
-             cp -f "${src_tree%/*}/${cppchecks}" "${github}" 2>/dev/null && echo -e "\n####################\n\t${cppchecks} found continuing...\n####################\n";
+             cp -f "${src_tree%/*}/${cppchecks}" "${github}" 2>/dev/null && echo -e "\n####################\n\t${cppchecks} found continuing...\n####################\n" | process_input
              cppchecks=$(cat ${cppchecks} | tr -d ' \n');
           else
              cppchecks=all
           fi;
           if [[ -d "${src_tree%/*}/${build_cache}" ]]; then
-             echo -e '\n####################\n\tbuild_cache found continuing...\n####################\n';
+             echo -e '\n####################\n\tbuild_cache found continuing...\n####################\n' | process_input
              cp -Rf "${src_tree%/*}/${build_cache}" "${github}" 2>/dev/null;
              echo 'build_cache=true' >> "${GITHUB_ENV}";
           else
              mkdir -p "${github}/${build_cache}";
           fi;
           if ${{ inputs.content }}; then
-            echo -e "\n# Found File Path(s)\n";
-            awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}' "${files}";
-            echo -e '\t--------------------\n';
+            echo -e "\n# Found File Path(s)\n" | process_input
+            awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}' "${files}" | process_input
+            echo -e '\t--------------------\n' | process_input
           fi;
-          { time -p for file in ${files[@]}; do
+          { time for file in ${files[@]}; do
             search_path="${file}";
             check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
-            echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n";
+            echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n" | process_input
             echo "$(dirname ${file})";
             if ${{ inputs.content }}; then
-              echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n";
+              echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n" | process_input
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "{file}";
             fi;
             if ${{ inputs.include }}; then
@@ -666,7 +667,7 @@ runs:
               include1="${GITHUB_WORKSPACE}/include_file1.txt";
               include2="${GITHUB_WORKSPACE}/include_file2.txt";
               if [[ ${includes} ]]; then
-                echo -e "\n# Found Include File(s):\n${includes}\n";
+                echo -e "\n# Found Include File(s):\n${includes}\n" | process_input
                 echo > "${include1}";
                 cd "${src_tree%/*}";
                 for i in ${includes[@]}; do
@@ -677,7 +678,7 @@ runs:
                   if [[ -f "${header}" ]]; then
                     echo "$(dirname ${header#./})" >> "${include1}";
                   else
-                    echo -e "\n::notice:: include source file ${i} is missing\n"
+                    echo -e "\n::notice:: include source file ${i} is missing\n | process_input
                   fi;
                 done;
                 IFS=${SAVEIFS};
@@ -687,45 +688,45 @@ runs:
                 if [[ -f "${include2}" ]]; then
                   if ${{ inputs.repair }}; then
                     if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
-                      echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
-                      echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n";
+                      echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n" | process_input
+                      echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n" | process_input
                     elif ${{ inputs.stored }} && ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                      clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe\nStatus [0]: ${PIPESTATUS[0]}\nStatus [1]: ${PIPESTATUS[1]}";
+                      clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe\nStatus [0]: ${PIPESTATUS[0]}\nStatus [1]: ${PIPESTATUS[1]}" | process_input
                       if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                        echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n";
+                        echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n" | process_input
                       else
-                        echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n";
+                        echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n" | process_input
                         errors=true
                       fi;
                       echo "${file} $(date)" >> "${repaired}";
                       fixed=true
                     elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
-                      echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
+                      echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n" | process_input
                       clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
                       if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                        echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
+                        echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n" | process_input
                       else
-                        echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
+                        echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n" | process_input
                         errors=true
                       fi;
                       fixed=true
                     fi;
                   else
-                    echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n";
-                    cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --includes-file="${include2}" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+                    echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n" | process_input
+                    cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --includes-file="${include2}" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}" | process_input
                     if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                      echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
+                      echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n" | process_input
                     else
-                      echo -e "\n####################\nCHECK-FILE FOUND ERROR(S)\n####################\n";
+                      echo -e "\n####################\nCHECK-FILE FOUND ERROR(S)\n####################\n" | process_input
                       errors=true
                     fi;
                   fi;
                 fi;
               else
-                echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${file}) NOT PRESENT\n####################\n\n";
+                echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${file}) NOT PRESENT\n####################\n\n" | process_input
               fi;
-              echo -e "\n::notice:: Number of $(basename ${file}) include file(s): ${count2}\n" |& process_input;
+              echo -e "\n::notice:: Number of $(basename ${file}) include file(s): ${count2}\n" | process_input;
               include_count=1
             else
               if ${{ inputs.repair }}; then
@@ -744,54 +745,54 @@ runs:
                   echo "${file} $(date)" >> "${repaired}";
                   fixed=true
                 elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
-                  echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+                  echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n" | process_input
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}" | process_input
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                    echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
+                    echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n" | process_input
                   else
-                    echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
+                    echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n" | process_input
                     errors=true
                   fi;
                   fixed=true
                 fi;
               else
-                echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n";
+                echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n" | process_input
                 if ${{ inputs.stored }}; then
-                  cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --project="${compile_json}" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+                  cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --project="${compile_json}" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}" | process_input
                   echo 'build_cache=true' >> "${GITHUB_ENV}";
                 else
-                  cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --project="${compile_json}" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+                  cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --project="${compile_json}" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}" | process_input
                 fi;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                  echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
+                  echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n" | process_input
                 else
-                  echo -e "\n####################\nCHECK-FILE FOUND ERROR(S)\n####################\n";
+                  echo -e "\n####################\nCHECK-FILE FOUND ERROR(S)\n####################\n" | process_input
                   errors=true
                 fi;
               fi;
             fi;
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
-              echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n";
-              cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=* --quiet "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+              echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n" | process_input
+              cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=* --quiet "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}" | process_input
               if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${file}\n####################\n";
+                echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${file}\n####################\n" | process_input
               else
-                echo -e "\n####################\nRECHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n";
+                echo -e "\n####################\nRECHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n" | process_input
                 errors=true
               fi;
             fi;
             if ${{ inputs.number > 0 }}; then
               if [[ ${{ inputs.number }} -eq ${count1} ]]; then
-                echo -e "\nFile ${count1} checking auto stopped at $(basename ${file})\n";
+                echo -e "\nFile ${count1} checking auto stopped at $(basename ${file})\n" | process_input
                 break;
               fi;
             fi;
           done; echo '| Runtime |'; } 2>&1
           if ${{ inputs.include }}; then
-            echo -e "\n::notice:: Total number of include file(s) was: ${count3}\n";
+            echo -e "\n::notice:: Total number of include file(s) was: ${count3}\n" | process_input
           fi;
-          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count1}\n";
-          echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n";
+          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count1}\n" | process_input
+          echo -e "Scanning Completed!\nCheck-file Exiting!\n .....\n" | process_input
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${errors}" ]]; then
             echo "file_error=1" >> "${GITHUB_ENV}";
@@ -818,14 +819,25 @@ runs:
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         error_log="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+        process_input() {
+          while IFS= read -r log; do
+            if {{ inputs.output == 1 }}; then
+              echo -e "${log}" | tee -a "${error_log}";
+            elif ${{ inputs.output == 2 }}; then
+              echo -e "${log}" >> "${error_log}";
+            elif ${{ inputs.output == 3 }}; then
+              echo -e "${log}";
+            fi;
+          done;
+        } 2>&1;
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
+            echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n" | process_input
           else
             regex="\${{ inputs.filename }}$";
             files=$(grep -sE "${regex}" "${{ env.database }}");
-            echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
+            echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n" | process_input
           fi;
           clang_file=$(grep -sF -m 1 '.clang-tidy' "${{ env.database }}");
           repaired=$(grep -sF -m 1 'check-file-repaired.txt' "${{ env.database }}");
@@ -839,89 +851,78 @@ runs:
           repaired=$(sudo find ${{ env.file_path }} -type f -name 'check-file-repaired.txt' -print -quit);
         fi;
         if [[ $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
-          process_input() {
-            while IFS= read -r log; do
-              if [[ ${{ inputs.output == 1 }} ]]; then
-                echo -e "${log}" | tee -a "${project_log}";
-              elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo -e "${log}" >> "${project_log}";
-              elif [[ ${{ inputs.output == 3 }} ]]; then
-                echo -e "${log}";
-              fi;
-            done;
-          } 2>&1;
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input
           if ${{ inputs.content }}; then
-            echo -e "\n# Found File Path(s)\n";
-            awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}' "${files}";
-            echo -e '\t--------------------\n';
+            echo -e "\n# Found File Path(s)\n" | process_input
+            awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}'"${files}" | process_input
+            echo -e '\t--------------------\n' | process_input
           fi;
           { time -p for file in ${files[@]}; do
             search_path="${file}";
             check_date=$(grep -Fs "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count3=$((shellcheck_count++));
-            echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n";
+            echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n" | process_input
             echo "$(dirname ${file})";
             if ${{ inputs.content }}; then
-              echo -e "\n####################\n\tFILE CONTENT\n####################\n";
+              echo -e "\n####################\n\tFILE CONTENT\n####################\n" | process_input
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${file}";
               echo -e "\n\n";
             fi;
             if ${{ inputs.repair }}; then
               if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
-                echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
-                echo -e "\n####################\nRepaired on ${check_date}\nSkipping $(basename ${file})\n####################\n";
+                echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n" | process_input
+                echo -e "\n####################\nRepaired on ${check_date}\nSkipping $(basename ${file})\n####################\n" | process_input
               elif ${{ inputs.stored }} && ${{ env.update }}; then
-                echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n";
-                shellharden --syntax-suggest --transform "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+                echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input
+                shellharden --syntax-suggest --transform "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}" | process_input
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                  echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n";
+                  echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n" | process_input
                 else
-                  echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n";
+                  echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n" | process_input
                   errors=true
                 fi;
                 echo "${file} $(date)" >> "${repaired}";
                 fixed=true
               elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
-                echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n";
-                shellharden --syntax-suggest --transform "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+                echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input
+                shellharden --syntax-suggest --transform "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}" | process_input
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                  echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND ${file}\n####################\n";
+                  echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND ${file}\n####################\n" | process_input
                 else
-                  echo -e "\n####################\nSHELLHARDEN FOUND ERROR(S) TO REPAIR\n####################\n";
+                  echo -e "\n####################\nSHELLHARDEN FOUND ERROR(S) TO REPAIR\n####################\n" | process_input
                   errors=true
                 fi;
                 fixed=true
               fi;
             fi;
             if ${{ inputs.recheck }}; then
-              echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n";
-              shellcheck --norc --severity=warning --color=always "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+              echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input
+              shellcheck --norc --severity=warning --color=always "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}" | process_input
               if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################\n";
+                echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################\n" | process_input
               else
-                echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################\n";
+                echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################\n" | process_input
                 errors=true
               fi;
             elif ! ${{ inputs.repair }}; then
-              echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n";
-              shellcheck --norc --severity=warning --color=always "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+              echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input
+              shellcheck --norc --severity=warning --color=always "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}" | process_input
               if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################\n";
+                echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################\n" | process_input
               else
-                echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################\n";
+                echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################\n" | process_input
                 errors=true
               fi;
             fi;
             if ${{ inputs.number > 0 }}; then
               if [[ ${{ inputs.number }} -eq ${count1} ]]; then
-                echo -e "\nFile ${count1} checking auto stopped at $(basename ${file})\n";
+                echo -e "\nFile ${count1} checking auto stopped at $(basename ${file})\n" | process_input
                 break;
               fi;
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count3}\n";
-          echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n";
+          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count3}\n" | process_input
+          echo -e "Scanning Completed!\nShellTools Exiting!\n .....\n" | process_input
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${errors}" ]]; then
             echo "file_error=1" >> "${GITHUB_ENV}";
@@ -930,7 +931,7 @@ runs:
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
         elif [[ $(echo "${file_type}" | egrep -i "^sh$") ]]; then
-          echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n";
+          echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n" | process_input
         fi;
       shell: bash
       continue-on-error: true
@@ -945,14 +946,25 @@ runs:
         file=$(sudo find ${GITHUB_WORKSPACE} -type f -name "checkmake.ini" -print -quit);
         path='/home/runner/checkmake.ini';
         error_log="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+        process_input() {
+          while IFS= read -r log; do
+            if {{ inputs.output == 1 }}; then
+              echo -e "${log}" | tee -a "${error_log}";
+            elif ${{ inputs.output == 2 }}; then
+              echo -e "${log}" >> "${error_log}";
+            elif ${{ inputs.output == 3 }}; then
+              echo -e "${log}";
+            fi;
+          done;
+        } 2>&1;
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
+            echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n" | process_input
           else
             regex="\${{ inputs.filename }}$";
             files=$(grep -sE "${regex}" "${{ env.database }}");
-            echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
+            echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n" | process_input
           fi;
           clang_file=$(grep -sF -m 1 '.clang-tidy' "${{ env.database }}");
           repaired=$(grep -sF -m 1 'check-file-repaired.txt' "${{ env.database }}");
@@ -966,49 +978,38 @@ runs:
           repaired=$(sudo find ${{ env.file_path }} -type f -name 'check-file-repaired.txt' -print -quit);
         fi;
         if [[ ${file} ]]; then
-          echo -e "\n####################\ncheckmake.ini found copying\n####################\n";
+          echo -e "\n####################\ncheckmake.ini found copying\n####################\n" | process_input
           sudo cp -vf "${file}" "${path}" 2>/dev/null;
         fi;
         makefile_count=1
         if [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
-          process_input() {
-            while IFS= read -r log; do
-              if [[ ${{ inputs.output == 1 }} ]]; then
-                echo -e "${log}" | tee -a "${project_log}";
-              elif [[ ${{ inputs.output == 2 }} ]]; then
-                echo -e "${log}" >> "${project_log}";
-              elif [[ ${{ inputs.output == 3 }} ]]; then
-                echo -e "${log}";
-              fi;
-            done;
-          } 2>&1;
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
+          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input
           { time -p for file in ${files[@]}; do
             count4=$((makefile_count++));
-            echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n";
+            echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n" | process_input
             echo "$(dirname ${file})";
             if ${{ inputs.content }}; then
-              echo -e "\n####################\n\tFILE CONTENT\n####################\n\n";
-              batcat --theme=ansi --paging=never --show-all --color=always --style=full "${file}";
+              echo -e "\n####################\n\tFILE CONTENT\n####################\n\n" | process_input
+              batcat --theme=ansi --paging=never --show-all --color=always --style=full "${file}" | process_input
               echo -e "\n\n";
             fi;
-            echo -e "\n####################\nCHECKMAKE ANALYZING $(basename ${file}) FOR ERROR(S) ($count4)\n####################\n";
-            checkmake "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+            echo -e "\n####################\nCHECKMAKE ANALYZING $(basename ${file}) FOR ERROR(S) ($count4)\n####################\n" | process_input
+            checkmake "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}" | process_input
             if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-              echo -e "\n####################\nCHECKMAKE NO ERRORS FOUND ${file}\n####################\n";
+              echo -e "\n####################\nCHECKMAKE NO ERRORS FOUND ${file}\n####################\n" | process_input
             else
-              echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n";
+              echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n" | process_input
               errors=true
             fi;
           done; echo '| Runtime |'; } 2>&1
-          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count4}\n";
-          echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n";
+          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count4}\n" | process_input
+          echo -e "Scanning Completed!\nCheckMake Exiting!\n .....\n" | process_input
           if [[ "${errors}" ]]; then
             echo "file_error=1" >> "${GITHUB_ENV}";
           fi;
           echo "file_found=1" >> "${GITHUB_ENV}";
         elif [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
-          echo -e "\n####################\nFINISHED SEARCHING MK FILES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n";
+          echo -e "\n####################\nFINISHED SEARCHING MK FILES\nNO ${{ inputs.filename }} FOUND\n####################\n" | process_input
         fi;
       shell: bash
       continue-on-error: true
