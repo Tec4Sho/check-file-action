@@ -49,13 +49,15 @@ set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON)
 
 file(GLOB_RECURSE SOURCES "*.c")
 
+include_directories("include")
+
+# .target_include_directories(MyProject PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 add_executable(MyProject ${SOURCES}) # Creates an executable target named "MyProject" from source files
 
 # .target_include_directories(MyProject PUBLIC 'include')
 
 # .file(GLOB_RECURSE INCLUDES LIST_DIRECTORIES true "include")
-
-# .target_include_directories(MyProject PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # .include_directories(${INCLUDES})
 
