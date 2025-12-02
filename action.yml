@@ -446,6 +446,7 @@ runs:
           echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n" | process_input;
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n" | process_input;
           cd "${src_tree%/*}";
+          project_files=$(sudo find . -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
           cmake_list='CMakeLists.txt';
           clang_file='parameter-file';
           clang_tidy='.clang-tidy';
@@ -545,11 +546,11 @@ runs:
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ -s "${project_log}" ]]; then
+          if [[ -s "${project_log}" ]] && [[ "${project_files}" ]]; then
             echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;
-            for file in $(file_list); do
-              err=$(grep -sE "${file}.*error:" "${project_log}" 2>/dev/null);
-              if [[ "${err}" ]]; then
+            for file in ${project_files[@]}; do
+              file_errors=$(grep -sE "${file}.*error:" "${project_log}" 2>/dev/null);
+              if [[ "${file_errors}" ]]; then
                 count=$((count++));
               fi;
             done;
