@@ -37,9 +37,9 @@ find_package(Git REQUIRED)
     endif()
   endif()
 
-set(_saved_CMAKE_MESSAGE_LOG_LEVEL "${CMAKE_MESSAGE_LOG_LEVEL}")
+# .set(_saved_CMAKE_MESSAGE_LOG_LEVEL "${CMAKE_MESSAGE_LOG_LEVEL}")
 
-set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
+# .set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
 
 set(CMAKE_C_CLANG_TIDY "clang-tidy")
 
@@ -54,10 +54,10 @@ add_executable("${PROJECT_NAME}" "${SOURCES}") # Creates an executable target na
 # .file(GLOB_RECURSE INCLUDES LIST_DIRECTORIES true "include")
 
 if(DEFINED PROJECT_INCLUDE_DIRS)
-  message(STATUS "Found include directories: ${PROJECT_SOURCE_DIR}/include")
+  message(STATUS "Found include directories in: ${PROJECT_SOURCE_DIR}")
   target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_INCLUDE_DIRS}")
 else()
-  message(STATUS "Found include directories: ${PROJECT_SOURCE_DIR}/include")
+  message(STATUS "Cant find include directories in: ${PROJECT_SOURCE_DIR}")
   target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_SOURCE_DIR}/include")
 endif()
 
@@ -65,7 +65,7 @@ endif()
 
 # .set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -Werror -pedantic")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
+# .set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
 
 # .set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
 
@@ -107,7 +107,7 @@ set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON)
 
 # .include_directories(${INCLUDES})
 
-set(CMAKE_MESSAGE_LOG_LEVEL "${_saved_CMAKE_MESSAGE_LOG_LEVEL}")
+# .set(CMAKE_MESSAGE_LOG_LEVEL "${_saved_CMAKE_MESSAGE_LOG_LEVEL}")
 
 # .target_include_directories(MyProject PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
