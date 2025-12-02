@@ -425,14 +425,14 @@ runs:
             fi;
           done;
         } 2>&1;
-        echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;;
-        echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n" | process_input;;
-        echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n" | process_input;;
-        echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n" | process_input;;
-        echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;;
-        echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;;
-        echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n" | process_input;;
-        echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n" | process_input;;
+        echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
+        echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n" | process_input;
+        echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n" | process_input;
+        echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n" | process_input;
+        echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;
+        echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;
+        echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n" | process_input;
+        echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n" | process_input;
         echo 'check_build=false' >> "${GITHUB_ENV}";
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
@@ -443,8 +443,8 @@ runs:
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -d "${src_tree}" ]]; then
-          echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n" | process_input;;
-          echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n" | process_input;;
+          echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n" | process_input;
+          echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n" | process_input;
           cd "${src_tree%/*}";
           cmake_list='CMakeLists.txt';
           clang_file='parameter-file';
@@ -467,8 +467,8 @@ runs:
           mkdir -p build
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            cmake -DGITHUB_PROJECT_NAME="${repository}" . || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;;
-            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;;
+            cmake -DGITHUB_PROJECT_NAME="${repository}" . || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               if ${{ inputs.upload }}; then
                 echo 'build_files=1' >> "${GITHUB_ENV}";
@@ -483,17 +483,17 @@ runs:
             echo ' ' >> "${clang_file}";
             files_list=false
             if [[ `file_list` ]]; then
-              echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n" | process_input;;
+              echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n" | process_input;
               file_list >> "${clang_file}";
               files_list=true
             else	
-              echo -e "\n::error:: No ${file_type} files found searching repository\nExiting...\n" | process_input;;
+              echo -e "\n::error:: No ${file_type} files found searching repository\nExiting...\n" | process_input;
             fi;
-            echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n" | process_input;;
+            echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n" | process_input;
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n' | process_input;
             if [[ "${files_list}" ]]; then
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-              { time clang-tidy @parameter-file 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;;
+              { time clang-tidy @parameter-file 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
               if [[ "${PIPESTATUS[0]}" == 0 ]]; then
                 echo -e '\n|RUNTIME|\n' | process_input;
                 check_build=true
@@ -503,37 +503,37 @@ runs:
               exit 1
             fi;
           elif [[ ! -e "${clang_file}" ]] && ${{ env.analysis == 1 }}; then
-            echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n" | process_input;;
+            echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
           if [[ $(which run-clang-tidy.py) ]] && ${{ env.analysis == 2 }}; then
-            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;;
+            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build -j "$(nproc --all)" 2>/dev/null | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;;
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build -j "$(nproc --all)" 2>/dev/null | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
           elif [[ -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
-            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;;
+            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build -j "$(nproc --all)" 2>/dev/null | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;;
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build -j "$(nproc --all)" 2>/dev/null | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
           elif [[ ! -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
-            echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n" | process_input;;
+            echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            cmake -DGITHUB_PROJECT_NAME="${repository}" . || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;;
-            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;;
-            { time cmake --build build; } 2>&1 || echo "::warning:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)" | process_input;;
+            cmake -DGITHUB_PROJECT_NAME="${repository}" . || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+            { time cmake --build build; } 2>&1 || echo "::warning:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)" | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -544,11 +544,11 @@ runs:
               cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
             fi;
           elif [[ ! -d 'build' ]] && ${{ env.analysis == 3 }}; then
-            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;;
+            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
           if [[ -s "${project_log}" ]]; then
-            echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;;
+            echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;
             for file in $(file_list); do
               err=$(grep -sE "${file}.*error:" "${project_log}" 2>/dev/null);
               if [[ "${err}" ]]; then
@@ -556,13 +556,13 @@ runs:
               fi;
             done;
             if [[ "${count}" -gt 1 ]]; then
-              echo -e "\n::notice:: ${count} ${file_type} file(s) were found with errors\nCheck them for Fix-its applied in ${project_log##*/}" | process_input;;
+              echo -e "\n::notice:: ${count} ${file_type} file(s) were found with errors\nCheck them for Fix-its applied in ${project_log##*/}" | process_input;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
-            echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n" | process_input;;
+            echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n" | process_input;
           fi;
-          echo -e "\n####################\n# INSTALLED COMPILERS #\n${compiler_list}\n####################\n" | process_input;;
+          echo -e "\n####################\n# INSTALLED COMPILERS #\n${compiler_list}\n####################\n" | process_input;
           if [[ ${check_build} ]]; then
             echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
           else
@@ -606,11 +606,11 @@ runs:
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
+            echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n" | process_input;
           else
             regex="\${{ inputs.filename }}$";
             files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
+            echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n" | process_input;
           fi;
           clang_file=$(grep -sF -m 1 '.clang-tidy' "${{ env.database }}");
           repaired=$(grep -sF -m 1 'check-file-repaired.txt' "${{ env.database }}");
@@ -682,7 +682,7 @@ runs:
                   if [[ -f "${header}" ]]; then
                     echo "$(dirname ${header#./})" >> "${include1}";
                   else
-                    echo -e "\n::notice:: include source file ${i} is missing\n | process_input
+                    echo -e "\n::notice:: include source file ${i} is missing\n" | process_input;
                   fi;
                 done;
                 IFS=${SAVEIFS};
@@ -695,7 +695,7 @@ runs:
                       echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n" | process_input;
                       echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n" | process_input;
                     elif ${{ inputs.stored }} && ${{ env.update }}; then
-                      echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
+                      echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n" | process_input;
                       clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe\nStatus [0]: ${PIPESTATUS[0]}\nStatus [1]: ${PIPESTATUS[1]}" | process_input;
                       if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                         echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n" | process_input;
@@ -730,20 +730,20 @@ runs:
               else
                 echo -e "\n\n####################\nINCLUDE FILE(S) FOR $(basename ${file}) NOT PRESENT\n####################\n\n" | process_input;
               fi;
-              echo -e "\n::notice:: Number of $(basename ${file}) include file(s): ${count2}\n" | process_input;;
+              echo -e "\n::notice:: Number of $(basename ${file}) include file(s): ${count2}\n" | process_input;
               include_count=1
             else
               if ${{ inputs.repair }}; then
                 if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
-                  echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n";
-                  echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n";
+                  echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n" | process_input;
+                  echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n" | process_input;
                 elif ${{ inputs.stored }} && ${{ env.update }}; then
-                  echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n";
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+                  echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n" | process_input;
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes --quiet 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}" | process_input;
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                    echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n";
+                    echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n" | process_input;
                   else
-                    echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n";
+                    echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n" | process_input;
                     errors=true
                   fi;
                   echo "${file} $(date)" >> "${repaired}";
