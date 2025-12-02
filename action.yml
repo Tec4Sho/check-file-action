@@ -467,8 +467,7 @@ runs:
           mkdir -p build
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            cmake -DGITHUB_PROJECT_NAME="${repository}" . || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
-            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+            cmake -S . -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               if ${{ inputs.upload }}; then
                 echo 'build_files=1' >> "${GITHUB_ENV}";
@@ -532,9 +531,7 @@ runs:
           fi;
           if [[ -d 'build' ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            cmake -DGITHUB_PROJECT_NAME="${repository}" . || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
-            cmake -S . -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
-            { time cmake --build build 2>/dev/null || echo "::warning:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)" | process_input; } 2>&1;
+            { time cmake --build build | process_input || echo "::warning:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)" | process_input; } 2>&1;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
