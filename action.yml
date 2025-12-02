@@ -266,13 +266,13 @@ runs:
         text5c="####################";
         text6="Database not found exiting"
         text7a="####################";
-        text7b="Searching directories for $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') file(s)";
+        text7b="Searching directories for ${{ inputs.filename }}) file(s)";
         text7c="####################";
         text8a="####################";
         text8b="Searching ${{ inputs.filetype }} files for ${{ inputs.pattern }} match(s)";
         text8c="####################";
         text9a="####################";
-        text9b="Searching all files for $(echo ${{ inputs.pattern }} | sed 's/[\/\$]//g') match(s)";
+        text9b="Searching all files for ${{ inputs.pattern }} match(s)";
         text9c="####################";
         text10a="#####################";
         text10b="\033[1m# CHECK FILE ACTION #\033[0m";
@@ -348,16 +348,16 @@ runs:
             center_text "${text6c}\n" && exit 1
           fi;
         fi;
-        if [[ -n "${{ inputs.filename }}" ]]; then
+        if [[ "${{ inputs.filename }}" != '' ]]; then
           center_text "\n${text7a}";
           center_text "${text7b}";
           center_text "${text7c}\n";
         fi;
-        if [[ -n "${{ inputs.pattern }}" ]] && [[ "${{ inputs.filetype }}" != 'none' ]]; then
+        if [[ "${{ inputs.pattern }}" != '' ]] && [[ "${{ inputs.filetype }}" != 'none' ]]; then
           center_text "\n${text8a}";
           center_text "${text8b}";
           center_text "${text8c}\n";
-        elif [[ -z "${{ inputs.pattern }}" ]]; then
+        elif [[ "${{ inputs.pattern }}" != '' ]]; then
           center_text "\n${text9a}";
           center_text "${text9b}";
           center_text "${text9c}\n";
@@ -378,7 +378,7 @@ runs:
           echo "analysis=${{ inputs.analysis }}" >> "${GITHUB_ENV}";
         fi;
         if [[ "${file_count}" ]]; then
-          echo -e "\n${repo} Total Files: ${file_count}\n";
+          echo -e "\n#####################\nRepository: ${repo}\nFile Count: ${file_count}\n#####################\n";
         fi;
         center_text "\n${text10a}" 2>/dev/null;
         center_text "${text10b}" 2>/dev/null;
@@ -393,7 +393,7 @@ runs:
       continue-on-error: false
 
     - name: Check Build Project
-      if: inputs.project != 'false'
+      if: inputs.project == 'true'
       run: |
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON

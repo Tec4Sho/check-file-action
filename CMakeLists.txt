@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19) # Specifies the minimum required CMake version
 
-# ... many other user defined project settings ... #
+# ... many examples of user defined project settings ... #
 
 if(DEFINED GITHUB_PROJECT_NAME)
   set(PROJECT_NAME "${GITHUB_PROJECT_NAME}")
@@ -51,10 +51,10 @@ add_executable("${PROJECT_NAME}" "${SOURCES}") # Creates an executable target na
 
 # .add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}")
 
-file(GLOB_RECURSE INCLUDES LIST_DIRECTORIES true "include")
+# .file(GLOB_RECURSE INCLUDES LIST_DIRECTORIES true "include")
 
 if(DEFINED PROJECT_INCLUDE_DIRS)
-  message(STATUS "Found include directories: ${PROJECT_INCLUDE_DIRS}")
+  message(STATUS "Found include directories: ${PROJECT_SOURCE_DIR}/include")
   target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_INCLUDE_DIRS}")
 else()
   message(STATUS "Found include directories: ${PROJECT_SOURCE_DIR}/include")
@@ -67,11 +67,11 @@ endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
 
-set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
+# .set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
 
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
+# .set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2 -Wall -Werror -pedantic -std=c99")
 
-message(STATUS "CMAKE_C_LINK_FLAGS=${CMAKE_C_LINK_FLAGS}")
+message(STATUS "CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
 
 # .set(CMAKE_C_FLAGS_DEBUG "put your flags") set(CMAKE_C_FLAGS_MINSIZEREL "put your flags") set(CMAKE_C_FLAGS_RELWITHDEBINFO "put your flags") set(CMAKE_C_FLAGS_RELEASE "put your flags")
 
@@ -149,6 +149,8 @@ set(CMAKE_MESSAGE_LOG_LEVEL "${_saved_CMAKE_MESSAGE_LOG_LEVEL}")
 
 # .GET_DIRECTORY_PROPERTY(output INCLUDE_DIRECTORIES) 
 
+# .get_property(INCLUDE DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+
 # .message(WARNING ${output}) # This will print all -I dirs like: /usr/local/include/
 
 set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
@@ -163,14 +165,14 @@ execute_process(
 
 function(output_include_dirs)
     set(include_dir_str "")
-    get_property(INCLUDE DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
-    foreach(DIR "${INCLUDE}")
-        set(include_dir_str "${include_dir_str}${DIR}\n")
-    endforeach()
-
-    set(include_file "${CMAKE_BINARY_DIR}/cmake-include-paths.txt")
-    file(WRITE "${include_file}" "${include_dir_str}")
-    message(STATUS "${PROJECT_NAME} include directories written to: ${include_file}")
+    if(DEFINED PROJECT_INCLUDE_DIRS)
+      foreach(DIR "${PROJECT_INCLUDE_DIRS}")
+        set(include_dir_str "${DIR}\n")
+      endforeach()
+      set(include_file "${CMAKE_BINARY_DIR}/cmake-include-paths.txt")
+      file(WRITE "${include_file}" "${include_dir_str}")
+      message(STATUS "${PROJECT_NAME} include directories written to: ${include_file}")
+    endif()
 endfunction()
 
 output_include_dirs()
