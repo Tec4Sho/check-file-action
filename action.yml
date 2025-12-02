@@ -1255,7 +1255,7 @@ runs:
       uses: softprops/action-gh-release@v1
       with:
         files: build/*
-        name: Build File(s) For ${{ github.repository }} Repository.
+        name: Build For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
       continue-on-error: true
 
@@ -1263,7 +1263,7 @@ runs:
       if: inputs.upload != 'false' && inputs.project != '' && env.build_files == 1
       uses: actions/upload-artifact@v4
       with:
-        name: Clang Build File(s)
+        name: ${{ env.repository }}_build
         path: build
         include-hidden-files: true
       continue-on-error: true
@@ -1272,7 +1272,7 @@ runs:
       if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1 && inputs.stored == 'true'
       uses: actions/upload-artifact@v4
       with:
-        name: Cppcheck Checked File(s)
+        name: ${{ env.repository }}_checked
         path: build_cache
         include-hidden-files: true
       continue-on-error: true
@@ -1281,7 +1281,7 @@ runs:
       if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1
       uses: actions/upload-artifact@v4
       with:
-        name: Repo ${{ inputs.filename }} File(s) Report
+        name: ${{ inputs.filename }}_error.log
         path: ${{ inputs.filename }}_error.log
         include-hidden-files: true
       continue-on-error: true
@@ -1290,7 +1290,7 @@ runs:
       if: inputs.report != 'false' && inputs.project != 'false' && env.check_build != 'false'
       uses: actions/upload-artifact@v4
       with:
-        name: Repo ${{ env.filetype }} File(s) Report
+        name: ${{ env.repository }}_project.log
         path: ${{ env.repository }}_project.log
         include-hidden-files: true
       continue-on-error: true
@@ -1299,7 +1299,7 @@ runs:
       if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1 && env.file2_parted == 1
       uses: actions/upload-artifact@v4
       with:
-        name: Repo ${{ inputs.filename }} File(s) Split Report
+        name: ${{ inputs.filename }}_split_error.log
         path: part_*
         include-hidden-files: true
       continue-on-error: true
@@ -1308,7 +1308,7 @@ runs:
       if: inputs.report != 'false' && inputs.project != 'false' && env.check_build == 'true' && env.file1_parted == 1
       uses: actions/upload-artifact@v4
       with:
-        name: Repo ${{ env.filetype }} File(s) Split Report
+        name: ${{ env.repository }}_split_project.log
         path: part_*
         include-hidden-files: true
       continue-on-error: true
