@@ -248,7 +248,6 @@ runs:
         echo '';
         repair_file='check-file-repaired.txt';
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
-        file_count=$(sudo find ${{ env.file_path }} -type f \( -path "*/${{ inputs.dirname }}/*" -o -path "*" \) | wc -l);
         repo=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         echo 'database=database' >> "${GITHUB_ENV}";
         text1a="####################";
@@ -377,8 +376,19 @@ runs:
         else
           echo "analysis=${{ inputs.analysis }}" >> "${GITHUB_ENV}";
         fi;
-        if [[ "${file_count}" ]]; then
-          echo -e "\n#####################\nRepository: ${repo}\nFile Count: ${file_count}\n#####################\n";
+        if [[ -d ${repository} ]]; then
+          file_total=$(sudo find ${repository%/*} -type f \( -path "*/${{ inputs.dirname }}/*" -o -path "*" \) | wc -l);
+          file_count=$(sudo find ${repository%/*} -type f \( -path "*/${{ inputs.dirname }}/*" -o -path "*" \) | sed 's/.*\.//' | sort | uniq -c);
+          dir_files=$(sudo du ${repository%/*} | cut -d/ -f2 | sort | uniq -c | sort -nr);
+          if [[ "${file_total}" ]]; then
+            echo -e "\n#####################\nRepository: ${repo}\nTotal Files: ${file_total}\n#####################\n";
+          fi;
+          if [[ "${file_count}" ]]; then
+            echo -e "\n#####################\nProject File Types: ${file_count}\n#####################\n";
+          fi;
+          if [[ "${dir_files}" ]]; then
+            echo -e "\n#####################\nDirectory Files: ${dir_files}\n#####################\n";
+          fi;
         fi;
         center_text "\n${text10a}" 2>/dev/null;
         center_text "${text10b}" 2>/dev/null;
