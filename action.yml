@@ -64,7 +64,7 @@ inputs:
     description: 'Clang compiler used for project building only'
     type: string
     required: false
-    default: 'clang-19.1.0'
+    default: 'clang-latest'
   content:
     description: 'Search will list dir contents of found filename'
     type: boolean
