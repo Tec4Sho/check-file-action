@@ -480,7 +480,7 @@ runs:
           if [[ -f "${cmake_list}" ]]; then
             echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################\n' | process_input;
           fi;
-          mkdir -p build
+          mkdir -p build/cache
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             if [[ "$(src_dirs)" ]]; then
@@ -539,7 +539,7 @@ runs:
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build -j "$(nproc --all)" 2>/dev/null | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input; } 2>&1;
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/cache -j "$(nproc --all)" 2>/dev/null | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input; } 2>&1;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true

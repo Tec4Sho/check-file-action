@@ -1,12 +1,12 @@
 ---
-Checks:                '-*,clang-diagnostic*,clang-analyzer-*,modernize-*,clang-analyzer-cplusplus*'
+Checks:                '-*,clang-diagnostic*,clang-analyzer-*,modernize*,clang-analyzer-cplusplus*'
 WarningsAsErrors:      ''
 HeaderFileExtensions:         ['', 'h','hh','hpp','hxx']
 ImplementationFileExtensions: ['c','cc','cpp','cxx']
-HeaderFilterRegex:     ".*"
+HeaderFilterRegex:     '.*'
 InheritParentConfig:   true
 User:                  user
-SystemHeaders:         true
+SystemHeaders:         false
 UseColor:              true
 FormatStyle:           none
 CheckOptions:

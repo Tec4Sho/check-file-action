@@ -53,19 +53,19 @@ add_executable("${PROJECT_NAME}" "${SOURCES}") # Creates an executable target na
 
 # .file(GLOB_RECURSE INCLUDES LIST_DIRECTORIES true "include")
 
-if(DEFINED PROJECT_INCLUDE_DIRS)
-  message(STATUS "Found include directories in: ${PROJECT_SOURCE_DIR}")
-  target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_INCLUDE_DIRS}")
+if(DEFINED PROJECT_SRC_DIRS)
+  message(STATUS "Project Sources: ${PROJECT_SRC_DIRS}")
 else()
-  message(STATUS "Cant find include directories in: ${PROJECT_SOURCE_DIR}")
-  target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_SOURCE_DIR}/include")
+  message(STATUS "Cant find source directories in: ${PROJECT_SOURCE_DIR}")
 endif()
+
+# .target_include_directories("${PROJECT_NAME}" PRIVATE SYSTEM "${PROJECT_SOURCE_DIR}/include")
 
 # .set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
 
 # .set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -Werror -pedantic")
 
-# .set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
 
 # .set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
 
@@ -95,7 +95,7 @@ set(CMAKE_C_STANDARD 99) # Sets the C standard to C90 <C89>
 
 set(CMAKE_C_STANDARD_REQUIRED ON) # Ensures the specified C standard is strictly enforced
 
-set(CMAKE_C_EXTENSIONS OFF) # Enables compiler-specific extensions for C
+set(CMAKE_C_EXTENSIONS ON) # Enables compiler-specific extensions for C
 
 set(CMAKE_C_COMPILER clang) # Sets the C compiler
 
@@ -163,16 +163,22 @@ execute_process(
         "${CMAKE_SOURCE_DIR}/compile_commands.json"
 )
 
-function(output_include_dirs)
-    set(include_dir_str "")
-    if(DEFINED PROJECT_INCLUDE_DIRS)
-      foreach(DIR "${PROJECT_INCLUDE_DIRS}")
-        set(include_dir_str "${DIR}\n")
+function(output_src_dirs)
+    set(src_dir_str "")
+    if(DEFINED PROJECT_SRC_DIRS)
+      foreach(DIR "${PROJECT_SRC_DIRS}")
+        set(src_dir_str "${DIR}\n")
       endforeach()
-      set(include_file "${CMAKE_BINARY_DIR}/cmake-include-paths.txt")
-      file(WRITE "${include_file}" "${include_dir_str}")
-      message(STATUS "${PROJECT_NAME} include directories written to: ${include_file}")
+      set(src_file "${CMAKE_BINARY_DIR}/cmake-source-paths.txt")
+      file(WRITE "${src_file}" "${src_dir_str}")
+      message(STATUS "${PROJECT_NAME} source directories written to: ${src_file}")
     endif()
 endfunction()
 
-output_include_dirs()
+output_src_dirs()
+
+# .Place build artifacts in ${CMAKE_BINARY_DIR}/{bin,lib}
+# .set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "")
+# .set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "")
+# .set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "")
+
