@@ -431,7 +431,7 @@ runs:
         clang_version=$(clang --version);
         verify_config=$(clang-tidy --verify-config);
         cmake_version=$(cmake --version);
-        clang_checks=$(clang-tidy --list-checks);
+        #clang_checks=$(clang-tidy --list-checks);
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         gcc_version=$(gcc --version);
@@ -460,7 +460,7 @@ runs:
         echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;
         echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;
         echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n" | process_input;
-        echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n" | process_input;
+       # echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n" | process_input;
         echo 'check_build=false' >> "${GITHUB_ENV}";
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
