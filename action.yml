@@ -64,7 +64,7 @@ inputs:
     description: 'Clang compiler used for project building only'
     type: string
     required: false
-    default: 'clang-latest'
+    default: 'clang'
   content:
     description: 'Search will list dir contents of found filename'
     type: boolean
@@ -384,28 +384,32 @@ runs:
         fi;
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
+          src=$(ls 2>/dev/null);
           file_count() {
-            sudo find -type f \( -path "*/${dirname}/*" -o -path "*" \) | sed 's/.*\.//' | sort | uniq -c | while IFS= read -r file; do
+            sudo find -type f \( -path "*/${dirname}/*" -o -path "*" \) \( -name "*.c" -o -name "*.cc" -o -name "*.cpp" -o -name "*.cxx" -o -name "*.h" -o -name "*.hh" -o -name "*.hpp" -o -name "*.hxx" -o -iname "Makefile" -o -iname "kbuild" -o -iname "kconfig" -o -iname "*.sh" -o -iname ".mk" \) | sed 's/.*\.//' | sort | uniq -c | while IFS= read -r file; do
               string_before="${file%%/*}";
-              filename="${file##*/}",
+              filename="${file##*/}";
               string_after="${filename##*.}";
-              echo -e "${string_before}${string_after}";
+              echo -e "${string_before}${string_after}"
             done;
           }
           dir_files() {
-            sudo du | cut -d/ -f2 | sort | uniq -c | sort -nr | while IFS= read -r dir; do
-              echo -e "${dir}"
-            done;
+           for dir in $(src[@]}; do
+             if [ -d "$dir" ]; then
+               count=$(find "$dir" -type f 2>/dev/null | wc -l);
+               echo "${dir}: ${count} files"
+             fi;
+           done;
           }
           file_total=$(sudo find -type f \( -path "*/${dirname}/*" -o -path "*" \) | wc -l);
           if [[ "${file_total}" ]]; then
             echo -e "\n#####################\nRepository: ${repo}\nTotal Files: ${file_total}\n#####################\n";
           fi;
           if [[ "$(file_count)" ]]; then
-            echo -e "\n#####################\nProject File Types: $(file_count)\n#####################\n";
+            echo -e "\n#####################\nProject Files:\n$(file_count)\n#####################\n";
           fi;
           if [[ "$(dir_files)" ]]; then
-            echo -e "\n#####################\nDirectory Files: $(dir_files)\n#####################\n";
+            echo -e "\n#####################\nDirectory Files:\n$(dir_files)\n#####################\n";
           fi;
         fi;
         center_text "\n${text10a}" 2>/dev/null;
@@ -431,13 +435,14 @@ runs:
         clang_version=$(clang --version);
         verify_config=$(clang-tidy --verify-config);
         cmake_version=$(cmake --version);
-        # clang_checks=$(clang-tidy --list-checks);
+        clang_checks=$(clang-tidy --list-checks);
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         gcc_version=$(gcc --version);
         gpp_version=$(g++ --version);
         check_build=false
         file_type='c';
+        clang_run=${{ github.action_path }}/scripts/tools/run-clang-tidy.py;
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
         github=${GITHUB_WORKSPACE};
         update=true
@@ -460,7 +465,7 @@ runs:
         echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;
         echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;
         echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n" | process_input;
-        # echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n" | process_input;
+        echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n" | process_input;
         echo 'check_build=false' >> "${GITHUB_ENV}";
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
@@ -480,7 +485,6 @@ runs:
           cmake_list='CMakeLists.txt';
           clang_file='parameter-file';
           clang_tidy='.clang-tidy';
-          clang_run=${{ github.action_path }}/scripts/tools/run-clang-tidy.py;
           echo "repository=${repository}" >> "${GITHUB_ENV}";
           src_dirs() {
             sudo find -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
@@ -498,7 +502,7 @@ runs:
           if [[ -f "${cmake_list}" ]]; then
             echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################\n' | process_input;
           fi;
-          mkdir -p build/cache
+          mkdir -p build/cached
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             if [[ "$(src_dirs)" ]]; then
