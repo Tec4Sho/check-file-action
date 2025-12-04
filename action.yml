@@ -365,13 +365,16 @@ runs:
           center_text "${text9c}\n";
         fi;
         if [[ -z "${{ inputs.dirname }}" ]]; then
-          if [ -z "${{ github.event.inputs.DEVICE_PATH }}" ]; then 
-            echo "dirname=${{ env.default_path }}" >> "${GITHUB_ENV}";
-          else 
-            echo "dirname=${{ github.event.inputs.DEVICE_PATH }}" >> "${GITHUB_ENV}";
+          if [ -z "${{ github.event.inputs.DEVICE_PATH }}" ]; then
+            dirname=${{ env.default_path }};
+            echo "dirname=${dirname}" >> "${GITHUB_ENV}";
+          else
+            dirname=${{ github.event.inputs.DEVICE_PATH }};
+            echo "dirname=${dirname}" >> "${GITHUB_ENV}";
           fi;
         else
-          echo "dirname=${{ inputs.dirname }}" >> "${GITHUB_ENV}";
+          dirname=${{ inputs.dirname }};
+          echo "dirname=${dirname}" >> "${GITHUB_ENV}";
         fi;
         if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analysis > 0 }}; then
           center_text "::warning:: inputs.project: and inputs.filename: both enabled disables inputs.analysis:\nTo remove this warning use ( inputs.analysis: 0 )\n";
@@ -380,17 +383,17 @@ runs:
           echo "analysis=${{ inputs.analysis }}" >> "${GITHUB_ENV}";
         fi;
         if [[ -d ${repository} ]]; then
-          file_total=$(sudo find ${repository%/*} -type f \( -path "*/${{ inputs.dirname }}/*" -o -path "*" \) | wc -l);
-          file_count=$(sudo find ${repository%/*} -type f \( -path "*/${{ inputs.dirname }}/*" -o -path "*" \) | sed 's/.*\.//' | sort | uniq -c);
+          file_total=$(sudo find ${repository%/*} -type f \( -path "*/${dirname}/*" -o -path "*" \) | wc -l);
+          file_count=$(sudo find ${repository%/*} -type f \( -path "*/${dirname}/*" -o -path "*" \) | sed 's/.*\.//' | sort | uniq -c);
           dir_files=$(sudo du ${repository%/*} | cut -d/ -f2 | sort | uniq -c | sort -nr);
           if [[ "${file_total}" ]]; then
             echo -e "\n#####################\nRepository: ${repo}\nTotal Files: ${file_total}\n#####################\n";
           fi;
           if [[ "${file_count}" ]]; then
-            echo -e "\n#####################\nProject File Types: ${file_count}\n#####################\n";
+            echo -e "\n#####################\nProject File Types: ${file_count##*.}\n#####################\n";
           fi;
           if [[ "${dir_files}" ]]; then
-            echo -e "\n#####################\nDirectory Files: ${dir_files}\n#####################\n";
+            echo -e "\n#####################\nDirectory Files: ${dir_files##*.}\n#####################\n";
           fi;
         fi;
         center_text "\n${text10a}" 2>/dev/null;
@@ -541,7 +544,7 @@ runs:
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/cache -j "$(nproc --all)" 2>/dev/null | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
+            "${clang_run}" -p=build -config-file="${clang_tidy}" -fix -fix-errors -export-fixes=build/cache -j "$(nproc --all)" | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
