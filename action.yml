@@ -383,16 +383,28 @@ runs:
           echo "analysis=${{ inputs.analysis }}" >> "${GITHUB_ENV}";
         fi;
         if [[ -d ${repository} ]]; then
-          file_total=$(sudo find ${repository%/*} -type f \( -path "*/${dirname}/*" -o -path "*" \) | wc -l);
-          file_count=$(sudo find ${repository%/*} -type f \( -path "*/${dirname}/*" -o -path "*" \) | sed 's/.*\.//' | sort | uniq -c);
-          dir_files=$(sudo du ${repository%/*} | cut -d/ -f2 | sort | uniq -c | sort -nr);
+          cd "${repository%/*}";
+          file_count() {
+            sudo find -type f \( -path "*/${dirname}/*" -o -path "*" \) | sed 's/.*\.//' | sort | uniq -c | while IFS= read -r file; do
+              string_before="${file%%/*}";
+              filename="${file##*/}",
+              string_after="${filename##*.}";
+              echo -e "${string_before}${string_after}";
+            done;
+          }
+          dir_files() {
+            sudo du | cut -d/ -f2 | sort | uniq -c | sort -nr | while IFS= read -r dir; do
+              echo -e "${dir}"
+            done;
+          }
+          file_total=$(sudo find -type f \( -path "*/${dirname}/*" -o -path "*" \) | wc -l);
           if [[ "${file_total}" ]]; then
             echo -e "\n#####################\nRepository: ${repo}\nTotal Files: ${file_total}\n#####################\n";
           fi;
-          if [[ "${file_count}" ]]; then
+          if [[ "$(file_count)" ]]; then
             echo -e "\n#####################\nProject File Types: ${file_count##*.}\n#####################\n";
           fi;
-          if [[ "${dir_files}" ]]; then
+          if [[ "$(dir_files)" ]]; then
             echo -e "\n#####################\nDirectory Files: ${dir_files##*.}\n#####################\n";
           fi;
         fi;
@@ -470,7 +482,7 @@ runs:
           clang_run=${{ github.action_path }}/scripts/tools/run-clang-tidy.py;
           echo "repository=${repository}" >> "${GITHUB_ENV}";
           src_dirs() {
-            sudo find -type d -maxdepth 1 -print0 | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+            sudo find -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               echo -n "${dir#./} "
             done;
           }
@@ -544,7 +556,7 @@ runs:
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            "${clang_run}" -p=build -config-file="${clang_tidy}" -fix -fix-errors -export-fixes=build/cache -j "$(nproc --all)" | process_input;
+            "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build -j "$(nproc --all)" # | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
