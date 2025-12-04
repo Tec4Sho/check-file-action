@@ -541,7 +541,7 @@ runs:
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/cache -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
+            "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/cache -j "$(nproc --all)" 2>/dev/null | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
