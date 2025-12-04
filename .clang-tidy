@@ -6,7 +6,7 @@ ImplementationFileExtensions: ['c','cc','cpp','cxx']
 HeaderFilterRegex:     '.*'
 InheritParentConfig:   true
 User:                  user
-SystemHeaders:         false
+SystemHeaders:         true
 UseColor:              true
 FormatStyle:           none
 CheckOptions:
