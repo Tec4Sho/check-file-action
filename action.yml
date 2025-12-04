@@ -312,8 +312,8 @@ runs:
           file_path=${GITHUB_WORKSPACE}
         fi;
         if ${{ inputs.stored }} && ${{ env.update }} && [[ -d ${repository} ]]; then
-          repository="${repository%/*}/${repair_file}";
-          if [[ -f ${repository} ]]; then
+          repaired="${repository%/*}/${repair_file}";
+          if [[ -f ${repaired} ]]; then
             center_text "\n${text3a}";
             center_text "${text3b}";
             center_text "${text3c}\n";
@@ -321,11 +321,11 @@ runs:
             center_text "\n${text4a}";
             center_text "${text4b}";
             center_text "${text4c}\n";
-            date '+%Y%m%d' > "${repository}" || exit 1
+            date '+%Y%m%d' > "${repaired}" || echo -e "::warning:: ${repaired} backup file not found";
           fi;
         elif ${{ inputs.stored }} && [[ -d ${repository} ]]; then
-          repository="${repository%/*}/${repair_file}";
-          if [[ -f ${repository} ]]; then
+          repaired="${repository%/*}/${repair_file}";
+          if [[ -f ${repaired} ]]; then
             center_text "\n${text3a}";
             center_text "${text3b}";
             center_text "${text3c}\n";
@@ -333,7 +333,7 @@ runs:
             center_text "\n${text4a}";
             center_text "${text4b}";
             center_text "${text4c}\n";
-            date '+%Y%m%d' > "${repository}" || exit 1
+            date '+%Y%m%d' > "${repaired}" || echo -e "::warning:: ${repaired} backup file not found";
           fi;
           echo 'update=true' >> "${GITHUB_ENV}";
         fi;
@@ -467,12 +467,12 @@ runs:
           clang_run=${{ github.action_path }}/scripts/tools/run-clang-tidy.py;
           echo "repository=${repository}" >> "${GITHUB_ENV}";
           src_dirs() {
-            sudo find . -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+            sudo find -type d -maxdepth 1 -print0 | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               echo -n "${dir#./} "
             done;
           }
           file_list() {
-            sudo find . -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
+            sudo find -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
               echo -e "${file#./}"
             done;
           }
@@ -515,7 +515,7 @@ runs:
             if [[ "${files_list}" ]]; then
               cp -vf "${clang_file}" 'build/cmake-source-files.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-              { time clang-tidy @parameter-file 2>/dev/null | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input; } 2>&1;
+              { time clang-tidy @parameter-file 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
               if [[ "${PIPESTATUS[0]}" == 0 ]]; then
                 echo -e '\n|RUNTIME|\n' | process_input;
                 check_build=true
@@ -531,7 +531,7 @@ runs:
           if [[ $(which run-clang-tidy.py) ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/cache -j "$(nproc --all)" 2>/dev/null | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input; } 2>&1;
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/cache -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -541,12 +541,7 @@ runs:
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time \
-              "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/cache -j "$(nproc --all)" 2>/dev/null \
-               | process_input \
-               || echo -e "::warning:: ( $? ) checking project files" \
-               | process_input; 
-            } 2>&1;
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/cache -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -558,7 +553,7 @@ runs:
           fi;
           if [[ -d 'build' ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            { time cmake --build build | process_input || echo "::warning:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)" | process_input; } 2>&1;
+            { time cmake --build build } 2>&1 | process_input || echo "::warning:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)" | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
