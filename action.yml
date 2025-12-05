@@ -555,7 +555,7 @@ runs:
           if [[ $(which run-clang-tidy.py) ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -j "$(nproc --all)" 2>/dev/null | process_input; } 2>&1
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -export-fixes=build/cache/clang_fixes.yml -fix -fix-notes -fix-errors -j "$(nproc --all)" 2>/dev/null | process_input; } 2>&1
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -568,7 +568,7 @@ runs:
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes=build/cache/clang_fixes.yml -j "$(nproc --all)" 2>/dev/null | process_input; } 2>&1
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -export-fixes=build/cache/clang_fixes.yml -fix -fix-notes -fix-errors -j "$(nproc --all)" 2>/dev/null | process_input; } 2>&1
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
