@@ -390,7 +390,7 @@ runs:
               string_before="${file%%/*}";
               filename="${file##*/}";
               string_after="${filename##*.}";
-              echo -e "${string_before}${string_after}"
+              echo "${file} files"
             done;
           }
           dir_files() {
