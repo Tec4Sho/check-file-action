@@ -386,7 +386,7 @@ runs:
           cd "${repository%/*}";
           src=$(ls 2>/dev/null);
           file_count() {
-            sudo find -type f \( -path "*/${dirname}/*" -o -path "*" \) \( -name "*.c" -o -name "*.cc" -o -name "*.cpp" -o -name "*.cxx" -o -name "*.h" -o -name "*.hh" -o -name "*.hpp" -o -name "*.hxx" -o -iname "Makefile" -o -iname "kbuild" -o -iname "kconfig" -o -iname "*.sh" -o -iname ".mk" \) | sed 's/.*[./]//' | sort | uniq -c | while IFS= read -r file; do
+            sudo find -type f \( -name "*.c" -o -name "*.cc" -o -name "*.cpp" -o -name "*.cxx" -o -name "*.h" -o -name "*.hh" -o -name "*.hpp" -o -name "*.hxx" -o -iname "Makefile" -o -iname "kbuild" -o -iname "kconfig" -o -iname "*.sh" -o -iname "*.mk" -o -iname "build" \) | sed 's/.*[./]//' | sort | uniq -c | while IFS= read -r file; do
               string_before="${file%%/*}";
               filename="${file##*/}";
               string_after="${filename##*.}";
@@ -396,20 +396,20 @@ runs:
           dir_files() {
            for dir in ${src[@]}; do
              if [ -d "$dir" ]; then
-               count=$(find "$dir" -type f 2>/dev/null | wc -l);
+               count=$(sudo find "$dir" -type f 2>/dev/null | wc -l);
                echo "${dir}: ${count} files"
              fi;
            done;
           }
-          file_total=$(sudo find -type f \( -path "*/${dirname}/*" -o -path "*" \) | wc -l);
+          file_total=$(sudo find -type f | wc -l);
           if [[ "${file_total}" ]]; then
-            echo -e "\n#####################\nRepository: ${repo}\n#####################\n ${file_total} files total\n";
+            echo -e "\n#####################\nRepository: ${repo}\n#####################\n\n${file_total} total files";
           fi;
           if [[ "$(file_count)" ]]; then
-            echo -e "\n#####################\nProject Files:\n#####################\n$(file_count)\n";
+            echo -e "\n#####################\nProject Files:\n#####################\n\n$(file_count)";
           fi;
           if [[ "$(dir_files)" ]]; then
-            echo -e "\n#####################\nDirectory Files:\n#####################\n$(dir_files)\n";
+            echo -e "\n#####################\nDirectory Files:\n#####################\n\n$(dir_files)";
           fi;
         fi;
         center_text "\n${text10a}" 2>/dev/null;
@@ -474,7 +474,7 @@ runs:
           cmake_list='CMakeLists.txt';
           clang_file='parameter-file';
           clang_tidy='.clang-tidy';
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_inputnye56Rrr
+          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
           echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n" | process_input;
           echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n" | process_input;
           echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n" | process_input;
