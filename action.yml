@@ -394,7 +394,7 @@ runs:
             done;
           }
           dir_files() {
-           for dir in $(src[@]}; do
+           for dir in ${src[@]}; do
              if [ -d "$dir" ]; then
                count=$(find "$dir" -type f 2>/dev/null | wc -l);
                echo "${dir}: ${count} files"
