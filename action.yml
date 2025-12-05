@@ -534,11 +534,13 @@ runs:
             if [[ "${files_list}" ]]; then
               cp -vf "${clang_file}" 'build/cmake-source-files.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-              { time clang-tidy @parameter-file 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
-              if [[ "${PIPESTATUS[0]}" == 0 ]]; then
+              { time clang-tidy @parameter-file 2>/dev/null | process_input; } 2>&1
+              if [[ "${PIPESTATUS[1]}" == 0 ]]; then
                 echo -e '\n|RUNTIME|\n' | process_input;
                 check_build=true
                 echo 'check_build=true' >> "${GITHUB_ENV}";
+              else
+                echo -e "::warning:: ( $? ) checking project files" | process_input;
               fi;
             else
               exit 1
@@ -550,21 +552,25 @@ runs:
           if [[ $(which run-clang-tidy.py) ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/fixes -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
-            if [[ "${PIPESTATUS[0]}" == 0 ]]; then
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/fixes -j "$(nproc --all)" 2>/dev/null | process_input; } 2>&1
+            if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
+            else
+              echo -e "::warning:: ( $? ) checking project files" | process_input;
             fi;
           elif [[ -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/cache -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
-            if [[ "${PIPESTATUS[0]}" == 0 ]]; then
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/fixes -j "$(nproc --all)" 2>/dev/null | process_input; } 2>&1
+            if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
+            else
+              echo -e "::warning:: ( $? ) checking project files" | process_input;
             fi;
           elif [[ ! -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n" | process_input;
