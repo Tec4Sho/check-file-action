@@ -517,7 +517,8 @@ async def main() -> None:
         help="Files to be processed (regex on path).",
     )
     parser.add_argument("-fix", action="store_true", help="apply fix-its.")
-    parser.add_argument("-fix-errors", action="store_true", help="apply fix-its, continuing.")
+    parser.add_argument("-fix-errors", action="store_true", help="apply fix-errors.")
+    parser.add_argument("-fix-notes", action="store_true", help="apply fix-notes.")
     parser.add_argument(
         "-format", action="store_true", help="Reformat code after applying fixes."
     )
