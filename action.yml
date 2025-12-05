@@ -386,7 +386,7 @@ runs:
           cd "${repository%/*}";
           src=$(ls 2>/dev/null);
           file_count() {
-            sudo find -type f \( -path "*/${dirname}/*" -o -path "*" \) \( -name "*.c" -o -name "*.cc" -o -name "*.cpp" -o -name "*.cxx" -o -name "*.h" -o -name "*.hh" -o -name "*.hpp" -o -name "*.hxx" -o -iname "Makefile" -o -iname "kbuild" -o -iname "kconfig" -o -iname "*.sh" -o -iname ".mk" \) | sed 's/.*\.//' | sort | uniq -c | while IFS= read -r file; do
+            sudo find -type f \( -path "*/${dirname}/*" -o -path "*" \) \( -name "*.c" -o -name "*.cc" -o -name "*.cpp" -o -name "*.cxx" -o -name "*.h" -o -name "*.hh" -o -name "*.hpp" -o -name "*.hxx" -o -iname "Makefile" -o -iname "kbuild" -o -iname "kconfig" -o -iname "*.sh" -o -iname ".mk" \) | sed 's/.*[./]//' | sort | uniq -c | while IFS= read -r file; do
               string_before="${file%%/*}";
               filename="${file##*/}";
               string_after="${filename##*.}";
@@ -430,7 +430,6 @@ runs:
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export LC_ALL=C
-        set -o verbose
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         clang_version=$(clang --version);
         verify_config=$(clang-tidy --verify-config);
@@ -458,7 +457,7 @@ runs:
             fi;
           done;
         }
-        echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
+        echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_inputnye56Rrr
         echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n" | process_input;
         echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n" | process_input;
         echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n" | process_input;

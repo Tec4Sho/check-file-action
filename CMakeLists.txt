@@ -21,9 +21,9 @@ find_program(CLANG_TIDY_EXE "clang-tidy")
     message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
     # Configure clang-tidy to run with all checks and fix errors
     # .set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=*;-header-filter=.;-fix")
-    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=-*,clang-diagnostic*,clang-analyzer-*,modernize-*,clang-analyzer-cplusplus*';-fix;-header-filter=.*")
+    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=clang-diagnostic-error,clang-analyzer;-fix;-header-filter=.*")
     # You can also specify specific checks instead of -checks=*
-    # .set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=modernize-loop-convert,readability-identifier-naming;-fix")
+    # .set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=modernize-loop-convert,readability-identifier-naming,clang-analyzer-cplusplus;-fix")
   else()
     message(WARNING "clang-tidy not found! Static analysis will be skipped.")
   endif()

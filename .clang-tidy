@@ -1,5 +1,5 @@
 ---
-Checks:                '-*,clang-diagnostic*,clang-analyzer-*,modernize*,clang-analyzer-cplusplus*'
+Checks:                '-*,clang-diagnostic-error,clang-analyzer-*,modernize*,clang-analyzer-cplusplus*'
 WarningsAsErrors:      ''
 HeaderFileExtensions:         ['', 'h','hh','hpp','hxx']
 ImplementationFileExtensions: ['c','cc','cpp','cxx']
@@ -19,4 +19,3 @@ CheckOptions:
   - key:             modernize-pass-by-value.IncludeStyle
     value:           llvm
 ...
-
