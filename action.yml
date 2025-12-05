@@ -403,13 +403,13 @@ runs:
           }
           file_total=$(sudo find -type f \( -path "*/${dirname}/*" -o -path "*" \) | wc -l);
           if [[ "${file_total}" ]]; then
-            echo -e "\n#####################\nRepository: ${repo}\nTotal Files: ${file_total}\n#####################\n";
+            echo -e "\n#####################\nRepository: ${repo}\n#####################\n ${file_total} files total\n";
           fi;
           if [[ "$(file_count)" ]]; then
-            echo -e "\n#####################\nProject Files:\n$(file_count)\n#####################\n";
+            echo -e "\n#####################\nProject Files:\n#####################\n$(file_count)\n";
           fi;
           if [[ "$(dir_files)" ]]; then
-            echo -e "\n#####################\nDirectory Files:\n$(dir_files)\n#####################\n";
+            echo -e "\n#####################\nDirectory Files:\n#####################\n$(dir_files)\n";
           fi;
         fi;
         center_text "\n${text10a}" 2>/dev/null;
@@ -430,15 +430,6 @@ runs:
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export LC_ALL=C
-        compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
-        clang_version=$(clang --version);
-        verify_config=$(clang-tidy --verify-config);
-        cmake_version=$(cmake --version);
-        clang_checks=$(clang-tidy --list-checks);
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-        project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
-        gcc_version=$(gcc --version);
-        gpp_version=$(g++ --version);
         check_build=false
         file_type='c';
         clang_run=${{ github.action_path }}/scripts/tools/run-clang-tidy.py;
@@ -457,14 +448,6 @@ runs:
             fi;
           done;
         }
-        echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_inputnye56Rrr
-        echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n" | process_input;
-        echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n" | process_input;
-        echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n" | process_input;
-        echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;
-        echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;
-        echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n" | process_input;
-        echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n" | process_input;
         echo 'check_build=false' >> "${GITHUB_ENV}";
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
@@ -475,15 +458,32 @@ runs:
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -d "${src_tree}" ]]; then
-          echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n" | process_input;
-          echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n" | process_input;
           cd "${src_tree%/*}";
+          compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
+          clang_version=$(clang --version);
+          verify_config=$(clang-tidy --verify-config);
+          cmake_version=$(cmake --version);
           project_files=$(sudo find . -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
           compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
           include_dirs=$(sudo find . -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+          clang_checks=$(clang-tidy --list-checks);
+          project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
+          gcc_version=$(gcc --version);
+          gpp_version=$(g++ --version);
+          repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
           cmake_list='CMakeLists.txt';
           clang_file='parameter-file';
           clang_tidy='.clang-tidy';
+          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_inputnye56Rrr
+          echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n" | process_input;
+          echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n" | process_input;
+          echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n" | process_input;
+          echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;
+          echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;
+          echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n" | process_input;
+          echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n" | process_input;
+          echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n" | process_input;
+          echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n" | process_input;
           echo "repository=${repository}" >> "${GITHUB_ENV}";
           src_dirs() {
             sudo find -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
@@ -501,7 +501,7 @@ runs:
           if [[ -f "${cmake_list}" ]]; then
             echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################\n' | process_input;
           fi;
-          mkdir -p build/cached
+          mkdir -p build/fixes
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             if [[ "$(src_dirs)" ]]; then
@@ -550,7 +550,7 @@ runs:
           if [[ $(which run-clang-tidy.py) ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/cache -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/fixes -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -560,7 +560,7 @@ runs:
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build -j "$(nproc --all)" # | process_input;
+            { time "${clang_run}" -p build -config-file "${clang_tidy}" -fix -fix-errors -export-fixes build/cache -j "$(nproc --all)" 2>/dev/null; } 2>&1 | process_input || echo -e "::warning:: ( $? ) checking project files" | process_input;
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
