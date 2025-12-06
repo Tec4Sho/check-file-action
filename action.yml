@@ -158,7 +158,7 @@ runs:
         text9="\n####################\nbatcat dependencies Installed\n####################\n";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        if [[ ! $(which clang) ]] && ${{ inputs.project }}; then
+        if [[ ! $(which clangd) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install clang clangd >/dev/null && echo -e "\n####################\nclang tools dependencies Installed\n####################\n" || echo -e '::error::No clang-tools installed for project build';
           [[ ! $(which clang) ]] && exit 1
         fi;
@@ -447,7 +447,7 @@ runs:
               echo -e "${log}";
             fi;
           done;
-        }
+        } 2>&1;
         echo 'check_build=false' >> "${GITHUB_ENV}";
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
@@ -568,7 +568,11 @@ runs:
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clang_run}" -p build -config-file "${clang_tidy}" -export-fixes=build/cache/clang_fixes.yml -fix -fix-notes -fix-errors -j "$(nproc --all)" 2>/dev/null | process_input; } 2>&1
+            { \
+              time \
+              "${clang_run}" -p build -config-file "${clang_tidy}" -fix -j "$(nproc --all)" 2>/dev/null \
+              | process_input;
+            }
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
