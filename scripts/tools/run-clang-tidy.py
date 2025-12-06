@@ -516,11 +516,25 @@ async def main() -> None:
         default=[".*"],
         help="Files to be processed (regex on path).",
     )
-    parser.add_argument("-fix", action="store_true", help="apply fix-its.")
-    parser.add_argument("-fix-errors", action="store_true", help="apply fix-errors.")
-    parser.add_argument("-fix-notes", action="store_true", help="apply fix-notes.")
     parser.add_argument(
-        "-format", action="store_true", help="Reformat code after applying fixes."
+        "-fix", 
+        action="store_true", 
+        help="apply fix-its.",
+    )
+    parser.add_argument(
+        "-fix-errors", 
+        action="store_true",
+        help="apply fix-errors.",
+    )
+    parser.add_argument(
+        "-fix-notes", 
+        action="store_true", 
+        help="apply fix-notes.",
+    )
+    parser.add_argument(
+        "-format", 
+        action="store_true", 
+        help="Reformat code after applying fixes.",
     )
     parser.add_argument(
         "-style",
@@ -537,7 +551,9 @@ async def main() -> None:
         "' option in .clang-tidy file, if any.",
     )
     parser.add_argument(
-        "-p", dest="build_path", help="Path used to read a compile command database."
+        "-p", 
+        dest="build_path", 
+        help="Path used to read a compile command database.",
     )
     parser.add_argument(
         "-extra-arg",
@@ -554,7 +570,9 @@ async def main() -> None:
         help="Additional argument to prepend to the compiler command line.",
     )
     parser.add_argument(
-        "-quiet", action="store_true", help="Run clang-tidy in quiet mode."
+        "-quiet", 
+        action="store_true", 
+        help="Run clang-tidy in quiet mode.",
     )
     parser.add_argument(
         "-load",
