@@ -152,20 +152,28 @@ runs:
         text2="\n####################\nansi2txt dependencies Installed\n####################\n";
         text3="\n####################\nca-certificates dependencies Installed\n####################\n";
         text4="\n####################\ncppcheck dependencies Installed\n####################\n";
-        text5="\n####################\nclang-tools dependencies Installed\n####################\n";
+        text5="\n####################\nclang-tidy dependencies Installed\n####################\n";
         text6="\n####################\nshellharden dependencies Installed\n####################\n";
         text7="\n####################\nshellcheck dependencies Installed\n####################\n";
         text8="\n####################\ncheckmake dependencies Installed\n####################\n";
         text9="\n####################\nbatcat dependencies Installed\n####################\n";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
+        if [[ ! $(which git) ]]; then
+          sudo apt-get -yq install git git-core >/dev/null && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
+          [[ ! $(which git) ]] && exit 1
+        fi;
         if [[ ! $(which clangd) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install clang clangd >/dev/null && echo -e "\n####################\nclang tools dependencies Installed\n####################\n" || echo -e '::error::No clang-tools installed for project build';
+          sudo apt-get -yq install clang clangd >/dev/null && echo -e "\n####################\nclang dependencies Installed\n####################\n" || echo -e '::error::No clang installed for project build';
           [[ ! $(which clang) ]] && exit 1
         fi;
         if [[ ! $(clang-tidy --version 2>/dev/null) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
-          sudo apt-get install -yq clang-tidy clang-tools >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
+          sudo apt-get install -yq clang-tidy clang-tools >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
           [[ ! $(clang-tidy --version 2>/dev/null) ]] && exit 1
+        fi;
+        if [[ ! $(which clangd-tidy) ]] &&  ${{ inputs.project }}; then
+          python -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
+          [[ ! $(which clangd-tidy) ]] && exit 1
         fi;
         if [[ ! $(llvm-config --version 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
@@ -184,13 +192,6 @@ runs:
           sudo apt-get -yq install python3 >/dev/null >/dev/null && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
- 
-        if [[ ! $(which clangd-tidy) ]] &&  ${{ inputs.project }}; then
-          python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies Installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
-          python -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
-          [[ ! $(which clangd-tidy) ]] && exit 1
-        fi;
-
         if [[ ! $(which npm) ]]; then
           sudo npm install >/dev/null && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
           [[ ! $(which tput) ]] && exit 1
@@ -199,9 +200,9 @@ runs:
           sudo apt-get -yq install tput >/dev/null && echo -e "\n####################\ntput dependencies Installed\n####################\n" || echo -e '::error::No tput installed for term_width';
           [[ ! $(which tput) ]] && exit 1
         fi;
-        if [[ ! $(which git) ]]; then
-          sudo apt-get -yq install git git-core >/dev/null && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
-          [[ ! $(which git) ]] && exit 1
+        if [[ ! $(which tqdm) ]] &&  ${{ inputs.project }}; then
+          python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies Installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
+          [[ ! $(which tqdm) ]] && exit 1
         fi;
         if [[ ! $(which rg) ]] && [[ "${{ inputs.pattern }}" != '' ]] && ${{ inputs.database }}; then
           sudo apt-get -yq install ripgrep >/dev/null && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
@@ -394,13 +395,8 @@ runs:
           cd "${repository%/*}";
           src=$(ls 2>/dev/null);
           file_count() {
-            sudo find -type f \( -name "*.c" -o -name "*.cc" -o -name "*.cpp" -o -name "*.cxx" -o -name "*.h" -o -name "*.hh" -o -name "*.hpp" -o -name "*.hxx" -o -iname "Makefile" -o -iname "kbuild" -o -iname "kconfig" -o -iname "*.sh" -o -iname "*.mk" -o -iname "build" \) \
-            | sed 's/.*[./]//' \
-            | sort \
-            | uniq -c \
-            | sed 's/^ *//' \
-            | while IFS= read -r file; do \
-              echo "${file} files" \
+            sudo find -type f | grep -Eoi "\.c.{1,2}$|\.h.{1,2}$|\.t.{1,2}$|\.zip$|\.sh$|\.mk$|Makefile$|Kconfig$|Kbuild$|build$" | sed 's/.*[./]//' | sort -nr | uniq -c | sed 's/^ *//' | while IFS= read -r file; do
+              echo "${file} files"
             done;
           }
           dir_files() {

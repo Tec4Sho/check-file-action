@@ -1,0 +1,14 @@
+CompileFlags:
+  Remove: -fabi*
+Diagnostics:
+  ClangTidy:
+    FastCheckFilter: Strict
+  # Available in clangd-14
+  UnusedIncludes: Strict
+  # Require clangd-17
+  MissingIncludes: Strict
+Completion: 
+  AllScopes: Yes 
+  ArgumentLists: FullPlaceholders 
+  HeaderInsertion: IWYU 
+  CodePatterns: All
