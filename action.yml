@@ -7,9 +7,10 @@ inputs:
     default: 1
     type: choice
     options:
-    - 1 # parameter-file for simple repository checks.
-    - 2 # compile_commands.json for full project checks.
-    - 3 # run-clang-tidy.py for fast parallel file checks.
+    - 1 # clang-tidy - parameter-file for small project file checks.
+    - 2 # run-clang-tidy.py - compile_commands.json for large project file checks.
+    - 3 # clangd-tidy - compile_commands.json for faster large project file checks.
+    - 4 # cmake - build sources and use clang-tidy for project file checks
   filename:
     description: 'Check for filename or search for text word matches'
     type: string
@@ -184,6 +185,12 @@ runs:
           sudo apt-get -yq install python3 >/dev/null >/dev/null && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo -e '::error::No python3 installed for project build';
           [[ ! $(which python3) ]] && exit 1
         fi;
+ 
+        if ${{ inputs.project }}; then
+          python -m pip install clangd-tidy
+          python -m pip install tqdm
+        fi;
+
         if [[ ! $(which npm) ]]; then
           sudo npm install >/dev/null && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
           [[ ! $(which tput) ]] && exit 1
@@ -537,7 +544,11 @@ runs:
             if [[ "${files_list}" ]]; then
               cp -vf "${clang_file}" 'build/cmake-source-files.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-              { time clang-tidy @parameter-file 2>/dev/null | process_input; } 2>&1
+              { \
+                time \
+                clang-tidy @parameter-file 2>/dev/null \
+                | process_input; 
+              }
               if [[ "${PIPESTATUS[1]}" == 0 ]]; then
                 echo -e '\n|RUNTIME|\n' | process_input;
                 check_build=true
@@ -555,7 +566,7 @@ runs:
           if [[ $(which run-clang-tidy.py) ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clang_run}" -p build -config-file "${clang_tidy}" -export-fixes=build/cache/clang_fixes.yml -fix -fix-notes -fix-errors -j "$(nproc --all)" 2>/dev/null | process_input; } 2>&1
+            "${clang_run}" -p build -config-file "${clang_tidy}" -export-fixes build/cache/clang_fixes.yml -fix -fix-notes -fix-errors -j "$(nproc --all)" 2>/dev/null | process_input;
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -568,11 +579,7 @@ runs:
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { \
-              time \
-              "${clang_run}" -p build -config-file "${clang_tidy}" -fix -j "$(nproc --all)" 2>/dev/null \
-              | process_input;
-            }
+            "${clang_run}" -p build -j "$(nproc --all)" 2>/dev/null | process_input;
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -584,9 +591,32 @@ runs:
             echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ -d 'build' ]] && ${{ env.analysis == 3 }}; then
+
+          if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
+            { \
+              time \
+              clangd-tidy -p build --tqdm --github --fail-on-severity error -j "$(nproc --all)" 2>/dev/null \
+              | process_input;
+            }
+            if [[ "${PIPESTATUS[1]}" == 0 ]]; then
+              echo -e '\n|RUNTIME|\n' | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            else
+              echo -e "::warning:: ( $? ) checking project files" | process_input;
+            fi;
+          elif [[ ! -e "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
+            echo -e "\n####################\n\t::error:: "${clang_tidy}" file missing in repo Exiting...\n####################\n" | process_input;
+            exit 1
+          fi;
+
+          if [[ -d 'build' ]] && ${{ env.analysis == 4 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            { time cmake --build build | process_input; } 2>&1
+            { \
+              time \
+              cmake --build build \
+              | process_input;
+            }
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -598,7 +628,7 @@ runs:
               echo 'build_files=1' >> "${GITHUB_ENV}";
               cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
             fi;
-          elif [[ ! -d 'build' ]] && ${{ env.analysis == 3 }}; then
+          elif [[ ! -d 'build' ]] && ${{ env.analysis == 4 }}; then
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
