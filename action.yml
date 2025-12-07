@@ -395,7 +395,7 @@ runs:
           cd "${repository%/*}";
           src=$(ls 2>/dev/null);
           file_count() {
-            sudo find -type f | grep -iEv '\.[[:alnum:]]{1,3}$|/[^/]+\.[^/]+$' | sed 's/.*[./]//' | sort -nr | uniq -c | sed 's/^ *//' | while IFS= read -r file; do
+            sudo find -type f | grep -iEvo '\.[[:alnum:]]{1,3}$ | /[^/]+\.[^/]+$' | sed 's/.*[./]//' | sort -nr | uniq -c | sed 's/^ *//' | while IFS= read -r file; do
               echo "${file} files"
             done;
           }
