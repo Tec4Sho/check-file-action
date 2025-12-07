@@ -170,7 +170,6 @@ runs:
         if [[ ! $(llvm-config --version 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
-          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh)"
           sudo apt-get -yq install llvm llvm-dev lld libclang-dev >/dev/null && echo -e "\n####################\nllvm tools dependencies Installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
@@ -182,13 +181,14 @@ runs:
           [[ ! $(which cmake) ]] && exit 1
         fi;
         if [[ ! $(which python3) ]] && ${{ inputs.project }} && ${{ inputs.analysis == 2 }}; then
-          sudo apt-get -yq install python3 >/dev/null >/dev/null && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo -e '::error::No python3 installed for project build';
+          sudo apt-get -yq install python3 >/dev/null >/dev/null && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
  
-        if ${{ inputs.project }}; then
-          python -m pip install clangd-tidy
-          python -m pip install tqdm
+        if [[ ! $(which clangd-tidy) ]] &&  ${{ inputs.project }}; then
+          python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies Installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
+          python -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
+          [[ ! $(which clangd-tidy) ]] && exit 1
         fi;
 
         if [[ ! $(which npm) ]]; then
@@ -394,11 +394,13 @@ runs:
           cd "${repository%/*}";
           src=$(ls 2>/dev/null);
           file_count() {
-            sudo find -type f \( -name "*.c" -o -name "*.cc" -o -name "*.cpp" -o -name "*.cxx" -o -name "*.h" -o -name "*.hh" -o -name "*.hpp" -o -name "*.hxx" -o -iname "Makefile" -o -iname "kbuild" -o -iname "kconfig" -o -iname "*.sh" -o -iname "*.mk" -o -iname "build" \) | sed 's/.*[./]//' | sort | uniq -c | while IFS= read -r file; do
-              string_before="${file%%/*}";
-              filename="${file##*/}";
-              string_after="${filename##*.}";
-              echo "${file} files"
+            sudo find -type f \( -name "*.c" -o -name "*.cc" -o -name "*.cpp" -o -name "*.cxx" -o -name "*.h" -o -name "*.hh" -o -name "*.hpp" -o -name "*.hxx" -o -iname "Makefile" -o -iname "kbuild" -o -iname "kconfig" -o -iname "*.sh" -o -iname "*.mk" -o -iname "build" \) \
+            | sed 's/.*[./]//' \
+            | sort \
+            | uniq -c \
+            | sed 's/^ *//' \
+            | while IFS= read -r file; do \
+              echo "${file} files" \
             done;
           }
           dir_files() {
@@ -579,7 +581,7 @@ runs:
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            "${clang_run}" -p build -j "$(nproc --all)" 2>/dev/null | process_input;
+            "${clang_run}" -p build -config-file "${clang_tidy}" -j "$(nproc --all)" 2>/dev/null | process_input;
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
