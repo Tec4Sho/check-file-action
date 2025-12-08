@@ -395,7 +395,7 @@ runs:
           cd "${repository%/*}";
           src=$(ls 2>/dev/null);
           file_types() {
-            sudo find -type f | grep -iEo '\_[[:alnum:]]+$|\-[[:alnum:]]+$|\.[[:alnum:]]+$|[[:alnum:]]+$' | tr -d '_\-\.' | sort -nr | uniq -c | sed 's/^ *//' | while IFS= read -r file; do
+            sudo find -type f | grep -iEo '\_[[:alnum:]]+$|\-[[:alnum:]]+$|\.[[:alnum:]]+$|[[:alnum:]]+$' | tr -d '_\-\.' | sort | uniq -c | sed 's/^ *//' | while IFS= read -r file; do
               echo "${file} files"
             done;
           }
@@ -407,15 +407,18 @@ runs:
              fi;
            done;
           }
-          file_total=$(sudo find -type f | wc -l);
+          total_files=$(sudo find -type f | grep -v '.git' | wc -l);
           if [[ "$(dir_files)" ]]; then
-            echo -e "\n#####################\nDirectory Files:\n#####################\n\n$(dir_files)";
+            echo -e "\n#####################\nSource Directories:\n#####################\n\n$(dir_files)";
           fi;
           if [[ "$(file_types)" ]]; then
-            echo -e "\n#####################\nProject Files:\n#####################\n\n$(file_types)";
+            echo -e "\n#####################\nProject File Types:\n#####################\n\n$(file_types)";
           fi;
           if [[ "${total_files}" ]]; then
-            echo -e "\n#####################\nRepository: ${repo}\n#####################\n\nProject has ${total_files} files";
+            echo -e "\n#####################\nRepository: ${repo}\n#####################\n\nProject has ${total_files} files total";
+          else
+            echo -e "\n#####################\n::error::Repository: ${repo}\n#####################\n\nProject has no files.. Exiting";
+            exit 1
           fi;
         fi;
         center_text "\n${text10a}" 2>/dev/null;
@@ -591,7 +594,8 @@ runs:
           fi;
 
           if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
-              clangd-tidy -p build --tqdm --github -j "$(nproc --all)" 2>/dev/null | process_input;
+              echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
+              clangd-tidy -p build -j "$(nproc --all)" | process_input;
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
