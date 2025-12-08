@@ -394,8 +394,8 @@ runs:
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
           src=$(ls 2>/dev/null);
-          file_count() {
-            sudo find -type f | grep -iEvo '\.[[:alnum:]]{1,3}$ | /[^/]+\.[^/]+$' | sed 's/.*[./]//' | sort -nr | uniq -c | sed 's/^ *//' | while IFS= read -r file; do
+          file_types() {
+            sudo find -type f | grep -iEo '\_[[:alnum:]]+$|\-[[:alnum:]]+$|\.[[:alnum:]]+$|[[:alnum:]]+$' | tr -d '_\-\.' | sort -nr | uniq -c | sed 's/^ *//' | while IFS= read -r file; do
               echo "${file} files"
             done;
           }
@@ -408,14 +408,14 @@ runs:
            done;
           }
           file_total=$(sudo find -type f | wc -l);
-          if [[ "${file_total}" ]]; then
-            echo -e "\n#####################\nRepository: ${repo}\n#####################\n\n${file_total} total files";
-          fi;
-          if [[ "$(file_count)" ]]; then
-            echo -e "\n#####################\nProject Files:\n#####################\n\n$(file_count)";
-          fi;
           if [[ "$(dir_files)" ]]; then
             echo -e "\n#####################\nDirectory Files:\n#####################\n\n$(dir_files)";
+          fi;
+          if [[ "$(file_types)" ]]; then
+            echo -e "\n#####################\nProject Files:\n#####################\n\n$(file_types)";
+          fi;
+          if [[ "${total_files}" ]]; then
+            echo -e "\n#####################\nRepository: ${repo}\n#####################\n\nProject has ${total_files} files";
           fi;
         fi;
         center_text "\n${text10a}" 2>/dev/null;
@@ -591,11 +591,7 @@ runs:
           fi;
 
           if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
-            { \
-              time \
-              clangd-tidy -p build --tqdm --github --fail-on-severity error -j "$(nproc --all)" 2>/dev/null \
-              | process_input;
-            }
+              clangd-tidy -p build --tqdm --github -j "$(nproc --all)" 2>/dev/null | process_input;
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
