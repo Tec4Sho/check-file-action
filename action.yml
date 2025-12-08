@@ -455,7 +455,7 @@ runs:
               echo -e "${log}";
             fi;
           done;
-        } 2>&1;
+        }
         echo 'check_build=false' >> "${GITHUB_ENV}";
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
@@ -592,11 +592,10 @@ runs:
             echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-
           if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
               echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-              find -type f -name "*.${file_type}" -print0 | xargs -0 -n 1 -P "$(nproc --all)" clangd-tidy -p build -j "$(nproc --all)" | process_input;
-            if [[ "${PIPESTATUS[1]}" == 0 ]]; then
+              find -type f -name "*.${file_type}" -print0 | xargs -0 -n 1 -P "$(nproc --all)" clangd-tidy -p build -j "$(nproc --all)" | process_input || echo -e "::notice::PipeStatus Check\npipe0=${PIPESTATUS[0]}, pipe1=${PIPESTATUS[1]}, pipe2=${PIPESTATUS[2]}";
+            if [[ "${PIPESTATUS[2]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -607,7 +606,6 @@ runs:
             echo -e "\n####################\n\t::error:: "${clang_tidy}" file missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-
           if [[ -d 'build' ]] && ${{ env.analysis == 4 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             { \
@@ -1329,9 +1327,17 @@ runs:
       if: inputs.build != 'false' && inputs.project != 'false' && env.build_files == 1
       uses: softprops/action-gh-release@v1
       with:
-        files: build/*
+        files: build/bin/*
         name: Build For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
+      continue-on-error: true
+
+    - name: Uploading ${{ github.repository }} Project Build Release
+      if: inputs.build != 'false' && inputs.project != 'false' && env.build_files == 1
+      uses: actions/upload-artifact@v4
+      with:
+        name: Build For ${{ github.repository }} Repository.
+        path: CMakeFiles/*
       continue-on-error: true
 
     - name: Uploading Build Files Artifacts

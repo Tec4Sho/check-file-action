@@ -21,7 +21,7 @@ find_program(CLANG_TIDY_EXE "clang-tidy")
     message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
     # Configure clang-tidy to run with all checks and fix errors
     # .set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=*;-header-filter=.;-fix")
-    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=modernize,readability,bugprone,performance,misc;-fix;-fix-errors;-fix-notes;-header-filter=.*")
+    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=readability-identifier-naming,performance;-fix")
     # You can also specify specific checks instead of -checks=*
     # .set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=modernize-loop-convert,readability-identifier-naming,clang-analyzer-cplusplus;-fix")
   else()
@@ -65,13 +65,13 @@ endif()
 
 # .set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -Werror -pedantic")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
+# .set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
 
 # .set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
 
 # .set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2 -Wall -Werror -pedantic -std=c99")
 
-message(STATUS "CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
+# .message(STATUS "CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
 
 # .set(CMAKE_C_FLAGS_DEBUG "put your flags") set(CMAKE_C_FLAGS_MINSIZEREL "put your flags") set(CMAKE_C_FLAGS_RELWITHDEBINFO "put your flags") set(CMAKE_C_FLAGS_RELEASE "put your flags")
 
@@ -91,7 +91,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 # .set(CMAKE_CXX_COMPILER clang++) # Sets the C++ compiler
 
-set(CMAKE_C_STANDARD 99) # Sets the C standard to C90 <C89>
+set(CMAKE_C_STANDARD 90) # Sets the C standard to C90 <C89>
 
 set(CMAKE_C_STANDARD_REQUIRED ON) # Ensures the specified C standard is strictly enforced
 
@@ -155,7 +155,7 @@ set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON)
 
 set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
 
-set_target_properties("${PROJECT_NAME}" PROPERTIES C_STANDARD 99) 
+set_target_properties("${PROJECT_NAME}" PROPERTIES C_STANDARD 90) 
 
 execute_process(
     COMMAND "${CMAKE_COMMAND}" -E create_symlink
@@ -178,7 +178,7 @@ endfunction()
 output_src_dirs()
 
 # .Place build artifacts in ${CMAKE_BINARY_DIR}/{bin,lib}
-# .set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "")
 # .set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "")
 # .set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "")
 
