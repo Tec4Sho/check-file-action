@@ -407,7 +407,7 @@ runs:
              fi;
            done;
           }
-          total_files=$(sudo find -type f | grep -v '.git' | wc -l);
+          total_files=$(sudo find -type f | grep -v '\.git/.' | wc -l);
           if [[ "$(dir_files)" ]]; then
             echo -e "\n#####################\nSource Directories:\n#####################\n\n$(dir_files)";
           fi;
@@ -595,7 +595,7 @@ runs:
 
           if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
               echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-              clangd-tidy -p build -j "$(nproc --all)" | process_input;
+              find -type f -name "*.${file_type}" -print0 | xargs -0 -n 1 -P "$(nproc --all)" clangd-tidy -p build -j "$(nproc --all)" | process_input;
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true

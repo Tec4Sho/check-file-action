@@ -12,3 +12,10 @@ Completion:
   ArgumentLists: FullPlaceholders 
   HeaderInsertion: IWYU 
   CodePatterns: All
+# ... Prior fragments --- 
+If: # Apply this config conditionally 
+  PathMatch: [.*\.h, .*\.c] # to all headers OR c files 
+  PathExclude: internal/.* # except all files within "internal" 
+CompileFlags: 
+  Add: [-DEXTERNAL] 
+--- # ... Further fragments
