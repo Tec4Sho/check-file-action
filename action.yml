@@ -503,7 +503,7 @@ runs:
           }
           file_list() {
             sudo find -not \( -path "*/CMakeFiles/*" -prune -o -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
-              echo -n "${file#./} "
+              echo -e "${file#./}"
             done;
           }
           if [[ -f "${clang_tidy}" ]]; then
@@ -515,8 +515,8 @@ runs:
           mkdir -p build/fixes
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            if [[ "$(file_list)" ]]; then
-              cmake -S . -DPROJECT_SRC_FILES="$(file_list)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+            if [[ "$(src_dirs)" ]]; then
+              cmake -S . -DPROJECT_SRC_DIRS="$(src_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             else
               cmake -S . -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             fi;
