@@ -439,7 +439,7 @@ runs:
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export LC_ALL=C
-        set +e
+        set -o pipefail
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         check_build=false
@@ -586,7 +586,7 @@ runs:
           fi;
           if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
               echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-              sudo find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec clangd-tidy -p build -j "$(nproc --all)" '{}' + 2>/dev/null | process_input;
+              sudo find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec clangd-tidy '{}' '+' | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               echo -e '\n|RUNTIME|\n' | process_input;
