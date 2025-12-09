@@ -498,8 +498,9 @@ runs:
           echo "repository=${repository}" >> "${GITHUB_ENV}";
           export PATH="${clang_fix}:${PATH}"
           src_dirs() {
-            sudo find -not \( -path "*/.github" -prune -o -path "*/.git" -prune -o -path "*/." -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
-              echo -n "${dir#./} "
+            sudo find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              dir="${dir#.}"
+              echo -n "${dir#/} "
             done;
           }
           file_list() {
