@@ -408,10 +408,10 @@ runs:
            done;
           }
           total_files=$(sudo find -type f | grep -v '\.git/.' | wc -l);
-          if [[ "$(dir_files)" ]]; then
+          if ${{ inputs.project }} && [[ "$(dir_files)" ]]; then
             echo -e "\n#####################\nSource Directories:\n#####################\n\n$(dir_files)";
           fi;
-          if [[ "$(file_types)" ]]; then
+          if ${{ inputs.project }} && [[ "$(file_types)" ]]; then
             echo -e "\n#####################\nProject File Types:\n#####################\n\n$(file_types)";
           fi;
           if [[ "${total_files}" ]]; then
@@ -564,23 +564,12 @@ runs:
             echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ $(which run-clang-tidy.py) ]] && ${{ env.analysis == 2 }}; then
-            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
-            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            "${clang_run}" -p build -config-file "${clang_tidy}" -export-fixes build/cache/clang_fixes.yml -fix -fix-notes -fix-errors -j "$(nproc --all)" 2>/dev/null | process_input;
-            if [[ "${PIPESTATUS[1]}" == 0 ]]; then
-              echo -e '\n|RUNTIME|\n' | process_input;
-              check_build=true
-              echo 'check_build=true' >> "${GITHUB_ENV}";
-            else
-              echo -e "::warning:: ( $? ) checking project files" | process_input;
-            fi;
-          elif [[ -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
+          if [[ -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            ${{ github.action_path }}/scripts/tools/run-clang-tidy.py -p build -config-file "${clang_tidy}" -j "$(nproc --all)" -fix 2>/dev/null | process_input;
+            sudo find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*.${file_type}" -print0 2>/dev/null | xargs -0 -r -n 1 -P "$(nproc --all)" ${{ github.action_path }}/scripts/tools/run-clang-tidy.py -config-file "${clang_tidy}" -export-fixes build/fixes -j "$(nproc --all)" -fix 2>/dev/null | process_input;
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -594,7 +583,7 @@ runs:
           fi;
           if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
               echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-              sudo find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*.${file_type}" -print0 2>/dev/null | xargs -0 -r -n 1 -P "$(nproc --all)" clangd-tidy -p build 2>/dev/null | process_input;
+              sudo find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*.${file_type}" -exec clangd-tidy "{}" -p build -j "${nproc --all}" 2>/dev/null \; | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               echo -e '\n|RUNTIME|\n' | process_input;
