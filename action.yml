@@ -595,7 +595,7 @@ runs:
           if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
               echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
               sudo find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*.${file_type}" -print0 2>/dev/null | xargs -0 -r -n 1 -P "$(nproc --all)" clangd-tidy -p build 2>/dev/null | process_input;
-            if [[ "${PIPESTATUS[1]}" != 0 ]]; then
+            if [[ "${PIPESTATUS[0]}" != 0 ]]; then
               echo -e "::warning:: ( $? ) checking project files" | process_input;
             else
               echo -e '\n|RUNTIME|\n' | process_input;
