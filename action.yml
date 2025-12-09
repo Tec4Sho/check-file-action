@@ -499,8 +499,9 @@ runs:
           export PATH="${clang_fix}:${PATH}"
           src_dirs() {
             sudo find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
-              dir="${dir#.}"
-              echo -n "${dir#/} "
+              if [[ "${dir}" != '.' ]]; then
+                echo -n "${dir#./} "
+              fi;
             done;
           }
           file_list() {
@@ -585,13 +586,13 @@ runs:
           fi;
           if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
               echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-              sudo find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec clangd-tidy -p build -j "${nproc --all}" '{}' + 2>/dev/null | process_input;
+              sudo find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec clangd-tidy -p build -j "$(nproc --all)" '{}' + 2>/dev/null | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
-            elif [[ -s "${project_log}" ]]; then
+            elif [[ -s "${project_log}" ]] && [[ "${PIPESTATUS[0]}" == 0 ]]; then
               echo -e "::notice::No errors found checking project files" | process_input;
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
