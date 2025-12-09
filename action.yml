@@ -439,6 +439,7 @@ runs:
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export LC_ALL=C
+        project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         check_build=false
         file_type='c';
         src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
@@ -471,11 +472,10 @@ runs:
           clang_version=$(clang --version);
           verify_config=$(clang-tidy --verify-config);
           cmake_version=$(cmake --version);
-          project_files=$(sudo find . -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
-          compile_json=$(sudo find . -type f -name 'compile_commands.json' -print -quit);
-          include_dirs=$(sudo find . -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+          project_files=$(sudo find -not \( -path "*/CMakeFiles/*" -prune -o -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+          compile_json=$(sudo find -type f -name 'compile_commands.json' -print -quit);
+          include_dirs=$(sudo find -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
           clang_checks=$(clang-tidy --list-checks);
-          project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
           gcc_version=$(gcc --version);
           gpp_version=$(g++ --version);
           repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
@@ -491,7 +491,7 @@ runs:
           echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;
           echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;
           echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n" | process_input;
-          echo -e "\n####################\n\tCLANG OPTIONS\n${clang_checks}\n####################\n" | process_input;
+          echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}\n" | process_input;
           echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n" | process_input;
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n" | process_input;
           echo "repository=${repository}" >> "${GITHUB_ENV}";
@@ -595,9 +595,13 @@ runs:
           if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
               echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
               sudo find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*.${file_type}" -print0 2>/dev/null | xargs -0 -r -n 1 -P "$(nproc --all)" clangd-tidy -p build 2>/dev/null | process_input;
-            if [[ "${PIPESTATUS[0]}" != 0 ]]; then
-              echo -e "::warning:: ( $? ) checking project files" | process_input;
-            else
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
+              echo -e "::notice::Errors found checking project files" | process_input;
+              echo -e '\n|RUNTIME|\n' | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            elif [[ -s "${project_log}" ]]; then
+              echo -e "::notice::No errors found checking project files" | process_input;
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -628,29 +632,24 @@ runs:
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ -s "${project_log}" ]] && [[ "${project_files}" ]]; then
+          if [[ -s "${project_log}" ]]; then
             echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;
-            for file in ${project_files[@]}; do
-              file_errors=$(grep -sE "${file}.*error:" "${project_log}" 2>/dev/null);
-              if [[ "${file_errors}" ]]; then
-                count=$((count++));
-              fi;
-            done;
-            if [[ "${count}" -gt 1 ]]; then
-              echo -e "\n::notice:: ${count} ${file_type} file(s) were found with errors\nCheck them for Fix-its applied in ${project_log##*/}" | process_input;
+            clang_errors=$(grep -Ec 'error[:] |: Error[:]' "${project_log}" 2>/dev/null);
+            if [[ "${clang_errors}" ]]; then
+              echo -e "\n####################\n::notice:: clang found ${clang_errors} errors in ${file_type} file(s) checked\nTry using (repair: true) with (project: false) for possible fixes\n####################\n" | process_input;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n" | process_input;
           fi;
-          echo -e "\n####################\n# INSTALLED COMPILERS #\n${compiler_list}\n####################\n" | process_input;
+          echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}\n" | process_input;
           if [[ ${check_build} ]]; then
             echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
           else
             echo -e '\n####################\n\tProject Not Checked Exiting...\n####################\n' | process_input;
           fi;
         else
-          echo -e '::error:: .git directory not found?' | process_input;
+          echo -e '::error::Missing .git directory' | process_input;
         fi;
       shell: bash
       continue-on-error: true
