@@ -157,7 +157,6 @@ runs:
         text7="\n####################\nshellcheck dependencies Installed\n####################\n";
         text8="\n####################\ncheckmake dependencies Installed\n####################\n";
         text9="\n####################\nbatcat dependencies Installed\n####################\n";
-        codechecker="$(which codechecker)";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         if [[ ! $(which git) ]]; then
@@ -185,11 +184,11 @@ runs:
             exit 1
           fi;
         fi;
-        if [[ ! -f "${codechecker}" ]] &&  ${{ inputs.project }} && ${{ inputs.analysis == 4 }}; then
+        if [[ ! "$(which CodeChecker)" ]] && ${{ inputs.project }} && ${{ inputs.analysis == 4 }}; then
           python -m pip3 install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
-          if [[ "${codechecker}" ]] && [[ -d "${codechecker%/*}" ]]; then
-            echo -e "export PATH=$PATH:${codechecker%/*}" | sudo tee -a ~/.bashrc >/dev/null;
-            echo -e "\ncodechecker to bin:\n$(cp -vpf ${codechecker} /usr/bin/ )\n";
+          if [[ "$(which CodeChecker)" ]]; then
+            echo -e "export PATH=$PATH:"$(dirname $(which CodeChecker))" | sudo tee -a ~/.bashrc >/dev/null;
+            echo -e "\ncodechecker to bin:\n$(cp -vpf $(which CodeChecker) /usr/bin/ )\n";
           else
             exit 1
           fi;
