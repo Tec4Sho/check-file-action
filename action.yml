@@ -171,7 +171,7 @@ runs:
           sudo apt-get install -yq clang-tidy clang-tools >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
           [[ ! $(clang-tidy --version 2>/dev/null) ]] && exit 1
         fi;
-        if [[ ! $(which clangd-tidy) ]] &&  ${{ inputs.project }} && ${{ env.analysis == 3 }}; then
+        if [[ ! $(which clangd-tidy) ]] &&  ${{ inputs.project }} && ${{ inputs.analysis == 3 }}; then
           python -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
           if [[ $(which clangd-tidy) ]] && [[ -d '/home/runner/.local/bin' ]]; then
             echo -e "export PATH=$PATH:/home/runner/.local/bin" | sudo tee -a ~/.bashrc >/dev/null;
