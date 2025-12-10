@@ -173,7 +173,7 @@ runs:
         fi;
         if [[ ! $(which clangd-tidy) ]] &&  ${{ inputs.project }}; then
           python -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
-          [[ ! $(which clangd-tidy) ]] && exit 1
+          [[ ! $(which clangd-tidy) ]] && exit 1 || echo -e "\n$(which clangd-tidy)\n"
         fi;
         if [[ ! $(llvm-config --version 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
@@ -444,7 +444,7 @@ runs:
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         check_build=false
         file_type='c';
-        src_tree=$(sudo find ${{ env.file_path }} -type d -name '.git' -print -quit);
+        src_tree=$(find -type d -name '.git' -print -quit);
         github=${GITHUB_WORKSPACE};
         update=true
         count=1
@@ -474,9 +474,9 @@ runs:
           clang_version=$(clang --version);
           verify_config=$(clang-tidy --verify-config);
           cmake_version=$(cmake --version);
-          project_files=$(sudo find -not \( -path "*/CMakeFiles/*" -prune -o -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
-          compile_json=$(sudo find -type f -name 'compile_commands.json' -print -quit);
-          include_dirs=$(sudo find -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+          project_files=$(find -not \( -path "*/CMakeFiles/*" -prune -o -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+          compile_json=$(find -type f -name 'compile_commands.json' -print -quit);
+          include_dirs=$(find -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
           clang_checks=$(clang-tidy --list-checks);
           gcc_version=$(gcc --version);
           gpp_version=$(g++ --version);
@@ -498,14 +498,14 @@ runs:
           echo "repository=${repository}" >> "${GITHUB_ENV}";
           export PATH="${clang_fix}:${PATH}"
           src_dirs() {
-            sudo find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+            find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               if [[ "${dir}" != '.' ]]; then
                 echo -n "${dir#./} "
               fi;
             done;
           }
           file_list() {
-            sudo find -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
+            find -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
               echo -e "${file#./}"
             done;
           }
@@ -541,7 +541,7 @@ runs:
               file_list >> "${clang_file}";
               files_list=true
             else	
-              echo -e "\n::error:: No ${file_type} files found searching repository\nExiting...\n" | process_input;
+              echo -e "\n::error::No ${file_type} files found searching repository\nExiting...\n" | process_input;
             fi;
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n" | process_input;
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n' | process_input;
@@ -572,7 +572,7 @@ runs:
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            sudo find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec ${{ github.action_path }}/scripts/tools/run-clang-tidy.py '{}' -p build -config-file "${clang_tidy}" -export-fixes build/fixes -j "$(nproc --all)" -fix 2>/dev/null \; | process_input;
+            find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec ${{ github.action_path }}/scripts/tools/run-clang-tidy.py '{}' -p build -config-file "${clang_tidy}" -export-fixes build/fixes -j "$(nproc --all)" -fix \; | process_input;
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -586,7 +586,7 @@ runs:
           fi;
           if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
               echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-              { time sudo find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec clangd-tidy '{}' -p build -j "$(nproc --all)" \; | process_input; }
+              { time find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec /usr/bin/clangd-tidy '{}' -p build -j "$(nproc --all)" \; | process_input; }
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               echo -e "::notice::Errors found checking project files" | process_input;
