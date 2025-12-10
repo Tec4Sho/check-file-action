@@ -175,7 +175,7 @@ runs:
           python -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
           if [[ $(which clangd-tidy) ]] && [[ -d '/home/runner/.local/bin' ]]; then
             echo -e "export PATH=$PATH:/home/runner/.local/bin" | sudo tee -a ~/.bashrc >/dev/null;
-            echo -e "\nclangd-tidy to bin:\n$(cp -vpf '/home/runner/.local/bin/clangd-tidy /usr/bin/ 2>/dev/null)\n";
+            echo -e "\nclangd-tidy to bin:\n$(cp -vpf /home/runner/.local/bin/clangd-tidy /usr/bin/ 2>/dev/null)\n";
           else
             exit 1
           fi;
