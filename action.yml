@@ -171,9 +171,14 @@ runs:
           sudo apt-get install -yq clang-tidy clang-tools >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
           [[ ! $(clang-tidy --version 2>/dev/null) ]] && exit 1
         fi;
-        if [[ ! $(which clangd-tidy) ]] &&  ${{ inputs.project }}; then
+        if [[ ! $(which clangd-tidy) ]] &&  ${{ inputs.project }} && ${{ env.analysis == 3 }}; then
           python -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
-          [[ ! $(which clangd-tidy) ]] && exit 1 || echo -e "\n$(which clangd-tidy)\n"
+          if [[ $(which clangd-tidy) ]] && [[ -d '/home/runner/.local/bin' ]]; then
+            echo -e "export PATH=$PATH:/home/runner/.local/bin" | sudo tee -a ~/.bashrc >/dev/null;
+            echo -e "\nclangd-tidy to bin:\n$(cp -vpf '/home/runner/.local/bin/clangd-tidy /usr/bin/ 2>/dev/null)\n";
+          else
+            exit 1
+          fi;
         fi;
         if [[ ! $(llvm-config --version 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
@@ -439,7 +444,7 @@ runs:
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export LC_ALL=C
-        set -o pipefail
+        export PATH="${clang_fix}:${PATH}";
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         check_build=false
@@ -496,7 +501,6 @@ runs:
           echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n" | process_input;
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n" | process_input;
           echo "repository=${repository}" >> "${GITHUB_ENV}";
-          export PATH="${clang_fix}:${PATH}"
           src_dirs() {
             find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               if [[ "${dir}" != '.' ]]; then
@@ -586,7 +590,7 @@ runs:
           fi;
           if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
               echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-              { time find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec /usr/bin/clangd-tidy '{}' -p build -j "$(nproc --all)" \; | process_input; }
+              { time find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec clangd-tidy '{}' -p build -j "$(nproc --all)" \; | process_input; }
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               echo -e "::notice::Errors found checking project files" | process_input;
