@@ -586,7 +586,7 @@ runs:
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec sudo bash -c '"${{ github.action_path }}/scripts/tools/run-clang-tidy.py" "{}" -p build -config-file "${clang_tidy}" -export-fixes build/fixes -j "$(nproc --all)" -fix' \; | process_input; } 2>&1;
+            { time find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec sudo bash -c "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" "{}" -p build -config-file "${clang_tidy}" -export-fixes build/fixes -j "$(nproc --all)" -fix' \; | process_input; } 2>&1;
             if [[ "${PIPESTATUS[1]}" == 0 ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               check_build=true
@@ -600,7 +600,12 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec sudo bash -c '/home/runner/.local/bin/clangd-tidy "{}" -p build -j "$(nproc --all)"' \; | process_input; } 2>&1;
+            { time find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" sudo bash -c '
+              TIDY_BIN="${0}"
+              FILE="${1}"
+              NPROC="${2}"
+              $TIDY_BIN "$FILE" -p build -j "$NPROC"
+              ' "$clangd_tidy" {} $(nproc --all) \; | process_input; } 2>&1;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               echo -e "::notice::Errors found checking project files" | process_input;
