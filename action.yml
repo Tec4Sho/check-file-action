@@ -188,7 +188,7 @@ runs:
           python -m pip3 install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
           if [[ $(which CodeChecker) ]]; then
             echo -e "export PATH=${PATH}:$(dirname $(which CodeChecker))" | sudo tee -a ~/.bashrc >/dev/null;
-            echo -e "\nCodeChecker path: $(which CodeChecker) /usr/bin/ )\n";
+            echo -e "\nCodeChecker path: $(which CodeChecker)\n";
           else
             exit 1
           fi;
