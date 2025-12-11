@@ -453,7 +453,6 @@ runs:
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export LC_ALL=C
-        export PATH="${clang_fix}:${PATH}";
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         clangd_tidy='/home/runner/.local/bin';
@@ -500,6 +499,7 @@ runs:
           clang_tidy='.clang-tidy';
           clang_run=${{ github.action_path }}/scripts/tools/run-clang-tidy.py;
           clang_fix=${{ github.action_path }}/scripts/tools/clang-apply-replacements;
+          export PATH="${clang_fix}:${PATH}";
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
           echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n" | process_input;
           echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n" | process_input;
@@ -600,7 +600,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec sudo bash -c '/home/runner/.local/bin/clangd-tidy "$@" -p build -j "$(nproc --all)"' bash {} + | process_input; } 2>&1;
+            { time find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec sudo bash -c '/home/runner/.local/bin/clangd-tidy "{}" -p build -j "$(nproc --all)"' \; | process_input; } 2>&1;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               echo -e "::notice::Errors found checking project files" | process_input;
