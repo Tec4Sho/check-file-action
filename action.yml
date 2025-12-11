@@ -409,19 +409,19 @@ runs:
           cd "${repository%/*}";
           src=$(ls 2>/dev/null);
           file_types() {
-            sudo find -type f | grep -iEo '\_[[:alnum:]]+$|\-[[:alnum:]]+$|\.[[:alnum:]]+$|[[:alnum:]]+$' | tr -d '_\-\.' | sort | uniq -c | sed 's/^ *//' | while IFS= read -r file; do
+            find -type f | grep -iEo '\_[[:alnum:]]+$|\-[[:alnum:]]+$|\.[[:alnum:]]+$|[[:alnum:]]+$' | tr -d '_\-\.' | sort | uniq -c | sed 's/^ *//' | while IFS= read -r file; do
               echo "${file} files"
             done;
           }
           dir_files() {
            for dir in ${src[@]}; do
              if [ -d "$dir" ]; then
-               count=$(sudo find "$dir" -type f 2>/dev/null | wc -l);
+               count=$(find "$dir" -type f 2>/dev/null | wc -l);
                echo "${dir}: ${count} files"
              fi;
            done;
           }
-          total_files=$(sudo find -type f | grep -v '\.git/.' | wc -l);
+          total_files=$(find -type f | grep -v '\.git/.' | wc -l);
           if ${{ inputs.project }} && [[ "$(dir_files)" ]]; then
             echo -e "\n#####################\nSource Directories:\n#####################\n\n$(dir_files)";
           fi;
@@ -599,7 +599,7 @@ runs:
           fi;
           if [[ -f "${clang_tidy}" ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec sh -c 'clangd-tidy "$@" -p build -j "$(nproc --all)"' sh {} + | process_input; } 2>&1;
+            { time find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec clangd-tidy "{}" + -p build -j "$(nproc --all)" | process_input; } 2>&1;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
               echo -e '\n|RUNTIME|\n' | process_input;
               echo -e "::notice::Errors found checking project files" | process_input;
