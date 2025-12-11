@@ -289,7 +289,7 @@ runs:
         text5a="####################";
         text5b="Database Performance Mode Enabled";
         text5c="####################";
-        text6="Database not found exiting"
+        text6="Database not found exiting";
         text7a="####################";
         text7b="Searching directories for ${{ inputs.filename }}) file(s)";
         text7c="####################";
@@ -311,9 +311,9 @@ runs:
             if [[ $(node ${{ github.action_path }}/scripts/mobile.js 2>/dev/null) ]] || [[ $(node ${{ github.action_path }}/scripts/view.js 2>/dev/null) ]]; then
               local padding="$(( (term_cols - text_length) / 2 ))";
               local text="$(echo $1 | tr -d '\n')";
-              print '';
+              echo ''
               printf "%*s%s\n" "${padding}" "" "${text}"
-              print '';
+              echo ''
             else
               echo -e "${text}"
             fi;
