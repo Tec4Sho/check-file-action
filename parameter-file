@@ -1,5 +1,6 @@
 --fix
+--fix-notes
 --fix-errors
 --quiet
---extra-arg=-std=c99
+--extra-arg=-std=c90
 
