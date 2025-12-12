@@ -562,14 +562,16 @@ runs:
             if [[ "${files_list}" ]]; then
               cp -vf "${clang_file}" 'build/cmake-source-files.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-              clang-tidy @parameter-file --enable-check-profile | process_input || echo -e "\nError:($?)\n"
-              if [[ "${PIPESTATUS[0]}" == 0 ]]; then
-                # echo -e '\n|RUNTIME|\n' | process_input;
-                check_build=true
-                echo 'check_build=true' >> "${GITHUB_ENV}";
-              else
-                echo -e "::warning:: ( $? ) checking project files" | process_input;
-              fi;
+              clang-tidy @parameter-file 2>/dev/null | process_input;
+              if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
+              echo -e "::notice::Errors found checking project files" | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            elif [[ -s "${project_log}" ]]; then
+              echo -e "::notice::No errors found checking project files" | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            fi;
             else
               exit 1
             fi;
@@ -583,12 +585,14 @@ runs:
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
             find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" "{}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile \; | process_input;
-            if [[ "${PIPESTATUS[0]}" == 0 ]]; then
-              # echo -e '\n|RUNTIME|\n' | process_input;
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
+              echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
-            else
-              echo -e "::warning:: ( $? ) checking project files" | process_input;
+            elif [[ -s "${project_log}" ]]; then
+              echo -e "::notice::No errors found checking project files" | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
           elif [[ ! -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
             echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n" | process_input;
@@ -596,14 +600,12 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-            find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec "${clangd_tidy}" "{}" -p build -j "$(nproc --all)" -- -enable-check-profile \; | process_input;
+            find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec "${clangd_tidy}" "{}" -p build -j "$(nproc --all)" -enable-check-profile \; | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
-              # echo -e '\n|RUNTIME|\n' | process_input;
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
-            elif [[ -s "${project_log}" ]] && [[ "${PIPESTATUS[0]}" == 0 ]]; then
-              # echo -e '\n|RUNTIME|\n' | process_input;
+            elif [[ -s "${project_log}" ]]; then
               echo -e "::notice::No errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -627,12 +629,14 @@ runs:
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports | process_input;
               [[ -e 'compile_commands.json' ]] && cp -vf compile_commands.json ./build | process_input;
             fi;
-            if [[ "${PIPESTATUS[0]}" == 0 ]]; then
-              # echo -e '\n|RUNTIME|\n' | process_input;
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE ': Error:' "${project_log}") ]]; then
+              echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
-            else
-              echo "::warning:: ( $? ) cmake build source corrupted or malformed CMakeList.txt (?)" | process_input;
+            elif [[ -s "${project_log}" ]]; then
+              echo -e "::notice::No errors found checking project files" | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
             if ${{ inputs.upload }}; then
               echo 'build_files=1' >> "${GITHUB_ENV}";
