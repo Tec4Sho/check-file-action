@@ -149,6 +149,7 @@ runs:
         sudo apt-get update -yq >/dev/null 2>&1;
         if ${{ inputs.project }}; then
           sudo apt-get upgrade -yq >/dev/null 2>&1;
+          sudo apt-get remove needrestart -yq >/dev/null 2>&1;
         fi;
         text0="\n####################\ngit dependencies Installed\n####################\n";
         text1="\n####################\nripgrep dependencies Installed\n####################\n";
@@ -651,9 +652,9 @@ runs:
           fi;
           if [[ -s "${project_log}" ]]; then
             echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;
-            clang_warnings=$(grep -sFc ': warning:' "${project_log}");
-            clang_errors=$(grep -sEc ': error:|: Error:' "${project_log}");
-            clang_fixits=$(grep -sFc ': note:' "${project_log}");
+            clang_warnings=$(grep -sc 'warning: ' "${project_log}");
+            clang_errors=$(grep -sEc '(error: |Error: )' "${project_log}");
+            clang_fixits=$(grep -sc 'note: ' "${project_log}");
             if [[ "${clang_warnings}" -gt 0 ]]; then
               echo -e "\n####################\n::notice::check-file found ${clang_warnings} ⚠️️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible error fixes\n####################\n" | process_input;
             fi;
