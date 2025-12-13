@@ -652,9 +652,9 @@ runs:
           fi;
           if [[ -s "${project_log}" ]]; then
             echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;
-           # clang_warnings=$(grep -sc 'warning: ' "${project_log}");
-            clang_errors=$(grep -sEc '(error: |Error: )' "${project_log}");
-           # clang_fixits=$(grep -sc 'note: ' "${project_log}");
+            # clang_warnings=$(grep -sc 'warning: ' "${project_log}");
+            # clang_errors=$(grep -sEc '(error: |Error: )' "${project_log}");
+            # clang_fixits=$(grep -sc 'note: ' "${project_log}");
             if [[ "${clang_warnings}" -gt 0 ]]; then
               echo -e "\n####################\n::notice::check-file found ${clang_warnings} ⚠️️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible error fixes\n####################\n" | process_input;
             fi;
