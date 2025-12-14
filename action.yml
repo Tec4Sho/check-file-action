@@ -147,10 +147,6 @@ runs:
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
         sudo apt-get update -yq >/dev/null 2>&1;
-        if ${{ inputs.project }}; then
-          sudo apt-get upgrade -yq >/dev/null 2>&1;
-          sudo apt-get remove needrestart -yq >/dev/null 2>&1;
-        fi;
         text0="\n####################\ngit dependencies Installed\n####################\n";
         text1="\n####################\nripgrep dependencies Installed\n####################\n";
         text2="\n####################\nansi2txt dependencies Installed\n####################\n";
@@ -457,6 +453,7 @@ runs:
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export LC_ALL=C
+        set +e
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         clangd_tidy='/home/runner/.local/bin';
@@ -655,14 +652,14 @@ runs:
             clang_warnings=$(grep -sFc 'warning:' "${project_log}");
             clang_errors=$(grep -sFic 'error:' "${project_log}");
             clang_fixits=$(grep -sFc 'note:' "${project_log}");
-            if [[ "${clang_warnings:-false}" ]]; then
-              echo -e # '\n####################\n::notice:: check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible error fixes\n####################\n' | process_input;
+            if [[ "${clang_warnings}" ]]; then
+              echo -e "\n####################\n::notice:: check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible error fixes\n####################\n" | process_input;
             fi;
-            if [[ "${clang_errors:-false}" ]]; then
-              echo -e # '\n####################\n::notice:: check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analysis: 1, 2, or 4) for possible fixes\n####################\n' | process_input;
+            if [[ "${clang_errors}" ]]; then
+              echo -e "\n####################\n::notice:: check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analysis: 1, 2, or 4) for possible fixes\n####################\n" | process_input;
             fi;
-            if [[ "${clang_fixits:-false}" ]]; then
-              echo -e # '\n####################\n::notice:: check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository\n####################\n' | process_input;
+            if [[ "${clang_fixits}" ]]; then
+              echo -e "\n####################\n::notice:: check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository\n####################\n" | process_input;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
