@@ -186,7 +186,7 @@ runs:
         fi;
         if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && ${{ inputs.analysis == 4 }}; then
           sudo apt-get -yq install python3-pip >/dev/null && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
-          python -m pip3 install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
+          python -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
           if [[ $(which CodeChecker) ]]; then
             echo -e "export PATH=${PATH}:$(dirname $(which CodeChecker))" | sudo tee -a ~/.bashrc >/dev/null;
             echo -e "\nCodeChecker path: $(which CodeChecker)\n";
