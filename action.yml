@@ -652,14 +652,14 @@ runs:
             clang_warnings=$(grep -sFc 'warning:' "${project_log}");
             clang_errors=$(grep -sFic 'error:' "${project_log}");
             clang_fixits=$(grep -sFc 'note:' "${project_log}");
-            if [[ "${clang_warnings}" ]]; then
-              echo -e "\n####################\n::notice:: check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible error fixes\n####################\n" | process_input;
+            if [[ "${clang_warnings:-0}" -gt 0 ]]; then
+              echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible fixes\n####################\n" | process_input;
             fi;
-            if [[ "${clang_errors}" ]]; then
-              echo -e "\n####################\n::notice:: check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analysis: 1, 2, or 4) for possible fixes\n####################\n" | process_input;
+            if [[ "${clang_errors:-0}" -gt 0 ]]; then
+              echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analysis: 1, 2, or 4) for possible error fixes\n####################\n" | process_input;
             fi;
-            if [[ "${clang_fixits}" ]]; then
-              echo -e "\n####################\n::notice:: check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository\n####################\n" | process_input;
+            if [[ "${clang_fixits:-0}" -gt 0 ]]; then
+              echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository\n####################\n" | process_input;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
