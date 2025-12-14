@@ -567,7 +567,7 @@ runs:
               cp -vf "${clang_file}" 'build/cmake-source-files.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
               { time clang-tidy @parameter-file | process_input; } 2>&1;
-              if [[ -s "${project_log}" ]] && [[[ $(grep -sE ': error:|: Error:' "${project_log}") ]]; then
+              if [[ -s "${project_log}" ]] && [[ $(grep -sFi 'error:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -589,7 +589,7 @@ runs:
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
             find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" "{}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile \; | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE ': error:|: Error:' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(grep -sFi 'error:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -605,7 +605,7 @@ runs:
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
             find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec "${clangd_tidy}" "{}" -p build -j "$(nproc --all)" -enable-check-profile \; | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE ': error:|: Error:' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(grep -sFi 'error:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -632,8 +632,8 @@ runs:
               CodeChecker analyze ./compile_commands.json --enable sensitive --output ./reports | process_input;
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports | process_input;
               [[ -e 'compile_commands.json' ]] && cp -vf compile_commands.json ./build | process_input;
-            fi;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE ': error:|: Error:' "${project_log}") ]]; then
+            fi;j
+            if [[ -s "${project_log}" ]] && [[ $(grep -sFi 'error:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -652,9 +652,9 @@ runs:
           fi;
           if [[ -s "${project_log}" ]]; then
             echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;
-            # clang_warnings=$(grep -sc 'warning: ' "${project_log}");
-            # clang_errors=$(grep -sEc '(error: |Error: )' "${project_log}");
-            # clang_fixits=$(grep -sc 'note: ' "${project_log}");
+            clang_warnings=$(grep -sFc 'warning:' "${project_log}");
+            clang_errors=$(grep -sFic 'error:' "${project_log}");
+            clang_fixits=$(grep -sFc 'note:' "${project_log}");
             if [[ "${clang_warnings}" -gt 0 ]]; then
               echo -e "\n####################\n::notice::check-file found ${clang_warnings} ⚠️️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible error fixes\n####################\n" | process_input;
             fi;
