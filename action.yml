@@ -656,15 +656,14 @@ runs:
             clang_errors=$(grep -sFic 'error:' "${project_log}");
             clang_fixits=$(grep -sFc 'note:' "${project_log}");
             if [[ "${clang_warnings:-false}" ]]; then
-             # echo -e "\n####################\n::notice:: check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible error fixes\n####################\n" | process_input;
+              echo -e # '\n####################\n::notice:: check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible error fixes\n####################\n' | process_input;
             fi;
             if [[ "${clang_errors:-false}" ]]; then
-            #  echo -e "\n####################\n::notice:: check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analysis: 1, 2, or 4) for possible fixes\n####################\n" | process_input;
+              echo -e # '\n####################\n::notice:: check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analysis: 1, 2, or 4) for possible fixes\n####################\n' | process_input;
             fi;
             if [[ "${clang_fixits:-false}" ]]; then
-            #  echo -e "\n####################\n::notice:: check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository\n####################\n" | process_input;
+              echo -e # '\n####################\n::notice:: check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository\n####################\n' | process_input;
             fi;
-            echo done 
           fi;
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n" | process_input;
