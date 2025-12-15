@@ -203,9 +203,11 @@ runs:
         if [[ ! $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
         fi;
-        if [[ ! $(which cmake) ]] && ${{ inputs.project }}; then
+        if [[ $(cmake --version) -lt '3.20' ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install cmake >/dev/null >/dev/null && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build';
           [[ ! $(which cmake) ]] && exit 1
+        else
+          python -m pip install cmake >/dev/null && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project checks';
         fi;
         if [[ ! $(which npm) ]]; then
           sudo npm install >/dev/null && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
@@ -625,12 +627,11 @@ runs:
               CodeChecker server | process_input;
               CodeChecker store ./results -n "${repository}" | process_input;
             else
-              [[ -e 'compile_commands.json' ]] && rm -vf compile_commands.json | process_input;
-              CodeChecker log --build "make" --output ./compile_commands.json | process_input;
-              CodeChecker analyze ./compile_commands.json --enable sensitive --output ./reports | process_input;
+              [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
+              CodeChecker log --build "make" --output ./build/compile_commands.json | process_input;
+              CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports | process_input;
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports | process_input;
-              [[ -e 'compile_commands.json' ]] && cp -vf compile_commands.json ./build | process_input;
-            fi;j
+            fi;
             if [[ -s "${project_log}" ]] && [[ $(grep -sFi 'error:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
