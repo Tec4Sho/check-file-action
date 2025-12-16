@@ -147,12 +147,6 @@ runs:
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
         sudo apt-get update -yq >/dev/null 2>&1;
-        if [[ -d '/home/runner/.local/bin' ]]; then
-          echo -e "export PATH=/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-        else
-          sudo mkdir -p '/home/runner/.local/bin'
-          echo -e "export PATH=/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-        fi;
         text0="\n####################\ngit dependencies Installed\n####################\n";
         text1="\n####################\nripgrep dependencies Installed\n####################\n";
         text2="\n####################\nansi2txt dependencies Installed\n####################\n";
@@ -270,6 +264,9 @@ runs:
         fi;
         echo 'update=${{ inputs.update }}' >> "${GITHUB_ENV}";
         sudo apt-get --fix-broken install -yq >/dev/null 2>&1;
+        if [[ -d '/home/runner/.local/bin' ]]; then
+          echo "export PATH=/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+        fi;
       shell: bash
       continue-on-error: false
 
