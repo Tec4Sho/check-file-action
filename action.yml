@@ -618,7 +618,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-            find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec "${clangd_tidy}" "{}" -p build -j "$(nproc --all)" --color always --tqdm --github --git-root "${src_tree}" --compact \; | process_input;
+            find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec "${clangd_tidy}" "{}" -p build -j "$(nproc --all)" --color always --tqdm \; | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sFi 'error:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -637,14 +637,18 @@ runs:
             source ~/codechecker/venv/bin/activate
             export PATH=~/codechecker/build/CodeChecker/bin:$PATH
             if ${{ inputs.build }}; then
-              CodeChecker check -b "cmake clean && cmake" -o ./results | process_input;
-              CodeChecker server | process_input;
+              { time \
+              CodeChecker check -b "cmake clean && cmake" -o ./results | process_input \
+              CodeChecker server | process_input \
               CodeChecker store ./results -n "${repository}" | process_input;
+              } 2>&1;
             else
               [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
-              CodeChecker log --build "make" --output ./build/compile_commands.json | process_input;
-              CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports | process_input;
+              { time \
+              CodeChecker log --build "make" --output ./build/compile_commands.json | process_input \
+              CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports | process_input \
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports | process_input;
+              } 2>&1;
             fi;
             if [[ -s "${project_log}" ]] && [[ $(grep -sFi 'error:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
