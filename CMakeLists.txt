@@ -21,7 +21,7 @@ find_program(CLANG_TIDY_EXE "clang-tidy")
     message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
     # Configure clang-tidy to run with all checks and fix errors
     # .set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=*;-header-filter=.;-fix")
-    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=modernize-loop-convert,readability-identifier-naming,performance;-fix")
+    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=modernize-loop-convert,readability-identifier-naming,clang-analyzer;-fix")
     # You can also specify specific checks instead of -checks=*
     # .set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=modernize-loop-convert,readability-identifier-naming,clang-analyzer-cplusplus;-fix")
   else()
@@ -59,19 +59,31 @@ file(GLOB_RECURSE PROJECT_SRC_FILES "*.c")
 
 add_executable("${PROJECT_NAME}" "${PROJECT_SRC_FILES}") # Creates an executable target named "MyProject" from source files
 
-# .target_include_directories("${PROJECT_NAME}" PRIVATE SYSTEM "${PROJECT_SOURCE_DIR}/include")
+if(DEFINED PROJECT_SRC_FILES)
+  message(STATUS "Project Files: cmake added source files")
+else()
+  message(STATUS "Project Files: cmake added no files")
+endif()
+
+if(DEFINED PROJECT_SRC_INCLUDES)
+  target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_SRC_INCLUDES}")
+  message(STATUS "Project Includes: cmake added include directories")
+else()
+  target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_SOURCE_DIR}")
+  message(STATUS "Project Includes: cmake added no include directories")
+endif()
 
 # .set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
 
 # .set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -Werror -pedantic")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -std=c90")
 
 # .set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
 
 # .set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2 -Wall -Werror -pedantic -std=c99")
 
-# .message(STATUS "CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
+message(STATUS "CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
 
 # .set(CMAKE_C_FLAGS_DEBUG "put your flags") set(CMAKE_C_FLAGS_MINSIZEREL "put your flags") set(CMAKE_C_FLAGS_RELWITHDEBINFO "put your flags") set(CMAKE_C_FLAGS_RELEASE "put your flags")
 
@@ -101,7 +113,7 @@ set(CMAKE_C_COMPILER clang) # Sets the C compiler
 
 # .set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES OFF) 
 
-set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON)
+set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES OFF)
 
 # .file(GLOB_RECURSE INCLUDES LIST_DIRECTORIES true 'include')
 
@@ -163,19 +175,35 @@ execute_process(
         "${CMAKE_SOURCE_DIR}/compile_commands.json"
 )
 
-function(output_src_dirs)
+function(output_src_includes)
     set(src_dir_str "")
-    if(DEFINED PROJECT_SRC_DIRS)
-      foreach(DIR "${PROJECT_SRC_DIRS}")
+    if(DEFINED PROJECT_SRC_INCLUDES)
+      IFS=$';';
+      foreach(DIR "${PROJECT_SRC_INCLUDES}")
         set(src_dir_str "${DIR}\n")
       endforeach()
-      set(src_file "${CMAKE_BINARY_DIR}/cmake-source-dirs.txt")
-      file(WRITE "${src_file}" "${src_dir_str}")
-      message(STATUS "${PROJECT_NAME} source directories written to: ${src_file}")
+      set(src_dir "${CMAKE_BINARY_DIR}/cmake-include-dirs.txt")
+      file(WRITE "${src_dir}" "${src_dir_str}")
+      message(STATUS "${PROJECT_NAME} include directories written to: ${src_dir}")
     endif()
 endfunction()
 
-output_src_dirs()
+function(output_src_files)
+    set(src_files_str "")
+    if(DEFINED PROJECT_SRC_FILES)
+      IFS=$';';
+      foreach(FILE "${PROJECT_SRC_FILES}")
+        set(src_files_str "${FILE}\n")
+      endforeach()
+      set(src_file "${CMAKE_BINARY_DIR}/cmake-source-files.txt")
+      file(WRITE "${src_file}" "${src_files_str}")
+      message(STATUS "${PROJECT_NAME} source files written to: ${src_file}")
+    endif()
+endfunction()
+
+output_src_includes()
+
+output_src_files()
 
 # .Place build artifacts in ${CMAKE_BINARY_DIR}/{bin,lib}
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "")

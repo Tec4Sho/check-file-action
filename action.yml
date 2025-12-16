@@ -147,6 +147,12 @@ runs:
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
         sudo apt-get update -yq >/dev/null 2>&1;
+        if [[ -d '/home/runner/.local/bin' ]]; then
+          echo -e "export PATH=/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+        else
+          sudo mkdir -p '/home/runner/.local/bin'
+          echo -e "export PATH=/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+        fi;
         text0="\n####################\ngit dependencies Installed\n####################\n";
         text1="\n####################\nripgrep dependencies Installed\n####################\n";
         text2="\n####################\nansi2txt dependencies Installed\n####################\n";
@@ -171,14 +177,13 @@ runs:
           sudo apt-get -yq install clangd >/dev/null && echo -e "\n####################\nclang dependencies Installed\n####################\n" || echo -e '::error::No clang installed for project build';
           [[ ! $(which clangd) ]] && exit 1
         fi;
-        if [[ ! $(clang-tidy --version 2>/dev/null) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
+        if [[ ! $(which clang-tidy) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
           sudo apt-get install -yq clang-tidy clang-tools >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
-          [[ ! $(clang-tidy --version 2>/dev/null) ]] && exit 1
+          [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analysis == 3 }}; then
           python -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
-          if [[ $(which clangd-tidy) ]] && [[ -d '/home/runner/.local/bin' ]]; then
-            echo -e "export PATH=${PATH}:/home/runner/.local/bin" | sudo tee -a ~/.bashrc >/dev/null;
+          if [[ $(which clangd-tidy) ]]; then
             echo -e "\nclangd-tidy path: $(which clangd-tidy)\n";
           else
             exit 1
@@ -188,7 +193,6 @@ runs:
           sudo apt-get -yq install python3-pip >/dev/null && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
           python -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
           if [[ $(which CodeChecker) ]]; then
-            echo -e "export PATH=${PATH}:$(dirname $(which CodeChecker))" | sudo tee -a ~/.bashrc >/dev/null;
             echo -e "\nCodeChecker path: $(which CodeChecker)\n";
           else
             exit 1
@@ -528,6 +532,13 @@ runs:
               echo -e "${file#./}"
             done;
           }
+          includes() {
+            find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              if [[ -d "${dir}" ]]; then
+                echo -n "${dir#./};"
+              fi;
+            done;
+          }
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n' | process_input;
           fi;
@@ -537,7 +548,9 @@ runs:
           mkdir -p build/fixes
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            if [[ "$(src_dirs)" ]]; then
+            if [[ "$(src_dirs)" ]] && [[ "$(includes)" ]]; then
+              cmake -S . -DPROJECT_SRC_INCLUDES="$(includes)" -DPROJECT_SRC_DIRS="$(src_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+            elif [[ "$(src_dirs)" ]]; then
               cmake -S . -DPROJECT_SRC_DIRS="$(src_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             else
               cmake -S . -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
@@ -654,7 +667,7 @@ runs:
             echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;
             clang_warnings=$(grep -sFc 'warning:' "${project_log}");
             clang_errors=$(grep -sFic 'error:' "${project_log}");
-            clang_fixits=$(grep -sFc 'note:' "${project_log}");
+            clang_fixits=$(grep -sEic 'fixit|fix-its' "${project_log}");
             if [[ "${clang_warnings:-0}" -gt 0 ]]; then
               echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible fixes\n####################\n" | process_input;
             fi;
