@@ -167,9 +167,9 @@ runs:
           sudo apt-get -yq install python3 >/dev/null >/dev/null && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
-        if [[ ! $(which clang) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install clang clangd >/dev/null && echo -e "\n####################\nclang dependencies Installed\n####################\n" || echo -e '::error::No clang installed for project build';
-          [[ ! $(which clang) ]] && exit 1
+        if [[ ! $(which clangd) ]] && ${{ inputs.project }}; then
+          sudo apt-get -yq install clangd >/dev/null && echo -e "\n####################\nclang dependencies Installed\n####################\n" || echo -e '::error::No clang installed for project build';
+          [[ ! $(which clangd) ]] && exit 1
         fi;
         if [[ ! $(clang-tidy --version 2>/dev/null) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
           sudo apt-get install -yq clang-tidy clang-tools >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
@@ -315,9 +315,9 @@ runs:
             if [[ $(node ${{ github.action_path }}/scripts/mobile.js 2>/dev/null) ]] || [[ $(node ${{ github.action_path }}/scripts/view.js 2>/dev/null) ]]; then
               local padding="$(( (term_cols - text_length) / 2 ))";
               local text="$(echo $1 | tr -d '\n')";
-              echo ''
+              print ''
               printf "%*s%s\n" "${padding}" "" "${text}"
-              echo ''
+              print ''
             else
               echo -e "${text}"
             fi;
@@ -605,7 +605,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-            find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec "${clangd_tidy}" -p build -j "$(nproc --all)" --tqdm --github --color always "{}" \; | process_input;
+            find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec "${clangd_tidy}" "{}" -p build -j "$(nproc --all)" --color always --tqdm --github --git-root "${src_tree}" --compact --output \; | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sFi 'error:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
