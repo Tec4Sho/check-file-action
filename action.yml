@@ -159,7 +159,7 @@ runs:
         text9="\n####################\nbatcat dependencies Installed\n####################\n";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        cmake_version=$(cmake --version | grep version | awk '{print $3}')
+        cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{print $3}')
         required_version="4.2.1"
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core >/dev/null && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
@@ -170,7 +170,7 @@ runs:
           [[ ! $(which python3) ]] && exit 1
         fi;
         if [[ ! $(which clangd) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install clangd >/dev/null && echo -e "\n####################\nclang dependencies Installed\n####################\n" || echo -e '::error::No clang installed for project build';
+          sudo apt-get -yq install clangd >/dev/null && echo -e "\n####################\nclangd dependencies Installed\n####################\n" || echo -e '::error::No clangd installed for project build';
           [[ ! $(which clangd) ]] && exit 1
         fi;
         if [[ ! $(which clang-tidy) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
@@ -204,9 +204,9 @@ runs:
           sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
         fi;
         if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
-          echo -e "\nCurrent CMake version ($cmake_version) is older than $required_version. Updating...\n"
-          sudo wget -qO 'cmake-4.2.1-linux-x86_64.tar.gz' 'https://github.com/Kitware/CMake/releases/download/v4.2.1/cmake-4.2.1-linux-x86_64.tar.gz' >/dev/null;
-          sudo tar xf 'cmake-4.2.1-linux-x86_64.tar.gz' -C '/usr/local/bin' 'cmake' && rm -vrf 'cmake-4.2.1-linux-x86_64.tar.gz' && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
+          echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
+          sudo bash -c "$(sudo wget -qO 'cmake-4.2.1-linux-x86_64.tar.gz' 'https://github.com/Kitware/CMake/releases/download/v4.2.1/cmake-4.2.1-linux-x86_64.tar.gz' >/dev/null)";
+          sudo bash -c "$(sudo tar xf 'cmake-4.2.1-linux-x86_64.tar.gz' -C '/usr/local/bin' 'cmake' && rm -vrf 'cmake-4.2.1-linux-x86_64.tar.gz' && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build')"; 
           [[ ! $(which cmake) ]] && exit 1
         else
           echo "Current CMake version ($cmake_version) is 4.2.1 or newer."
@@ -670,22 +670,28 @@ runs:
           fi;
           if [[ -s "${project_log}" ]]; then
             echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;
-            clang_warnings=$(grep -sEc 'warning|Warning|WARNING' "${project_log}");
-            clang_errors=$(grep -sEc 'error|Error|ERROR' "${project_log}");
+            clang_files_missing=$(grep -sFi 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++' | uniq -c);
+            clang_file_missing=$(grep -sFi 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
+            clang_warnings=$(grep -sEc 'warning:|Warning:|WARNING:' "${project_log}");
+            clang_errors=$(grep -sEc 'error:|Error:|ERROR:' "${project_log}");
             clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
-            clang_notes=$(grep -sEc 'note|Note|NOTE' "${project_log}");
-            if [[ "${clang_warnings:-0}" -gt 0 ]]; then
+            clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}");
+            if [[ "${clang_warnings:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible fixes.\n####################\n" | process_input;
             fi;
-            if [[ "${clang_errors:-0}" -gt 0 ]]; then
+            if [[ "${clang_errors:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analysis: 1, 2, or 4) for possible error fixes.\n####################\n" | process_input;
             fi;
-            if [[ "${clang_fixits:-0}" -gt 0 ]]; then
+            if [[ "${clang_fixits:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository.\n####################\n" | process_input;
             fi;
-            if [[ "${clang_notes:-0}" -gt 0 ]]; then
+            if [[ "${clang_notes:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::😳 check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are suggestions for files and not directly issues.\n####################\n" | process_input;
             fi;
+            if [[ "${clang_files_missing:-0}" > '0' ]]; then
+              echo -e "\n####################\n::notice::😳 check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################\n" | process_input;
+              echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_file_missing}\n" | process_input;
+            fi;;
           fi;
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n" | process_input;
