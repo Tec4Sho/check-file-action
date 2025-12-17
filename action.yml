@@ -578,7 +578,7 @@ runs:
               cp -vf "${clang_file}" 'build/cmake-source-files.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
               { time clang-tidy @parameter-file | process_input; } 2>&1;
-              if [[ -s "${project_log}" ]] && [[ $(grep -sFi 'error:' "${project_log}") ]]; then
+              if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error|Error|ERROR' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -600,7 +600,7 @@ runs:
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
             find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" "{}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile \; | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sFi 'error' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error|Error|ERROR' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -616,7 +616,7 @@ runs:
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
             find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec "${clangd_tidy}" "{}" -p build -j "$(nproc --all)" --color always --tqdm \; | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sFi 'error' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error|Error|ERROR' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -632,7 +632,7 @@ runs:
           if [[ -d 'build' ]] && ${{ env.analysis == 4 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             source ~/codechecker/venv/bin/activate
-            export PATH=~/codechecker/build/CodeChecker/bin:$PATH
+            export PATH="~/codechecker/build/CodeChecker/bin:${PATH}"
             if ${{ inputs.build }}; then
               { time \
               CodeChecker check -b "cmake clean && cmake" -o ./results | process_input \
@@ -647,7 +647,7 @@ runs:
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports | process_input;
               } 2>&1;
             fi;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sFi 'error:' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error|Error|ERROR' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -680,7 +680,7 @@ runs:
               echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository.\n####################\n" | process_input;
             fi;
             if [[ "${clang_notes:-0}" -gt 0 ]]; then
-              echo -e "\n####################\n::notice::✅ check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are suggestions for files and not directly issues.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::😳 check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are suggestions for files and not directly issues.\n####################\n" | process_input;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
