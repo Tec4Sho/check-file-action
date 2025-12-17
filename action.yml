@@ -159,6 +159,8 @@ runs:
         text9="\n####################\nbatcat dependencies Installed\n####################\n";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
+        cmake_version=$(cmake --version | grep version | awk '{print $3}')
+        required_version="4.2.1"
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core >/dev/null && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
@@ -201,12 +203,14 @@ runs:
         if [[ ! $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
         fi;
-        if [[ $(cmake --version | cut -d ' ' -f 3 | cut -d '.' -f 1) -lt '4' ]] && ${{ inputs.project }}; then
+        if [[ "$(printf '%s\n' ${required_version} ${cmake_version} | sort -V | head -n1)" = "${required_version}" ]] && [[ "${cmake_version}" != "${required_version}" ]] && ${{ inputs.project }}; then
+          echo -e "\nCurrent CMake version ($cmake_version) is older than $required_version. Updating...\n"
           sudo wget -qO 'cmake-4.2.1-linux-x86_64.tar.gz' 'https://github.com/Kitware/CMake/releases/download/v4.2.1/cmake-4.2.1-linux-x86_64.tar.gz' >/dev/null;
           sudo tar xf 'cmake-4.2.1-linux-x86_64.tar.gz' -C '/usr/local/bin' 'cmake' && rm -vrf 'cmake-4.2.1-linux-x86_64.tar.gz' && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
           [[ ! $(which cmake) ]] && exit 1
         else
-          python -m pip install cmake >/dev/null && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project checks';
+          echo "Current CMake version ($cmake_version) is 4.2.1 or newer."
+          python -m pip install cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project checks';
         fi;
         if [[ ! $(which npm) ]]; then
           sudo npm install >/dev/null && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
@@ -463,7 +467,7 @@ runs:
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         check_build=false
         file_type='c';
-        src_tree=$(find -type d -name '.git' -print -quit);
+        src_tree=$(find ${{ env.file_path }} -type d -name '.git' -print -quit);
         github=${GITHUB_WORKSPACE};
         update=true
         count=1
@@ -527,7 +531,7 @@ runs:
           includes() {
             find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               if [[ -d "${dir}" ]]; then
-                echo -n "${dir#./} "
+                echo -n "${dir} "
               fi;
             done;
           }
