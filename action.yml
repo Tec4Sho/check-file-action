@@ -177,7 +177,7 @@ runs:
         if ${{ inputs.project }}; then
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
-            sudo apt-get remove -yq cmake >/dev/null || sudo rm -vf "$(which cmake)" 2>/dev/null;
+            sudo apt-get remove --purge -yq cmake >/dev/null;
             sudo apt-get install -yq ca-certificates gpg wget >/dev/null;
             sudo bash -c "$(sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null)";
             if [[ "${linux_verison}" == "${linux_distro1}" ]]; then
@@ -210,7 +210,7 @@ runs:
           [[ ! $(which cmake) ]] && exit 1
         fi;
         if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
-          echo "Current CMake version ($cmake_version) adding latest python cmake."
+          echo -e "Current CMake version ($cmake_version) adding latest python cmake\n"
           sudo rm -vf "$(which cmake)" 2>/dev/null;
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
         fi;
@@ -646,7 +646,7 @@ runs:
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            find -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune -o -path "*/.github/*" -prune -o -path "*/CMakeFiles/*" -prune \) -type f -name "*.${file_type}" -exec "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" "{}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile \; | process_input;
+            { time "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile | process_input; } 2>&1;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error|Error|ERROR' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -689,7 +689,7 @@ runs:
             else
               [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
               { time \
-              CodeChecker log --build "make" --output ./build/compile_commands.json | process_input \
+              CodeChecker log --build -DPROJECT_SRC_INCLUDES="$(includes)" "make" --output ./build/compile_commands.json | process_input \
               CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports | process_input \
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports | process_input;
               } 2>&1;
