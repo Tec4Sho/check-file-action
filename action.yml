@@ -173,7 +173,7 @@ runs:
         if ${{ inputs.project }}; then
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
-            sudo apt-get --auto-remove -yq cmake >/dev/null;
+            sudo apt-get remove -yq cmake >/dev/null;
             sudo apt-get install -yq gpg wget >/dev/null;
             sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
             if [[ "${linux_verison}" == '24.04' ]]; then
