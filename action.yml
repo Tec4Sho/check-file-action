@@ -162,7 +162,10 @@ runs:
         echo '';
         cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{print $3}');
         required_version="4.2.1";
-        linux_verison="$(lsb_release -r | awk '{print $2}')";
+        linux_distro1="24.04";
+        linux_distro2="22.04";
+        linux_distro3="20.04";
+        linux_verison=$(lsb_release -r | awk '{print $2}');
         echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export TERM=xterm-256color' | sudo tee -a ~/.bashrc;
@@ -173,18 +176,21 @@ runs:
         if ${{ inputs.project }}; then
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
-            sudo apt-get remove -yq cmake >/dev/null;
+            sudo apt-get purge -yq cmake >/dev/null;
             sudo apt-get install -yq gpg wget >/dev/null;
             sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-            if [[ "${linux_verison%.*}" == '24' ]]; then
+            if [[ "${linux_verison}" == "${linux_distro1}" ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
-            elif [[ "${linux_verison%.*}" == '22' ]]; then
+            elif [[ "${linux_verison}" == "${linux_distro2}" ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
-            elif [[ "${linux_verison%.*}" == '20' ]]; then
+            elif [[ "${linux_verison}" == "${linux_distro3}" ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
+            else
+              echo -e "\nKitWare Keyring: Noble ${linux_verison}\n";
+              echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
             fi;
           echo -e "\n####################\nLinux Release: ${linux_verison}\n####################\n";
-          sudo test -f '/usr/share/doc/kitware-archive-keyring/copyright' || sudo ls '/usr/share/keyrings/kitware-archive-keyring.gpg'
+          test -f /usr/share/doc/kitware-archive-keyring/copyright || sudo ls '/usr/share/keyrings/kitware-archive-keyring.gpg'
           fi;
         fi;
         text0="\n####################\ngit dependencies Installed\n####################\n";
@@ -203,8 +209,8 @@ runs:
           sudo apt-get -yq install cmake && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
           [[ ! $(which cmake) ]] && exit 1
         else
-          echo "Current CMake version ($cmake_version) is 4.2.1 or newer."
-          python -m pip install cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
+          echo "Current CMake version ($cmake_version) adding latest python cmake."
+          python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
         fi;
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core >/dev/null && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
@@ -727,7 +733,7 @@ runs:
             if [[ "${clang_files_missing:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################\n" | process_input;
               echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_file_missing}\n" | process_input;
-            fi;;
+            fi;
           fi;
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n" | process_input;
