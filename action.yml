@@ -176,15 +176,15 @@ runs:
             sudo apt-get remove -yq cmake >/dev/null;
             sudo apt-get install -yq gpg wget >/dev/null;
             sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-            if [[ "${linux_verison}" == '24.04' ]]; then
-              echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null;
-            elif [[ "${linux_verison}" == '22.04' ]]; then
-              echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null;
-            elif [[ "${linux_verison}" == '20.04' ]]; then
-              echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null;
+            if [[ "${linux_verison%.*}" == '24' ]]; then
+              echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
+            elif [[ "${linux_verison%.*}" == '22' ]]; then
+              echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
+            elif [[ "${linux_verison%.*}" == '20' ]]; then
+              echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
             fi;
           echo -e "\n####################\nLinux Release: ${linux_verison}\n####################\n";
-          sudo test -f '/usr/share/doc/kitware-archive-keyring/copyright' || sudo rm -vf '/usr/share/keyrings/kitware-archive-keyring.gpg' && sudo apt-get -yq install kitware-archive-keyring >/dev/null;
+          sudo test -f '/usr/share/doc/kitware-archive-keyring/copyright' || sudo ls '/usr/share/keyrings/kitware-archive-keyring.gpg'
           fi;
         fi;
         text0="\n####################\ngit dependencies Installed\n####################\n";
