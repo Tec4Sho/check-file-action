@@ -135,10 +135,10 @@ runs:
         compiler: ${{ inputs.compiler }}
       continue-on-error: true
 
-    - name Linux Distro
+    - name: Linux Distro
       run: |
         echo '';
-        if [[ -r /etc/os-release ]]; then
+        if [[ -r '/etc/os-release' ]]; then
           . /etc/os-release
           if [[ "${ID}" == 'ubuntu' ]]; then
             read _ UBUNTU_VERSION_NAME <<< "${VERSION}"
