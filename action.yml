@@ -135,15 +135,49 @@ runs:
         compiler: ${{ inputs.compiler }}
       continue-on-error: true
 
+    - name Linux Distro
+      run: |
+        echo '';
+        if [[ -r /etc/os-release ]]; then
+          . /etc/os-release
+          if [[ "${ID}" == 'ubuntu' ]]; then
+            read _ UBUNTU_VERSION_NAME <<< "${VERSION}"
+            echo "Running Ubuntu ${UBUNTU_VERSION_NAME}"
+          else
+            echo "Not running an Ubuntu distribution. ID=${ID}, VERSION=${VERSION}"
+          fi;
+        else
+          echo "Not running a distribution with /etc/os-release available"
+        fi;
+      shell: bash
+      continue-on-error: false
+
     - name: Installing Dependencies
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
       run: |
         echo '';
         set -o pipefail
+        cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{print $3}');
+        required_version="4.2.1";
+        linux_verison$(lsb_release -r);
         echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export TERM=xterm-256color' | sudo tee -a ~/.bashrc;
-        echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list;
+        echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
+        if ${{ inputs.project }}; then
+          if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
+            echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
+            sudo apt remove --purge --auto-remove cmake
+            if [[ ${linux_verison} =='24.04' ]]; then
+              echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null;
+            elif [[ ${linux_verison} =='22.04' ]]; then
+              echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null;
+            elif [[ ${linux_verison} =='20.04' ]]; then
+              echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null;
+            fi;
+          test -f /usr/share/doc/kitware-archive-keyring/copyright || sudo rm -vf /usr/share/keyrings/kitware-archive-keyring.gpg && sudo apt-get -yq install kitware-archive-keyring >/dev/null;
+          fi;
+        fi;
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
         sudo apt-get update -yq >/dev/null 2>&1;
@@ -159,8 +193,13 @@ runs:
         text9="\n####################\nbatcat dependencies Installed\n####################\n";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{print $3}')
-        required_version="4.2.1"
+        if [[ ! $(which cmake) ]]; then
+          sudo apt-get -yq install cmake && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
+          [[ ! $(which cmake) ]] && exit 1
+        else
+          echo "Current CMake version ($cmake_version) is 4.2.1 or newer."
+          python -m pip install cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
+        fi;
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core >/dev/null && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
@@ -202,15 +241,6 @@ runs:
         fi;
         if [[ ! $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
-        fi;
-        if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
-          echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
-          sudo bash -c "$(sudo wget -qO 'cmake-4.2.1-linux-x86_64.tar.gz' 'https://github.com/Kitware/CMake/releases/download/v4.2.1/cmake-4.2.1-linux-x86_64.tar.gz' >/dev/null)";
-          sudo bash -c "$(sudo tar xf 'cmake-4.2.1-linux-x86_64.tar.gz' -C '/usr/local/bin' 'cmake' && rm -vrf 'cmake-4.2.1-linux-x86_64.tar.gz' && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build')"; 
-          [[ ! $(which cmake) ]] && exit 1
-        else
-          echo "Current CMake version ($cmake_version) is 4.2.1 or newer."
-          python -m pip install cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project checks';
         fi;
         if [[ ! $(which npm) ]]; then
           sudo npm install >/dev/null && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
@@ -686,10 +716,10 @@ runs:
               echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository.\n####################\n" | process_input;
             fi;
             if [[ "${clang_notes:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::😳 check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are suggestions for files and not directly issues.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::☑ check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are suggestions for files and not directly issues.\n####################\n" | process_input;
             fi;
             if [[ "${clang_files_missing:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::😳 check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################\n" | process_input;
               echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_file_missing}\n" | process_input;
             fi;;
           fi;
