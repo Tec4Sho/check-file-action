@@ -141,8 +141,18 @@ runs:
         if [[ -r '/etc/os-release' ]]; then
           . /etc/os-release
           if [[ "${ID}" == 'ubuntu' ]]; then
-            read _ UBUNTU_VERSION_NAME <<< "${VERSION}"
-            echo "Running Ubuntu ${UBUNTU_VERSION_NAME}"
+            read _ NAME <<< "${NAME}"
+            echo "Name: ${NAME}"
+            read _ VERSION <<< "${VERSION}"
+            echo "Version: ${VERSION}"
+            read _ ID <<< "${ID}"
+            echo "ID: ${ID}"
+            read _ ID_LIKE <<< "${ID_LIKE}"
+            echo "ID Like: ${ID_LIKE}"
+            read _ PRETTY_NAME <<< "${PRETTY_NAME}"
+            echo "Pretty Name: ${PRETTY_NAME}"
+            read _ VERSION_ID <<< "${VERSION_ID}"
+            echo "Version ID: ${VERSION_ID}"
           else
             echo "Not running an Ubuntu distribution. ID=${ID}, VERSION=${VERSION}"
           fi;
@@ -150,7 +160,7 @@ runs:
           echo "Not running a distribution with /etc/os-release available"
         fi;
       shell: bash
-      continue-on-error: false
+      continue-on-error: true
 
     - name: Installing Dependencies
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
