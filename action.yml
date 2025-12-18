@@ -141,17 +141,11 @@ runs:
         if [[ -r '/etc/os-release' ]]; then
           . /etc/os-release
           if [[ "${ID}" == 'ubuntu' ]]; then
-            read _ NAME <<< "${NAME}"
             echo "Name: ${NAME}"
-            read _ VERSION <<< "${VERSION}"
             echo "Version: ${VERSION}"
-            read _ ID <<< "${ID}"
             echo "ID: ${ID}"
-            read _ ID_LIKE <<< "${ID_LIKE}"
             echo "ID Like: ${ID_LIKE}"
-            read _ PRETTY_NAME <<< "${PRETTY_NAME}"
             echo "Pretty Name: ${PRETTY_NAME}"
-            read _ VERSION_ID <<< "${VERSION_ID}"
             echo "Version ID: ${VERSION_ID}"
           else
             echo "Not running an Ubuntu distribution. ID=${ID}, VERSION=${VERSION}"
@@ -178,11 +172,11 @@ runs:
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
             sudo apt remove --purge --auto-remove cmake
-            if [[ ${linux_verison} =='24.04' ]]; then
+            if [[ "${linux_verison}" == '24.04' ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null;
-            elif [[ ${linux_verison} =='22.04' ]]; then
+            elif [[ "${linux_verison}" == '22.04' ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null;
-            elif [[ ${linux_verison} =='20.04' ]]; then
+            elif [[ "${linux_verison}" == '20.04' ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null;
             fi;
           test -f /usr/share/doc/kitware-archive-keyring/copyright || sudo rm -vf /usr/share/keyrings/kitware-archive-keyring.gpg && sudo apt-get -yq install kitware-archive-keyring >/dev/null;
