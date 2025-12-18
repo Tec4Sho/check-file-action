@@ -176,7 +176,7 @@ runs:
         if ${{ inputs.project }}; then
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
-            sudo apt-get purge -yq cmake >/dev/null;
+            sudo apt-get remove -yq cmake >/dev/null || sudo rm -vf "$(which cmake)" 2>/dev/null;
             sudo apt-get install -yq gpg wget >/dev/null;
             sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
             if [[ "${linux_verison}" == "${linux_distro1}" ]]; then
@@ -190,7 +190,7 @@ runs:
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
             fi;
           echo -e "\n####################\nLinux Release: ${linux_verison}\n####################\n";
-          test -f /usr/share/doc/kitware-archive-keyring/copyright || sudo ls '/usr/share/keyrings/kitware-archive-keyring.gpg'
+          test -f /usr/share/doc/kitware-archive-keyring/copyright || sudo apt-get install -yq kitware-archive-keyring >/dev/null 2>&1;
           fi;
         fi;
         text0="\n####################\ngit dependencies Installed\n####################\n";
@@ -208,8 +208,10 @@ runs:
         if [[ ! $(which cmake) ]]; then
           sudo apt-get -yq install cmake && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
           [[ ! $(which cmake) ]] && exit 1
-        else
+        fi;
+        if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
           echo "Current CMake version ($cmake_version) adding latest python cmake."
+          sudo rm -vf "$(which cmake)" 2>/dev/null;
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
         fi;
         if [[ ! $(which git) ]]; then
