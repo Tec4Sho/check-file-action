@@ -159,7 +159,7 @@ runs:
         set -o pipefail
         cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{print $3}');
         required_version="4.2.1";
-        linux_verison$(lsb_release -r);
+        linux_verison="$(lsb_release -r)";
         echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export TERM=xterm-256color' | sudo tee -a ~/.bashrc;
