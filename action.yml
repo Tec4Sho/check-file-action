@@ -160,7 +160,6 @@ runs:
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
       run: |
         echo '';
-        set -o pipefail
         cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{print $3}');
         required_version="4.2.1";
         linux_verison="$(lsb_release -r)";
@@ -168,10 +167,15 @@ runs:
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export TERM=xterm-256color' | sudo tee -a ~/.bashrc;
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
+        sudo add-apt-repository universe >/dev/null;
+        sudo add-apt-repository ppa:git-core/ppa >/dev/null;
+        sudo apt-get update -yq >/dev/null 2>&1;
         if ${{ inputs.project }}; then
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
-            sudo apt remove --purge --auto-remove cmake
+            sudo apt-get --auto-remove -yq cmake >/dev/null;
+            sudo apt-get install -yq gpg wget >/dev/null;
+            sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
             if [[ "${linux_verison}" == '24.04' ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null;
             elif [[ "${linux_verison}" == '22.04' ]]; then
@@ -179,12 +183,10 @@ runs:
             elif [[ "${linux_verison}" == '20.04' ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null;
             fi;
-          test -f /usr/share/doc/kitware-archive-keyring/copyright || sudo rm -vf /usr/share/keyrings/kitware-archive-keyring.gpg && sudo apt-get -yq install kitware-archive-keyring >/dev/null;
+          echo -e "\n####################\nLinux Version: ${linux_verison}\n####################\n";
+          sudo test -f /usr/share/doc/kitware-archive-keyring/copyright || sudo rm -vf /usr/share/keyrings/kitware-archive-keyring.gpg && sudo apt-get -yq install kitware-archive-keyring >/dev/null;
           fi;
         fi;
-        sudo add-apt-repository universe >/dev/null;
-        sudo add-apt-repository ppa:git-core/ppa >/dev/null;
-        sudo apt-get update -yq >/dev/null 2>&1;
         text0="\n####################\ngit dependencies Installed\n####################\n";
         text1="\n####################\nripgrep dependencies Installed\n####################\n";
         text2="\n####################\nansi2txt dependencies Installed\n####################\n";
