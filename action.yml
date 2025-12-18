@@ -162,7 +162,7 @@ runs:
         echo '';
         cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{print $3}');
         required_version="4.2.1";
-        linux_verison="$(lsb_release -r)";
+        linux_verison="$(lsb_release -r | awk '{print $2}')";
         echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export TERM=xterm-256color' | sudo tee -a ~/.bashrc;
@@ -183,8 +183,8 @@ runs:
             elif [[ "${linux_verison}" == '20.04' ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null;
             fi;
-          echo -e "\n####################\nLinux Version: ${linux_verison}\n####################\n";
-          sudo test -f /usr/share/doc/kitware-archive-keyring/copyright || sudo rm -vf /usr/share/keyrings/kitware-archive-keyring.gpg && sudo apt-get -yq install kitware-archive-keyring >/dev/null;
+          echo -e "\n####################\nLinux Release: ${linux_verison}\n####################\n";
+          sudo test -f '/usr/share/doc/kitware-archive-keyring/copyright' || sudo rm -vf '/usr/share/keyrings/kitware-archive-keyring.gpg' && sudo apt-get -yq install kitware-archive-keyring >/dev/null;
           fi;
         fi;
         text0="\n####################\ngit dependencies Installed\n####################\n";
