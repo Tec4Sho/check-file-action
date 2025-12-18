@@ -713,8 +713,8 @@ runs:
           fi;
           if [[ -s "${project_log}" ]]; then
             echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;
-            clang_files_missing=$(grep -sFi 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++' | uniq -c);
-            clang_file_missing=$(grep -sFi 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
+            clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
+            clang_files_list=$(grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
             clang_warnings=$(grep -sEc 'warning:|Warning:|WARNING:' "${project_log}");
             clang_errors=$(grep -sEc 'error:|Error:|ERROR:' "${project_log}");
             clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
@@ -733,7 +733,7 @@ runs:
             fi;
             if [[ "${clang_files_missing:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################\n" | process_input;
-              echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_file_missing}\n" | process_input;
+              echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}\n" | process_input;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
