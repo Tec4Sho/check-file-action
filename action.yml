@@ -173,6 +173,7 @@ runs:
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
         sudo apt-get update -yq >/dev/null 2>&1;
+        sudo apt-get --fix-broken install -yq >/dev/null 2>&1;
         if ${{ inputs.project }}; then
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
@@ -189,8 +190,7 @@ runs:
               echo -e "\nKitWare Keyring: Noble ${linux_verison}\n";
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
             fi;
-          echo -e "\n####################\nLinux Release: ${linux_verison}\n####################\n";
-          test -f /usr/share/doc/kitware-archive-keyring/copyright;
+            echo -e "\n####################\nLinux Release: ${linux_verison}\n####################\n";
           fi;
         fi;
         text0="\n####################\ngit dependencies Installed\n####################\n";
@@ -311,7 +311,6 @@ runs:
           export BAT_THEME="ansi";
         fi;
         echo 'update=${{ inputs.update }}' >> "${GITHUB_ENV}";
-        sudo apt-get --fix-broken install -yq >/dev/null 2>&1;
         if [[ -d '/home/runner/.local/bin' ]]; then
           echo "export PATH=/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
         fi;
