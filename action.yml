@@ -177,8 +177,8 @@ runs:
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
             sudo apt-get remove -yq cmake >/dev/null || sudo rm -vf "$(which cmake)" 2>/dev/null;
-            sudo apt-get install -yq gpg wget >/dev/null;
-            sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+            sudo apt-get install -yq ca-certificates gpg wget >/dev/null;
+            sudo bash -c "$(sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null)";
             if [[ "${linux_verison}" == "${linux_distro1}" ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
             elif [[ "${linux_verison}" == "${linux_distro2}" ]]; then
@@ -190,7 +190,7 @@ runs:
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
             fi;
           echo -e "\n####################\nLinux Release: ${linux_verison}\n####################\n";
-          test -f /usr/share/doc/kitware-archive-keyring/copyright || sudo apt-get install -yq kitware-archive-keyring >/dev/null 2>&1;
+          test -f /usr/share/doc/kitware-archive-keyring/copyright;
           fi;
         fi;
         text0="\n####################\ngit dependencies Installed\n####################\n";
