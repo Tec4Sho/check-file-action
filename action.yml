@@ -536,6 +536,7 @@ runs:
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
+          clang_tidy_version=$(clang-tidy --version);
           compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
           clang_version=$(clang --version);
           verify_config=$(clang-tidy --verify-config);
@@ -559,7 +560,8 @@ runs:
           echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n" | process_input;
           echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;
           echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;
-          echo -e "\n####################\nClang-Tidy: ${verify_config}\n####################\n" | process_input;
+          echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################\n" | process_input;
+          echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################\n" | process_input;
           echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}\n" | process_input;
           echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n" | process_input;
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n" | process_input;
@@ -573,17 +575,23 @@ runs:
           }
           header1_list() {
             find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type f \( -name "*.h" -o -name "*.hh" -o -name "*.hxx" -o -name "*.hpp" \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r header; do
-              echo -n "${header%/*} " >> headers_input.txt
+              echo "${header%/*}" >> headers_input.txt
             done;
-            awk '!seen[$0]++' headers_input.txt > headers_output.txt 
-            cat headers_output.txt && rm headers_output.txt || echo 'file missing headers_output.txt'
+            awk '!seen[$0]++' headers_input.txt > headers_output.txt
+            for header in $(cat headers_output.txt); do
+              echo -n "${header} "
+            done;
+            rm headers_output.txt || echo 'file missing headers_output.txt'
           }
           header2_list() {
             find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type f \( -name "*.h" -o -name "*.hh" -o -name "*.hxx" -o -name "*.hpp" \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r header; do
-              echo "-I${header%/*}" >> headers_input.txt
+              echo "${header%/*}" >> headers_input.txt
             done;
             awk '!seen[$0]++' headers_input.txt > headers_output.txt 
-            cat headers_output.txt && rm headers_output.txt || echo 'file missing headers_output.txt'
+            for header in $(cat headers_output.txt); do
+              echo "-I${header}"
+            done;
+            rm headers_output.txt || echo 'file missing headers_output.txt'
           }
           source_list() {
             find -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
