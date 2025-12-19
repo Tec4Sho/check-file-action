@@ -574,27 +574,21 @@ runs:
             done;
           }
           header1_list() {
-            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type f \( -name "*.h" -o -name "*.hh" -o -name "*.hxx" -o -name "*.hpp" \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r header; do
-              echo "${header%/*}" >> headers_input.txt
+            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+              if [[ -d "${include}" ]]; then
+                echo -n "${include} "
+              fi;
             done;
-            awk '!seen[$0]++' headers_input.txt > headers_output.txt
-            for header in $(cat headers_output.txt); do
-              echo -n "${header} "
-            done;
-            rm headers_output.txt || echo 'file missing headers_output.txt'
           }
           header2_list() {
-            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type f \( -name "*.h" -o -name "*.hh" -o -name "*.hxx" -o -name "*.hpp" \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r header; do
-              echo "${header%/*}" >> headers_input.txt
+            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+              if [[ -d "${include}" ]]; then
+                echo -e "-I${include}"
+              fi;
             done;
-            awk '!seen[$0]++' headers_input.txt > headers_output.txt 
-            for header in $(cat headers_output.txt); do
-              echo "-I${header}"
-            done;
-            rm headers_output.txt || echo 'file missing headers_output.txt'
           }
           source_list() {
-            find -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
+            find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
               echo -e "${file#./}"
             done;
           }
