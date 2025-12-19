@@ -639,7 +639,7 @@ runs:
             if [[ "${files_list}" ]]; then
               cp -vf "${clang_file}" 'build/check-source-files.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-              { time clang-tidy @parameter-file | process_input; } 2>&1;
+              { time clang-tidy @parameter-file; } 2>&1 | process_input;
               if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -661,7 +661,7 @@ runs:
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile | process_input; } 2>&1;
+            { time "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -677,7 +677,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-            "${clangd_tidy}" -p build/ -j "$(nproc --all)" --color always --tqdm --pass-arg --fix | process_input;
+            { time "${clangd_tidy}" -p build/ -j "$(nproc --all)" --color always --tqdm --pass-arg --fix; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -697,17 +697,17 @@ runs:
             export PATH="~/codechecker/build/CodeChecker/bin:${PATH}"
             if ${{ inputs.build }}; then
               { time \
-              CodeChecker check -b "cmake clean && cmake" -o ./results | process_input \
-              CodeChecker server | process_input \
-              CodeChecker store ./results -n "${repository}" | process_input;
-              } 2>&1;
+              CodeChecker check -b "cmake clean && cmake" -o ./results \
+              CodeChecker server \
+              CodeChecker store ./results -n "${repository}";
+              } 2>&1 | process_input;
             else
               [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
               { time \
-              CodeChecker log --build -DPROJECT_SRC_INCLUDES="$(includes)" "make" --output ./build/compile_commands.json | process_input \
-              CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports | process_input \
-              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports | process_input;
-              } 2>&1;
+              CodeChecker log --build -DPROJECT_SRC_INCLUDES="$(includes)" "make" --output ./build/compile_commands.json \
+              CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports \
+              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports;
+              } 2>&1 | process_input;
             fi;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
