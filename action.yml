@@ -241,6 +241,7 @@ runs:
         if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && ${{ inputs.analysis == 4 }}; then
           sudo apt-get -yq install python3-pip >/dev/null && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
           python -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
+          export PATH="~/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;     
           if [[ $(which CodeChecker) ]]; then
             echo -e "\nCodeChecker path: $(which CodeChecker)\n";
           else
@@ -676,7 +677,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${clangd_tidy}" -p build/ -j "$(nproc --all)" --color always --tqdm --pass-arg --fix; } 2>&1 | process_input;
+            { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm --pass-arg --fix || true' bash; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -692,22 +693,38 @@ runs:
           fi;
           if [[ -d 'build' ]] && ${{ env.analysis == 4 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            source ~/codechecker/venv/bin/activate
-            export PATH="~/codechecker/build/CodeChecker/bin:${PATH}"
-            if ${{ inputs.build }}; then
-              { time \
-              CodeChecker check -b "cmake clean && cmake" -o ./results \
-              CodeChecker server \
-              CodeChecker store ./results -n "${repository}";
-              } 2>&1 | process_input;
-            else
-              [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
-              { time \
-              CodeChecker log --build -DPROJECT_SRC_INCLUDES="$(includes)" "make" --output ./build/compile_commands.json \
+            if [[ -e '~/codechecker/venv/bin/activate' ]]; then
+             sudo bash -c 'source ~/codechecker/venv/bin/activate' || echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
+            fi;
+            [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
+            { time \
+              CodeChecker log --build "cmake" --output ./build/compile_commands.json \
               CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports \
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports;
-              } 2>&1 | process_input;
+            } 2>&1 | process_input;
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+              echo -e "::notice::Errors found checking project files" | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            elif [[ -s "${project_log}" ]]; then
+              echo -e "::notice::No errors found checking project files" | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
+          elif [[ ! -d 'build' ]] && ${{ env.analysis == 4 }}; then
+            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
+            exit 1
+          fi;
+          if [[ -d 'build' ]] && ${{ inputs.build }}; then
+            echo -e '\n####################\n\tBuilding project continuing...\n####################\n' | process_input;
+            if [[ -e '~/codechecker/venv/bin/activate' ]]; then
+              sudo bash -c 'source ~/codechecker/venv/bin/activate' || echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
+            fi;
+            { time \
+            CodeChecker check -b "cmake clean && cmake" -o ./results \
+            CodeChecker server \
+            CodeChecker store ./results -n "${repository}";
+            } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true

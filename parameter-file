@@ -1,6 +1,11 @@
+--checks='-*,-clang-analyzer-*'
+--enable-check-profile
+--export-fixes=build/fixes
+--header-filter='.*'
+--system-headers
+--list-checks
+--color
 --fix
 --fix-notes
 --fix-errors
---quiet
 --extra-arg=-std=c90
-

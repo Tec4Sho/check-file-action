@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.19) # Specifies the minimum required CMake version
+cmake_minimum_required(VERSION 3.30) # Specifies the minimum required CMake version
 
 # ... many examples of user defined project settings ... #
 
 if(DEFINED GITHUB_PROJECT_NAME)
   set(PROJECT_NAME "${GITHUB_PROJECT_NAME}")
 else()
-  set(PROJECT_NAME "MyProject")
+  set(PROJECT_NAME "$ENV{GITHUB_REPOSITORY#*/}")
 endif()
 
 project("${PROJECT_NAME}" VERSION 1.0 LANGUAGES C)
@@ -21,7 +21,7 @@ find_program(CLANG_TIDY_EXE "clang-tidy")
     message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
     # Configure clang-tidy to run with all checks and fix errors
     # .set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=*;-header-filter=.;-fix")
-    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=modernize-loop-convert,readability-identifier-naming,clang-analyzer;-fix")
+    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=-*,modernize-loop-convert,readability-identifier-naming,clang-analyzer;-fix")
     # You can also specify specific checks instead of -checks=*
     # .set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=modernize-loop-convert,readability-identifier-naming,clang-analyzer-cplusplus;-fix")
   else()
@@ -47,8 +47,6 @@ set(LLVM_ENABLE_PROJECTS "clang;clang-tools-extra")
 
 # .add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}")
 
-# .file(GLOB_RECURSE INCLUDES LIST_DIRECTORIES true "include")
-
 if(DEFINED PROJECT_SRC_DIRS)
   message(STATUS "Project Source: ${PROJECT_SRC_DIRS}")
 else()
@@ -58,6 +56,8 @@ endif()
 file(GLOB_RECURSE PROJECT_SRC_FILES "*.c")
 
 add_executable("${PROJECT_NAME}" "${PROJECT_SRC_FILES}") # Creates an executable target named "MyProject" from source files
+
+target_sources("${PROJECT_NAME}" PUBLIC "${PROJECT_SRC_FILES}") 
 
 if(DEFINED PROJECT_SRC_FILES)
   message(STATUS "Project Files: cmake added source files")
@@ -69,9 +69,24 @@ if(DEFINED PROJECT_SRC_INCLUDES)
   target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_SRC_INCLUDES}")
   message(STATUS "Project Includes: cmake added include directories")
 else()
-  target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_SOURCE_DIR}")
-  message(STATUS "Project Includes: cmake added no include directories")
+  file(GLOB_RECURSE PROJECT_SRC_INCLUDES LIST_DIRECTORIES true "/include/")
+  target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_SRC_INCLUDES}")
+  message(STATUS "Project Includes: cmake added one include directory")
 endif()
+
+# Automatically find all header files recursively
+file(GLOB_RECURSE ALL_HEADERS CONFIGURE_DEPENDS "*.h")
+
+# Extract the unique directory paths from the list of header files
+set(PROJECT_INCLUDE_DIRS "")
+  foreach(_headerFile ${ALL_HEADERS})
+    get_filename_component(_dir ${_headerFile} PATH)
+    list(APPEND PROJECT_INCLUDE_DIRS ${_dir})
+  endforeach()
+list(REMOVE_DUPLICATES PROJECT_INCLUDE_DIRS)
+
+# Add the unique, collected directories to your target
+target_include_directories("${PROJECT_NAME}" SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # .set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
 
@@ -90,6 +105,8 @@ message(STATUS "CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
 # .set(CMAKE_CXX_FLAGS_DEBUG "put your flags") set(CMAKE_CXX_FLAGS_MINSIZEREL "put your flags") set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "put your flags") set(CMAKE_CXX_FLAGS_RELEASE "put your 
 
 # .set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # does not produce the json file on wrong cmake version 
+
+set(CLANG_TIDY_ENABLE_STATIC_ANALYZER ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "") # works
 
@@ -113,7 +130,7 @@ set(CMAKE_C_COMPILER clang) # Sets the C compiler
 
 # .set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES OFF) 
 
-set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES OFF)
+set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON)
 
 # .file(GLOB_RECURSE INCLUDES LIST_DIRECTORIES true 'include')
 
@@ -177,21 +194,19 @@ execute_process(
 
 function(output_src_includes)
     set(src_dir_str "")
-    if(DEFINED PROJECT_SRC_INCLUDES)
-      IFS=$';';
-      foreach(DIR "${PROJECT_SRC_INCLUDES}")
+    if(DEFINED PROJECT_INCLUDE_DIRS)
+      foreach(DIR "${PROJECT_INCLUDE_DIRS}")
         set(src_dir_str "${DIR}\n")
       endforeach()
       set(src_dir "${CMAKE_BINARY_DIR}/cmake-include-dirs.txt")
       file(WRITE "${src_dir}" "${src_dir_str}")
-      message(STATUS "${PROJECT_NAME} include directories written to: ${src_dir}")
+      message(STATUS "${PROJECT_NAME} header file directories written to: ${src_dir}")
     endif()
 endfunction()
 
 function(output_src_files)
     set(src_files_str "")
     if(DEFINED PROJECT_SRC_FILES)
-      IFS=$';';
       foreach(FILE "${PROJECT_SRC_FILES}")
         set(src_files_str "${FILE}\n")
       endforeach()
