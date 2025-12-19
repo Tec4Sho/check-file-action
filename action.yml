@@ -583,7 +583,7 @@ runs:
           header2_list() {
             find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               if [[ -d "${include}" ]]; then
-                echo -e "-I${include}"
+                echo -e "--extra-arg=-I${include}"
               fi;
             done;
           }
@@ -623,9 +623,8 @@ runs:
             files_list=false
             if [[ `header2_list` ]] && [[ `source_list` ]] ; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n" | process_input;
-              source_list >> "${clang_file}";
-              echo '--' >> "${clang_file}";
               header2_list >> "${clang_file}";
+              source_list >> "${clang_file}";
               files_list=true
             elif [[ `source_list` ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n" | process_input;
