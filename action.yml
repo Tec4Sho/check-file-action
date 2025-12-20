@@ -708,10 +708,12 @@ runs:
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             echo -e '\n####################\n\tCodeChecker building compile_commands.json and running analyzer...\n####################\n' | process_input;
             if [[ -e '~/codechecker/venv/bin/activate' ]]; then
-             sudo bash -c 'source ~/codechecker/venv/bin/activate' || echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
+             sudo bash -c 'source ~/codechecker/venv/bin/activate'
+            else
+             echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
             fi;
             [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
-            { time CodeChecker log --build "make" --output ./build/compile_commands.json && CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
+            CodeChecker log --build "cmake" --output ./build/compile_commands.json && { time CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -728,7 +730,9 @@ runs:
           if [[ -d 'build' ]] && ${{ inputs.build }}; then
             echo -e '\n####################\n\tBuilding project from sources...\n####################\n' | process_input;
             if [[ -e '~/codechecker/venv/bin/activate' ]]; then
-              sudo bash -c 'source ~/codechecker/venv/bin/activate' || echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
+              sudo bash -c 'source ~/codechecker/venv/bin/activate' 
+            else 
+              echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
             fi;
             { time CodeChecker check -b "cmake clean && cmake" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
