@@ -1,4 +1,4 @@
---checks='-*,-clang-analyzer-*'
+--checks='-*,-clang-analyzer-*,-clang-analyzer-cplusplus*,-clang-analyzer-osx*'
 --enable-check-profile
 --export-fixes=build/fixes
 --header-filter='.*'

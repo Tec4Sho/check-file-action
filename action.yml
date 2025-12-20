@@ -544,7 +544,7 @@ runs:
           cmake_version=$(cmake --version);
           project_files=$(find -not \( -path "*/CMakeFiles/*" -prune -o -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
           compile_json=$(find -type f -name 'compile_commands.json' -print -quit);
-          include_dirs=$(find -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+          include_dirs=$(find -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | head -n 1);
           clang_checks=$(clang-tidy --list-checks);
           gcc_version=$(gcc --version);
           gpp_version=$(g++ --version);
@@ -562,7 +562,7 @@ runs:
           echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;
           echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;
           if ${{ inputs.analysis == 4 }}; then
-            codeCR_version=$(CodeChecker --version);
+            codeCR_version=$(CodeChecker -h version);
             echo -e "\n####################\nCodeChecker: ${codeCR_version}\n####################\n" | process_input;
           fi;
           if ${{ inputs.analysis == 3 }}; then
@@ -685,7 +685,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analysis == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm || true' bash; } 2>&1 | process_input;
+            { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm -- -I"${includes_dir#./}" || true' bash; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -705,11 +705,11 @@ runs:
              sudo bash -c 'source ~/codechecker/venv/bin/activate' || echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
             fi;
             [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
-            { time \
-              CodeChecker log --build "cmake" --output ./build/compile_commands.json \
-              CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports \
-              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports;
-            } 2>&1 | process_input;
+            if [[ "$(header1_list)" ]]; then
+              { time CodeChecker log --build "cmake -DPROJECT_SRC_INCLUDES=$(header1_list)" --output ./build/compile_commands.json && CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
+            else
+              { time CodeChecker log --build "make" --output ./build/compile_commands.json && CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
+            fi;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -728,11 +728,7 @@ runs:
             if [[ -e '~/codechecker/venv/bin/activate' ]]; then
               sudo bash -c 'source ~/codechecker/venv/bin/activate' || echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
             fi;
-            { time \
-            CodeChecker check -b "cmake clean && cmake" -o ./results \
-            CodeChecker server \
-            CodeChecker store ./results -n "${repository}";
-            } 2>&1 | process_input;
+            { time CodeChecker check -b "cmake clean && cmake" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
