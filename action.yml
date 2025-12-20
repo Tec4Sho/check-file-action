@@ -211,7 +211,7 @@ runs:
           sudo rm -vf "$(which cmake)";
           sudo mkdir -p '/usr/local/bin'
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
-          sudo cp -vpf "${HOME}/.local/bin/cmake" '/usr/local/bin/'
+          sudo cp -vpf "~/.local/bin/cmake" '/usr/local/bin/'
         fi;
         if [[ ! $(which cmake) ]]; then
           sudo apt-get -yq install cmake && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
@@ -242,14 +242,14 @@ runs:
           fi;
         fi;
         if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 4 }}; then
-          sudo apt-get -yq install python3-pip make >/dev/null && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
+          sudo apt-get -yq install python3-pip python3-venv make >/dev/null && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
           python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
-          export PATH="${HOME}/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-          export PATH="${HOME}/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-          sudo mkdir -p "${HOME}/codechecker/venv/include"
-          sudo mkdir -p "${HOME}/codechecker/venv/bin"
+          export PATH="~/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+          export PATH="~/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+          sudo mkdir -p "~/codechecker/venv/include"
+          sudo mkdir -p "~/codechecker/venv/bin"
           sudo chown -R "${USER}:${USER}" /home/runner/codechecker/
-          cd "${HOME}/codechecker/venv"
+          cd "~/codechecker/venv"
           python3 -m venv .
           cd "${github}"
           if [[ $(which CodeChecker) ]]; then
@@ -698,7 +698,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm -- -I"${includes_dir#./}" || true' bash; } 2>&1 | process_input;
+            { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 4 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm -- -I"${includes_dir#./}" || true' bash; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -716,10 +716,10 @@ runs:
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             echo -e '\n####################\n\tCodeChecker building compile_commands.json and running analyzer...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
-            if [[ -d "${HOME}/codechecker/venv/bin" ]]; then
-             sudo bash -c 'source "${HOME}"/codechecker/venv/bin/activate'
+            if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
+             sudo bash -c 'source "~/codechecker/venv/bin/activate'
             else
-             echo -e "\nUnable to source ( ${HOME}/codechecker/venv/bin/activate ) file\n" | process_input;
+             echo -e "\nUnable to source ( ~/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
             [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
             CodeChecker log --build "make" --output ./compile_commands.json && { time CodeChecker analyze ./compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
@@ -739,10 +739,10 @@ runs:
           if [[ -d 'build' ]] && ${{ inputs.build }}; then
             echo -e '\n####################\n\tBuilding project from sources...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
-            if [[ -d "${HOME}/codechecker/venv/bin" ]]; then
-              sudo bash -c 'source "${HOME}"/codechecker/venv/bin/activate' 
-            else 
-              echo -e "\nUnable to source ( ${HOME}/codechecker/venv/bin/activate ) file\n" | process_input;
+            if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
+             sudo bash -c 'source "~/codechecker/venv/bin/activate'
+            else
+             echo -e "\nUnable to source ( ~/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
             { time CodeChecker check -b "cmake clean && cmake" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
