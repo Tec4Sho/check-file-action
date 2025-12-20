@@ -207,7 +207,8 @@ runs:
         file_type="${file_name##*.}";
         if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
           echo -e "Current CMake version ($cmake_version) adding latest python cmake\n"
-          sudo rm -vf "$(which cmake)" 2>/dev/null;
+          sudo rm -vf "$(which cmake)";
+          sudo mkdir -p ~/usr/local/bin
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
           sudo ln -vsf '~/home/runner/.local/bin/cmake' '~/usr/local/bin/'
         fi;
