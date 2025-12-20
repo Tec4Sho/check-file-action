@@ -205,14 +205,15 @@ runs:
         text9="\n####################\nbatcat dependencies Installed\n####################\n";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        if [[ ! $(which cmake) ]]; then
-          sudo apt-get -yq install cmake && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
-          [[ ! $(which cmake) ]] && exit 1
-        fi;
         if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
           echo -e "Current CMake version ($cmake_version) adding latest python cmake\n"
           sudo rm -vf "$(which cmake)" 2>/dev/null;
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
+          sudo ln -vsf '~/home/runner/,local/bin/cmake' '~/usr/local/bin/' 2>/dev/null;
+        fi;
+        if [[ ! $(which cmake) ]]; then
+          sudo apt-get -yq install cmake && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
+          [[ ! $(which cmake) ]] && exit 1
         fi;
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core >/dev/null && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
