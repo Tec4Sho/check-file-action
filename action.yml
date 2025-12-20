@@ -456,9 +456,9 @@ runs:
         fi;
         if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analyzer > 0 }}; then
           center_text "::warning:: inputs.project: and inputs.filename: both enabled disables inputs.analyzer:\nTo remove this warning use ( inputs.analyzer: 0 )\n";
-          echo "analysis=0" >> "${GITHUB_ENV}";
+          echo "analyzer=0" >> "${GITHUB_ENV}";
         else
-          echo "analysis=${{ inputs.analyzer }}" >> "${GITHUB_ENV}";
+          echo "analyzer=${{ inputs.analyzer }}" >> "${GITHUB_ENV}";
         fi;
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
@@ -760,7 +760,7 @@ runs:
               echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible fixes.\n####################\n" | process_input;
             fi;
             if [[ "${clang_errors:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analysis: 1, 2, or 4) for possible error fixes.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################\n" | process_input;
             fi;
             if [[ "${clang_fixits:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository.\n####################\n" | process_input;
