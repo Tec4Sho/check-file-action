@@ -1,5 +1,5 @@
 ---
-Checks:                '-*,-clang-analyzer-*,-clang-analyzer-cplusplus*,-clang-analyzer-osx*'
+Checks:                '-*,clang-analyzer-*,-clang-analyzer-cplusplus*,-clang-analyzer-osx*'
 WarningsAsErrors:      ''
 HeaderFileExtensions:         ['', 'h','hh','hpp','hxx']
 ImplementationFileExtensions: ['c','cc','cpp','cxx']

@@ -562,7 +562,7 @@ runs:
           echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;
           echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;
           if ${{ inputs.analysis == 4 }}; then
-            codeCR_version=$(CodeChecker -h version);
+            codeCR_version=$(CodeChecker version);
             echo -e "\n####################\nCodeChecker: ${codeCR_version}\n####################\n" | process_input;
           fi;
           if ${{ inputs.analysis == 3 }}; then
@@ -701,15 +701,12 @@ runs:
           fi;
           if [[ -d 'build' ]] && ${{ env.analysis == 4 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
+            echo -e '\n####################\n\tCodeChecker building compile_commands.json and running analyzer...\n####################\n' | process_input;
             if [[ -e '~/codechecker/venv/bin/activate' ]]; then
              sudo bash -c 'source ~/codechecker/venv/bin/activate' || echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
             fi;
             [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
-            if [[ "$(header1_list)" ]]; then
-              { time CodeChecker log --build "cmake -DPROJECT_SRC_INCLUDES=$(header1_list)" --output ./build/compile_commands.json && CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
-            else
-              { time CodeChecker log --build "make" --output ./build/compile_commands.json && CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
-            fi;
+            { time CodeChecker log --build "make" --output ./build/compile_commands.json && CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -724,7 +721,7 @@ runs:
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ inputs.build }}; then
-            echo -e '\n####################\n\tBuilding project continuing...\n####################\n' | process_input;
+            echo -e '\n####################\n\tBuilding project from sources...\n####################\n' | process_input;
             if [[ -e '~/codechecker/venv/bin/activate' ]]; then
               sudo bash -c 'source ~/codechecker/venv/bin/activate' || echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
             fi;
