@@ -1,8 +1,8 @@
 name: Check File Action
 description: 'Check file - Add filename to check for errors or text Word to search for within workspace files'
 inputs:
-  analysis:
-    description: 'Analyze all project files using options 1 2 or 3'
+  analyzer:
+    description: 'Analyze all project files using options 1 - 2 - 3 - 4'
     required: false
     default: 1
     type: choice
@@ -220,7 +220,7 @@ runs:
           sudo apt-get -yq install git git-core >/dev/null && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
-        if [[ ! $(which python3) ]] && ${{ inputs.project }} && ${{ inputs.analysis == 2 }}; then
+        if [[ ! $(which python3) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 2 }}; then
           sudo apt-get -yq install python3 >/dev/null >/dev/null && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
@@ -232,7 +232,7 @@ runs:
           sudo apt-get install -yq clang-tidy clang-tools >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
-        if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analysis == 3 }}; then
+        if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
           python -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
           if [[ $(which clangd-tidy) ]]; then
             echo -e "\nclangd-tidy path: $(which clangd-tidy)\n";
@@ -240,7 +240,7 @@ runs:
             exit 1
           fi;
         fi;
-        if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && ${{ inputs.analysis == 4 }}; then
+        if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 4 }}; then
           sudo apt-get -yq install python3-pip >/dev/null && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
           python -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
           export PATH="~/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;     
@@ -454,11 +454,11 @@ runs:
           dirname=${{ inputs.dirname }};
           echo "dirname=${dirname}" >> "${GITHUB_ENV}";
         fi;
-        if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analysis > 0 }}; then
-          center_text "::warning:: inputs.project: and inputs.filename: both enabled disables inputs.analysis:\nTo remove this warning use ( inputs.analysis: 0 )\n";
+        if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analyzer > 0 }}; then
+          center_text "::warning:: inputs.project: and inputs.filename: both enabled disables inputs.analyzer:\nTo remove this warning use ( inputs.analyzer: 0 )\n";
           echo "analysis=0" >> "${GITHUB_ENV}";
         else
-          echo "analysis=${{ inputs.analysis }}" >> "${GITHUB_ENV}";
+          echo "analysis=${{ inputs.analyzer }}" >> "${GITHUB_ENV}";
         fi;
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
@@ -566,11 +566,11 @@ runs:
           echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n" | process_input;
           echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;
           echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;
-          if ${{ inputs.analysis == 4 }}; then
+          if ${{ inputs.analyzer == 4 }}; then
             codeCR_version=$(CodeChecker version);
             echo -e "\n####################\nCodeChecker: ${codeCR_version}\n####################\n" | process_input;
           fi;
-          if ${{ inputs.analysis == 3 }}; then
+          if ${{ inputs.analyzer == 3 }}; then
             clangd_version=$(clangd-tidy --version);
             echo -e "\n####################\nClangd-Tidy: ${clangd_version}\n####################\n" | process_input;
           fi;
@@ -632,7 +632,7 @@ runs:
           if [[ -e 'compile_commands.json' ]]; then
             echo -e '\n####################\n\tcompile_commands.json file symlinked continuing...\n####################\n' | process_input;
           fi;
-          if [[ -f "${clang_file}" ]] && ${{ env.analysis == 1 }}; then
+          if [[ -f "${clang_file}" ]] && ${{ env.analyzer == 1 }}; then
             echo ' ' >> "${clang_file}";
             files_list=false
             if [[ `header2_list` ]] && [[ `source_list` ]] ; then
@@ -665,11 +665,11 @@ runs:
             else
               exit 1
             fi;
-          elif [[ ! -e "${clang_file}" ]] && ${{ env.analysis == 1 }}; then
+          elif [[ ! -e "${clang_file}" ]] && ${{ env.analyzer == 1 }}; then
             echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
+          if [[ -e "${clang_run}" ]] && ${{ env.analyzer == 2 }}; then
             echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
@@ -684,11 +684,11 @@ runs:
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
-          elif [[ ! -e "${clang_run}" ]] && ${{ env.analysis == 2 }}; then
+          elif [[ ! -e "${clang_run}" ]] && ${{ env.analyzer == 2 }}; then
             echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ -f "${clangd_tidy}" ]] && ${{ env.analysis == 3 }}; then
+          if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
             { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm -- -I"${includes_dir#./}" || true' bash; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
@@ -700,11 +700,11 @@ runs:
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
-          elif [[ ! -e "${clangd_tidy}" ]] && ${{ env.analysis == 3 }}; then
+          elif [[ ! -e "${clangd_tidy}" ]] && ${{ env.analyzer == 3 }}; then
             echo -e "\n####################\n\t::error::${clangd_tidy##/*} file missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ -d 'build' ]] && ${{ env.analysis == 4 }}; then
+          if [[ -d 'build' ]] && ${{ env.analyzer == 4 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             echo -e '\n####################\n\tCodeChecker building compile_commands.json and running analyzer...\n####################\n' | process_input;
             if [[ -e '~/codechecker/venv/bin/activate' ]]; then
@@ -721,7 +721,7 @@ runs:
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
-          elif [[ ! -d 'build' ]] && ${{ env.analysis == 4 }}; then
+          elif [[ ! -d 'build' ]] && ${{ env.analyzer == 4 }}; then
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
@@ -744,7 +744,7 @@ runs:
               echo 'build_files=1' >> "${GITHUB_ENV}";
               cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
             fi;
-          elif [[ ! -d 'build' ]] && ${{ env.analysis == 4 }}; then
+          elif [[ ! -d 'build' ]] && ${{ env.analyzer == 4 }}; then
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
@@ -773,7 +773,7 @@ runs:
               echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}\n" | process_input;
             fi;
           fi;
-          if [[ ${update} ]] && ${{ env.analysis == 1 }}; then
+          if [[ ${update} ]] && ${{ env.analyzer == 1 }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n" | process_input;
           fi;
           if ${{ inputs.build }}; then
