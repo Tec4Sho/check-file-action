@@ -246,6 +246,7 @@ runs:
           python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
           export PATH="~/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           export PATH="${HOME}/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+          sudo mkdir -p ~/codechecker/venv/bin
           cd ~/codechecker/venv
           python3 -m venv .
           cd "${github}"
@@ -713,7 +714,7 @@ runs:
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             echo -e '\n####################\n\tCodeChecker building compile_commands.json and running analyzer...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
-            if [[ -e '/codechecker/venv/bin/activate' ]]; then
+            if [[ -e '~/codechecker/venv/bin/activate' ]]; then
              sudo bash -c 'source ~/codechecker/venv/bin/activate'
             else
              echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
@@ -736,7 +737,7 @@ runs:
           if [[ -d 'build' ]] && ${{ inputs.build }}; then
             echo -e '\n####################\n\tBuilding project from sources...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
-            if [[ -e '/codechecker/venv/bin/activate' ]]; then
+            if [[ -e '~/codechecker/venv/bin/activate' ]]; then
               sudo bash -c 'source ~/codechecker/venv/bin/activate' 
             else 
               echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
