@@ -246,7 +246,9 @@ runs:
           python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
           export PATH="~/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           export PATH="${HOME}/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+          sudo mkdir -p ~/codechecker/venv/include
           sudo mkdir -p ~/codechecker/venv/bin
+          sudo chown -R ${USER}:${USER} /home/runner/codechecker/
           cd ~/codechecker/venv
           python3 -m venv .
           cd "${github}"
