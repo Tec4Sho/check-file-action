@@ -205,6 +205,7 @@ runs:
         text9="\n####################\nbatcat dependencies Installed\n####################\n";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
+        github=${GITHUB_WORKSPACE};
         if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
           echo -e "Current CMake version ($cmake_version) adding latest python cmake\n"
           sudo rm -vf "$(which cmake)";
@@ -233,7 +234,7 @@ runs:
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
-          python -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
+          python3 -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
           if [[ $(which clangd-tidy) ]]; then
             echo -e "\nclangd-tidy path: $(which clangd-tidy)\n";
           else
@@ -241,9 +242,13 @@ runs:
           fi;
         fi;
         if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 4 }}; then
-          sudo apt-get -yq install python3-pip >/dev/null && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
-          python -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
-          export PATH="~/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;     
+          sudo apt-get -yq install python3-pip make >/dev/null && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
+          python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
+          export PATH="~/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+          export PATH="${HOME}/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+          cd ~/codechecker/venv
+          python3 -m venv .
+          cd "${github}"
           if [[ $(which CodeChecker) ]]; then
             echo -e "\nCodeChecker path: $(which CodeChecker)\n";
           else
@@ -707,13 +712,14 @@ runs:
           if [[ -d 'build' ]] && ${{ env.analyzer == 4 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             echo -e '\n####################\n\tCodeChecker building compile_commands.json and running analyzer...\n####################\n' | process_input;
-            if [[ -e '~/codechecker/venv/bin/activate' ]]; then
+            sudo bash -c 'source ~/.bashrc';
+            if [[ -e '/codechecker/venv/bin/activate' ]]; then
              sudo bash -c 'source ~/codechecker/venv/bin/activate'
             else
              echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
             fi;
             [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
-            CodeChecker log --build "make" --output ./build/compile_commands.json && { time CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
+            CodeChecker log --build "make standalone_package" --output ./build/compile_commands.json && { time CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -729,7 +735,8 @@ runs:
           fi;
           if [[ -d 'build' ]] && ${{ inputs.build }}; then
             echo -e '\n####################\n\tBuilding project from sources...\n####################\n' | process_input;
-            if [[ -e '~/codechecker/venv/bin/activate' ]]; then
+            sudo bash -c 'source ~/.bashrc';
+            if [[ -e '/codechecker/venv/bin/activate' ]]; then
               sudo bash -c 'source ~/codechecker/venv/bin/activate' 
             else 
               echo -e '\nUnable to source ( /codechecker/venv/bin/activate ) file\n' | process_input;
