@@ -244,12 +244,12 @@ runs:
         if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 4 }}; then
           sudo apt-get -yq install python3-pip python3-venv make >/dev/null && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
           python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
-          export PATH="~/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-          export PATH="~/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-          sudo mkdir -p "~/codechecker/venv/include"
-          sudo mkdir -p "~/codechecker/venv/bin"
+          export PATH="/home/runner/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+          export PATH="/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+          sudo mkdir -p "/home/runner/codechecker/venv/include"
+          sudo mkdir -p "/home/runner/codechecker/venv/bin"
           sudo chown -R "${USER}:${USER}" /home/runner/codechecker/
-          cd "~/codechecker/venv"
+          cd "/home/runner/codechecker/venv"
           python3 -m venv .
           cd "${github}"
           if [[ $(which CodeChecker) ]]; then
@@ -717,9 +717,9 @@ runs:
             echo -e '\n####################\n\tCodeChecker building compile_commands.json and running analyzer...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
-             sudo bash -c 'source "~/codechecker/venv/bin/activate'
+             sudo bash -c 'source "/home/runner/codechecker/venv/bin/activate'
             else
-             echo -e "\nUnable to source ( ~/codechecker/venv/bin/activate ) file\n" | process_input;
+             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
             [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
             CodeChecker log --build "make" --output ./compile_commands.json && { time CodeChecker analyze ./compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
@@ -740,9 +740,9 @@ runs:
             echo -e '\n####################\n\tBuilding project from sources...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
-             sudo bash -c 'source "~/codechecker/venv/bin/activate'
+             sudo bash -c 'source "/home/runner/codechecker/venv/bin/activate'
             else
-             echo -e "\nUnable to source ( ~/codechecker/venv/bin/activate ) file\n" | process_input;
+             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
             { time CodeChecker check -b "cmake clean && cmake" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
