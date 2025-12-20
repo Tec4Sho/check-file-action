@@ -211,7 +211,7 @@ runs:
           sudo rm -vf "$(which cmake)";
           sudo mkdir -p ~/usr/local/bin
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
-          sudo cp -vpf '~/home/runner/.local/bin/cmake' '/usr/local/bin/'
+          sudo cp -vpf '/home/runner/.local/bin/cmake' '/usr/local/bin/'
         fi;
         if [[ ! $(which cmake) ]]; then
           sudo apt-get -yq install cmake && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
