@@ -209,7 +209,7 @@ runs:
           echo -e "Current CMake version ($cmake_version) adding latest python cmake\n"
           sudo rm -vf "$(which cmake)" 2>/dev/null;
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
-          sudo cp -vf ~/home/runner/,local/bin/cmake ~/usr/local/bin/ 2>/dev/null;
+          sudo cp -vf ~/home/runner/,local/bin/cmake ~/usr/local/bin/
         fi;
         if [[ ! $(which cmake) ]]; then
           sudo apt-get -yq install cmake && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
