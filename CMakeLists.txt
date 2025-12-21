@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.30) # Specifies the minimum required CMake vers
 if(DEFINED GITHUB_PROJECT_NAME)
   set(PROJECT_NAME "${GITHUB_PROJECT_NAME}")
 else()
-  set(PROJECT_NAME "$ENV{GITHUB_REPOSITORY#*/}")
+  set(PROJECT_NAME "$ENV{GITHUB_REPOSITORY}")
 endif()
 
 project("${PROJECT_NAME}" VERSION 1.0 LANGUAGES C)
@@ -21,7 +21,7 @@ find_program(CLANG_TIDY_EXE "clang-tidy")
     message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
     # Configure clang-tidy to run with all checks and fix errors
     # .set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=*;-header-filter=.;-fix")
-    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=-*,clang-analyzer-*,-clang-analyzer-cplusplus*,-clang-analyzer-osx*;-fix")
+    set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=-*,modernize-loop-convert,readability-identifier-naming,clang-analyzer-*;-fix")
     # You can also specify specific checks instead of -checks=*
     # .set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE};-checks=modernize-loop-convert,readability-identifier-naming,clang-analyzer-cplusplus;-fix")
   else()
@@ -222,6 +222,6 @@ output_src_files()
 
 # .Place build artifacts in ${CMAKE_BINARY_DIR}/{bin,lib}
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "")
-# .set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "")
-# .set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "")
 

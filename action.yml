@@ -717,7 +717,7 @@ runs:
             echo -e '\n####################\n\tCodeChecker building compile_commands.json and running analyzer...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
-             sudo bash -c 'source "/home/runner/codechecker/venv/bin/activate'
+             sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
             else
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
@@ -740,7 +740,7 @@ runs:
             echo -e '\n####################\n\tBuilding project from sources...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
-             sudo bash -c 'source "/home/runner/codechecker/venv/bin/activate'
+             sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
             else
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
