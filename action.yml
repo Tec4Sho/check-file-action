@@ -107,9 +107,13 @@ inputs:
     - 3 # Log to terminal only.
   build:
     description: 'Fix Errors found while building repository project'
-    type: boolean
+    type: choice
     required: false
-    default: 'false'
+    default: '1'
+    options:
+    - 1 # Disable building projects.
+    - 2 # Build & check project.
+    - 3 # Build with new compile_commands_json & check project.
 
 runs:
   using: composite
@@ -622,11 +626,16 @@ runs:
               fi;
             done;
           }
-          source_list() {
+          source_files() {
             find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
               echo -e "${file#./}"
             done;
           }
+          echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
+          echo "github_source_files=false" >> "${GITHUB_ENV}";
+          if [[ "$(source_files)" ]]; then
+            echo "github_source_files=true" >> "${GITHUB_ENV}";
+          fi;
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n' | process_input;
           fi;
@@ -659,11 +668,11 @@ runs:
             if [[ `header2_list` ]] && [[ `source_list` ]] ; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n" | process_input;
               header2_list >> "${clang_file}";
-              source_list >> "${clang_file}";
+              source_files >> "${clang_file}";
               files_list=true
             elif [[ `source_list` ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n" | process_input;
-              source_list >> "${clang_file}";
+              source_files >> "${clang_file}";
               files_list=true
             else	
               echo -e "\n::error::No ${file_type} files found searching repository\nExiting...\n" | process_input;
@@ -734,8 +743,7 @@ runs:
             else
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
-            [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
-            CodeChecker log --build "make" --output ./compile_commands.json && { time CodeChecker analyze ./compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
+            { time CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -749,7 +757,7 @@ runs:
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ -d 'build' ]] && ${{ inputs.build }}; then
+          if [[ -d 'build' ]] && ${{ inputs.build == 1 }}; then
             echo -e '\n####################\n\tBuilding project from sources...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
@@ -771,7 +779,34 @@ runs:
               echo 'build_files=1' >> "${GITHUB_ENV}";
               cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
             fi;
-          elif [[ ! -d 'build' ]] && ${{ env.analyzer == 4 }}; then
+          elif [[ ! -d 'build' ]] && ${{ inputs.build == 1 }}; then
+            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
+            exit 1
+          fi;
+          if [[ -d 'build' ]] && ${{ inputs.build == 2 }}; then
+            echo -e '\n####################\n\tBuilding project from sources...\n####################\n' | process_input;
+            sudo bash -c 'source ~/.bashrc';
+            if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
+             sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
+            else
+             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
+            fi;
+            [ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
+            { time CodeChecker log --build "make" --output ./build/compile_commands.json && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+              echo -e "::notice::Errors found checking project files" | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            elif [[ -s "${project_log}" ]]; then
+              echo -e "::notice::No errors found checking project files" | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            fi;
+            if ${{ inputs.upload }}; then
+              echo 'build_files=1' >> "${GITHUB_ENV}";
+              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
+            fi;
+          elif [[ ! -d 'build' ]] && ${{ inputs.build == 2 }}; then
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
@@ -803,7 +838,7 @@ runs:
           if [[ ${update} ]] && ${{ env.analyzer == 1 }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n" | process_input;
           fi;
-          if ${{ inputs.build }}; then
+          if ${{ inputs.build > 1 }}; then
             cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory updated continuing...\n####################\n' | process_input;
           fi;
           echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}\n" | process_input;
@@ -1487,7 +1522,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Build Release
-      if: inputs.build != 'false' && inputs.project != 'false' && env.build_files == 1
+      if: inputs.build > '1' && inputs.project != 'false' && env.build_files == 1
       uses: softprops/action-gh-release@v1
       with:
         files: build/bin/*
@@ -1496,7 +1531,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Build Release
-      if: inputs.build != 'false' && inputs.project != 'false' && env.build_files == 1
+      if: inputs.build > '1' && inputs.project != 'false' && env.build_files == 1
       uses: actions/upload-artifact@v4
       with:
         name: Build For ${{ github.repository }} Repository.
