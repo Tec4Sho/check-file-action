@@ -520,8 +520,8 @@ runs:
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
         echo 'file_error=0' >> "${GITHUB_ENV}";
-        echo "file1_parted=0" >> "${GITHUB_ENV}";
-        echo "file2_parted=0" >> "${GITHUB_ENV}";
+        echo 'file1_parted=0' >> "${GITHUB_ENV}";
+        echo 'file2_parted=0' >> "${GITHUB_ENV}";
         echo 'build_cache=false' >> "${GITHUB_ENV}";
       shell: bash
       continue-on-error: false
@@ -601,7 +601,7 @@ runs:
           echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}\n" | process_input;
           echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n" | process_input;
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n" | process_input;
-	      source_dirs() {
+          source_dirs() {
             find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               if [[ "${dir}" != '.' ]]; then
                 echo -n "${dir#./} "
