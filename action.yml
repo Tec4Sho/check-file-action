@@ -476,7 +476,7 @@ runs:
           percentage=$(echo "scale=2; (${file_type:-0} / ${total_files:-0}) * 100" | bc);
           include_dirs=$(find -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | wc -l);
           include_list() {
-            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            find "${repository%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               if [[ -d "${include}" ]]; then
                 echo -n "${include} "
               fi;
@@ -501,16 +501,16 @@ runs:
           if ${{ inputs.project }} && [[ "$(file_types)" ]]; then
             echo -e "\n#####################\nProject File Types:\n#####################\n\n$(file_types)";
           fi;
+          if [[ "$(include_list)" ]]; then
+            echo "target_include_dirs=$(include_list)" >> "${GITHUB_ENV}";
+            echo -e "\n#####################\nInclude directories: ${include_dirs}\n#####################\n";
+          fi;
           if [[ "${total_files:-0}" > '0' ]]; then
             echo -e "\n\033[1mThe total percentage of ${{ inputs.filetype }} files is: ${percentage:-0}%\033[0m\n"
             echo -e "\n#####################\nRepository: ${repo}\n#####################\n\nProject has ${total_files} files total";
           else
             echo -e "\n#####################\n::error::Repository: ${repo} files missing?\n#####################\n\nProject has no files.. Exiting";
             exit 1
-          fi;
-          if [[ "$(include_list)" ]]; then
-            echo "target_include_dirs=$(include_list)" >> "${GITHUB_ENV}";
-            echo -e "\n#####################\nInclude directories: ${include_dirs}\n#####################\n\nProject has no files.. Exiting";
           fi;
         fi;
         center_text "\n${text10a}" 2>/dev/null;
