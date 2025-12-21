@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.30) # Specifies the minimum required CMake vers
 if(DEFINED GITHUB_PROJECT_NAME)
   set(PROJECT_NAME "${GITHUB_PROJECT_NAME}")
 else()
-  set(PROJECT_NAME "$ENV{GITHUB_REPOSITORY}")
+  set(PROJECT_NAME "$ENV{github_repository}")
 endif()
 
 project("${PROJECT_NAME}" VERSION 1.0 LANGUAGES C)
@@ -67,11 +67,11 @@ endif()
 
 if(DEFINED PROJECT_SRC_INCLUDES)
   target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_SRC_INCLUDES}")
-  message(STATUS "Project Includes: cmake added include directories")
+  message(STATUS "Project Includes: cmake added include directories. clang analyzer")
 else()
-  file(GLOB_RECURSE PROJECT_SRC_INCLUDES LIST_DIRECTORIES true "/include/")
-  target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_SRC_INCLUDES}")
-  message(STATUS "Project Includes: cmake added one include directory")
+# .file(GLOB_RECURSE PROJECT_SRC_INCLUDES LIST_DIRECTORIES true "/include/")
+  target_include_directories("${PROJECT_NAME}" PRIVATE "ENV${target_include_dirs}")
+  message(STATUS "Project Includes: cmake added include directories. codechecker analyzer")
 endif()
 
 # Automatically find all header files recursively
