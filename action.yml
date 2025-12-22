@@ -221,6 +221,7 @@ runs:
           echo -e "Current CMake version ($cmake_version) adding latest python cmake\n"
           sudo rm -vf "$(which cmake)";
           sudo mkdir -p '/usr/local/bin'
+          export PATH="/usr/local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -vpf "/home/runner/.local/bin/cmake" '/usr/local/bin/'
         fi;
