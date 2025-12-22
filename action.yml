@@ -628,11 +628,7 @@ runs:
             done;
           }
           header1_list() {
-            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'arch' -o -name 'tools' -o -name 'block' -o -name 'crypto' -o -name 'drivers' -o -name 'firmware' -o -name 'fs' -o -name 'init' -o -name 'ipc' -o -name 'kernel' -o -name 'mm' -o -name 'net' -o -name 'sound' -o -name 'usr' \) -print \
-            | awk '{ print length($0), $0 }' \
-            | sort -n \
-            | cut -d' ' -f 2- 2>/dev/null \
-            | while IFS= read -r include; do \
+            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'arch' -o -name 'tools' -o -name 'block' -o -name 'crypto' -o -name 'drivers' -o -name 'firmware' -o -name 'fs' -o -name 'init' -o -name 'ipc' -o -name 'kernel' -o -name 'mm' -o -name 'net' -o -name 'sound' -o -name 'usr' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do \
               if [[ -d "${include}" ]]; then \
                 echo -n "${include} " \
               fi \
