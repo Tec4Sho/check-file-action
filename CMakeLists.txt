@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30) # Specifies the minimum required CMake version
+cmake_minimum_required(VERSION 3.30.0) # Specifies the minimum required CMake version
 
 # ... many examples of user defined project settings ... #
 
@@ -61,7 +61,7 @@ target_sources("${PROJECT_NAME}" PUBLIC "${PROJECT_SRC_FILES}")
 
 if(DEFINED PROJECT_SRC_FILES)
   message(STATUS "Project Files: cmake added source files")
-elif($ENV{github_source_files})
+elseif($ENV{github_source_files})
   message(STATUS "Project Files: cmake found source files")
 else()
   message(STATUS "Project Files: cmake added no files")
@@ -94,7 +94,7 @@ target_include_directories("${PROJECT_NAME}" SYSTEM PRIVATE "${CMAKE_CURRENT_SOU
 
 # .set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -Werror -pedantic")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -std=c90")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -std=c90")
 
 # .set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
 
@@ -126,7 +126,7 @@ set(CMAKE_C_STANDARD 90) # Sets the C standard to C90 <C89>
 
 set(CMAKE_C_STANDARD_REQUIRED ON) # Ensures the specified C standard is strictly enforced
 
-set(CMAKE_C_EXTENSIONS ON) # Enables compiler-specific extensions for C
+set(CMAKE_C_EXTENSIONS OFF) # Enables compiler-specific extensions for C
 
 set(CMAKE_C_COMPILER clang) # Sets the C compiler
 

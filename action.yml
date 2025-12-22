@@ -113,8 +113,9 @@ inputs:
     default: '0'
     options:
     - 0 # Disable building projects.
-    - 1 # Build & check project.
-    - 2 # Build with new compile_commands_json & check project.
+    - 1 # Build & check project. CodeChecker
+    - 2 # Build new compile_commands_json & check project. CodeChecker
+    - 3 # Build fix includes & check project. IWYU
     file:
     description: 'Make filename for building project source'
     type: string
@@ -273,6 +274,13 @@ runs:
           else
             exit 1
           fi;
+        fi;
+        
+
+        if ${{ inputs.build == 2 }}; then
+          sudo wget -qO 'include-what-you-use-0.25.src.tar.gz' 'https://include-what-you-use.org/downloads/include-what-you-use-0.25.src.tar.gz' >/dev/null;
+          sudo tar xf 'include-what-you-use-0.25.src.tar.gz' -C '/usr/local/bin' 'include-what-you-use' && rm -vrf 'include-what-you-use-0.25.src.tar.gz' && echo -e "${text6}" || echo -e '::error::No shellharden installed Exiting';
+          [[ ! $(which shellharden) ]] && exit 1
         fi;
         if [[ ! $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
@@ -744,7 +752,7 @@ runs:
           fi;
           if [[ -d 'build' ]] && ${{ env.analyzer == 4 }}; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            echo -e '\n####################\n\tCodeChecker building compile_commands.json and running analyzer...\n####################\n' | process_input;
+            echo -e '\n####################\n\tCodeChecker running analyzer...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
              sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
@@ -792,7 +800,7 @@ runs:
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ inputs.build == 2 }}; then
-            echo -e '\n####################\n\tBuilding project from sources...\n####################\n' | process_input;
+            echo -e '\n####################\n\tCodeChecker building compile_commands.json from project sources...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
              sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
@@ -815,6 +823,28 @@ runs:
               cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
             fi;
           elif [[ ! -d 'build' ]] && ${{ inputs.build == 2 }}; then
+            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
+            exit 1
+          fi;
+          if [[ -d 'build' ]] && ${{ inputs.build == 3 }}; then
+            echo -e '\n####################\n\tinclude-what-you-use analyze includes and project sources...\n####################\n' | process_input;
+            sudo bash -c 'source ~/.bashrc' && mkdir -p tmp
+            { time iwyu_tool.py -p build; } 2>&1 | process_input;
+            { time make -k C=include-what-you-use CFLAGS="-Xiwyu CXX=include-what-you-use CXXFLAGS="-Xiwyu --error_always" 2> /tmp/iwyu.out python3 fix_includes.py < /tmp/iwyu.out; } 2>&1 | process_input;
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+              echo -e "::notice::Errors found checking project files" | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            elif [[ -s "${project_log}" ]]; then
+              echo -e "::notice::No errors found checking project files" | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            fi;
+            if ${{ inputs.upload }}; then
+              echo 'build_files=1' >> "${GITHUB_ENV}";
+              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
+            fi;
+          elif [[ ! -d 'build' ]] && ${{ inputs.build == 3 }}; then
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
