@@ -523,7 +523,7 @@ runs:
           fi;
           if [[ "${total_files:-0}" > '0' ]]; then
             echo -e "The total percentage of ${{ inputs.filetype }} files is: \033[1m${percentage:-0}%\033[0m"
-            echo -e "\n#####################\nRepository: ${repo}\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
+            echo -e "\n#####################\nRepository: \033[1m${repo}\033[0m\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
           else
             echo -e "\n#####################\n::error::Repository: ${repo} files missing?\n#####################\n\nProject has no files.. Exiting";
             exit 1
@@ -532,6 +532,9 @@ runs:
         center_text "\n${text10a}" 2>/dev/null;
         center_text "${text10b}" 2>/dev/null;
         center_text "${text10c}\n" 2>/dev/null;
+        if ${{ inputs.build > '0' }}; then
+          echo 'gitub_build_project=true' >> "${GITHUB_ENV}";
+        fi;
         echo "github_repository=${repo}" >> "${GITHUB_ENV}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
@@ -586,9 +589,7 @@ runs:
           clang_version=$(clang --version);
           verify_config=$(clang-tidy --verify-config);
           cmake_version=$(cmake --version);
-          project_files=$(find -not \( -path "*/CMakeFiles/*" -prune -o -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
           compile_json=$(find -type f -name 'compile_commands.json' -print -quit);
-          include_dirs=$(find -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | head -n 1);
           echo "target_include_dirs=${include_dirs}" >> "${GITHUB_ENV}";
           clang_checks=$(clang-tidy --list-checks);
           gcc_version=$(gcc --version);
@@ -627,10 +628,14 @@ runs:
             done;
           }
           header1_list() {
-            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
-              if [[ -d "${include}" ]]; then
-                echo -n "${include} "
-              fi;
+            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'arch' -o -name 'tools' -o -name 'block' -o -name 'crypto' -o -name 'drivers' -o -name 'firmware' -o -name 'fs' -o -name 'init' -o -name 'ipc' -o -name 'kernel' -o -name 'mm' -o -name 'net' -o -name 'sound' -o -name 'usr' \) -print \
+            | awk '{ print length($0), $0 }' \
+            | sort -n \
+            | cut -d' ' -f 2- 2>/dev/null \
+            | while IFS= read -r include; do \
+              if [[ -d "${include}" ]]; then \
+                echo -n "${include} " \
+              fi \
             done;
           }
           header2_list() {
