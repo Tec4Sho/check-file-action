@@ -149,6 +149,7 @@ runs:
     - name: Linux Distro
       run: |
         echo '';
+        echo -e "\n####################\nCheck-File-Action-Pro version 2.0.0 [Beta Stable]\n####################\n";
         if [[ -r '/etc/os-release' ]]; then
           . /etc/os-release
           if [[ "${ID}" == 'ubuntu' ]]; then
