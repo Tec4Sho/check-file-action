@@ -275,8 +275,6 @@ runs:
             exit 1
           fi;
         fi;
-        
-
         if [[ ! $(which include-what-you-use) ]] && ${{ inputs.build == 3 }}; then
           sudo wget -qO 'include-what-you-use-0.25.src.tar.gz' 'https://include-what-you-use.org/downloads/include-what-you-use-0.25.src.tar.gz' >/dev/null;
           sudo tar xf 'include-what-you-use-0.25.src.tar.gz' -C '/usr/local/bin' 'include-what-you-use' && rm -vrf 'include-what-you-use-0.25.src.tar.gz' && echo -e "\n####################\ninclude-what-you-use dependencies Installed\n####################\n" || echo -e '::error::No include-what-you-use installed Exiting';
@@ -772,7 +770,49 @@ runs:
           elif [[ ! -d 'build' ]] && ${{ env.analyzer == 4 }}; then
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
-          fi;
+          fi;         
+      shell: bash
+      continue-on-error: true
+      
+    - name: Project Builder
+      if: inputs.project == 'true'
+      run: |
+        export LLVM_ENABLE_THREADS=ON
+        export CMAKE_EXPORT_COMPILE_COMMANDS=ON
+        export ALLOW_MISSING_DEPENDENCIES=true
+        export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+        export LC_ALL=C
+        set +e
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
+        check_build=false
+        file_type='c';
+        src_tree=$(find ${{ env.file_path }} -type d -name '.git' -print -quit);
+        github=${GITHUB_WORKSPACE};
+        update=true
+        count=1
+        process_input() {
+          while IFS= read -r log; do
+            if ${{ inputs.output == 1 }}; then
+              echo -e "${log}" | tee -a "${project_log}";
+            elif ${{ inputs.output == 2 }}; then
+              echo -e "${log}" >> "${project_log}";
+            elif ${{ inputs.output == 3 }}; then
+              echo -e "${log}";
+            fi;
+          done;
+        }
+        echo 'check_build=false' >> "${GITHUB_ENV}";
+        if ! ${{ inputs.update }}; then
+          echo 'update=false' >> "${GITHUB_ENV}";
+          update=false
+        fi;
+        if ${{ inputs.filetype != 'none' }}; then
+          file_type="${{ inputs.filetype }}";
+        fi;
+        echo "filetype=${file_type}" >> "${GITHUB_ENV}";
+        if [[ -d "${src_tree}" ]]; then
+          cd "${src_tree%/*}";
           if [[ -d 'build' ]] && ${{ inputs.build == 1 }}; then
             echo -e '\n####################\n\tBuilding project from sources...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
@@ -830,7 +870,7 @@ runs:
             echo -e '\n####################\n\tinclude-what-you-use analyze includes and project sources...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc' && mkdir -p tmp
             { time iwyu_tool.py -p build; } 2>&1 | process_input;
-            { time make -k C=include-what-you-use CFLAGS="-Xiwyu CXX=include-what-you-use CXXFLAGS="-Xiwyu --error_always" 2> /tmp/iwyu.out python3 fix_includes.py < /tmp/iwyu.out; } 2>&1 | process_input;
+            { time make -k C=include-what-you-use CFLAGS="-Xiwyu --error_always" CXX=include-what-you-use CXXFLAGS="-Xiwyu --error_always" 2> /tmp/iwyu.out python3 fix_includes.py < /tmp/iwyu.out; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
