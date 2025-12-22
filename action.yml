@@ -279,7 +279,6 @@ runs:
         if [[ ! $(which include-what-you-use) ]] && ${{ inputs.build == 3 }}; then
           sudo wget -qO 'include-what-you-use-0.25.src.tar.gz' 'https://include-what-you-use.org/downloads/include-what-you-use-0.25.src.tar.gz' >/dev/null;
           sudo tar xf 'include-what-you-use-0.25.src.tar.gz' -C '/usr/local/bin' 'include-what-you-use' && rm -vrf 'include-what-you-use-0.25.src.tar.gz' && echo -e "\n####################\ninclude-what-you-use dependencies Installed\n####################\n" || echo -e '::error::No include-what-you-use installed Exiting';
-          [[ ! $(which iwyu) ]] && exit 1
         fi;
         if [[ ! $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
