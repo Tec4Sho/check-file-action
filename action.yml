@@ -522,7 +522,7 @@ runs:
             echo -e "\n#####################\nInclude directories: ${include_dirs}\n#####################\n";
           fi;
           if [[ "${total_files:-0}" > '0' ]]; then
-            echo -e "\n\033[1mThe total percentage of ${{ inputs.filetype }} files is: ${percentage:-0}%\033[0m\n"
+            echo -e "\033[1mThe total percentage of ${{ inputs.filetype }} files is: ${percentage:-0}%\033[0m"
             echo -e "\n#####################\nRepository: ${repo}\n#####################\n\nProject has ${total_files} files total";
           else
             echo -e "\n#####################\n::error::Repository: ${repo} files missing?\n#####################\n\nProject has no files.. Exiting";
@@ -542,7 +542,7 @@ runs:
       shell: bash
       continue-on-error: false
 
-    - name: Check Build Project
+    - name: Check Project
       if: inputs.project == 'true'
       run: |
         export LLVM_ENABLE_THREADS=ON
@@ -774,7 +774,7 @@ runs:
       shell: bash
       continue-on-error: true
       
-    - name: Project Builder
+    - name: Build Project
       if: inputs.project == 'true'
       run: |
         export LLVM_ENABLE_THREADS=ON
