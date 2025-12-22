@@ -116,7 +116,7 @@ inputs:
     - 1 # Build & check project. CodeChecker
     - 2 # Build new compile_commands_json & check project. CodeChecker
     - 3 # Build fix includes & check project. IWYU
-    file:
+  file:
     description: 'Make filename for building project source'
     type: string
     required: false
