@@ -259,7 +259,7 @@ runs:
           sudo apt-get -yq install clangd >/dev/null && echo -e "\n####################\nclangd dependencies Installed\n####################\n" || echo -e '::error::No clangd installed for project build';
           [[ ! $(which clangd) ]] && exit 1
         fi;
-        if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 4 }}; then
+        if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && (${{ inputs.analyzer == 4 }} || ${{ inputs.build > '0' }}); then
           sudo apt-get -yq install python3-pip python3-venv make >/dev/null && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
           python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
           export PATH="/home/runner/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
@@ -276,22 +276,22 @@ runs:
             exit 1
           fi;
         fi;
-        if [[ ! $(which include-what-you-use) ]] && ${{ inputs.build == 3 }}; then
-          sudo wget -qO 'include-what-you-use-0.25.src.tar.gz' 'https://include-what-you-use.org/downloads/include-what-you-use-0.25.src.tar.gz' >/dev/null;
-          sudo tar xf 'include-what-you-use-0.25.src.tar.gz' -C '/usr/local/bin' 'include-what-you-use' && rm -vrf 'include-what-you-use-0.25.src.tar.gz' && echo -e "\n####################\ninclude-what-you-use dependencies Installed\n####################\n" || echo -e '::error::No include-what-you-use installed Exiting';
+        if [[ ! $(which deheader) ]] && ${{ inputs.project }} && ${{ inputs.build == 3 }}; then
+          sudo apt-get -yq install deheader >/dev/null && echo -e "\n####################\ndeheader dependencies Installed\n####################\n" || echo -e '::error::No deheader installed for project includes check';
+          [[ ! $(which deheader) ]] && exit 1
         fi;
         if [[ ! $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
         fi;
         if [[ ! $(which npm) ]]; then
-          sudo npm install >/dev/null && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
-          [[ ! $(which tput) ]] && exit 1
+          sudo apt-get -yq install npm >/dev/null && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
+          [[ ! $(which npm) ]] && exit 1
         fi;
         if [[ ! $(which tput) ]]; then
           sudo apt-get -yq install tput >/dev/null && echo -e "\n####################\ntput dependencies Installed\n####################\n" || echo -e '::error::No tput installed for term_width';
           [[ ! $(which tput) ]] && exit 1
         fi;
-        if [[ ! $(which tqdm) ]] &&  ${{ inputs.project }}; then
+        if [[ ! $(which tqdm) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
           python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies Installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
         fi;
@@ -871,8 +871,7 @@ runs:
           if [[ -d 'build' ]] && ${{ inputs.build == 3 }}; then
             echo -e '\n####################\n\tinclude-what-you-use analyze includes and project sources...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc' && mkdir -p tmp
-            { time iwyu_tool.py -p build; } 2>&1 | process_input;
-            { time make -k C=include-what-you-use CFLAGS="-Xiwyu --error_always" CXX=include-what-you-use CXXFLAGS="-Xiwyu --error_always" 2> /tmp/iwyu.out python3 fix_includes.py < /tmp/iwyu.out; } 2>&1 | process_input;
+            { time deheader -r .; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
