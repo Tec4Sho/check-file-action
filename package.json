@@ -1,0 +1,10 @@
+{
+  "name": "my-github-action-script",
+  "version": "1.0.0",
+  "description": "Script dependencies",
+  "main": "index.js",
+  "dependencies": {
+    "jsdom": "^22.0.0"
+    // Add other dependencies here if needed
+  }
+}
