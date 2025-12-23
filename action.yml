@@ -347,6 +347,31 @@ runs:
         fi;
       shell: bash
       continue-on-error: false
+       
+    - name: Execute inline JavaScript
+      id: display-type
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const core = require('@actions/core');
+          const github = require('@actions/github');
+          const name = core.getInput('who-to-greet');
+          core.setOutput('time', new Date().toTimeString());
+          console.log(`Hello ${name}!`);
+          function getWindowSize() {
+            const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+            const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+            return { width, height };
+          }
+         const size = getWindowSize();
+         console.log(`Browser window size: ${size.width}x${size.height}`);
+         if (window.matchMedia("(min-width: 400px)").matches) {
+           core.setOutput("mobile-view", true);
+         } else {
+           core.setOutput("mobile-view", false);
+         }
+      shell: bash
+      continue-on-error: true
 
     - name: Set Directory Base
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
@@ -392,7 +417,7 @@ runs:
             local text="$1";
             local term_cols="$(tput cols)";
             local text_length="${#text}";
-            if [[ $(node "${{ github.action_path }}/scripts/mobile.js") ]] || [[ $(node "${{ github.action_path }}/scripts/view.js") ]]; then
+            if [[ ${{ steps.display-type.outputs.mobile-view }}" ]]; then
               local padding="$(( (term_cols - text_length) / 2 ))";
               local text="$(echo $1 | tr -d '\n')";
               print ''
@@ -1720,12 +1745,11 @@ runs:
         echo '';
         export TERM=xterm-256color
         if [[ -n ${TERM} ]]; then
-        chmod -R 0755 "${{ github.action_path }}/scripts";
           center_text() {
             local text="$1";
             local term_cols="$(tput cols)";
             local text_length="${#text}";
-            if [[ $(node ${{ github.action_path }}/scripts/mobile.js) ]] || [[ $(node ${{ github.action_path }}/scripts/view.js) ]]; then
+            if [[ ${{ steps.display-type.outputs.mobile-view }}" ]]; then
               local padding="$(( (term_cols - text_length) / 2 ))";
               local text="$(echo $1 | tr -d '\n')";
               print '';
