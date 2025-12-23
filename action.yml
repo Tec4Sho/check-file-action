@@ -369,9 +369,17 @@ runs:
             console.log('The variable github is not declared or is undefined. declaring github now!');
             const github = require('@actions/github');
           }
+          if (typeof jsdom !== 'undefined') {
+            console.log('The variable jsdom is declared and has a value:', jsdom);
+          } else {
+            console.log('The variable jsdom is not declared or is undefined. declaring jsdom now!');
+            const jsdom = require("jsdom");
+            const { JSDOM } = jsdom;
+          }
           const name = core.getInput('who-to-greet');
           core.setOutput('time', new Date().toTimeString());
           console.log(`Hello ${name}!`);
+          global.document = new JSDOM(html).window.document;
           const window = {
             some: 'Some',
             another: 'Another',
