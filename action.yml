@@ -372,6 +372,13 @@ runs:
           const name = core.getInput('who-to-greet');
           core.setOutput('time', new Date().toTimeString());
           console.log(`Hello ${name}!`);
+          const window = {
+            some: 'Some',
+            another: 'Another',
+            theOne: function() {
+            console.log(this.setTimeOut)
+            }.bind(global)
+          }
           function getWindowSize() {
             const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
             const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
