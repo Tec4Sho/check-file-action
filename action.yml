@@ -357,7 +357,7 @@ runs:
         repair_file='check-file-repaired.txt';
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
         repo=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-        sudo chmod 0755 -R ${{ github.action_path }}/scripts/*
+        chmod -R 0755 "${{ github.action_path }}/scripts/*";
         echo 'database=database' >> "${GITHUB_ENV}";
         text1a="####################";
         text1b="DEFAULT DIRECTORY (SYSTEM ROOT)";
