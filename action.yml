@@ -882,7 +882,7 @@ runs:
           if [[ -d 'build' ]] && ${{ inputs.build == 3 }}; then
             echo -e '\n####################\n\tdeheader analyze & repair sources includes...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
-            { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 4 -P "$(nproc --all)" bash -c 'deheader -r -v "$@" || true' bash; } 2>&1 | process_input;
+            { time deheader -r -v -m ${{ inputs.file }}; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -1069,7 +1069,11 @@ runs:
                       echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n" | process_input;
                     elif ${{ inputs.stored }} && ${{ env.update }}; then
                       echo -e "\n\n####################\nDEHEADER & CLANG-TIDY FIX FILES ANALYZER (${count1})\n####################\n\n" | process_input;
-                      deheader -r -v "${file}" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
+                      if [[ $(echo "${file_type}" | egrep "^c$|^cc$") ]]; then
+                        gcc -MM "${file}" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
+                      elif [[ $(echo "${file_type}" | egrep "^c..$") ]]; then
+                        g++ -MM "${file}" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
+                      fi;
                       clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}/include" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
                       if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                         echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n" | process_input;
