@@ -146,6 +146,11 @@ runs:
         compiler: ${{ inputs.compiler }}
       continue-on-error: true
 
+    - name: Install dependencies
+      run: sudo npm install # Step 2: Install dependencies from package.json
+      shell: bash
+      continue-on-error: true
+
     - name: Linux Distro
       run: |
         echo '';
@@ -290,7 +295,7 @@ runs:
           sudo apt-get -yq install build-essential device-tree-compiler 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
         fi;
         if [[ ! $(which npm) ]]; then
-          sudo apt-get -yq install npm 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
+          sudo npm install 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
           [[ ! $(which npm) ]] && exit 1
         fi;
         if [[ ! $(which tput) ]]; then
