@@ -357,8 +357,18 @@ runs:
       uses: actions/github-script@v6
       with:
         script: |
-          const core = require('@actions/core');
-          const github = require('@actions/github');
+          if (typeof core !== 'undefined') {
+            console.log('The variable core is declared and has a value:', core);
+          } else {
+            console.log('The variable core is not declared or is undefined. declaring core now!');
+            const core = require('@actions/core');
+          }
+          if (typeof github !== 'undefined') {
+            console.log('The variable github is declared and has a value:', github);
+          } else {
+            console.log('The variable github is not declared or is undefined. declaring github now!');
+            const github = require('@actions/github');
+          }
           const name = core.getInput('who-to-greet');
           core.setOutput('time', new Date().toTimeString());
           console.log(`Hello ${name}!`);
