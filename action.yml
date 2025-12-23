@@ -227,25 +227,25 @@ runs:
           sudo cp -vpf "/home/runner/.local/bin/cmake" '/usr/local/bin/'
         fi;
         if [[ ! $(which cmake) ]]; then
-          sudo apt-get -yq install cmake && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
+          sudo apt-get -yq install cmake >/dev/null | sed 's/.*host\.//' && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
           [[ ! $(which cmake) ]] && exit 1
         fi;
         if [[ ! $(which git) ]]; then
-          sudo apt-get -yq install git git-core >/dev/null && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
+          sudo apt-get -yq install git git-core >/dev/null | sed 's/.*host\.//' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
         if [[ ! $(which python3) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 2 }}; then
-          sudo apt-get -yq install python3 >/dev/null >/dev/null && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo -e '::error::No python3 installed for project checks';
+          sudo apt-get -yq install python3 >/dev/null | sed 's/.*host\.//' && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
         if [[ ! $(llvm-config --version 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
-          sudo apt-get -yq install llvm-22-dev liblldb-22-dev llvm llvm-dev lld libclang-dev >/dev/null && echo -e "\n####################\nllvm tools dependencies Installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
+          sudo apt-get -yq install llvm-22-dev liblldb-22-dev llvm llvm-dev lld libclang-dev >/dev/null | sed 's/.*host\.//' && echo -e "\n####################\nllvm tools dependencies Installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if [[ ! $(which clang-tidy) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
-          sudo apt-get install -yq clang-tools clang-tidy clang >/dev/null && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
+          sudo apt-get install -yq clang-tools clang-tidy clang >/dev/null | sed 's/.*host\.//' && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
@@ -257,11 +257,11 @@ runs:
           fi;
         fi;
         if [[ ! $(which clangd) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install clangd >/dev/null && echo -e "\n####################\nclangd dependencies Installed\n####################\n" || echo -e '::error::No clangd installed for project build';
+          sudo apt-get -yq install clangd >/dev/null | sed 's/.*host\.//' && echo -e "\n####################\nclangd dependencies Installed\n####################\n" || echo -e '::error::No clangd installed for project build';
           [[ ! $(which clangd) ]] && exit 1
         fi;
         if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && (${{ inputs.analyzer == 4 }} || ${{ inputs.build > '0' }}); then
-          sudo apt-get -yq install python3-pip python3-venv make >/dev/null && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
+          sudo apt-get -yq install python3-pip python3-venv make >/dev/null | sed 's/.*host\.//' && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
           python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
           export PATH="/home/runner/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           export PATH="/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
@@ -277,37 +277,37 @@ runs:
             exit 1
           fi;
         fi;
-        if [[ ! $(which deheader) ]] && ${{ inputs.project }} && ${{ inputs.build == 3 }}; then
-          sudo apt-get -yq install deheader >/dev/null && echo -e "\n####################\ndeheader dependencies Installed\n####################\n" || echo -e '::error::No deheader installed for project includes check';
+        if [[ ! $(which deheader) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || (${{ inputs.project }} && ${{ inputs.build == 3 }}); then
+          sudo apt-get -yq install deheader >/dev/null | sed 's/.*host\.//' && echo -e "\n####################\ndeheader dependencies Installed\n####################\n" || echo -e '::error::No deheader installed for project includes check';
           [[ ! $(which deheader) ]] && exit 1
         fi;
         if [[ ! $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install build-essential device-tree-compiler >/dev/null && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
+          sudo apt-get -yq install build-essential device-tree-compiler >/dev/null | sed 's/.*host\.//' && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
         fi;
         if [[ ! $(which npm) ]]; then
-          sudo apt-get -yq install npm >/dev/null && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
+          sudo apt-get -yq install npm >/dev/null | sed 's/.*host\.//' && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
           [[ ! $(which npm) ]] && exit 1
         fi;
         if [[ ! $(which tput) ]]; then
-          sudo apt-get -yq install tput >/dev/null && echo -e "\n####################\ntput dependencies Installed\n####################\n" || echo -e '::error::No tput installed for term_width';
+          sudo apt-get -yq install tput >/dev/null | sed 's/.*host\.//' && echo -e "\n####################\ntput dependencies Installed\n####################\n" || echo -e '::error::No tput installed for term_width';
           [[ ! $(which tput) ]] && exit 1
         fi;
         if [[ ! $(which tqdm) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
-          python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies Installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
+          python -m pip install tqdm >/dev/null | sed 's/.*host\.//' && echo -e "\n####################\ntqdm dependencies Installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
         fi;
         if [[ ! $(which rg) ]] && [[ "${{ inputs.pattern }}" != '' ]] && ${{ inputs.database }}; then
-          sudo apt-get -yq install ripgrep >/dev/null && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
+          sudo apt-get -yq install ripgrep >/dev/null | sed 's/.*host\.//' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
         if [[ ! $(which ansi2txt) ]] && ${{ inputs.report }}; then
-          sudo apt-get -yq install ansi2txt >/dev/null && echo -e "${text2}" || echo -e '::error::No ansi2txt installed for cleaning log report';
+          sudo apt-get -yq install ansi2txt >/dev/null | sed 's/.*host\.//' && echo -e "${text2}" || echo -e '::error::No ansi2txt installed for cleaning log report';
         fi;
         if [[ ! $(which update-ca-certificates) ]]; then
-          sudo apt-get -yq install ca-certificates >/dev/null && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
+          sudo apt-get -yq install ca-certificates >/dev/null | sed 's/.*host\.//' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
         if [[ ! $(which cppcheck) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
-          sudo apt-get -yq install cppcheck >/dev/null && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
+          sudo apt-get -yq install cppcheck >/dev/null | sed 's/.*host\.//' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
           [[ ! $(which cppcheck) ]] && exit 1
         fi;
         if [[ ! $(which shellharden) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.repair }}; then
@@ -316,7 +316,7 @@ runs:
           [[ ! $(which shellharden) ]] && exit 1
         fi;
         if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
-          sudo apt-get -yq install shellcheck >/dev/null && echo -e "${text7}" || echo -e '::error::No shellcheck installed Exiting';
+          sudo apt-get -yq install shellcheck >/dev/null | sed 's/.*host\.//' && echo -e "${text7}" || echo -e '::error::No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1
         fi;
         if [[ $(which checkmake) ]] && [[ -n ${file} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
@@ -328,13 +328,14 @@ runs:
           go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "${text8}" || echo -e '::error::No checkmake installed Exiting';
           [[ ! $(which checkmake) ]] && exit 1
         fi;
+        if ${{ inputs.filename != '' }} || ${{ inputs.pattern != '' }}; then
         if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
           sudo ln -sf ~/usr/bin/bat ~/usr/bin/batcat >/dev/null || echo -e '::error::No batcat installed Exiting';
           [[ ! $(which batcat) ]] && exit 1
           echo -e "\nalias batcat='bat'" | sudo tee -a ~/.bashrc >/dev/null;
           export BAT_THEME="ansi";
         elif [[ ! $(which batcat) ]]; then
-          sudo apt-get -yq install bat >/dev/null && echo -e "${text9}" || echo -e '::error::No batcat installed Exiting';
+          sudo apt-get -yq install bat >/dev/null | sed 's/.*host\.//' && echo -e "${text9}" || echo -e '::error::No batcat installed Exiting';
           [[ ! $(which batcat) ]] && exit 1
           export BAT_THEME="ansi";
         fi;
@@ -355,6 +356,7 @@ runs:
         repair_file='check-file-repaired.txt';
         repository=$(sudo find ${GITHUB_WORKSPACE} -type d -name '.git' -print -quit);
         repo=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        sudo chmod 0755 -R ${{ github.action_path }}/scripts/*
         echo 'database=database' >> "${GITHUB_ENV}";
         text1a="####################";
         text1b="DEFAULT DIRECTORY (SYSTEM ROOT)";
@@ -388,7 +390,7 @@ runs:
             local text="$1";
             local term_cols="$(tput cols)";
             local text_length="${#text}";
-            if [[ $(node ${{ github.action_path }}/scripts/mobile.js 2>/dev/null) ]] || [[ $(node ${{ github.action_path }}/scripts/view.js 2>/dev/null) ]]; then
+            if [[ $(node "${{ github.action_path }}/scripts/mobile.js") ]] || [[ $(node "${{ github.action_path }}/scripts/view.js") ]]; then
               local padding="$(( (term_cols - text_length) / 2 ))";
               local text="$(echo $1 | tr -d '\n')";
               print ''
@@ -562,6 +564,7 @@ runs:
         src_tree=$(find ${{ env.file_path }} -type d -name '.git' -print -quit);
         github=${GITHUB_WORKSPACE};
         update=true
+        fixed=false
         count=1
         process_input() {
           while IFS= read -r log; do
@@ -611,6 +614,10 @@ runs:
           if ${{ inputs.analyzer == 4 }}; then
             codeCR_version=$(CodeChecker version);
             echo -e "\n####################\nCodeChecker: ${codeCR_version}\n####################\n" | process_input;
+          fi;
+          if ${{ inputs.build == 3 }}; then
+            deheader_version=$(deheader --version);
+            echo -e "\n####################\nDeheader: ${deheader_version}\n####################\n" | process_input;
           fi;
           if ${{ inputs.analyzer == 3 }}; then
             clangd_version=$(clangd-tidy --version);
@@ -736,7 +743,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 4 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm -- -I"${includes_dir#./}" || true' bash; } 2>&1 | process_input;
+            { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 4 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm -- -I"${src_tree%/*}/include" || true' bash; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -793,6 +800,7 @@ runs:
         src_tree=$(find ${{ env.file_path }} -type d -name '.git' -print -quit);
         github=${GITHUB_WORKSPACE};
         update=true
+        fixed=false
         count=1
         process_input() {
           while IFS= read -r log; do
@@ -870,9 +878,9 @@ runs:
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ inputs.build == 3 }}; then
-            echo -e '\n####################\n\tinclude-what-you-use analyze includes and project sources...\n####################\n' | process_input;
-            sudo bash -c 'source ~/.bashrc' && mkdir -p tmp
-            { time deheader -r .; } 2>&1 | process_input;
+            echo -e '\n####################\n\tdeheader analyze & repair sources includes...\n####################\n' | process_input;
+            sudo bash -c 'source ~/.bashrc'
+            { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 4 -P "$(nproc --all)" bash -c 'deheader -r -v "$@" || true' bash; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -906,6 +914,7 @@ runs:
             fi;
             if [[ "${clang_fixits:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository.\n####################\n" | process_input;
+              fixed=true
             fi;
             if [[ "${clang_notes:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::☑ check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are suggestions for files and not directly issues.\n####################\n" | process_input;
@@ -922,6 +931,9 @@ runs:
             cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory updated continuing...\n####################\n' | process_input;
           fi;
           echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}\n" | process_input;
+          if [[ "${fixed}" ]]; then
+            echo "file_fixed=1" >> "${GITHUB_ENV}";
+          fi;
           if [[ ${check_build} ]]; then
             echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
           else
@@ -1054,8 +1066,9 @@ runs:
                       echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n" | process_input;
                       echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n" | process_input;
                     elif ${{ inputs.stored }} && ${{ env.update }}; then
-                      echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n" | process_input;
-                      clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) broken pipe\nStatus [0]: ${PIPESTATUS[0]}\nStatus [1]: ${PIPESTATUS[1]}" | process_input;
+                      echo -e "\n\n####################\nDEHEADER & CLANG-TIDY FIX FILES ANALYZER (${count1})\n####################\n\n" | process_input;
+                      deheader -r -v "${file}" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
+                      clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}/include" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
                       if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                         echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n" | process_input;
                       else
@@ -1705,7 +1718,7 @@ runs:
             local text="$1";
             local term_cols="$(tput cols)";
             local text_length="${#text}";
-            if [[ -n $(node ${{ github.action_path }}/scripts/mobile.js 2>/dev/null) ]] || [[ -n $(node ${{ github.action_path }}/scripts/view.js 2>/dev/null) ]]; then
+            if [[ $(node ${{ github.action_path }}/scripts/mobile.js) ]] || [[ $(node ${{ github.action_path }}/scripts/view.js) ]]; then
               local padding="$(( (term_cols - text_length) / 2 ))";
               local text="$(echo $1 | tr -d '\n')";
               print '';
