@@ -228,15 +228,15 @@ runs:
           sudo cp -vpf "/home/runner/.local/bin/cmake" '/usr/local/bin/'
         fi;
         if [[ ! $(which cmake) ]]; then
-          sudo apt-get -yq install cmake 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
+          sudo apt-get -yq install cmake 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
           [[ ! $(which cmake) ]] && exit 1
         fi;
         if [[ ! $(which git) ]]; then
-          sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
+          sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
         if [[ ! $(which python3) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 2 }}; then
-          sudo apt-get -yq install python3 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo -e '::error::No python3 installed for project checks';
+          sudo apt-get -yq install python3 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
         if [[ ! $(llvm-config --version 2>/dev/null) ]] && ${{ inputs.project }}; then
@@ -246,7 +246,7 @@ runs:
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if [[ ! $(which clang-tidy) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
-          sudo apt-get install -yq clang-tools clang-tidy clang 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
+          sudo apt-get install -yq clang-tools clang-tidy clang 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
@@ -258,11 +258,11 @@ runs:
           fi;
         fi;
         if [[ ! $(which clangd) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install clangd 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "\n####################\nclangd dependencies Installed\n####################\n" || echo -e '::error::No clangd installed for project build';
+          sudo apt-get -yq install clangd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\nclangd dependencies Installed\n####################\n" || echo -e '::error::No clangd installed for project build';
           [[ ! $(which clangd) ]] && exit 1
         fi;
         if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && (${{ inputs.analyzer == 4 }} || ${{ inputs.build > '0' }}); then
-          sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
+          sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
           python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
           export PATH="/home/runner/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           export PATH="/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
@@ -279,18 +279,18 @@ runs:
           fi;
         fi;
         if [[ ! $(which deheader) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || (${{ inputs.project }} && ${{ inputs.build == 3 }}); then
-          sudo apt-get -yq install deheader >/dev/null 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "\n####################\ndeheader dependencies Installed\n####################\n" || echo -e '::error::No deheader installed for project includes check';
+          sudo apt-get -yq install deheader 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\ndeheader dependencies Installed\n####################\n" || echo -e '::error::No deheader installed for project includes check';
           [[ ! $(which deheader) ]] && exit 1
         fi;
         if [[ ! $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install build-essential device-tree-compiler 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
+          sudo apt-get -yq install build-essential device-tree-compiler 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
         fi;
         if [[ ! $(which npm) ]]; then
-          sudo apt-get -yq install npm 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
+          sudo apt-get -yq install npm 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
           [[ ! $(which npm) ]] && exit 1
         fi;
         if [[ ! $(which tput) ]]; then
-          sudo apt-get -yq install tput 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "\n####################\ntput dependencies Installed\n####################\n" || echo -e '::error::No tput installed for term_width';
+          sudo apt-get -yq install tput 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\ntput dependencies Installed\n####################\n" || echo -e '::error::No tput installed for term_width';
           [[ ! $(which tput) ]] && exit 1
         fi;
         if [[ ! $(which tqdm) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
@@ -298,17 +298,17 @@ runs:
           [[ ! $(which tqdm) ]] && exit 1
         fi;
         if [[ ! $(which rg) ]] && [[ "${{ inputs.pattern }}" != '' ]] && ${{ inputs.database }}; then
-          sudo apt-get -yq install ripgrep 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
+          sudo apt-get -yq install ripgrep 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
         if [[ ! $(which ansi2txt) ]] && ${{ inputs.report }}; then
-          sudo apt-get -yq install ansi2txt | sed -E "s/.*${end_pattern##.}\. //" && echo -e "${text2}" || echo -e '::error::No ansi2txt installed for cleaning log report';
+          sudo apt-get -yq install ansi2txt 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text2}" || echo -e '::error::No ansi2txt installed for cleaning log report';
         fi;
         if [[ ! $(which update-ca-certificates) ]]; then
-          sudo apt-get -yq install ca-certificates 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
+          sudo apt-get -yq install ca-certificates 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
         if [[ ! $(which cppcheck) ]] && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
-          sudo apt-get -yq install cppcheck 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
+          sudo apt-get -yq install cppcheck 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
           [[ ! $(which cppcheck) ]] && exit 1
         fi;
         if [[ ! $(which shellharden) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.repair }}; then
@@ -317,7 +317,7 @@ runs:
           [[ ! $(which shellharden) ]] && exit 1
         fi;
         if [[ ! $(which shellcheck) ]] && [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]]; then
-          sudo apt-get -yq install shellcheck 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "${text7}" || echo -e '::error::No shellcheck installed Exiting';
+          sudo apt-get -yq install shellcheck 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text7}" || echo -e '::error::No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1
         fi;
         if [[ $(which checkmake) ]] && [[ -n ${file} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
@@ -330,15 +330,16 @@ runs:
           [[ ! $(which checkmake) ]] && exit 1
         fi;
         if ${{ inputs.filename != '' }} || ${{ inputs.pattern != '' }}; then
-        if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
-          sudo ln -sf "$(which bat)" /usr/bin/batcat >/dev/null || echo -e '::error::No batcat installed Exiting';
-          [[ ! $(which batcat) ]] && exit 1
-          echo -e "\nalias batcat='bat'" | sudo tee -a ~/.bashrc >/dev/null;
-          export BAT_THEME="ansi";
-        elif [[ ! $(which batcat) ]]; then
-          sudo apt-get -yq install bat 2>&1 >/dev/null | sed -e 's/^.*host\.//' && echo -e "${text9}" || echo -e '::error::No batcat installed Exiting';
-          [[ ! $(which batcat) ]] && exit 1
-          export BAT_THEME="ansi";
+          if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
+            sudo ln -sf "$(which bat)" /usr/bin/batcat >/dev/null || echo -e '::error::No batcat installed Exiting';
+            [[ ! $(which batcat) ]] && exit 1
+            echo -e "\nalias batcat='bat'" | sudo tee -a ~/.bashrc >/dev/null;
+            export BAT_THEME="ansi";
+          elif [[ ! $(which batcat) ]]; then
+            sudo apt-get -yq install bat 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text9}" || echo -e '::error::No batcat installed Exiting';
+            [[ ! $(which batcat) ]] && exit 1
+            export BAT_THEME="ansi";
+          fi;
         fi;
         echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
         if [[ -d '/home/runner/.local/bin' ]]; then
