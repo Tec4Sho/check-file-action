@@ -352,24 +352,24 @@ runs:
       id: display-type
       uses: actions/github-script@v6
       with:
-        script: |
-          const core = require('@actions/core');
-          const github = require('@actions/github');
-          const name = core.getInput('who-to-greet');
-          core.setOutput('time', new Date().toTimeString());
-          console.log(`Hello ${name}!`);
-          function getWindowSize() {
-            const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-            const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-            return { width, height };
-          }
-         const size = getWindowSize();
-         console.log(`Browser window size: ${size.width}x${size.height}`);
-         if (window.matchMedia("(min-width: 400px)").matches) {
-           core.setOutput("mobile-view", true);
-         } else {
-           core.setOutput("mobile-view", false);
-         }
+      script: |
+        const core = require('@actions/core');
+        const github = require('@actions/github');
+        const name = core.getInput('who-to-greet');
+        core.setOutput('time', new Date().toTimeString());
+        console.log(`Hello ${name}!`);
+        function getWindowSize() {
+          const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+          const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+          return { width, height };
+        }
+        const size = getWindowSize();
+        console.log(`Browser window size: ${size.width}x${size.height}`);
+        if (window.matchMedia("(min-width: 400px)").matches) {
+          core.setOutput("mobile-view", true);
+        } else {
+          core.setOutput("mobile-view", false);
+        }
       shell: bash
       continue-on-error: true
 
