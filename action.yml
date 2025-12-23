@@ -374,7 +374,6 @@ runs:
           } else {
             core.setOutput("mobile-view", false);
           }
-      shell: bash
       continue-on-error: true
       
     - name: Set Directory Base
