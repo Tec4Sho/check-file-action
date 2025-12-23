@@ -331,7 +331,7 @@ runs:
         fi;
         if ${{ inputs.filename != '' }} || ${{ inputs.pattern != '' }}; then
         if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
-          sudo ln -sf ~/usr/bin/bat ~/usr/bin/batcat >/dev/null || echo -e '::error::No batcat installed Exiting';
+          sudo ln -sf "$(which bat)" /usr/bin/batcat >/dev/null || echo -e '::error::No batcat installed Exiting';
           [[ ! $(which batcat) ]] && exit 1
           echo -e "\nalias batcat='bat'" | sudo tee -a ~/.bashrc >/dev/null;
           export BAT_THEME="ansi";
@@ -340,7 +340,7 @@ runs:
           [[ ! $(which batcat) ]] && exit 1
           export BAT_THEME="ansi";
         fi;
-        echo 'update=${{ inputs.update }}' >> "${GITHUB_ENV}";
+        echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
         if [[ -d '/home/runner/.local/bin' ]]; then
           echo "export PATH=/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
         fi;
