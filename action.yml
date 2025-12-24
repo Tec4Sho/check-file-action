@@ -147,7 +147,9 @@ runs:
       continue-on-error: true
 
     - name: Install dependencies
-      run: sudo npm install # Step 2: Install dependencies from package.json
+      run: |
+        sudo cp -vf "${{ github.action_path }}/package.json" "${GITHUB_WORKSPACE}/";
+        sudo npm install
       shell: bash
       continue-on-error: true
 
@@ -182,7 +184,6 @@ runs:
         linux_distro1="24.04";
         linux_distro2="22.04";
         linux_distro3="20.04";
-        end_pattern='host';
         linux_verison=$(lsb_release -r | awk '{print $2}');
         echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
