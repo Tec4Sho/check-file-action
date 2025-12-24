@@ -148,8 +148,11 @@ runs:
 
     - name: Install dependencies
       run: |
+        echo '';
         sudo cp -vf "${{ github.action_path }}/package.json" "${GITHUB_WORKSPACE}/";
-        sudo npm install
+        sudo npm update >/dev/null && echo -e '\nUpdating npm module package dependencies\n';
+        sudo npm install -g npm@11.7.0 >/dev/null && echo -e "\n####################\nnpm package was updated successfully.\n####################\n";
+        sudo npm install package.json >/dev/null && echo -e '\nUpdating npm package.json dependencies \n';
       shell: bash
       continue-on-error: true
 
