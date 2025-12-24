@@ -1623,7 +1623,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Build Checks
-      if: inputs.build > '0' || inputs.analyzer == '4' && inputs.project != 'false' && env.build_files == '1'
+      if: inputs.build == '1' || inputs.build == '2' || inputs.analyzer == '4' && inputs.project != 'false' && env.build_files == '1'
       uses: actions/upload-artifact@v4
       with:
         name: Build For ${{ github.repository }} Repository.
