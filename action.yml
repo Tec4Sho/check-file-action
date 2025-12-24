@@ -11,7 +11,12 @@ inputs:
     - 1 # run-clang-tidy.py - fastest for large project file checks. fix-its
     - 2 # clang-tidy - faster for small an large project file checks. fix-its
     - 3 # clangd-tidy - fast large project file checks.
-    - 4 # codechecker - compiler project file check reports. 
+    - 4 # codechecker - compiler project file check reports.
+  makefile:
+    description: 'Make filename for building project source'
+    type: string
+    required: false
+    default: 'Makefile'
   filename:
     description: 'Check for filename or search for text word matches'
     type: string
@@ -116,11 +121,6 @@ inputs:
     - 1 # Build & check project. CodeChecker
     - 2 # Build new compile_commands_json & check project. CodeChecker
     - 3 # Build fix includes & check project. IWYU
-  file:
-    description: 'Make filename for building project source'
-    type: string
-    required: false
-    default: ''
     
 runs:
   using: composite
@@ -743,7 +743,7 @@ runs:
             else
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
-            { time CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports; } 2>&1 | process_input;
+            { time CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker server && CodeChecker store ./results -n ; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -809,7 +809,7 @@ runs:
             else
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
-            { time CodeChecker check -b "cmake clean && cmake ${{ inputs.file }}" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
+            { time CodeChecker check -b "cmake clean && make -f ${{ inputs.makefile }}" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking building files" | process_input;
               check_build=true
@@ -836,7 +836,7 @@ runs:
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
             [ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
-            { time CodeChecker log --build "make ${{ inputs.file }}" --output ./build/compile_commands.json && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
+            { time CodeChecker log --build "make -f ${{ inputs.makefile }}" --output ./build/compile_commands.json && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found building project files" | process_input;
               check_build=true
@@ -857,7 +857,7 @@ runs:
           if [[ -d 'build' ]] && ${{ inputs.build == 3 }}; then
             echo -e '\n####################\n\tdeheader analyze & repair sources includes...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
-            { time deheader -r -v -m "make -G ${{ inputs.file }}"; } 2>&1 | process_input;
+            { time deheader -r -v -m "make -n -j $(nproc --all) -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found building project files" | process_input;
               check_build=true
@@ -1601,7 +1601,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Build Release
-      if: inputs.build > '0' && inputs.project != 'false' && env.build_files == 1
+      if: inputs.build > '0' && inputs.project != 'false' && env.build_files == '1'
       uses: softprops/action-gh-release@v1
       with:
         files: build/bin/*
@@ -1609,16 +1609,16 @@ runs:
         tag_name: ${{ github.run_id }}
       continue-on-error: true
 
-    - name: Uploading ${{ github.repository }} Project Build Release
-      if: inputs.build > '0' && inputs.project != 'false' && env.build_files == 1
+    - name: Uploading ${{ github.repository }} Project Build Checks
+      if: inputs.build > '0' || inputs.analyzer == '4' && inputs.project != 'false' && env.build_files == '1'
       uses: actions/upload-artifact@v4
       with:
         name: Build For ${{ github.repository }} Repository.
-        path: CMakeFiles/*
+        path: .codechecker/*
       continue-on-error: true
 
     - name: Uploading Build Files Artifacts
-      if: inputs.upload != 'false' && inputs.project != '' && env.build_files == 1
+      if: inputs.upload != 'false' && inputs.project != '' && env.build_files == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_build
@@ -1627,7 +1627,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading Build_Cache Artifacts
-      if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1 && inputs.stored == 'true'
+      if: inputs.report != 'false' && inputs.filename != '' && env.file_found == '1' && inputs.stored == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_checked
