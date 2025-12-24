@@ -118,10 +118,11 @@ inputs:
     default: '0'
     options:
     - 0 # Disable building projects.
-    - 1 # Build & check project. CodeChecker
-    - 2 # Build new compile_commands_json & check project. CodeChecker
-    - 3 # Build fix includes & check project. IWYU
-    
+    - 1 # Build & check project. [CodeChecker Dry-Run Multiple-Files]
+    - 2 # Build new compile_commands_json & check project. [CodeChecker Build Multiple-Files]
+    - 3 # Build check includes & check project. [Deheader Dry-Run Multiple-Files]
+    - 4 # Build fix includes & check project. [Deheader Build Single-Files]
+
 runs:
   using: composite
   steps:
@@ -802,14 +803,14 @@ runs:
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
           if [[ -d 'build' ]] && ${{ inputs.build == 1 }}; then
-            echo -e '\n####################\n\tBuilding project from source files...\n####################\n' | process_input;
+            echo -e '\n####################\n\t[1] Building project from source files...(dry-run)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
              sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
             else
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
-            { time CodeChecker check -b "cmake clean && make -f ${{ inputs.makefile }}" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
+            { time CodeChecker check -b "cmake clean && make -v -n -k -j $(nproc --all) -f ${{ inputs.makefile }}" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking building files" | process_input;
               check_build=true
@@ -828,7 +829,7 @@ runs:
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ inputs.build == 2 }}; then
-            echo -e '\n####################\n\tCodeChecker building compile_commands.json from project sources...\n####################\n' | process_input;
+            echo -e '\n####################\n\t[2] CodeChecker building compile_commands.json & project sources...(build)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
              sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
@@ -836,7 +837,7 @@ runs:
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
             [ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
-            { time CodeChecker log --build "make -f ${{ inputs.makefile }}" --output ./build/compile_commands.json && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
+            { time CodeChecker log --build "make -v -j $(nproc --all) -f ${{ inputs.makefile }}" --output ./build/compile_commands.json && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found building project files" | process_input;
               check_build=true
@@ -855,9 +856,9 @@ runs:
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ inputs.build == 3 }}; then
-            echo -e '\n####################\n\tdeheader analyze & repair sources includes...\n####################\n' | process_input;
+            echo -e '\n####################\n\t[3] deheader analyze sources includes...(dry-run)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
-            { time deheader -v -r -m "make -j $(nproc --all) -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
+            { time deheader -v -r -m "make -v -n -k -j $(nproc --all) -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found building project files" | process_input;
               check_build=true
@@ -872,6 +873,27 @@ runs:
               cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
             fi;
           elif [[ ! -d 'build' ]] && ${{ inputs.build == 3 }}; then
+            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
+            exit 1
+          fi;
+          if [[ -d 'build' ]] && ${{ inputs.build == 4 }}; then
+            echo -e '\n####################\n\t[4] deheader analyze & repair sources includes...(build)\n####################\n' | process_input;
+            sudo bash -c 'source ~/.bashrc'
+            { time deheader -v -r -m "make -v -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
+              echo -e "::notice::Errors found building project files" | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            elif [[ -s "${project_log}" ]]; then
+              echo -e "::notice::No errors found checking project files" | process_input;
+              check_build=true
+              echo 'check_build=true' >> "${GITHUB_ENV}";
+            fi;
+            if ${{ inputs.upload }}; then
+              echo 'build_files=1' >> "${GITHUB_ENV}";
+              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
+            fi;
+          elif [[ ! -d 'build' ]] && ${{ inputs.build == 4 }}; then
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
