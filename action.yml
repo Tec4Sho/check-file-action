@@ -174,12 +174,11 @@ runs:
         linux_verison=$(lsb_release -r | awk '{print $2}');
         echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
-        echo 'export TERM=xterm-256color' | sudo tee -a ~/.bashrc;
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
-        sudo apt-get update -yq >/dev/null 2>&1;
-        sudo apt-get --fix-broken install -yq >/dev/null 2>&1;
+        sudo apt-get update -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
+        sudo apt-get --fix-broken install -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         if ${{ inputs.project }}; then
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
@@ -217,7 +216,7 @@ runs:
           sudo rm -vf "$(which cmake)";
           sudo mkdir -p '/usr/local/bin'
           export PATH="/usr/local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-          python -m pip install cmake --upgrade >/dev/null && echo -e "####################\ncmake pip dependencies Installed\n####################" || echo -e '::error::No cmake pip installed for project checks';
+          python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -vpf "/home/runner/.local/bin/cmake" '/usr/local/bin/'
         fi;
         if [[ ! $(which cmake) ]]; then
@@ -247,7 +246,7 @@ runs:
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
-          python3 -m pip install clangd-tidy >/dev/null && echo -e "####################\nclangd-tidy dependencies Installed\n####################" || echo -e '::error::No clangd-tidy installed for project checks';
+          python3 -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
           if [[ $(which clangd-tidy) ]]; then
             echo -e "\nclangd-tidy path: $(which clangd-tidy)\n";
           else
@@ -260,7 +259,7 @@ runs:
         fi;
         if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && (${{ inputs.analyzer == 4 }} || ${{ inputs.build > '0' }}); then
           sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\npython3-pip dependencies Installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
-          python3 -m pip install codechecker >/dev/null && echo -e "####################\ncodechecker dependencies Installed\n####################" || echo -e '::error::No codechecker installed for project checks';
+          python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
           export PATH="/home/runner/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           export PATH="/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           sudo mkdir -p "/home/runner/codechecker/venv/include"
@@ -283,7 +282,7 @@ runs:
           sudo apt-get -yq install build-essential device-tree-compiler 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nbuild-essential dependencies Installed\n####################" || echo -e '::error::No build-essential installed for project build';
         fi;
         if [[ ! $(which tqdm) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
-          python -m pip install tqdm >/dev/null && echo -e "####################\ntqdm dependencies Installed\n####################" || echo -e '::warning::No tpdm installed for project progress checks';
+          python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies Installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
         fi;
         if [[ ! $(which rg) ]] && [[ "${{ inputs.pattern }}" != '' ]] && ${{ inputs.database }}; then
@@ -315,7 +314,7 @@ runs:
           echo -e '\ncheckmake.ini file missing, needed for checkmake to function properly\n';
         fi;
         if [[ ! $(which checkmake) ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
-          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "${text8}" || echo -e '::error::No checkmake installed Exiting';
+          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "\n${text8}\n" || echo -e '::error::No checkmake installed Exiting';
           [[ ! $(which checkmake) ]] && exit 1
         fi;
         if ${{ inputs.filename != '' }} || ${{ inputs.pattern != '' }}; then
@@ -380,17 +379,17 @@ runs:
           echo -e "${text}"
         }
         if ${{ inputs.rootdir }}; then
-          text "\n${text1a}";
+          text "${text1a}";
           text "${text1b}";
           text "${text1c}";
           echo -e '\n~/\n';
           echo 'file_path=/' >> "${GITHUB_ENV}";
           file_path=/
         else
-          text "\n${text2a}";
+          text "${text2a}";
           text "${text2b}";
           text "${text2c}";
-          echo -e "\n${GITHUB_WORKSPACE}\n";
+          echo -e "\n${GITHUB_WORKSPACE}";
           echo "file_path=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
           file_path=${GITHUB_WORKSPACE}
         fi;
@@ -411,11 +410,11 @@ runs:
           if [[ -f ${repaired} ]]; then
             text "\n${text3a}";
             text "${text3b}";
-            text "${text3c}\n";
+            text "${text3c}";
           else
             text "\n${text4a}";
             text "${text4b}";
-            text "${text4c}\n";
+            text "${text4c}";
             date '+%Y%m%d' > "${repaired}" || echo -e "::warning:: ${repaired} backup file not found";
           fi;
           echo 'update=true' >> "${GITHUB_ENV}";
@@ -425,27 +424,27 @@ runs:
           if [[ -s "${GITHUB_WORKSPACE}/database" ]]; then
             text "\n${text5a}";
             text "${text5b}";
-            text "${text5c}\n";
+            text "${text5c}";
             echo "database=${GITHUB_WORKSPACE}/database" >> "${GITHUB_ENV}";
           else
             text "\n${text6a}";
             text "${text6b}";
-            text "${text6c}\n" && exit 1
+            text "${text6c}" && exit 1
           fi;
         fi;
         if [[ "${{ inputs.filename }}" != '' ]]; then
           text "\n${text7a}";
           text "${text7b}";
-          text "${text7c}\n";
+          text "${text7c}";
         fi;
         if [[ "${{ inputs.pattern }}" != '' ]] && [[ "${{ inputs.filetype }}" != 'none' ]]; then
           text "\n${text8a}";
           text "${text8b}";
-          text "${text8c}\n";
+          text "${text8c}";
         elif [[ "${{ inputs.pattern }}" != '' ]]; then
           text "\n${text9a}";
           text "${text9b}";
-          text "${text9c}\n";
+          text "${text9c}";
         fi;
         if [[ -z "${{ inputs.dirname }}" ]]; then
           if [ -z "${{ github.event.inputs.DEVICE_PATH }}" ]; then
@@ -583,29 +582,29 @@ runs:
           clang_run=${{ github.action_path }}/scripts/tools/run-clang-tidy.py;
           clang_fix=${{ github.action_path }}/scripts/tools/clang-apply-replacements;
           export PATH="${clang_fix}:${PATH}";
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
-          echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################\n" | process_input;
-          echo -e "\n####################\nCompiler: ${gcc_version}\n####################\n" | process_input;
-          echo -e "\n####################\nCompiler: ${gpp_version}\n####################\n" | process_input;
-          echo -e "\n####################\nCompiler: ${clang_version}\n####################\n" | process_input;
-          echo -e "\n####################\nBuilder: ${cmake_version}\n####################\n" | process_input;
+          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
+          echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################" | process_input;
+          echo -e "\n####################\nCompiler: ${gcc_version}\n####################" | process_input;
+          echo -e "\n####################\nCompiler: ${gpp_version}\n####################" | process_input;
+          echo -e "\n####################\nCompiler: ${clang_version}\n####################" | process_input;
+          echo -e "\n####################\nBuilder: ${cmake_version}\n####################" | process_input;
           if ${{ inputs.analyzer == 4 }}; then
             codeCR_version=$(CodeChecker version);
-            echo -e "\n####################\nCodeChecker: ${codeCR_version}\n####################\n" | process_input;
+            echo -e "\n####################\nCodeChecker: ${codeCR_version}\n####################" | process_input;
           fi;
           if ${{ inputs.build == 3 }}; then
             deheader_version=$(deheader --version);
-            echo -e "\n####################\nDeheader: ${deheader_version}\n####################\n" | process_input;
+            echo -e "\n####################\nDeheader: ${deheader_version}\n####################" | process_input;
           fi;
           if ${{ inputs.analyzer == 3 }}; then
             clangd_version=$(clangd-tidy --version);
-            echo -e "\n####################\nClangd-Tidy: ${clangd_version}\n####################\n" | process_input;
+            echo -e "\n####################\nClangd-Tidy: ${clangd_version}\n####################" | process_input;
           fi;
-          echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################\n" | process_input;
-          echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################\n" | process_input;
-          echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}\n" | process_input;
-          echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################\n" | process_input;
-          echo -e "\n####################\nChecking for ${file_type} file(s)\n####################\n" | process_input;
+          echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################" | process_input;
+          echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################" | process_input;
+          echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
+          echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################" | process_input;
+          echo -e "\n####################\nChecking for ${file_type} file(s)\n####################" | process_input;
           source_dirs() {
             find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               if [[ "${dir}" != '.' ]]; then
@@ -669,7 +668,7 @@ runs:
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
             { time "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile; } 2>&1 | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -703,7 +702,7 @@ runs:
               cp -vf "${clang_file}" 'build/check-source-files.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
               { time clang-tidy @parameter-file; } 2>&1 | process_input;
-              if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+              if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -722,7 +721,7 @@ runs:
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == 3 }}; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
             { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 4 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm -- -I"${src_tree%/*}/include" || true' bash; } 2>&1 | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -811,7 +810,7 @@ runs:
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
             { time CodeChecker check -b "cmake clean && cmake ${{ inputs.file }}" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -838,7 +837,7 @@ runs:
             fi;
             [ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
             { time CodeChecker log --build "make ${{ inputs.file }}" --output ./build/compile_commands.json && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -859,7 +858,7 @@ runs:
             echo -e '\n####################\n\tdeheader analyze & repair sources includes...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
             { time deheader -r -v -m ${{ inputs.file }}; } 2>&1 | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -881,7 +880,7 @@ runs:
             clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
             clang_files_list=$(grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
             clang_warnings=$(grep -sEc 'warning:|Warning:|WARNING:' "${project_log}");
-            clang_errors=$(grep -sEc 'error:|Error:|Error while processing|ERROR:' "${project_log}");
+            clang_errors=$(grep -sEc ' error:| Error:|Error while processing| ERROR:' "${project_log}");
             clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
             clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}");
             if [[ "${clang_warnings:-0}" > '0' ]]; then
