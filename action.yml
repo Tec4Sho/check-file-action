@@ -566,7 +566,6 @@ runs:
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
           clang_tidy_version=$(clang-tidy --version);
-          compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
           clang_version=$(clang --version);
           verify_config=$(clang-tidy --verify-config);
           cmake_version=$(cmake --version);
@@ -770,6 +769,7 @@ runs:
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
         export LC_ALL=C
         set +e
+        compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         check_build=false
@@ -857,7 +857,7 @@ runs:
           if [[ -d 'build' ]] && ${{ inputs.build == 3 }}; then
             echo -e '\n####################\n\tdeheader analyze & repair sources includes...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
-            { time deheader -r -v -m "make -n -j $(nproc --all) -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
+            { time deheader -v -r -m "make -j $(nproc --all) -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found building project files" | process_input;
               check_build=true
@@ -877,6 +877,9 @@ runs:
           fi;
           if [[ -s "${project_log}" ]]; then
             echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;
+            deheader_duplicates=$(grep -sEc 'duplicates' "${project_log}");
+            deheader_inclusion=$(grep -sEc 'inclusion' "${project_log}");
+            deheader_removed=$(grep -sEc 'remove' "${project_log}");
             clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
             clang_files_list=$(grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
             clang_warnings=$(grep -sEc 'warning:|Warning:|WARNING:' "${project_log}");
@@ -884,7 +887,7 @@ runs:
             clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
             clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}");
             if [[ "${clang_warnings:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible fixes.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible errors.\n####################\n" | process_input;
             fi;
             if [[ "${clang_errors:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################\n" | process_input;
@@ -894,7 +897,17 @@ runs:
               fixed=true
             fi;
             if [[ "${clang_notes:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::☑ check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are suggestions for files and not directly issues.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::✅ check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are fix suggestions for files but not always issues.\n####################\n" | process_input;
+            fi;
+            if [[ "${deheader_removed:-0}" > '0' ]]; then
+              echo -e "\n####################\n::notice::⚠️ check-file found ${deheader_removed} extra inclusions in ${file_type} file(s) checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################\n" | process_input;
+              fixed=true
+            fi;
+            if [[ "${deheader_duplicates:-0}" > '0' ]]; then
+              echo -e "\n####################\n::notice::❌ check-file found ${deheader_duplicates} duplicates or colliding inclusions in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################\n" | process_input;
+            fi;
+            if [[ "${deheader_inclusion:-0}" > '0' ]]; then
+              echo -e "\n####################\n::notice::⚠️ check-file found ${deheader_inclusion} extra inclusions in ${file_type} file(s) checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################\n" | process_input;
             fi;
             if [[ "${clang_files_missing:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################\n" | process_input;
