@@ -133,27 +133,11 @@ runs:
         go-version: 1.25.3
       continue-on-error: true
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'
-      continue-on-error: true
-
     - name: Setup Clang Compiler 
       if: inputs.project == 'true'
       uses: rlalik/setup-cpp-compiler@master
       with:
         compiler: ${{ inputs.compiler }}
-      continue-on-error: true
-
-    - name: Install dependencies
-      run: |
-        echo '';
-        sudo cp -vf "${{ github.action_path }}/package.json" "${GITHUB_WORKSPACE}/";
-        sudo npm update >/dev/null && echo -e '\nUpdating npm module package dependencies\n';
-        sudo npm install -g npm@11.7.0 >/dev/null && echo -e "\n####################\nnpm package was updated successfully.\n####################\n";
-        sudo npm install package.json >/dev/null && echo -e '\nUpdating npm package.json dependencies \n';
-      shell: bash
       continue-on-error: true
 
     - name: Linux Distro
@@ -215,16 +199,16 @@ runs:
             echo -e "\n####################\nLinux Release: ${linux_verison}\n####################\n";
           fi;
         fi;
-        text0="\n####################\ngit dependencies Installed\n####################\n";
-        text1="\n####################\nripgrep dependencies Installed\n####################\n";
-        text2="\n####################\nansi2txt dependencies Installed\n####################\n";
-        text3="\n####################\nca-certificates dependencies Installed\n####################\n";
-        text4="\n####################\ncppcheck dependencies Installed\n####################\n";
-        text5="\n####################\nclang-tidy dependencies Installed\n####################\n";
-        text6="\n####################\nshellharden dependencies Installed\n####################\n";
-        text7="\n####################\nshellcheck dependencies Installed\n####################\n";
-        text8="\n####################\ncheckmake dependencies Installed\n####################\n";
-        text9="\n####################\nbatcat dependencies Installed\n####################\n";
+        text0="####################\ngit dependencies Installed\n####################";
+        text1="####################\nripgrep dependencies Installed\n####################";
+        text2="####################\nansi2txt dependencies Installed\n####################";
+        text3="####################\nca-certificates dependencies Installed\n####################";
+        text4="####################\ncppcheck dependencies Installed\n####################";
+        text5="####################\nclang-tidy dependencies Installed\n####################";
+        text6="####################\nshellharden dependencies Installed\n####################";
+        text7="####################\nshellcheck dependencies Installed\n####################";
+        text8="####################\ncheckmake dependencies Installed\n####################";
+        text9="####################\nbatcat dependencies Installed\n####################";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         github=${GITHUB_WORKSPACE};
@@ -233,11 +217,11 @@ runs:
           sudo rm -vf "$(which cmake)";
           sudo mkdir -p '/usr/local/bin'
           export PATH="/usr/local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-          python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
+          python -m pip install cmake --upgrade >/dev/null && echo -e "####################\ncmake pip dependencies Installed\n####################" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -vpf "/home/runner/.local/bin/cmake" '/usr/local/bin/'
         fi;
         if [[ ! $(which cmake) ]]; then
-          sudo apt-get -yq install cmake 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\ncmake dependencies Installed\n####################\n" || echo -e '::error::No cmake installed for project build'; 
+          sudo apt-get -yq install cmake 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies Installed\n####################" || echo -e '::error::No cmake installed for project build'; 
           [[ ! $(which cmake) ]] && exit 1
         fi;
         if [[ ! $(which git) ]]; then
@@ -245,17 +229,17 @@ runs:
           [[ ! $(which git) ]] && exit 1
         fi;
         if [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && ${{ inputs.repair }} && ${{ inputs.filename != '' }}; then
-          sudo apt-get -yq install gcc g++ 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\ngcc g++ dependencies Installed\n####################\n" || echo -e '::error::No gcc or g++ installed for repo updates';
+          sudo apt-get -yq install gcc g++ 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies Installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
         fi;
         if [[ ! $(which python3) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 2 }}; then
-          sudo apt-get -yq install python3 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3 dependencies Installed\n####################\n" || echo -e '::error::No python3 installed for project checks';
+          sudo apt-get -yq install python3 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\npython3 dependencies Installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
         if [[ ! $(llvm-config --version 2>/dev/null) ]] && ${{ inputs.project }}; then
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
-          sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\nllvm tools dependencies Installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
+          sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################" || echo -e '::error::No llvm tools installed for project build';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if [[ ! $(which clang-tidy) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
@@ -263,7 +247,7 @@ runs:
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
-          python3 -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
+          python3 -m pip install clangd-tidy >/dev/null && echo -e "####################\nclangd-tidy dependencies Installed\n####################" || echo -e '::error::No clangd-tidy installed for project checks';
           if [[ $(which clangd-tidy) ]]; then
             echo -e "\nclangd-tidy path: $(which clangd-tidy)\n";
           else
@@ -271,12 +255,12 @@ runs:
           fi;
         fi;
         if [[ ! $(which clangd) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install clangd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\nclangd dependencies Installed\n####################\n" || echo -e '::error::No clangd installed for project build';
+          sudo apt-get -yq install clangd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nclangd dependencies Installed\n####################" || echo -e '::error::No clangd installed for project build';
           [[ ! $(which clangd) ]] && exit 1
         fi;
         if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && (${{ inputs.analyzer == 4 }} || ${{ inputs.build > '0' }}); then
-          sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies Installed\n####################\n" || echo -e '::error::No python3-pip installed for project checks';
-          python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
+          sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\npython3-pip dependencies Installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
+          python3 -m pip install codechecker >/dev/null && echo -e "####################\ncodechecker dependencies Installed\n####################" || echo -e '::error::No codechecker installed for project checks';
           export PATH="/home/runner/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           export PATH="/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           sudo mkdir -p "/home/runner/codechecker/venv/include"
@@ -292,22 +276,14 @@ runs:
           fi;
         fi;
         if [[ ! $(which deheader) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || (${{ inputs.project }} && ${{ inputs.build == 3 }}); then
-          sudo apt-get -yq install deheader 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\ndeheader dependencies Installed\n####################\n" || echo -e '::error::No deheader installed for project includes check';
+          sudo apt-get -yq install deheader 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ndeheader dependencies Installed\n####################" || echo -e '::error::No deheader installed for project includes check';
           [[ ! $(which deheader) ]] && exit 1
         fi;
         if [[ ! $(dpkg -s build-essential 2>/dev/null) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install build-essential device-tree-compiler 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\nbuild-essential dependencies Installed\n####################\n" || echo -e '::error::No build-essential installed for project build';
-        fi;
-        if [[ ! $(which npm) ]]; then
-          sudo npm install 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\nnpm dependencies Installed\n####################\n" || echo -e '::error::No npm installed for term_width';
-          [[ ! $(which npm) ]] && exit 1
-        fi;
-        if [[ ! $(which tput) ]]; then
-          sudo apt-get -yq install tput 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\ntput dependencies Installed\n####################\n" || echo -e '::error::No tput installed for term_width';
-          [[ ! $(which tput) ]] && exit 1
+          sudo apt-get -yq install build-essential device-tree-compiler 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nbuild-essential dependencies Installed\n####################" || echo -e '::error::No build-essential installed for project build';
         fi;
         if [[ ! $(which tqdm) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
-          python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies Installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
+          python -m pip install tqdm >/dev/null && echo -e "####################\ntqdm dependencies Installed\n####################" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
         fi;
         if [[ ! $(which rg) ]] && [[ "${{ inputs.pattern }}" != '' ]] && ${{ inputs.database }}; then
@@ -360,55 +336,6 @@ runs:
         fi;
       shell: bash
       continue-on-error: false
-       
-    - name: Execute inline JavaScript
-      id: display-type
-      uses: actions/github-script@v6
-      with:
-        script: |
-          if (typeof core !== 'undefined') {
-            console.log('The variable core is declared and has a value: true');
-          } else {
-            console.log('The variable core is not declared or is undefined. declaring core now!');
-            const core = require('@actions/core');
-          }
-          if (typeof github !== 'undefined') {
-            console.log('The variable github is declared and has a value: true');
-          } else {
-            console.log('The variable github is not declared or is undefined. declaring github now!');
-            const github = require('@actions/github');
-          }
-          if (typeof jsdom !== 'undefined') {
-            console.log('The variable jsdom is declared and has a value: true');
-          } else {
-            console.log('The variable jsdom is not declared or is undefined. declaring jsdom now!');
-            const jsdom = require("jsdom");
-            const JSDOM = jsdom;
-          }
-          const name = core.getInput('Check-File-User');
-          core.setOutput('time', new Date().toTimeString());
-          console.log(`Hello ${name}!`);
-          global.document = new JSDOM(html).window.document;
-          const window = {
-            some: 'Some',
-            another: 'Another',
-            theOne: function() {
-            console.log(this.setTimeOut)
-            }.bind(global)
-          }
-          function getWindowSize() {
-            const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-            const height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-            return { width, height };
-          }
-          const size = getWindowSize();
-          console.log(`Browser window size: ${size.width}x${size.height}`);
-          if (window.matchMedia("(min-width: 400px)").matches) {
-            core.setOutput("mobile-view", true);
-          } else {
-            core.setOutput("mobile-view", false);
-          }
-      continue-on-error: true
       
     - name: Set Directory Base
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
@@ -447,35 +374,22 @@ runs:
         text10a="#####################";
         text10b="\033[1m# CHECK FILE ACTION #\033[0m";
         text10c="#####################";
-        export TERM=xterm-256color
-        if [[ ${TERM} ]]; then
-          chmod -R 0755 "${{ github.action_path }}/scripts";
-          center_text() {
-            local text="$1";
-            local term_cols="$(tput cols)";
-            local text_length="${#text}";
-            if [[ ${{ steps.display-type.outputs.mobile-view }}" ]]; then
-              local padding="$(( (term_cols - text_length) / 2 ))";
-              local text="$(echo $1 | tr -d '\n')";
-              print ''
-              printf "%*s%s\n" "${padding}" "" "${text}"
-              print ''
-            else
-              echo -e "${text}"
-            fi;
-          }
-        fi;
+        chmod -R 0755 "${{ github.action_path }}/scripts";
+        text() {
+          local text="$1";
+          echo -e "${text}"
+        }
         if ${{ inputs.rootdir }}; then
-          center_text "\n${text1a}";
-          center_text "${text1b}";
-          center_text "${text1c}";
+          text "\n${text1a}";
+          text "${text1b}";
+          text "${text1c}";
           echo -e '\n~/\n';
           echo 'file_path=/' >> "${GITHUB_ENV}";
           file_path=/
         else
-          center_text "\n${text2a}";
-          center_text "${text2b}";
-          center_text "${text2c}";
+          text "\n${text2a}";
+          text "${text2b}";
+          text "${text2c}";
           echo -e "\n${GITHUB_WORKSPACE}\n";
           echo "file_path=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
           file_path=${GITHUB_WORKSPACE}
@@ -483,25 +397,25 @@ runs:
         if ${{ inputs.stored }} && ${{ env.update }} && [[ -d ${repository} ]]; then
           repaired="${repository%/*}/${repair_file}";
           if [[ -f ${repaired} ]]; then
-            center_text "\n${text3a}";
-            center_text "${text3b}";
-            center_text "${text3c}\n";
+            text "\n${text3a}";
+            text "${text3b}";
+            text "${text3c}\n";
           else
-            center_text "\n${text4a}";
-            center_text "${text4b}";
-            center_text "${text4c}\n";
+            text "\n${text4a}";
+            text "${text4b}";
+            text "${text4c}\n";
             date '+%Y%m%d' > "${repaired}" || echo -e "::warning:: ${repaired} backup file not found";
           fi;
         elif ${{ inputs.stored }} && [[ -d ${repository} ]]; then
           repaired="${repository%/*}/${repair_file}";
           if [[ -f ${repaired} ]]; then
-            center_text "\n${text3a}";
-            center_text "${text3b}";
-            center_text "${text3c}\n";
+            text "\n${text3a}";
+            text "${text3b}";
+            text "${text3c}\n";
           else
-            center_text "\n${text4a}";
-            center_text "${text4b}";
-            center_text "${text4c}\n";
+            text "\n${text4a}";
+            text "${text4b}";
+            text "${text4c}\n";
             date '+%Y%m%d' > "${repaired}" || echo -e "::warning:: ${repaired} backup file not found";
           fi;
           echo 'update=true' >> "${GITHUB_ENV}";
@@ -509,29 +423,29 @@ runs:
         if ${{ inputs.database }}; then
           sudo find "${file_path}" -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -print | sort -t/ -k1.2 > "${GITHUB_WORKSPACE}/database";
           if [[ -s "${GITHUB_WORKSPACE}/database" ]]; then
-            center_text "\n${text5a}";
-            center_text "${text5b}";
-            center_text "${text5c}\n";
+            text "\n${text5a}";
+            text "${text5b}";
+            text "${text5c}\n";
             echo "database=${GITHUB_WORKSPACE}/database" >> "${GITHUB_ENV}";
           else
-            center_text "\n${text6a}";
-            center_text "${text6b}";
-            center_text "${text6c}\n" && exit 1
+            text "\n${text6a}";
+            text "${text6b}";
+            text "${text6c}\n" && exit 1
           fi;
         fi;
         if [[ "${{ inputs.filename }}" != '' ]]; then
-          center_text "\n${text7a}";
-          center_text "${text7b}";
-          center_text "${text7c}\n";
+          text "\n${text7a}";
+          text "${text7b}";
+          text "${text7c}\n";
         fi;
         if [[ "${{ inputs.pattern }}" != '' ]] && [[ "${{ inputs.filetype }}" != 'none' ]]; then
-          center_text "\n${text8a}";
-          center_text "${text8b}";
-          center_text "${text8c}\n";
+          text "\n${text8a}";
+          text "${text8b}";
+          text "${text8c}\n";
         elif [[ "${{ inputs.pattern }}" != '' ]]; then
-          center_text "\n${text9a}";
-          center_text "${text9b}";
-          center_text "${text9c}\n";
+          text "\n${text9a}";
+          text "${text9b}";
+          text "${text9c}\n";
         fi;
         if [[ -z "${{ inputs.dirname }}" ]]; then
           if [ -z "${{ github.event.inputs.DEVICE_PATH }}" ]; then
@@ -546,7 +460,7 @@ runs:
           echo "dirname=${dirname}" >> "${GITHUB_ENV}";
         fi;
         if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analyzer > 0 }}; then
-          center_text "::warning:: inputs.project: and inputs.filename: both enabled disables inputs.analyzer:\nTo remove this warning use ( inputs.analyzer: 0 )\n";
+          text "::warning:: inputs.project: and inputs.filename: both enabled disables inputs.analyzer:\nTo remove this warning use ( inputs.analyzer: 0 )\n";
           echo "analyzer=0" >> "${GITHUB_ENV}";
         else
           echo "analyzer=${{ inputs.analyzer }}" >> "${GITHUB_ENV}";
@@ -596,9 +510,9 @@ runs:
             exit 1
           fi;
         fi;
-        center_text "\n${text10a}" 2>/dev/null;
-        center_text "${text10b}" 2>/dev/null;
-        center_text "${text10c}\n" 2>/dev/null;
+        text "\n${text10a}" 2>/dev/null;
+        text "${text10b}" 2>/dev/null;
+        text "${text10c}\n" 2>/dev/null;
         if ${{ inputs.build > '0' }}; then
           echo 'gitub_build_project=true' >> "${GITHUB_ENV}";
         fi;
@@ -1780,23 +1694,10 @@ runs:
     - name: Exiting
       run: |
         echo '';
-        export TERM=xterm-256color
-        if [[ -n ${TERM} ]]; then
-          center_text() {
-            local text="$1";
-            local term_cols="$(tput cols)";
-            local text_length="${#text}";
-            if [[ ${{ steps.display-type.outputs.mobile-view }}" ]]; then
-              local padding="$(( (term_cols - text_length) / 2 ))";
-              local text="$(echo $1 | tr -d '\n')";
-              print '';
-              printf "%*s%s\n" "${padding}" "" "${text}"
-              print '';
-            else
-              echo -e "${text}"
-            fi;
-          }
-        fi;
+        text() {
+          local text="$1";
+          echo -e "${text}"
+        }
         texta="######################";
         textb="\033[1m# CHECK FILE EXITING #\033[0m";
         textc="######################";
