@@ -613,7 +613,7 @@ runs:
             done;
           }
           header1_list() {
-            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'arch' -o -name 'tools' -o -name 'block' -o -name 'crypto' -o -name 'drivers' -o -name 'firmware' -o -name 'fs' -o -name 'init' -o -name 'ipc' -o -name 'kernel' -o -name 'mm' -o -name 'net' -o -name 'sound' -o -name 'usr' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               if [[ -d "${include}" ]]; then
                 echo -n "${include} ";
               fi;
@@ -667,7 +667,7 @@ runs:
             sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
             sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile; } 2>&1 | process_input;
+            { time "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile -- -Iinclude/; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -802,7 +802,7 @@ runs:
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
           if [[ -d 'build' ]] && ${{ inputs.build == 1 }}; then
-            echo -e '\n####################\n\tBuilding project from sources...\n####################\n' | process_input;
+            echo -e '\n####################\n\tBuilding project from source files...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
              sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
@@ -811,11 +811,11 @@ runs:
             fi;
             { time CodeChecker check -b "cmake clean && cmake ${{ inputs.file }}" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "::notice::Errors found checking project files" | process_input;
+              echo -e "::notice::Errors found checking building files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "::notice::No errors found checking project files" | process_input;
+              echo -e "::notice::No errors found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -838,11 +838,11 @@ runs:
             [ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
             { time CodeChecker log --build "make ${{ inputs.file }}" --output ./build/compile_commands.json && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "::notice::Errors found checking project files" | process_input;
+              echo -e "::notice::Errors found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "::notice::No errors found checking project files" | process_input;
+              echo -e "::notice::No errors found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -859,7 +859,7 @@ runs:
             sudo bash -c 'source ~/.bashrc'
             { time deheader -r -v -m "make -G ${{ inputs.file }}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "::notice::Errors found checking project files" | process_input;
+              echo -e "::notice::Errors found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
@@ -1060,7 +1060,12 @@ runs:
                       fixed=true
                     elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n" | process_input;
-                      clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
+                      if [[ $(echo "${file_type}" | egrep "^c$|^cc$") ]]; then
+                        gcc -MM "${file}" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
+                      elif [[ $(echo "${file_type}" | egrep "^c..$") ]]; then
+                        g++ -MM "${file}" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
+                      fi;
+                      clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"${src_tree%/*}/include" 2>/dev/null | process_input || echo -e "::error:: ( $? ) Broken pipe check. PipeStatus [0]: ${PIPESTATUS[0]}, PipeStatus [1]: ${PIPESTATUS[1]}";
                       if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                         echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n" | process_input;
                       else
