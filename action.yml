@@ -181,7 +181,7 @@ runs:
         sudo apt-get --fix-broken install -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         if ${{ inputs.project }}; then
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
-            echo -e "\nCurrent CMake version (${cmake_version}) is older than ${required_version}. Updating...\n"
+            echo -e "Current CMake version (${cmake_version}) is older than ${required_version}. Updating..."
             sudo apt-get remove --purge -yq cmake >/dev/null;
             sudo apt-get install -yq ca-certificates gpg wget >/dev/null;
             sudo bash -c "$(sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null)";
@@ -195,7 +195,6 @@ runs:
               echo -e "\nKitWare Keyring: Noble ${linux_verison}\n";
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
             fi;
-            echo -e "\n####################\nLinux Release: ${linux_verison}\n####################\n";
           fi;
         fi;
         text0="####################\ngit dependencies Installed\n####################";
@@ -212,7 +211,7 @@ runs:
         file_type="${file_name##*.}";
         github=${GITHUB_WORKSPACE};
         if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
-          echo -e "Current CMake version ($cmake_version) adding latest python cmake\n"
+          echo -e "CMake version $cmake_version upgrading to latest python cmake\n"
           sudo rm -vf "$(which cmake)";
           sudo mkdir -p '/usr/local/bin'
           export PATH="/usr/local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
@@ -258,8 +257,8 @@ runs:
           [[ ! $(which clangd) ]] && exit 1
         fi;
         if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && (${{ inputs.analyzer == 4 }} || ${{ inputs.build > '0' }}); then
-          sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\npython3-pip dependencies Installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
-          python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################\n" || echo -e '::error::No codechecker installed for project checks';
+          sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies Installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
+          python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################" || echo -e '::error::No codechecker installed for project checks';
           export PATH="/home/runner/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           export PATH="/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           sudo mkdir -p "/home/runner/codechecker/venv/include"
@@ -269,7 +268,7 @@ runs:
           python3 -m venv .
           cd "${github}"
           if [[ $(which CodeChecker) ]]; then
-            echo -e "\nCodeChecker path: $(which CodeChecker)\n";
+            echo -e "CodeChecker path: $(which CodeChecker)";
           else
             exit 1
           fi;
@@ -333,6 +332,7 @@ runs:
         if [[ -d '/home/runner/.local/bin' ]]; then
           echo "export PATH=/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
         fi;
+        echo '';
       shell: bash
       continue-on-error: false
       
@@ -857,7 +857,7 @@ runs:
           if [[ -d 'build' ]] && ${{ inputs.build == 3 }}; then
             echo -e '\n####################\n\tdeheader analyze & repair sources includes...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
-            { time deheader -r -v -m ${{ inputs.file }}; } 2>&1 | process_input;
+            { time deheader -r -v -m "make -G ${{ inputs.file }}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -1700,9 +1700,9 @@ runs:
         texta="######################";
         textb="\033[1m# CHECK FILE EXITING #\033[0m";
         textc="######################";
-        center_text "\n${texta}";
-        center_text "${textb}";
-        center_text "${textc}\n";
+        text "\n${texta}";
+        text "${textb}";
+        text "${textc}\n";
       shell: bash
       continue-on-error: true
 ## Version 2.0.0 Professional (beta 5)
