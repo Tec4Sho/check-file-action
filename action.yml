@@ -242,7 +242,7 @@ runs:
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if [[ ! $(which clang-tidy) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
-          sudo apt-get install -yq clang-tools clang-tidy clang 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
+          sudo apt-get install -yq clang-tools-extra clang-tidy clang 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
@@ -256,6 +256,10 @@ runs:
         if [[ ! $(which clangd) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install clangd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nclangd dependencies Installed\n####################" || echo -e '::error::No clangd installed for project build';
           [[ ! $(which clangd) ]] && exit 1
+        fi;
+        if [[ ! $(whereis run-clang-tidy) ]]; then
+          sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
+          [[ ! $(which run-clang-tidy) ]] && echo 'run-clang-tidy not installed using default run-clang-tide.py script';
         fi;
         if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && (${{ inputs.analyzer == 4 }} || ${{ inputs.build > '0' }}); then
           sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies Installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
