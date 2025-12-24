@@ -278,7 +278,7 @@ runs:
             exit 1
           fi;
         fi;
-        if [[ ! $(which deheader) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || (${{ inputs.project }} && ${{ inputs.build == 3 }}); then
+        if [[ ! $(which deheader) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || (${{ inputs.project }} && ${{ inputs.build > '2' }}); then
           sudo apt-get -yq install deheader 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ndeheader dependencies Installed\n####################" || echo -e '::error::No deheader installed for project includes check';
           [[ ! $(which deheader) ]] && exit 1
         fi;
@@ -641,10 +641,10 @@ runs:
             echo "github_source_files=true" >> "${GITHUB_ENV}";
           fi;
           if [[ -f "${clang_tidy}" ]]; then
-            echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n' | process_input;
+            echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input;
           fi;
           if [[ -f "${cmake_list}" ]]; then
-            echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################\n' | process_input;
+            echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################' | process_input;
           fi;
           mkdir -p build/fixes
           if [[ -d 'build' ]]; then
@@ -659,7 +659,7 @@ runs:
             if [[ "${PIPESTATUS[0]}" == 0 ]]; then
               if ${{ inputs.upload }}; then
                 echo 'build_files=1' >> "${GITHUB_ENV}";
-                cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
+                cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################' | process_input;
               fi;
             fi;
           fi;
