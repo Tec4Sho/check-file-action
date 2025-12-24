@@ -367,25 +367,25 @@ runs:
       with:
         script: |
           if (typeof core !== 'undefined') {
-            console.log('The variable core is declared and has a value:', core);
+            console.log('The variable core is declared and has a value: true');
           } else {
             console.log('The variable core is not declared or is undefined. declaring core now!');
             const core = require('@actions/core');
           }
           if (typeof github !== 'undefined') {
-            console.log('The variable github is declared and has a value:', github);
+            console.log('The variable github is declared and has a value: true');
           } else {
             console.log('The variable github is not declared or is undefined. declaring github now!');
             const github = require('@actions/github');
           }
           if (typeof jsdom !== 'undefined') {
-            console.log('The variable jsdom is declared and has a value:', jsdom);
+            console.log('The variable jsdom is declared and has a value: true');
           } else {
             console.log('The variable jsdom is not declared or is undefined. declaring jsdom now!');
             const jsdom = require("jsdom");
-            const { JSDOM } = jsdom;
+            const JSDOM = jsdom;
           }
-          const name = core.getInput('who-to-greet');
+          const name = core.getInput('Check-File-User');
           core.setOutput('time', new Date().toTimeString());
           console.log(`Hello ${name}!`);
           global.document = new JSDOM(html).window.document;
