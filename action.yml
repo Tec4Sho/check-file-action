@@ -268,7 +268,7 @@ runs:
           python3 -m venv .
           cd "${github}"
           if [[ $(which CodeChecker) ]]; then
-            echo -e "CodeChecker path: $(which CodeChecker)";
+            echo -e "\nCodeChecker path: $(which CodeChecker)";
           else
             exit 1
           fi;
