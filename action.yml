@@ -595,11 +595,11 @@ runs:
           echo -e "\n####################\nCompiler: ${gpp_version}\n####################" | process_input;
           echo -e "\n####################\nCompiler: ${clang_version}\n####################" | process_input;
           echo -e "\n####################\nBuilder: ${cmake_version}\n####################" | process_input;
-          if ${{ inputs.analyzer == 4 }}; then
+          if ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
             codeCR_version=$(CodeChecker version);
             echo -e "\n####################\nCodeChecker: ${codeCR_version}\n####################" | process_input;
           fi;
-          if ${{ inputs.build == 3 }}; then
+          if ${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}; then
             deheader_version=$(deheader --version);
             echo -e "\n####################\nDeheader: ${deheader_version}\n####################" | process_input;
           fi;
@@ -760,7 +760,8 @@ runs:
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-        fi;  
+        fi;
+        echo '';
       shell: bash
       continue-on-error: true
       
@@ -882,7 +883,7 @@ runs:
           if [[ -d 'build' ]] && ${{ inputs.build == '4' }}; then
             echo -e '\n####################\n\t[4] Deheader analyze & repair sources includes...(build)\n####################' | process_input;
             sudo bash -c 'source ~/.bashrc'
-            { time deheader -v -r -m "make -v 2 -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
+            { time deheader -v -r -m "clang-tidy --fix-errors --fix-notes -enable-check-profile" .; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
               echo -e "::notice::duplicate includes found building project files" | process_input;
               check_build=true
@@ -899,9 +900,6 @@ runs:
           elif [[ ! -d 'build' ]] && ${{ inputs.build == '4' }}; then
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
-          fi;
-          if ${{ inputs.build > '2' }} && [[ "${check_build}" ]]; then
-            make clean | process_input;
           fi;
           if [[ -s "${project_log}" ]]; then
             echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################" | process_input;
@@ -983,11 +981,11 @@ runs:
         github=${GITHUB_WORKSPACE};
         process_input() {
           while IFS= read -r log; do
-            if ${{ inputs.output == 1 }}; then
+            if ${{ inputs.output == '1' }}; then
               echo -e "${log}" | tee -a "${error_log}";
-            elif ${{ inputs.output == 2 }}; then
+            elif ${{ inputs.output == '2' }}; then
               echo -e "${log}" >> "${error_log}";
-            elif ${{ inputs.output == 3 }}; then
+            elif ${{ inputs.output == '3' }}; then
               echo -e "${log}";
             fi;
           done;
@@ -1226,11 +1224,11 @@ runs:
         error_log="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
         process_input() {
           while IFS= read -r log; do
-            if ${{ inputs.output == 1 }}; then
+            if ${{ inputs.output == '1' }}; then
               echo -e "${log}" | tee -a "${error_log}";
-            elif ${{ inputs.output == 2 }}; then
+            elif ${{ inputs.output == '2' }}; then
               echo -e "${log}" >> "${error_log}";
-            elif ${{ inputs.output == 3 }}; then
+            elif ${{ inputs.output == '3' }}; then
               echo -e "${log}";
             fi;
           done;
@@ -1353,11 +1351,11 @@ runs:
         error_log="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
         process_input() {
           while IFS= read -r log; do
-            if ${{ inputs.output == 1 }}; then
+            if ${{ inputs.output == '1' }}; then
               echo -e "${log}" | tee -a "${error_log}";
-            elif ${{ inputs.output == 2 }}; then
+            elif ${{ inputs.output == '2' }}; then
               echo -e "${log}" >> "${error_log}";
-            elif ${{ inputs.output == 3 }}; then
+            elif ${{ inputs.output == '3' }}; then
               echo -e "${log}";
             fi;
           done;
