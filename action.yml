@@ -218,6 +218,7 @@ runs:
           export PATH="/usr/local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -vpf "/home/runner/.local/bin/cmake" '/usr/local/bin/'
+          echo '';
         fi;
         if [[ ! $(which cmake) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install cmake 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies Installed\n####################" || echo -e '::error::No cmake installed for project build'; 
@@ -257,7 +258,7 @@ runs:
           sudo apt-get -yq install clangd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nclangd dependencies Installed\n####################" || echo -e '::error::No clangd installed for project build';
           [[ ! $(which clangd) ]] && exit 1
         fi;
-        if [[ $(whereis -b run-clang-tidy) ]] && (${{ inputs.analyzer == '1' }} && ${{ inputs.project }}; then
+        if [[ $(whereis -b run-clang-tidy) ]] && ${{ inputs.analyzer == '1' }} && ${{ inputs.project }}; then
           echo -e "\nrun-clang-tidy installed in $(whereis -b run-clang-tidy)";
           echo 'run_clang_tidy=run-clang-tidy' >> "${GITHUB_ENV}";
         else
@@ -862,7 +863,7 @@ runs:
           if [[ -d 'build' ]] && ${{ inputs.build == '3' }}; then
             echo -e '\n####################\n\tDeheader analyze sources includes...(dry-run 3)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
-            { time deheader -v -r -m "make -v 3 -n -j $(nproc --all) -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
+            { time deheader -m "make -v 3 -n -j $(nproc --all) -f ${{ inputs.makefile }}" -r -v; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
               echo -e "\nruntime\n::notice::duplicate includes found building project files" | process_input;
               check_build=true
@@ -883,7 +884,7 @@ runs:
           if [[ -d 'build' ]] && ${{ inputs.build == '4' }}; then
             echo -e '\n####################\n\tDeheader analyze & repair sources includes...(build 4)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
-            { time deheader -v -r -m "make -v 2 -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
+            { time deheader -m "make -v 2 -f ${{ inputs.makefile }}" -r -v; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
               echo -e "\nruntime\n::notice::duplicate includes found building project files" | process_input;
               check_build=true
