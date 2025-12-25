@@ -219,7 +219,7 @@ runs:
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -vpf "/home/runner/.local/bin/cmake" '/usr/local/bin/'
         fi;
-        if [[ ! $(which cmake) ]]; then
+        if [[ ! $(which cmake) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install cmake 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies Installed\n####################" || echo -e '::error::No cmake installed for project build'; 
           [[ ! $(which cmake) ]] && exit 1
         fi;
@@ -231,7 +231,7 @@ runs:
           sudo apt-get -yq install gcc g++ 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies Installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
         fi;
-        if [[ ! $(which python3) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 2 }}; then
+        if [[ ! $(which python3) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == '2' }}; then
           sudo apt-get -yq install python3 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\npython3 dependencies Installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
@@ -245,7 +245,7 @@ runs:
           sudo apt-get install -yq clang-tools clang-tidy clang 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
-        if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
+        if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == '3' }}; then
           python3 -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
           if [[ $(which clangd-tidy) ]]; then
             echo -e "\nclangd-tidy path: $(which clangd-tidy)\n";
@@ -257,14 +257,14 @@ runs:
           sudo apt-get -yq install clangd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nclangd dependencies Installed\n####################" || echo -e '::error::No clangd installed for project build';
           [[ ! $(which clangd) ]] && exit 1
         fi;
-        if [[ $(whereis -b run-clang-tidy) ]]; then
-          echo 'run-clang-tidy installed not using built-in run-clang-tide.py script';
+        if [[ $(whereis -b run-clang-tidy) ]] && (${{ inputs.analyzer == '1' }} && ${{ inputs.project }}; then
+          echo -e "\nrun-clang-tidy installed in $(whereis -b run-clang-tidy)";
           echo 'run_clang_tidy=run-clang-tidy' >> "${GITHUB_ENV}";
         else
-          echo 'run-clang-tidy not installed using built-in run-clang-tide.py script';
+          echo -e '\nrun-clang-tidy not installed using built-in run-clang-tide.py script';
           echo "run_clang_tidy=${{ github.action_path }}/scripts/tools/run-clang-tidy.py" >> "${GITHUB_ENV}";
         fi;
-        if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && (${{ inputs.analyzer == 4 }} || ${{ inputs.build > '0' }}); then
+        if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && (${{ inputs.analyzer == '4' }} || ${{ inputs.build > '0' }}); then
           sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies Installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
           python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################" || echo -e '::error::No codechecker installed for project checks';
           export PATH="/home/runner/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
@@ -807,7 +807,7 @@ runs:
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
           if [[ -d 'build' ]] && ${{ inputs.build == '1' }}; then
-            echo -e '\n####################\n\t[1] Building project from source files...(dry-run)\n####################\n' | process_input;
+            echo -e '\n####################\n\t[1] Building project from source files...(dry-run 1)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
              sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
@@ -816,11 +816,11 @@ runs:
             fi;
             { time CodeChecker check -b "cmake clean && make -v -n 3 -k -j $(nproc --all) -f ${{ inputs.makefile }}" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "::notice::Errors found checking building files" | process_input;
+              echo -e "\nruntime\n::notice::Errors found checking building files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "::notice::No errors found building project files" | process_input;
+              echo -e "\nruntime\n::notice::No errors found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -833,7 +833,7 @@ runs:
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ inputs.build == '2' }}; then
-            echo -e '\n####################\n\t[2] CodeChecker building compile_commands.json & project sources...(build)\n####################\n' | process_input;
+            echo -e '\n####################\n\tCodeChecker building compile_commands.json & project sources...(build 2)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
              sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
@@ -843,11 +843,11 @@ runs:
             [ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
             { time CodeChecker log --build "make -v 2 -j $(nproc --all) -f ${{ inputs.makefile }}" --output ./build/compile_commands.json && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "::notice::Errors found building project files" | process_input;
+              echo -e "\nruntime\n::notice::Errors found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "::notice::No errors found building project files" | process_input;
+              echo -e "\nruntime\n::notice::No errors found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -860,15 +860,15 @@ runs:
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ inputs.build == '3' }}; then
-            echo -e '\n####################\n\t[3] deheader analyze sources includes...(dry-run)\n####################' | process_input;
+            echo -e '\n####################\n\tDeheader analyze sources includes...(dry-run 3)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
             { time deheader -v -r -m "make -v 3 -n -j $(nproc --all) -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
-              echo -e "::notice::duplicate includes found building project files" | process_input;
+              echo -e "\nruntime\n::notice::duplicate includes found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "::notice::No duplicate includes found checking project files" | process_input;
+              echo -e "\nruntime\n::notice::No duplicate includes found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -881,15 +881,15 @@ runs:
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ inputs.build == '4' }}; then
-            echo -e '\n####################\n\t[4] Deheader analyze & repair sources includes...(build)\n####################' | process_input;
+            echo -e '\n####################\n\tDeheader analyze & repair sources includes...(build 4)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
-            { time deheader -v -r -m "clang-tidy --fix-errors --fix-notes -enable-check-profile" .; } 2>&1 | process_input;
+            { time deheader -v -r -m "make -v 2 -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
-              echo -e "::notice::duplicate includes found building project files" | process_input;
+              echo -e "\nruntime\n::notice::duplicate includes found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "::notice::No duplicate includes found checking project files" | process_input;
+              echo -e "\nruntime\n::notice::No duplicate includes found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -931,8 +931,7 @@ runs:
             fi;
             if [[ "${deheader_duplicates:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::❌ check-file found ${deheader_duplicates} duplicates or colliding inclusions in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################" | process_input;
-            fi;
-            if [[ "${deheader_inclusion:-0}" > '0' ]]; then
+            elif [[ "${deheader_inclusion:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::⚠️ check-file found ${deheader_inclusion} extra inclusions in ${file_type} file(s) checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
             fi;
             if [[ "${clang_files_missing:-0}" > '0' ]]; then
