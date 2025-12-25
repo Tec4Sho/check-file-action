@@ -203,7 +203,7 @@ runs:
         text2="####################\nansi2txt dependencies Installed\n####################";
         text3="####################\nca-certificates dependencies Installed\n####################";
         text4="####################\ncppcheck dependencies Installed\n####################";
-        text5="####################\nclang-tidy dependencies Installed\n####################";
+        text5="####################\nclang-tools dependencies Installed\n####################";
         text6="####################\nshellharden dependencies Installed\n####################";
         text7="####################\nshellcheck dependencies Installed\n####################";
         text8="####################\ncheckmake dependencies Installed\n####################";
@@ -242,7 +242,7 @@ runs:
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if [[ ! $(which clang-tidy) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
-          sudo apt-get install -yq clang-tools-extra clang-tidy clang 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tidy installed Exiting';
+          sudo apt-get install -yq clang-tools clang-tidy clang 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == 3 }}; then
@@ -257,9 +257,12 @@ runs:
           sudo apt-get -yq install clangd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nclangd dependencies Installed\n####################" || echo -e '::error::No clangd installed for project build';
           [[ ! $(which clangd) ]] && exit 1
         fi;
-        if [[ ! $(whereis run-clang-tidy) ]]; then
-          sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
-          [[ ! $(which run-clang-tidy) ]] && echo 'run-clang-tidy not installed using default run-clang-tide.py script';
+        if [[ $(whereis -b run-clang-tidy) ]]; then
+          echo 'run-clang-tidy installed not using built-in run-clang-tide.py script';
+          echo 'run_clang_tidy=run-clang-tidy' >> "${GITHUB_ENV}";
+        else
+          echo 'run-clang-tidy not installed using built-in run-clang-tide.py script';
+          echo "run_clang_tidy=${{ github.action_path }}/scripts/tools/run-clang-tidy.py" >> "${GITHUB_ENV}";
         fi;
         if [[ ! $(which CodeChecker) ]] && ${{ inputs.project }} && (${{ inputs.analyzer == 4 }} || ${{ inputs.build > '0' }}); then
           sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies Installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
@@ -518,7 +521,7 @@ runs:
         text "${text10b}" 2>/dev/null;
         text "${text10c}\n" 2>/dev/null;
         if ${{ inputs.build > '0' }}; then
-          echo 'gitub_build_project=true' >> "${GITHUB_ENV}";
+          echo 'github_build_project=true' >> "${GITHUB_ENV}";
         fi;
         echo "github_repository=${repo}" >> "${GITHUB_ENV}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
@@ -550,11 +553,11 @@ runs:
         count=1
         process_input() {
           while IFS= read -r log; do
-            if ${{ inputs.output == 1 }}; then
+            if ${{ inputs.output == '1' }}; then
               echo -e "${log}" | tee -a "${project_log}";
-            elif ${{ inputs.output == 2 }}; then
+            elif ${{ inputs.output == '2' }}; then
               echo -e "${log}" >> "${project_log}";
-            elif ${{ inputs.output == 3 }}; then
+            elif ${{ inputs.output == '3' }}; then
               echo -e "${log}";
             fi;
           done;
@@ -664,14 +667,11 @@ runs:
             fi;
           fi;
           if [[ -e 'compile_commands.json' ]]; then
-            echo -e '\n####################\n\tcompile_commands.json file symlinked continuing...\n####################\n' | process_input;
+            echo -e '\n####################\n\tcompile_commands.json file symlinked continuing...\n####################' | process_input;
           fi;
-          if [[ -e "${clang_run}" ]] && ${{ env.analyzer == 1 }}; then
-            echo -e "\n####################\n\trun-clang-tidy.py found continuing...\n####################\n" | process_input;
-            sudo chmod -v 0755 "${clang_run}" 2>/dev/null | process_input;
-            sudo chmod -R 0755 "${clang_fix}" 2>/dev/null;
-            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
-            { time "${{ github.action_path }}/scripts/tools/run-clang-tidy.py" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile -- -Iinclude/; } 2>&1 | process_input;
+          if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }}; then
+            echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
+            { time "${{ env.run_clang_tidy }}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile -- -Iinclude/; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -681,30 +681,30 @@ runs:
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
-          elif [[ ! -e "${clang_run}" ]] && ${{ env.analyzer == 1 }}; then
+          elif [[ ! -e "${clang_run}" ]] && ${{ env.analyzer == '1' }}; then
             echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ -f "${clang_file}" ]] && ${{ env.analyzer == 2 }}; then
+          if [[ -f "${clang_file}" ]] && ${{ env.analyzer == '2' }}; then
             echo ' ' >> "${clang_file}";
             files_list=false
             if [[ `header2_list` ]] && [[ `source_list` ]] ; then
-              echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n" | process_input;
+              echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################" | process_input;
               header2_list >> "${clang_file}";
               source_files >> "${clang_file}";
               files_list=true
             elif [[ `source_list` ]]; then
-              echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################\n" | process_input;
+              echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################" | process_input;
               source_files >> "${clang_file}";
               files_list=true
             else	
               echo -e "\n::error::No ${file_type} files found searching repository\nExiting...\n" | process_input;
             fi;
-            echo -e "\n####################\n\t${clang_file} found continuing...\n####################\n" | process_input;
+            echo -e "\n####################\n\t${clang_file} found continuing...\n####################" | process_input;
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n' | process_input;
             if [[ "${files_list}" ]]; then
               cp -vf "${clang_file}" 'build/check-source-files.txt' 2>/dev/null;
-              echo -e '\n####################\nCLANG-TIDY ANALYZING FILE\n####################\n' | process_input;
+              echo -e '\n####################\nCLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
               { time clang-tidy @parameter-file; } 2>&1 | process_input;
               if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
@@ -718,12 +718,12 @@ runs:
             else
               exit 1
             fi;
-          elif [[ ! -e "${clang_file}" ]] && ${{ env.analyzer == 2 }}; then
+          elif [[ ! -e "${clang_file}" ]] && ${{ env.analyzer == '2' }}; then
             echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == 3 }}; then
-            echo -e '\n####################\nCLANGD-TIDY ANALYZING FILE\n####################\n' | process_input;
+          if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }}; then
+            echo -e '\n####################\nCLANGD-TIDY ANALYZING FILES\n####################\n' | process_input;
             { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 4 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm -- -I"${src_tree%/*}/include" || true' bash; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking project files" | process_input;
@@ -734,13 +734,12 @@ runs:
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
-          elif [[ ! -e "${clangd_tidy}" ]] && ${{ env.analyzer == 3 }}; then
+          elif [[ ! -e "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }}; then
             echo -e "\n####################\n\t::error::${clangd_tidy##/*} file missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ -d 'build' ]] && ${{ env.analyzer == 4 }}; then
-            echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            echo -e '\n####################\n\tCodeChecker running analyzer...\n####################\n' | process_input;
+          if [[ -d 'build' ]] && ${{ env.analyzer == '4' }}; then
+            echo -e '\n####################\n\tCODECHECKER ANALYZING FILES...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
              sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
@@ -757,7 +756,7 @@ runs:
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
-          elif [[ ! -d 'build' ]] && ${{ env.analyzer == 4 }}; then
+          elif [[ ! -d 'build' ]] && ${{ env.analyzer == '4' }}; then
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
@@ -786,11 +785,11 @@ runs:
         count=1
         process_input() {
           while IFS= read -r log; do
-            if ${{ inputs.output == 1 }}; then
+            if ${{ inputs.output == '1' }}; then
               echo -e "${log}" | tee -a "${project_log}";
-            elif ${{ inputs.output == 2 }}; then
+            elif ${{ inputs.output == '2' }}; then
               echo -e "${log}" >> "${project_log}";
-            elif ${{ inputs.output == 3 }}; then
+            elif ${{ inputs.output == '3' }}; then
               echo -e "${log}";
             fi;
           done;
@@ -806,7 +805,7 @@ runs:
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
-          if [[ -d 'build' ]] && ${{ inputs.build == 1 }}; then
+          if [[ -d 'build' ]] && ${{ inputs.build == '1' }}; then
             echo -e '\n####################\n\t[1] Building project from source files...(dry-run)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
@@ -814,7 +813,7 @@ runs:
             else
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
-            { time CodeChecker check -b "cmake clean && make -v -n -k -j $(nproc --all) -f ${{ inputs.makefile }}" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
+            { time CodeChecker check -b "cmake clean && make -v -n 3 -k -j $(nproc --all) -f ${{ inputs.makefile }}" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found checking building files" | process_input;
               check_build=true
@@ -828,11 +827,11 @@ runs:
               echo 'build_files=1' >> "${GITHUB_ENV}";
               cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
             fi;
-          elif [[ ! -d 'build' ]] && ${{ inputs.build == 1 }}; then
+          elif [[ ! -d 'build' ]] && ${{ inputs.build == '1' }}; then
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ -d 'build' ]] && ${{ inputs.build == 2 }}; then
+          if [[ -d 'build' ]] && ${{ inputs.build == '2' }}; then
             echo -e '\n####################\n\t[2] CodeChecker building compile_commands.json & project sources...(build)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
@@ -841,7 +840,7 @@ runs:
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
             [ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
-            { time CodeChecker log --build "make -v -j $(nproc --all) -f ${{ inputs.makefile }}" --output ./build/compile_commands.json && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
+            { time CodeChecker log --build "make -v 2 -j $(nproc --all) -f ${{ inputs.makefile }}" --output ./build/compile_commands.json && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "::notice::Errors found building project files" | process_input;
               check_build=true
@@ -853,56 +852,59 @@ runs:
             fi;
             if ${{ inputs.upload }}; then
               echo 'build_files=1' >> "${GITHUB_ENV}";
-              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
+              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################' | process_input;
             fi;
-          elif [[ ! -d 'build' ]] && ${{ inputs.build == 2 }}; then
-            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
+          elif [[ ! -d 'build' ]] && ${{ inputs.build == '2' }}; then
+            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################" | process_input;
             exit 1
           fi;
-          if [[ -d 'build' ]] && ${{ inputs.build == 3 }}; then
-            echo -e '\n####################\n\t[3] deheader analyze sources includes...(dry-run)\n####################\n' | process_input;
+          if [[ -d 'build' ]] && ${{ inputs.build == '3' }}; then
+            echo -e '\n####################\n\t[3] deheader analyze sources includes...(dry-run)\n####################' | process_input;
             sudo bash -c 'source ~/.bashrc'
-            { time deheader -v -r -m "make -v -n -k -j $(nproc --all) -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "::notice::Errors found building project files" | process_input;
+            { time deheader -v -r -m "make -v 3 -n -j $(nproc --all) -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
+              echo -e "::notice::duplicate includes found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "::notice::No errors found checking project files" | process_input;
+              echo -e "::notice::No duplicate includes found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
             if ${{ inputs.upload }}; then
               echo 'build_files=1' >> "${GITHUB_ENV}";
-              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
+              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################' | process_input;
             fi;
-          elif [[ ! -d 'build' ]] && ${{ inputs.build == 3 }}; then
-            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
+          elif [[ ! -d 'build' ]] && ${{ inputs.build == '3' }}; then
+            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################" | process_input;
             exit 1
           fi;
-          if [[ -d 'build' ]] && ${{ inputs.build == 4 }}; then
-            echo -e '\n####################\n\t[4] deheader analyze & repair sources includes...(build)\n####################\n' | process_input;
+          if [[ -d 'build' ]] && ${{ inputs.build == '4' }}; then
+            echo -e '\n####################\n\t[4] Deheader analyze & repair sources includes...(build)\n####################' | process_input;
             sudo bash -c 'source ~/.bashrc'
-            { time deheader -v -r -m "make -v -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "::notice::Errors found building project files" | process_input;
+            { time deheader -v -r -m "make -v 2 -f ${{ inputs.makefile }}"; } 2>&1 | process_input;
+            if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
+              echo -e "::notice::duplicate includes found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "::notice::No errors found checking project files" | process_input;
+              echo -e "::notice::No duplicate includes found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
             if ${{ inputs.upload }}; then
               echo 'build_files=1' >> "${GITHUB_ENV}";
-              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################\n' | process_input;
+              cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################' | process_input;
             fi;
-          elif [[ ! -d 'build' ]] && ${{ inputs.build == 4 }}; then
+          elif [[ ! -d 'build' ]] && ${{ inputs.build == '4' }}; then
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
+          fi;
+          if ${{ inputs.build > '2' }} && [[ "${check_build}" ]]; then
+            make clean | process_input;
           fi;
           if [[ -s "${project_log}" ]]; then
-            echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################\n" | process_input;
+            echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################" | process_input;
             deheader_duplicates=$(grep -sEc 'duplicates' "${project_log}");
             deheader_inclusion=$(grep -sEc 'inclusion' "${project_log}");
             deheader_removed=$(grep -sEc 'remove' "${project_log}");
@@ -913,40 +915,40 @@ runs:
             clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
             clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}");
             if [[ "${clang_warnings:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible errors.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible errors.\n####################" | process_input;
             fi;
             if [[ "${clang_errors:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################" | process_input;
             fi;
             if [[ "${clang_fixits:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository.\n####################" | process_input;
               fixed=true
             fi;
             if [[ "${clang_notes:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::✅ check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are fix suggestions for files but not always issues.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::✅ check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are fix suggestions for files but not always issues.\n####################" | process_input;
             fi;
             if [[ "${deheader_removed:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::⚠️ check-file found ${deheader_removed} extra inclusions in ${file_type} file(s) checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::⚠️ check-file found ${deheader_removed} extra inclusions in ${file_type} file(s) checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
               fixed=true
             fi;
             if [[ "${deheader_duplicates:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::❌ check-file found ${deheader_duplicates} duplicates or colliding inclusions in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::❌ check-file found ${deheader_duplicates} duplicates or colliding inclusions in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################" | process_input;
             fi;
             if [[ "${deheader_inclusion:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::⚠️ check-file found ${deheader_inclusion} extra inclusions in ${file_type} file(s) checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################\n" | process_input;
+              echo -e "\n####################\n::notice::⚠️ check-file found ${deheader_inclusion} extra inclusions in ${file_type} file(s) checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
             fi;
             if [[ "${clang_files_missing:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################\n" | process_input;
-              echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}\n" | process_input;
+              echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################" | process_input;
+              echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}" | process_input;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analyzer == 1 }}; then
-            echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)\n" | process_input;
+            echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
           fi;
           if ${{ inputs.build > 0 }}; then
-            cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory updated continuing...\n####################\n' | process_input;
+            cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory updated continuing...\n####################' | process_input;
           fi;
-          echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}\n" | process_input;
+          echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
@@ -1213,7 +1215,7 @@ runs:
       continue-on-error: true
 
     - name: Check Shell Files
-      if: inputs.filename != '' && env.file_found == 0 
+      if: inputs.filename != '' && env.file_found == '0' 
       run: |
         export LC_ALL=C
         set +e
@@ -1340,7 +1342,7 @@ runs:
       continue-on-error: true
 
     - name: Check Makefile Files
-      if: inputs.filename != '' && env.file_found == 0
+      if: inputs.filename != '' && env.file_found == '0'
       run: |
         export LC_ALL=C
         set +e
@@ -1418,7 +1420,7 @@ runs:
       continue-on-error: true
 
     - name: Check All Files
-      if: inputs.filename != '' && env.file_found == 0 
+      if: inputs.filename != '' && env.file_found == '0' 
       run: |
         export LC_ALL=C
         set +e
@@ -1538,7 +1540,7 @@ runs:
       continue-on-error: true
 
     - name: Directory Contains
-      if: inputs.filename != '' && inputs.content != 'false'
+      if: inputs.filename != '' && inputs.content == 'true'
       run: |
         echo ''
         check_file=$(dirname $(sudo find ${{ env.file_path }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}"));
@@ -1550,7 +1552,7 @@ runs:
       continue-on-error: true
 
     - name: Cleanup Artifacts Report
-      if: inputs.report != 'false'
+      if: inputs.report == 'true'
       run: |
         echo '';
         set +e
@@ -1579,7 +1581,7 @@ runs:
       continue-on-error: true
       
     - name: Repository Update
-      if: env.update == 'true' && env.file_fixed == 1
+      if: env.update == 'true' && env.file_fixed == '1'
       run: |
         echo '';
         error_log="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
@@ -1640,7 +1642,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Build Release
-      if: inputs.build > '0' && inputs.project != 'false' && env.build_files == '1'
+      if: inputs.build > '0' && inputs.project == 'true' && env.build_files == '1'
       uses: softprops/action-gh-release@v1
       with:
         files: build/bin/*
@@ -1649,7 +1651,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Build Checks
-      if: inputs.build == '1' || inputs.build == '2' || inputs.analyzer == '4' && inputs.project != 'false' && env.build_files == '1'
+      if: inputs.build == '1' || inputs.build == '2' || inputs.analyzer == '4' && inputs.project == 'true' && env.build_files == '1'
       uses: actions/upload-artifact@v4
       with:
         name: Build For ${{ github.repository }} Repository.
@@ -1657,7 +1659,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading Build Files Artifacts
-      if: inputs.upload != 'false' && inputs.project != '' && env.build_files == '1'
+      if: inputs.upload == 'true' && inputs.project == 'true' && env.build_files == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_build
@@ -1666,7 +1668,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading Build_Cache Artifacts
-      if: inputs.report != 'false' && inputs.filename != '' && env.file_found == '1' && inputs.stored == 'true'
+      if: inputs.report == 'true' && inputs.filename != '' && env.file_found == '1' && inputs.stored == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_checked
@@ -1675,7 +1677,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ inputs.filename }} Error Report Artifact
-      if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1
+      if: inputs.report == 'true' && inputs.filename != '' && env.file_found == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.filename }}_error.log
@@ -1684,7 +1686,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ env.github_repository }} Project Report Artifact
-      if: inputs.report != 'false' && inputs.project != 'false' && env.check_build != 'false'
+      if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_project.log
@@ -1693,7 +1695,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ inputs.filename }} Error Report Artifacts
-      if: inputs.report != 'false' && inputs.filename != '' && env.file_found == 1 && env.file2_parted == 1
+      if: inputs.report == 'true' && inputs.filename != '' && env.file_found == '1' && env.file2_parted == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.filename }}_split_error.log
@@ -1702,7 +1704,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Report Artifacts
-      if: inputs.report != 'false' && inputs.project != 'false' && env.check_build == 'true' && env.file1_parted == 1
+      if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true' && env.file1_parted == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_split_project.log
@@ -1711,23 +1713,24 @@ runs:
       continue-on-error: true
 
     - name: Delete Files
-      if: inputs.filename != '' || inputs.pattern != '' || inputs.project != 'false'
+      if: inputs.filename != '' || inputs.pattern != '' || inputs.project == 'true'
       run: |
         date
         if [[ -f "${GITHUB_WORKSPACE}/${{ env.github_repository }}_project.log" ]]; then
-          echo -e "\nPROJECT: $(rm -vf ${GITHUB_WORKSPACE}/${{ env.github_repository }}_project.log)\n";
+          echo -e "\nPROJECT: $(rm -vf ${GITHUB_WORKSPACE}/${{ env.github_repository }}_project.log)";
         fi;
         if [[ -f "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" ]]; then
-          echo -e "\nLOGFILE: $(rm -vf ${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log)\n";
+          echo -e "\nLOGFILE: $(rm -vf ${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log)";
         fi;
         if [[ -f "${GITHUB_WORKSPACE}/database" ]]; then
-          echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/database)\n";
+          echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/database)";
         fi;
+        echo '';
       shell: bash
       continue-on-error: true
 
     - name: Action Check
-      if: inputs.filename == '' && inputs.pattern == '' && inputs.project != 'true'
+      if: inputs.filename == '' && inputs.pattern == '' && inputs.project == 'false'
       run: |
         echo ''
         echo -e "\n::error::No input provided to • filename: none • pattern: none • project: false\n\tNothing To Do! ?\n";
@@ -1744,7 +1747,7 @@ runs:
         texta="######################";
         textb="\033[1m# CHECK FILE EXITING #\033[0m";
         textc="######################";
-        text "\n${texta}";
+        text "${texta}";
         text "${textb}";
         text "${textc}\n";
       shell: bash
