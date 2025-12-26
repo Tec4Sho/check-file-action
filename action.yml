@@ -261,7 +261,7 @@ runs:
         if [[ $(whereis -b run-clang-tidy) ]] && ${{ inputs.analyzer == '1' }} && ${{ inputs.project }}; then
           echo -e "\nrun-clang-tidy installed in $(whereis -b run-clang-tidy)";
           echo 'run_clang_tidy=run-clang-tidy' >> "${GITHUB_ENV}";
-        else
+        elif ${{ inputs.analyzer == '1' }} && ${{ inputs.project }}; then
           echo -e '\nrun-clang-tidy not installed using built-in run-clang-tide.py script';
           echo "run_clang_tidy=${{ github.action_path }}/scripts/tools/run-clang-tidy.py" >> "${GITHUB_ENV}";
         fi;
@@ -660,7 +660,7 @@ runs:
             else
               cmake -S . -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             fi;
-            if [[ "${PIPESTATUS[0]}" == 0 ]]; then
+            if [[ "${PIPESTATUS[0]}" == '0' ]]; then
               if ${{ inputs.upload }}; then
                 echo 'build_files=1' >> "${GITHUB_ENV}";
                 cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory copied continuing...\n####################' | process_input;
@@ -674,11 +674,11 @@ runs:
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
             { time "${{ env.run_clang_tidy }}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile -- -Iinclude/; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "::notice::Errors found checking project files" | process_input;
+              echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "::notice::No errors found checking project files" | process_input;
+              echo -e "\n::notice::No errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -708,11 +708,11 @@ runs:
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
               { time clang-tidy @parameter-file; } 2>&1 | process_input;
               if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "::notice::Errors found checking project files" | process_input;
+              echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "::notice::No errors found checking project files" | process_input;
+              echo -e "\n::notice::No errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -727,11 +727,11 @@ runs:
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILES\n####################\n' | process_input;
             { time find "${src_tree%/*}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 4 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm -- -I"${src_tree%/*}/include" || true' bash; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "::notice::Errors found checking project files" | process_input;
+              echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "::notice::No errors found checking project files" | process_input;
+              echo -e "\n::notice::No errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -749,11 +749,11 @@ runs:
             fi;
             { time CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker server && CodeChecker store ./results -n ; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
-              echo -e "::notice::Errors found checking project files" | process_input;
+              echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "::notice::No errors found checking project files" | process_input;
+              echo -e "\n::notice::No errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -817,11 +817,11 @@ runs:
             fi;
             { time CodeChecker check -b "cmake clean && make -v -n 3 -k -j $(nproc --all) -f ${{ inputs.makefile }}" -o ./results && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "\nruntime\n::notice::Errors found checking building files" | process_input;
+              echo -e "\n::notice::Errors found checking building files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "\nruntime\n::notice::No errors found building project files" | process_input;
+              echo -e "\n::notice::No errors found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -844,11 +844,11 @@ runs:
             [ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
             { time CodeChecker log --build "make -v 2 -j $(nproc --all) -f ${{ inputs.makefile }}" --output ./build/compile_commands.json && CodeChecker server && CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "\nruntime\n::notice::Errors found building project files" | process_input;
+              echo -e "\n::notice::Errors found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "\nruntime\n::notice::No errors found building project files" | process_input;
+              echo -e "\n::notice::No errors found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -865,11 +865,11 @@ runs:
             sudo bash -c 'source ~/.bashrc'
             { time deheader -m "make -v 3 -n -j $(nproc --all) -f ${{ inputs.makefile }}" -r -v; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
-              echo -e "\nruntime\n::notice::duplicate includes found building project files" | process_input;
+              echo -e "\n::notice::duplicate includes found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "\nruntime\n::notice::No duplicate includes found checking project files" | process_input;
+              echo -e "\n::notice::No duplicate includes found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
@@ -886,11 +886,11 @@ runs:
             sudo bash -c 'source ~/.bashrc'
             { time deheader -m "make -v 2 -f ${{ inputs.makefile }}" -r -v; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
-              echo -e "\nruntime\n::notice::duplicate includes found building project files" | process_input;
+              echo -e "\n::notice::duplicate includes found building project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
-              echo -e "\nruntime\n::notice::No duplicate includes found checking project files" | process_input;
+              echo -e "\n::notice::No duplicate includes found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
