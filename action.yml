@@ -815,7 +815,7 @@ runs:
             else
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
-            { time CodeChecker check -b "make clean && make -v -n 3 -k -j $(nproc --all) -f ${{ inputs.makefile }}" -o ./results; } 2>&1 | process_input;
+            { time CodeChecker check -b "make clean && make -v 3 -n -k -j $(nproc --all) -f ${{ inputs.makefile }}" -o ./results; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking building files" | process_input;
               check_build=true
@@ -1653,7 +1653,7 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: Build For ${{ github.repository }} Repository.
-        path: .codechecker/*
+        path: results
       continue-on-error: true
 
     - name: Uploading Build Files Artifacts
