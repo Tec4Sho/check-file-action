@@ -244,7 +244,7 @@ runs:
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if [[ ! $(which clang-tidy) ]] && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.repair }}) || ${{ inputs.project }}; then
-          sudo apt-get install -yq clang-tools clang-tidy clang 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
+          sudo apt-get install -yq clang-tools clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if [[ ! $(which clangd-tidy) ]] && ${{ inputs.project }} && ${{ inputs.analyzer == '3' }}; then
@@ -748,7 +748,7 @@ runs:
             else
              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
-            { time CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker server && CodeChecker store ./results -n ; } 2>&1 | process_input;
+            { time CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./results &&  CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -809,7 +809,7 @@ runs:
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
           if [[ -d 'build' ]] && ${{ inputs.build == '1' }}; then
-            echo -e '\n####################\n\t[1] Building project from source files...(dry-run 1)\n####################\n' | process_input;
+            echo -e '\n####################\n\t[1] CodeChecker building project from source files...(dry-run -1)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
              sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
@@ -835,7 +835,7 @@ runs:
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ inputs.build == '2' }}; then
-            echo -e '\n####################\n\tCodeChecker building compile_commands.json & project sources...(build 2)\n####################\n' | process_input;
+            echo -e '\n####################\n\tCodeChecker building compile_commands.json & project sources...(build -2)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
              sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
@@ -862,7 +862,7 @@ runs:
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ inputs.build == '3' }}; then
-            echo -e '\n####################\n\tDeheader analyze sources includes...(dry-run 3)\n####################\n' | process_input;
+            echo -e '\n####################\n\tDeheader analyze sources includes...(dry-run -3)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
             { time deheader -m "make -v 3 -n -j $(nproc --all) -f ${{ inputs.makefile }}" -r -v; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
@@ -883,7 +883,7 @@ runs:
             exit 1
           fi;
           if [[ -d 'build' ]] && ${{ inputs.build == '4' }}; then
-            echo -e '\n####################\n\tDeheader analyze & repair sources includes...(build 4)\n####################\n' | process_input;
+            echo -e '\n####################\n\tDeheader analyze & repair sources includes...(build -4)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
             { time deheader -m "make -v 2 -f ${{ inputs.makefile }}" -r -v; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
@@ -908,32 +908,36 @@ runs:
             deheader_duplicates=$(grep -sEc 'duplicates' "${project_log}");
             deheader_inclusion=$(grep -sEc 'inclusion' "${project_log}");
             deheader_removed=$(grep -sEc 'remove' "${project_log}");
+            codechecker_errors=$(grep -sFc 'Error while processing' "${project_log}");
             clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
             clang_files_list=$(grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
             clang_warnings=$(grep -sEc 'warning:|Warning:|WARNING:' "${project_log}");
-            clang_errors=$(grep -sEc ' error:| Error:|Error while processing| ERROR:' "${project_log}");
+            clang_errors=$(grep -sEc ' error:| Error:| ERROR:' "${project_log}");
             clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
             clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}");
             if [[ "${clang_warnings:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible errors.\n####################" | process_input;
             fi;
-            if [[ "${clang_errors:-0}" > '0' ]]; then
-              echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################" | process_input;
+            if [[ "${codechecker_errors:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
+              echo -e "\n####################\n::notice::🚫 check-file found ${codechecker_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################" | process_input;
             fi;
-            if [[ "${clang_fixits:-0}" > '0' ]]; then
+            if [[ "${clang_errors:-0}" > '0' ]] && (${{ inputs.analyzer == '1' }} || ${{ inputs.analyzer == '2' }} || ${{ inputs.analyzer == '3' }}); then
+              echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using different (analyzer: 1, 2, or 4) for possible error fixes.\n####################" | process_input;
+            fi;
+            if [[ "${clang_fixits:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
               echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository.\n####################" | process_input;
               fixed=true
             fi;
             if [[ "${clang_notes:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::✅ check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are fix suggestions for files but not always issues.\n####################" | process_input;
             fi;
-            if [[ "${deheader_removed:-0}" > '0' ]]; then
+            if [[ "${deheader_removed:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
               echo -e "\n####################\n::notice::⚠️ check-file found ${deheader_removed} extra inclusions in ${file_type} file(s) checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
               fixed=true
             fi;
-            if [[ "${deheader_duplicates:-0}" > '0' ]]; then
+            if [[ "${deheader_duplicates:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
               echo -e "\n####################\n::notice::❌ check-file found ${deheader_duplicates} duplicates or colliding inclusions in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################" | process_input;
-            elif [[ "${deheader_inclusion:-0}" > '0' ]]; then
+            elif [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
               echo -e "\n####################\n::notice::⚠️ check-file found ${deheader_inclusion} extra inclusions in ${file_type} file(s) checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
             fi;
             if [[ "${clang_files_missing:-0}" > '0' ]]; then
