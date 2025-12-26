@@ -677,7 +677,7 @@ runs:
           fi;
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }}; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-            { time "${{ env.run_clang_tidy }}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile -- -Iinclude/; } 2>&1 | process_input;
+            { time "${{ env.run_clang_tidy }}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
