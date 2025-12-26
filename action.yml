@@ -160,6 +160,7 @@ runs:
         else
           echo "Not running a distribution with /etc/os-release available"
         fi;
+        echo '';
       shell: bash
       continue-on-error: true
 
