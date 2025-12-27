@@ -225,9 +225,9 @@ runs:
           sudo apt-get -yq install cmake 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies Installed\n####################" || echo -e '::error::No cmake installed for project build'; 
           [[ ! $(which cmake) ]] && exit 1
         fi;
-        if [[ ! $(which linux-headers-$(uname -r)) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install linux-headers-$(uname -r) linux-image-surface linux-headers-surface libwacom-surface iptsd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nlinux-headers-$(uname -r) dependencies Installed\n####################" || echo -e '::error::No linux-headers-$(uname -r) installed for project build'; 
-          [[ ! $(which linux-headers-$(uname -r)) ]] && exit 1
+        if [[ ! $(which linux-headers-generic) ]] && ${{ inputs.project }}; then
+          sudo apt-get -yq install linux-headers-generic linux-image-surface linux-headers-surface libwacom-surface iptsd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nlinux-headers-generic $(uname -r) dependencies Installed\n####################" || echo -e "::error::No linux-headers-generic $(uname -r) installed for project build'; 
+          [[ ! $(which linux-headers-generic) ]] && exit 1
         fi;
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
