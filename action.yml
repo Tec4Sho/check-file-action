@@ -179,7 +179,6 @@ runs:
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
-        sudo add-apt-repository ppa:gpxbv/apt-urlfix >/dev/null;
         sudo apt-get update -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         sudo apt-get --fix-broken install -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         if ${{ inputs.project }}; then
