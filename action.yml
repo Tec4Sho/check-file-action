@@ -225,9 +225,9 @@ runs:
           sudo apt-get -yq install cmake 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies Installed\n####################" || echo -e '::error::No cmake installed for project build'; 
           [[ ! $(which cmake) ]] && exit 1
         fi;
-        if [[ ! $(which linux-headers-generic) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nlinux-headers-generic $(uname -r) dependencies Installed\n####################" || echo -e "::error::No linux-headers-generic $(uname -r) installed for project build"; 
-          [[ ! $(which linux-headers-generic) ]] && exit 1
+        if [[ ! $(apt list linux-headers-generic 2>/dev/null) ]] && ${{ inputs.project }}; then
+          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\n$(apt list linux-headers-generic 2>/dev/null) - $(uname -r) dependencies Installed\n####################" || echo -e "::error::No linux-headers-generic $(uname -r) installed for project build"; 
+          [[ ! $(apt list linux-headers-generic 2>/dev/null) ]] && exit 1
         fi;
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
