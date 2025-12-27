@@ -226,7 +226,7 @@ runs:
           [[ ! $(which cmake) ]] && exit 1
         fi;
         if [[ ! $(which linux-headers-generic) ]] && ${{ inputs.project }}; then
-          sudo apt-get -yq install linux-headers-generic linux-image-surface linux-headers-surface libwacom-surface iptsd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nlinux-headers-generic $(uname -r) dependencies Installed\n####################" || echo -e "::error::No linux-headers-generic $(uname -r) installed for project build"; 
+          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nlinux-headers-generic $(uname -r) dependencies Installed\n####################" || echo -e "::error::No linux-headers-generic $(uname -r) installed for project build"; 
           [[ ! $(which linux-headers-generic) ]] && exit 1
         fi;
         if [[ ! $(which git) ]]; then
