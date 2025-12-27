@@ -580,7 +580,6 @@ runs:
           verify_config=$(clang-tidy --verify-config);
           cmake_version=$(cmake --version);
           compile_json=$(find -type f -name 'compile_commands.json' -print -quit);
-          echo "target_include_dirs=${include_dirs}" >> "${GITHUB_ENV}";
           clang_checks=$(clang-tidy --list-checks);
           gcc_version=$(gcc --version);
           gpp_version=$(g++ --version);
@@ -626,7 +625,7 @@ runs:
             done;
           }
           header1_list() {
-            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 2 \( -name 'drivers' -o -name 'block'-o -name 'firmware' -o -name 'kernel' -o -name 'arch' -o -name 'tools' -o -name 'init' -o -name 'scripts' -o -name 'ipc' -o -name 'mm' -o -name 'fs' -o -name 'net' -o -name 'usr' -o -name 'lib' -o -name 'virt' -o -name 'sound' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               if [[ -d "${include}" ]]; then
                 echo -n "${include} ";
               fi;
@@ -646,6 +645,7 @@ runs:
           }
           echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
           echo "github_source_files=false" >> "${GITHUB_ENV}";
+          echo "github_include_dirs=$(header1_list)" >> "${GITHUB_ENV}";
           if [[ "$(source_files)" ]]; then
             echo "github_source_files=true" >> "${GITHUB_ENV}";
           fi;
@@ -953,10 +953,10 @@ runs:
               echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}" | process_input;
             fi;
           fi;
-          if [[ ${update} ]] && ${{ env.analyzer == 1 }}; then
+          if [[ ${update} ]] && ${{ env.analyzer == '1' }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
           fi;
-          if ${{ inputs.build > 0 }}; then
+          if ${{ inputs.build > '0' }}; then
             cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory updated continuing...\n####################' | process_input;
           fi;
           echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
