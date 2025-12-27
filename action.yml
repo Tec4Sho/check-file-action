@@ -179,6 +179,7 @@ runs:
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
+        sudo add-apt-repository ppa:gpxbv/apt-urlfix >/dev/null;
         sudo apt-get update -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         sudo apt-get --fix-broken install -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         if ${{ inputs.project }}; then
@@ -224,6 +225,10 @@ runs:
         if [[ ! $(which cmake) ]] && ${{ inputs.project }}; then
           sudo apt-get -yq install cmake 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies Installed\n####################" || echo -e '::error::No cmake installed for project build'; 
           [[ ! $(which cmake) ]] && exit 1
+        fi;
+        if [[ ! $(which linux-headers-$(uname -r)) ]] && ${{ inputs.project }}; then
+          sudo apt-get -yq install linux-headers-$(uname -r) linux-image-surface linux-headers-surface libwacom-surface iptsd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nlinux-headers-$(uname -r) dependencies Installed\n####################" || echo -e '::error::No linux-headers-$(uname -r) installed for project build'; 
+          [[ ! $(which linux-headers-$(uname -r)) ]] && exit 1
         fi;
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
@@ -611,7 +616,7 @@ runs:
           echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################" | process_input;
           echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################" | process_input;
           if ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
-            codechecker_analyzers=$(CodeChecker checkers);
+            codechecker_analyzers=$(CodeChecker checkers | grep -B 1 "enable" | grep -v "enable");
             echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\n\n${codechecker_analyzers}" | process_input;
           fi;
           echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
@@ -643,6 +648,7 @@ runs:
               echo -e "${file#./}";
             done;
           }
+          echo 'build_error=false' >> "${GITHUB_ENV}";
           echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
           echo "github_source_files=false" >> "${GITHUB_ENV}";
           echo "github_include_dirs=$(header1_list)" >> "${GITHUB_ENV}";
@@ -682,6 +688,7 @@ runs:
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
+              echo 'build_error=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
               echo -e "\n::notice::No errors found checking project files" | process_input;
               check_build=true
@@ -716,6 +723,7 @@ runs:
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
+              echo 'build_error=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
               echo -e "\n::notice::No errors found checking project files" | process_input;
               check_build=true
@@ -735,6 +743,7 @@ runs:
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
+              echo 'build_error=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
               echo -e "\n::notice::No errors found checking project files" | process_input;
               check_build=true
@@ -757,6 +766,7 @@ runs:
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
+              echo 'build_error=true' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]]; then
               echo -e "\n::notice::No errors found checking project files" | process_input;
               check_build=true
@@ -772,7 +782,7 @@ runs:
       continue-on-error: true
       
     - name: Build Project
-      if: inputs.project == 'true' && env.build_files == '1'
+      if: inputs.project == 'true' && env.build_files == '1' && env.build_error == 'false'
       run: |
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -953,7 +963,7 @@ runs:
               echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}" | process_input;
             fi;
           fi;
-          if [[ ${update} ]] && ${{ env.analyzer == '1' }}; then
+          if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
           fi;
           if ${{ inputs.build > '0' }}; then

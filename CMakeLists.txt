@@ -67,12 +67,14 @@ else()
   message(STATUS "Project Files: cmake added no files")
 endif()
 
+target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
 if(DEFINED PROJECT_SRC_INCLUDES)
   target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_SRC_INCLUDES}")
   message(STATUS "Project Includes: cmake added include directories. clang analyzer")
 else()
 # .file(GLOB_RECURSE PROJECT_SRC_INCLUDES LIST_DIRECTORIES true "/include/")
-  target_include_directories("${PROJECT_NAME}" PRIVATE "ENV${target_include_dirs}")
+  target_include_directories("${PROJECT_NAME}" PRIVATE "ENV${github_include_dirs}")
   message(STATUS "Project Includes: cmake added include directories. codechecker analyzer")
 endif()
 
@@ -88,19 +90,22 @@ set(PROJECT_INCLUDE_DIRS "")
 list(REMOVE_DUPLICATES PROJECT_INCLUDE_DIRS)
 
 # Add the unique, collected directories to your target
-target_include_directories("${PROJECT_NAME}" SYSTEM PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories("${PROJECT_NAME}" SYSTEM PUBLIC "/usr/include")
 
 # .set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
 
 # .set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -Werror -pedantic")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -std=c90")
+if($ENV{github_build_project})
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -std=c90")
+  message(STATUS "CMAKE_C_FLAGS; ${CMAKE_C_FLAGS}")
+else()
+  message(STATUS "Project Build: clang tools analyzer only")
+endif()
 
 # .set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
 
 # .set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2 -Wall -Werror -pedantic -std=c99")
-
-message(STATUS "CMAKE_C_FLAGS=${CMAKE_C_FLAGS}")
 
 # .set(CMAKE_C_FLAGS_DEBUG "put your flags") set(CMAKE_C_FLAGS_MINSIZEREL "put your flags") set(CMAKE_C_FLAGS_RELWITHDEBINFO "put your flags") set(CMAKE_C_FLAGS_RELEASE "put your flags")
 
