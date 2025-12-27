@@ -630,7 +630,7 @@ runs:
             done;
           }
           header1_list() {
-            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 2 \( -name 'drivers' -o -name 'block'-o -name 'firmware' -o -name 'kernel' -o -name 'arch' -o -name 'tools' -o -name 'init' -o -name 'scripts' -o -name 'ipc' -o -name 'mm' -o -name 'fs' -o -name 'net' -o -name 'usr' -o -name 'lib' -o -name 'virt' -o -name 'sound' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 1 \( -name 'drivers' -o -name 'block'-o -name 'firmware' -o -name 'kernel' -o -name 'arch' -o -name 'tools' -o -name 'init' -o -name 'scripts' -o -name 'ipc' -o -name 'mm' -o -name 'fs' -o -name 'net' -o -name 'usr' -o -name 'lib' -o -name 'virt' -o -name 'sound' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               if [[ -d "${include}" ]]; then
                 echo -n "${include} ";
               fi;
