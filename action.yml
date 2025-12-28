@@ -629,11 +629,17 @@ runs:
             done;
           }
           header1_list() {
-            find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 1 \( -name 'drivers' -o -name 'block'-o -name 'firmware' -o -name 'kernel' -o -name 'arch' -o -name 'tools' -o -name 'init' -o -name 'scripts' -o -name 'ipc' -o -name 'mm' -o -name 'fs' -o -name 'net' -o -name 'usr' -o -name 'lib' -o -name 'virt' -o -name 'sound' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
-              if [[ -d "${include}" ]]; then
-                echo -n "${include} ";
+            find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type f \(-name "*.h" -o -name "*.hh" -o -name "*.hpp" -o -name "*.h++" \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r header; do
+              if [[ -f "${header}" ]]; then
+                echo "${header%/*}" >> header_src_tmp.txt
               fi;
             done;
+            if [[ -f 'header_src_tmp.txt' ]]; then
+              awk '!seen[$0]++' 'header_src_tmp.txt' > 'header_src.txt'
+              for headers in "$(cat header_src.txt)"; do
+                 echo -n "${headers%/*} "
+              done;
+            fi;
           }
           header2_list() {
             find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
@@ -650,9 +656,12 @@ runs:
           echo 'build_error=false' >> "${GITHUB_ENV}";
           echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
           echo "github_source_files=false" >> "${GITHUB_ENV}";
-          echo "github_include_dirs=$(header1_list)" >> "${GITHUB_ENV}";
+          echo 'github_include_dirs=false' >> "${GITHUB_ENV}";
           if [[ "$(source_files)" ]]; then
             echo "github_source_files=true" >> "${GITHUB_ENV}";
+          fi;
+          if [[ "$(header1_list)" ]]; then
+            echo "github_include_dirs=$(header1_list)" >> "${GITHUB_ENV}";
           fi;
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input;
@@ -663,9 +672,7 @@ runs:
           mkdir -p build/fixes
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            if [[ "$(source_dirs)" ]] && [[ "$(header1_list)" ]]; then
-              cmake -S . -DPROJECT_SRC_INCLUDES="$(header1_list)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
-            elif [[ "$(source_dirs)" ]]; then
+            if [[ "$(source_dirs)" ]]; then
               cmake -S . -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             else
               cmake -S . -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
@@ -926,7 +933,7 @@ runs:
             clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
             clang_files_list=$(grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
             clang_warnings=$(grep -sEc 'warning:|Warning:|WARNING:' "${project_log}");
-            clang_errors=$(grep -sEc ' error:| Error:| ERROR:' "${project_log}");
+            clang_errors=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
             clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
             clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}");
             if [[ "${clang_warnings:-0}" > '0' ]]; then
@@ -935,10 +942,7 @@ runs:
             if [[ "${codechecker_success:-0}" > '0' ]] && (${{ inputs.analyzer > '0' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
               echo -e "\n####################\n::notice::✅ check-file checked ${codechecker_success} ${file_type} file(s) successfully without issues. [Hints] No check require for those files.\n####################" | process_input;
             fi;
-            if [[ "${codechecker_errors:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
-              echo -e "\n####################\n::notice::🚫 check-file found ${codechecker_errors} errors in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################" | process_input;
-            fi;
-            if [[ "${clang_errors:-0}" > '0' ]] && (${{ inputs.analyzer == '1' }} || ${{ inputs.analyzer == '2' }} || ${{ inputs.analyzer == '3' }}); then
+            if [[ "${clang_errors:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using different (analyzer: 1, 2, or 4) for possible error fixes.\n####################" | process_input;
             fi;
             if [[ "${clang_fixits:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then

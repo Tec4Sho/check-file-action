@@ -67,15 +67,12 @@ else()
   message(STATUS "Project Files: cmake added no files")
 endif()
 
-target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-
-if(DEFINED PROJECT_SRC_INCLUDES)
-  target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_SRC_INCLUDES}")
-  message(STATUS "Project Includes: cmake added include directories. clang analyzer")
-else()
-# .file(GLOB_RECURSE PROJECT_SRC_INCLUDES LIST_DIRECTORIES true "/include/")
+if(ENV${github_include_dirs})
   target_include_directories("${PROJECT_NAME}" PRIVATE "ENV${github_include_dirs}")
-  message(STATUS "Project Includes: cmake added include directories. codechecker analyzer")
+  message(STATUS "Project Includes: cmake added include directories. clang analyze multi")
+else()
+  target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  message(STATUS "Project Includes: cmake added include directories. clang analyze one")
 endif()
 
 # Automatically find all header files recursively
@@ -90,7 +87,7 @@ set(PROJECT_INCLUDE_DIRS "")
 list(REMOVE_DUPLICATES PROJECT_INCLUDE_DIRS)
 
 # Add the unique, collected directories to your target
-target_include_directories("${PROJECT_NAME}" SYSTEM PUBLIC "/usr/include")
+# .target_include_directories("${PROJECT_NAME}" SYSTEM PUBLIC "/usr/include")
 
 # .set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
 
@@ -137,7 +134,9 @@ set(CMAKE_C_COMPILER clang) # Sets the C compiler
 
 # .set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES OFF) 
 
-set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES OFF)
+set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON) # Useful/Needed for large list of include directories
+
+# .file(GLOB_RECURSE PROJECT_SRC_INCLUDES LIST_DIRECTORIES true "/include/")
 
 # .file(GLOB_RECURSE INCLUDES LIST_DIRECTORIES true 'include')
 
