@@ -265,13 +265,13 @@ runs:
           [[ ! $(which clangd) ]] && exit 1
         fi;
         if ${{ inputs.analyzer == '1' }} && ${{ inputs.project }} && [[ $(whereis -b run-clang-tidy) ]]; then
-          echo -e "\nrun-clang-tidy installed in $(whereis -b run-clang-tidy)";
+          echo -e "\n[in-use] $(whereis -b run-clang-tidy)";
           echo 'run_clang_tidy=run-clang-tidy' >> "${GITHUB_ENV}";
         elif ${{ inputs.analyzer == '1' }} && ${{ inputs.project }}; then
-          echo -e '\nrun-clang-tidy not installed using built-in run-clang-tide.py script';
+          echo -e "\n[in-use] run-clang-tidy; /scripts/tools/run-clang-tidy.py action";
           echo "run_clang_tidy=${{ github.action_path }}/scripts/tools/run-clang-tidy.py" >> "${GITHUB_ENV}";
         fi;
-        if ${{ inputs.project }} && (${{ inputs.analyzer == '4' }} || ${{ inputs.build > '0' }}) && [[ ! $(which CodeChecker) ]]; then
+        if (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}) && ${{ inputs.project }} && [[ ! $(which CodeChecker) ]]; then
           sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies Installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
           python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################" || echo -e '::error::No codechecker installed for project checks';
           export PATH="/home/runner/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
