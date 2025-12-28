@@ -621,6 +621,8 @@ runs:
           echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
           echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################" | process_input;
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################" | process_input;
+          header_file1='header_src_tmp.txt';
+          header_file2='header_sources.txt';
           source_dirs() {
             find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               if [[ "${dir}" != '.' ]]; then
@@ -630,14 +632,13 @@ runs:
           }
           header1_list() {
             find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type f \(-name "*.h" -o -name "*.hh" -o -name "*.hpp" -o -name "*.h++" \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r header; do
-              if [[ -f "${header}" ]]; then
-                echo "${header%/*}" >> header_src_tmp.txt
-              fi;
+              header="${header#./}"
+              echo "${header%/*}" >> "${header_file1}"
             done;
-            if [[ -f 'header_src_tmp.txt' ]]; then
-              awk '!seen[$0]++' 'header_src_tmp.txt' > 'header_src.txt'
-              for headers in "$(cat header_src.txt)"; do
-                 echo -n "${headers%/*} "
+            if [[ -s "${header_file1}" ]]; then
+              awk '!seen[$0]++' "${header_file1}" > "${header_file2}";
+              for headers in $(cat ${header_file2}); do
+                echo -n "${headers%/*} "
               done;
             fi;
           }
@@ -788,7 +789,7 @@ runs:
       continue-on-error: true
       
     - name: Build Project
-      if: inputs.project == 'true' && env.build_files == '1' && env.build_error == 'false'
+      if: inputs.project == 'true' && env.build_files == '1'
       run: |
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -828,7 +829,7 @@ runs:
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -d "${src_tree}" ]]; then
           cd "${src_tree%/*}";
-          if [[ -d 'build' ]] && ${{ inputs.build == '1' }}; then
+          if [[ -d 'build' ]] && ${{ inputs.build == '1' }} && ${{ env.build_error == 'false' }}; then
             echo -e '\n####################\n\t[1] CodeChecker building project from source files...(dry-run -1)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
@@ -854,7 +855,7 @@ runs:
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
-          if [[ -d 'build' ]] && ${{ inputs.build == '2' }}; then
+          if [[ -d 'build' ]] && ${{ inputs.build == '2' }} && ${{ env.build_error == 'false' }}; then
             echo -e '\n####################\n\tCodeChecker building compile_commands.json & project sources...(build -2)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
@@ -881,7 +882,7 @@ runs:
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################" | process_input;
             exit 1
           fi;
-          if [[ -d 'build' ]] && ${{ inputs.build == '3' }}; then
+          if [[ -d 'build' ]] && ${{ inputs.build == '3' }} && ${{ env.build_error == 'false' }}; then
             echo -e '\n####################\n\tDeheader analyze sources includes...(dry-run -3)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
             { time deheader -m "make -v 3 -n -j $(nproc --all) -f ${{ inputs.makefile }}" -r -v; } 2>&1 | process_input;
@@ -902,7 +903,7 @@ runs:
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################" | process_input;
             exit 1
           fi;
-          if [[ -d 'build' ]] && ${{ inputs.build == '4' }}; then
+          if [[ -d 'build' ]] && ${{ inputs.build == '4' }} && ${{ env.build_error == 'false' }}; then
             echo -e '\n####################\n\tDeheader analyze & repair sources includes...(build -4)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc'
             { time deheader -m "make -v 2 -f ${{ inputs.makefile }}" -r -v; } 2>&1 | process_input;
