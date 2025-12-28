@@ -217,9 +217,9 @@ runs:
           echo -e "CMake version $cmake_version upgrading to latest python cmake\n"
           sudo rm -vf "$(which cmake)";
           sudo mkdir -p '/usr/local/bin'
-          export PATH="/usr/local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+          echo "/usr/local/bin" >> "${GITHUB_PATH}";
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
-          sudo cp -vpf "/home/runner/.local/bin/cmake" '/usr/local/bin/'
+          sudo cp -vpf "${HOME}/.local/bin/cmake" '/usr/local/bin/'
           echo '';
         fi;
         if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
@@ -274,8 +274,6 @@ runs:
         if (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}) && ${{ inputs.project }} && [[ ! $(which CodeChecker) ]]; then
           sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies Installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
           python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################" || echo -e '::error::No codechecker installed for project checks';
-          export PATH="/home/runner/codechecker/build/CodeChecker/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-          export PATH="/home/runner/.local/bin:${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
           sudo mkdir -p "/home/runner/codechecker/venv/include"
           sudo mkdir -p "/home/runner/codechecker/venv/bin"
           sudo chown -R "${USER}:${USER}" /home/runner/codechecker/
@@ -325,7 +323,7 @@ runs:
         if [[ -d ${repository} ]]; then
           cd "${repository%/*}";
           checkmake_src='checkmake.ini';
-          checkmake_des='/usr/PATH/checkmake.ini';
+          checkmake_des="${HOME}/checkmake.ini";
           if [[ ${checkmake_src} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
             sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
           elif [[ ! -n ${checkmake_src} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
@@ -352,6 +350,9 @@ runs:
         echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
         if [[ -d "${HOME}/.local/bin" ]]; then
           echo "${HOME}/.local/bin" >> "${GITHUB_PATH}";
+        fi;
+        if [[ -d "${HOME}/codechecker/build/CodeChecker/bin" ]]; then
+          echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
         fi;
         echo '';
       shell: bash
