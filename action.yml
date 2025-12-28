@@ -297,7 +297,7 @@ runs:
           python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies Installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
         fi;
-        if [[ "${{ inputs.pattern }}" != '' ]] && ${{ inputs.database }} && [[ ! $(which rg) ]]; then
+        if ${{ inputs.pattern != '' }} && ${{ inputs.database }} && [[ ! $(which rg) ]]; then
           sudo apt-get -yq install ripgrep 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
@@ -320,16 +320,16 @@ runs:
           sudo apt-get -yq install shellcheck 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text7}" || echo -e '::error::No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1
         fi;
-        if [[ -d ${repository} ]]; then
+        if [[ -d "${repository}" ]]; then
           cd "${repository%/*}";
           checkmake_src='checkmake.ini';
           checkmake_des="${HOME}/checkmake.ini";
-          if [[ ${checkmake_src} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
+          if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
             sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
           elif [[ ! -n ${checkmake_src} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
             echo -e '\ncheckmake.ini file missing, needed for checkmake to function properly\n';
           fi;
-          if [[ ${checkmake_src} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] [[ ! $(which checkmake) ]]; then
+          if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] [[ ! $(which checkmake) ]]; then
             go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "\n${text8}\n" || echo -e '::error::No checkmake installed Exiting';
             sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
             [[ ! $(which checkmake) ]] && exit 1
