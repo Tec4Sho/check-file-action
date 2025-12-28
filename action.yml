@@ -288,7 +288,7 @@ runs:
             exit 1
           fi;
         fi;
-        if ${{ inputs.repair }}) || (${{ inputs.project }} && ${{ inputs.build > '2' }} && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which deheader) ]]; then
+        if ${{ inputs.project }} && ${{ inputs.build > '2' }} && [[ ! $(which deheader) ]]; then
           sudo apt-get -yq install deheader 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ndeheader dependencies Installed\n####################" || echo -e '::error::No deheader installed for project includes check';
           [[ ! $(which deheader) ]] && exit 1
         fi;
