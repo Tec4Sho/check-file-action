@@ -248,7 +248,7 @@ runs:
           sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################" || echo -e '::error::No llvm tools installed for project build';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
-        if ${{ inputs.project }} && ${{ inputs.project }} && ([[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ ! $(which clang-tidy) ]]; then
+        if ${{ inputs.project }} || (${{ inputs.filename != '' }} && [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ ! $(which clang-tidy) ]]); then
           sudo apt-get install -yq clang-tools clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
