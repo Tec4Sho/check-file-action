@@ -326,7 +326,7 @@ runs:
           checkmake_des="${HOME}/checkmake.ini";
           if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
             sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
-          elif [[ ! -n ${checkmake_src} ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
+          elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
             echo -e '\ncheckmake.ini file missing, needed for checkmake to function properly\n';
           fi;
           if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] [[ ! $(which checkmake) ]]; then
@@ -340,11 +340,11 @@ runs:
             sudo ln -sf "$(which bat)" /usr/bin/batcat >/dev/null || echo -e '::error::No batcat installed Exiting';
             [[ ! $(which batcat) ]] && exit 1
             echo -e "\nalias batcat='bat'" | sudo tee -a ~/.bashrc >/dev/null;
-            export BAT_THEME="ansi";
+            echo 'export BAT_THEME=ansi' | sudo tee -a ~/.bashrc >/dev/null;
           elif [[ ! $(which batcat) ]]; then
             sudo apt-get -yq install bat 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text9}" || echo -e '::error::No batcat installed Exiting';
             [[ ! $(which batcat) ]] && exit 1
-            export BAT_THEME="ansi";
+            echo 'export BAT_THEME=ansi' | sudo tee -a ~/.bashrc >/dev/null;
           fi;
         fi;
         echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
