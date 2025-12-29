@@ -610,7 +610,7 @@ runs:
           echo -e "\n####################\nBuilder: ${cmake_version}\n####################" | process_input;
           if ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
             codechecker_version=$(CodeChecker version);
-            echo -e "\n####################\nCodeChecker: ${codeCR_version}\n####################" | process_input;
+            echo -e "\n####################\nCodeChecker: ${codechecker_version}\n####################" | process_input;
           fi;
           if ${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}; then
             deheader_version=$(deheader --version);
@@ -637,7 +637,7 @@ runs:
             done;
           }
           header1_list() {
-            find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type f \( -name '*.h' -o -name '*.hh' -o -name '*.hpp' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | sed 's|\(.*\)/.*$|\1|' | uniq | while IFS= read -r header; do
+            find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type f -name '*.h' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | sed 's|\(.*\)/.*$|\1|' | uniq | while IFS= read -r header; do
               header="${header#./}"
               echo -n "${header} "
             done;
