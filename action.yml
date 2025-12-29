@@ -648,9 +648,7 @@ runs:
               while IFS= read -r headers; do
                 echo -n "${headers%/*} "
               done < "${header_file2}";
-              echo 'running/header/test'
             fi;
-            echo -e "test/a/$(cat ${header_file2})\n" || echo -e "test/b/$(cat ${header_file1})\n"
           }
           header2_list() {
             find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
