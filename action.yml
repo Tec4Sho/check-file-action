@@ -602,17 +602,17 @@ runs:
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -n "${{ env.repository_base }}" ]]; then
-          clang_tidy_version=$(clang-tidy --version);
-          clang_version=$(clang --version);
-          verify_config=$(clang-tidy --verify-config);
-          cmake_version=$(cmake --version);
-          compile_json=$(find -type f -name "${{ env.repository_base }}/compile_commands.json" -print -quit);
-          clang_checks=$(clang-tidy --list-checks);
-          gcc_version=$(gcc --version);
-          gpp_version=$(g++ --version);
-          cmake_list="${{ env.repository_base }}/CMakeLists.txt';
-          clang_file="${{ env.repository_base }}/parameter-file";
-          clang_tidy="${{ env.repository_base }}/.clang-tidy";
+          clang_tidy_version="$(clang-tidy --version)";
+          clang_version="$(clang --version)";
+          verify_config="$(clang-tidy --verify-config)";
+          cmake_version="$(cmake --version)";
+          compile_json="$(find -type f -name 'compile_commands.json' -print -quit)";
+          clang_checks="$(clang-tidy --list-checks)";
+          gcc_version="$(gcc --version)";
+          gpp_version="$(g++ --version)";
+          cmake_list='CMakeLists.txt';
+          clang_file='parameter-file';
+          clang_tidy='.clang-tidy';
           clangd_tidy='/home/runner/.local/bin/clangd-tidy';
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################" | process_input;
@@ -635,12 +635,12 @@ runs:
           echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################" | process_input;
           echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################" | process_input;
           if ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
-            codechecker_analyzers=$(CodeChecker checkers | grep -B 1 "enable" | grep -v "enable");
+            codechecker_analyzers=$(CodeChecker checkers | grep -B 1 -m 100 "enable" | grep -v "enable");
             echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\n\n${codechecker_analyzers}" | process_input;
           fi;
           echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
           echo -e "\n####################\nChecking Repository ${{ env.repository_base }}\n####################" | process_input;
-          echo -e "\n####################\nChecking for ${file_type} file(s)\n####################" | process_input;
+          echo -e "\n####################\nChecking for ${file_type} files\n####################" | process_input;
           source_dirs() {
             find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               if [[ "${dir}" != '.' ]]; then
