@@ -637,7 +637,7 @@ runs:
             done;
           }
           header1_list() {
-            find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | uniq | while IFS= read -r header; do
+            find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | uniq | while IFS= read -r header; do
               echo -n "${header#./} ";
             done;
           }
