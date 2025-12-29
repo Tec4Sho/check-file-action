@@ -636,12 +636,14 @@ runs:
               fi;
             done;
           }
-          header1_list() {
-            find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | uniq | while IFS= read -r header; do
-              echo -n "${header#./} ";
+          cmake_includes() {
+            find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+              if [[ -d "${include}" ]]; then
+                echo -n "${include#./} ";
+              fi;
             done;
           }
-          header2_list() {
+          clang_includes() {
             find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               if [[ -d "${include}" ]]; then
                 echo -e "--extra-arg=-I${include}";
@@ -660,8 +662,8 @@ runs:
           if [[ "$(source_files)" ]]; then
             echo "github_source_files=true" >> "${GITHUB_ENV}";
           fi;
-          if [[ "$(header1_list)" ]]; then
-            echo "github_include_dirs=$(header1_list)" >> "${GITHUB_ENV}";
+          if [[ "$(cmake_includes)" ]]; then
+            echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
           fi;
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input;
@@ -689,7 +691,7 @@ runs:
           fi;
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }}; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-            { time "${{ env.run_clang_tidy }}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -enable-check-profile; } 2>&1 | process_input;
+            { time "${{ env.run_clang_tidy }}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -707,15 +709,12 @@ runs:
           if [[ -f "${clang_file}" ]] && ${{ env.analyzer == '2' }}; then
             echo ' ' >> "${clang_file}";
             files_list=false
-            if [[ `header2_list` ]] && [[ `source_list` ]] ; then
+            if [[ "$(clang_includes)" ]] && [[ "$(source_files)" ]] ; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################" | process_input;
-              header2_list >> "${clang_file}";
-              source_files >> "${clang_file}";
-              files_list=true
-            elif [[ `source_list` ]]; then
+              clang_includes >> "${clang_file}" && source_files >> "${clang_file}" && files_list=true
+            elif [[ "$(source_files)" ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################" | process_input;
-              source_files >> "${clang_file}";
-              files_list=true
+              source_files >> "${clang_file}" && files_list=true
             else	
               echo -e "\n::error::No ${file_type} files found searching repository\nExiting...\n" | process_input;
             fi;
