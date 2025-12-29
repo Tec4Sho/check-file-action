@@ -629,8 +629,6 @@ runs:
           echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
           echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################" | process_input;
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################" | process_input;
-          header_file1='header_src_tmp.txt';
-          header_file2='header_sources.txt';
           source_dirs() {
             find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               if [[ "${dir}" != '.' ]]; then
@@ -639,16 +637,10 @@ runs:
             done;
           }
           header1_list() {
-            find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type f \( -name '*.h' -o -name '*.hh' -o -name '*.hpp' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r header; do
+            find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type f \( -name '*.h' -o -name '*.hh' -o -name '*.hpp' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | sed 's|\(.*\)/.*$|\1|' | uniq | while IFS= read -r header; do
               header="${header#./}"
-              echo "${header%/*}" >> "${header_file1}"
+              echo -n "${header} "
             done;
-            if [[ -s "${header_file1}" ]]; then
-              awk '!seen[$0]++' "${header_file1}" > "${header_file2}";
-              while IFS= read -r headers; do
-                echo -n "${headers%/*} "
-              done < "${header_file2}";
-            fi;
           }
           header2_list() {
             find "${src_tree%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
