@@ -329,7 +329,7 @@ runs:
           elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
             echo -e '\ncheckmake.ini file missing, needed for checkmake to function properly\n';
           fi;
-          if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] [[ ! $(which checkmake) ]]; then
+          if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ ! $(which checkmake) ]]; then
             go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "\n${text8}\n" || echo -e '::error::No checkmake installed Exiting';
             sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
             [[ ! $(which checkmake) ]] && exit 1
