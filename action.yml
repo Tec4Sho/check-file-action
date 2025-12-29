@@ -320,7 +320,7 @@ runs:
           sudo apt-get -yq install shellcheck 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text7}" || echo -e '::error::No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1
         fi;
-        echo 'repository_base=null' >> "${GITHUB_ENV}";
+        echo "repository_base=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
         if [[ -n "${{ inputs.dirname }}" ]]; then
           cd "${{ inputs.dirname }}";
           checkmake_src='checkmake.ini';
@@ -572,6 +572,7 @@ runs:
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
         export LC_ALL=C
         set +e
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         check_build=false
         file_type='c';
@@ -601,22 +602,18 @@ runs:
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -n "${{ env.repository_base }}" ]]; then
-          cd "${{ env.repository_base }}";
           clang_tidy_version=$(clang-tidy --version);
           clang_version=$(clang --version);
           verify_config=$(clang-tidy --verify-config);
           cmake_version=$(cmake --version);
-          compile_json=$(find -type f -name 'compile_commands.json' -print -quit);
+          compile_json=$(find -type f -name "${{ env.repository_base }}/compile_commands.json" -print -quit);
           clang_checks=$(clang-tidy --list-checks);
           gcc_version=$(gcc --version);
           gpp_version=$(g++ --version);
-          cmake_list='CMakeLists.txt';
-          clang_file='parameter-file';
-          clang_tidy='.clang-tidy';
+          cmake_list="${{ env.repository_base }}/CMakeLists.txt';
+          clang_file="${{ env.repository_base }}/parameter-file";
+          clang_tidy="${{ env.repository_base }}/.clang-tidy";
           clangd_tidy='/home/runner/.local/bin/clangd-tidy';
-          clang_run=${{ github.action_path }}/scripts/tools/run-clang-tidy.py;
-          clang_fix=${{ github.action_path }}/scripts/tools/clang-apply-replacements;
-          export PATH="${clang_fix}:${PATH}";
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################" | process_input;
           echo -e "\n####################\nCompiler: ${gcc_version}\n####################" | process_input;
@@ -642,7 +639,7 @@ runs:
             echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\n\n${codechecker_analyzers}" | process_input;
           fi;
           echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
-          echo -e "\n####################\nChecking Repository ${src_tree%/*}\n####################" | process_input;
+          echo -e "\n####################\nChecking Repository ${{ env.repository_base }}\n####################" | process_input;
           echo -e "\n####################\nChecking for ${file_type} file(s)\n####################" | process_input;
           source_dirs() {
             find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
@@ -652,21 +649,21 @@ runs:
             done;
           }
           cmake_includes() {
-            find "${{ env.repository_base }}" -not \( -path '.github/' -prune -o -path '.git/' -prune \) -type d \( -name 'asm' -o -name 'mfd' -o -name 'mtk' -o -name 'mach' -o -name 'linux' -o -name 'include' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+            find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'asm' -o -name 'mfd' -o -name 'mtk' -o -name 'mach' -o -name 'linux' -o -name 'include' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               if [[ -d "${dir}" ]]; then
                 echo -n "${dir} ";
               fi;
             done;
           }
           clang_includes() {
-            find "${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               if [[ -d "${include}" ]]; then
                 echo -e "--extra-arg=-I${include}";
               fi;
             done;
           }
           source_files() {
-            find "${{ env.repository_base }}" -not \( -path '*/CMakeFiles' -prune -o -path '*/build' -prune -o -path '*/.git' -prune -o -path '*/.github' -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
+            find -not \( -path '*/CMakeFiles' -prune -o -path '*/build' -prune -o -path '*/.git' -prune -o -path '*/.github' -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
               echo -e "${file#./}";
             done;
           }
@@ -717,8 +714,8 @@ runs:
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
-          elif [[ ! -e "${clang_run}" ]] && ${{ env.analyzer == '1' }}; then
-            echo -e "\n####################\n\t::error:: run-clang-tidy.py missing in repo Exiting...\n####################\n" | process_input;
+          elif [[ ! "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }}; then
+            echo -e "\n####################\n\t::error:: run-clang-tidy missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
           if [[ -f "${clang_file}" ]] && ${{ env.analyzer == '2' }}; then
@@ -799,6 +796,7 @@ runs:
         fi;
         echo '';
       shell: bash
+      working-directory: ${{ env.repository_base }}
       continue-on-error: true
       
     - name: Build Project
@@ -815,7 +813,6 @@ runs:
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         check_build=false
         file_type='c';
-        src_tree=$(find ${{ env.file_path }} -type d -name '.git' -print -quit);
         github=${GITHUB_WORKSPACE};
         update=true
         fixed=false
@@ -840,8 +837,7 @@ runs:
           file_type="${{ inputs.filetype }}";
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
-        if [[ -d "${src_tree}" ]]; then
-          cd "${src_tree%/*}";
+        if [[ -n "${{ env.repository_base }}" ]]; then
           if [[ -d 'build' ]] && ${{ inputs.build == '1' }} && ${{ env.build_error == 'false' }}; then
             echo -e '\n####################\n\t[1] CodeChecker building project from source files...(dry-run -1)\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
@@ -999,6 +995,7 @@ runs:
           echo -e '::error::Missing .git directory' | process_input;
         fi;
       shell: bash
+      working-directory: ${{ env.repository_base }}
       continue-on-error: true
 
     - name: Check & Repair (Clang-tools)
@@ -1636,7 +1633,6 @@ runs:
               fi;
             done;
           }
-          cd "${{ env.repository_base }}";
           if ${{ inputs.project }}; then
             git config --global --add safe.directory .
           fi;
@@ -1676,6 +1672,7 @@ runs:
           echo -e "\n####################\nCHECK FILE CANT FIND (.git) DIR FOR UPDATING\n####################\n";
         fi;
       shell: bash
+      working-directory: ${{ env.repository_base }}
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Build Release
