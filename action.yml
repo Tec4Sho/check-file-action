@@ -632,14 +632,13 @@ runs:
           source_dirs() {
             find -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               if [[ "${dir}" != '.' ]]; then
-                echo -n "${dir#./} "
+                echo -n "${dir#./} ";
               fi;
             done;
           }
           header1_list() {
-            find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type f -name '*.h' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | sed 's|\(.*\)/.*$|\1|' | uniq | while IFS= read -r header; do
-              header="${header#./}"
-              echo -n "${header} "
+            find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | uniq | while IFS= read -r header; do
+              echo -n "${header#./} ";
             done;
           }
           header2_list() {
