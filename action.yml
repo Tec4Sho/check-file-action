@@ -242,14 +242,8 @@ runs:
           sudo apt-get -yq install python3 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\npython3 dependencies Installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
-        if ${{ inputs.project }} && [[ ! $(llvm-config --version 2>/dev/null) ]]; then
-          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
-          sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
-          sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################" || echo -e '::error::No llvm tools installed for project build';
-          [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
-        fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
-          sudo apt-get -yq install clang-format-$(lsb_release -cs) clang-tidy-$(lsb_release -rs | cut -d. -f1) clang-tools-$(lsb_release -rs | cut -d. -f1) 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
+          sudo apt-get -yq install clang-format-$(lsb_release -cs) clang-tidy-$(lsb_release -cs) clang-tools-$(lsb_release -cs) 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if ${{ inputs.project }} && ${{ inputs.analyzer == '3' }} && [[ ! $(which clangd-tidy) ]]; then
@@ -264,11 +258,17 @@ runs:
           sudo apt-get -yq install clangd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nclangd dependencies Installed\n####################" || echo -e '::error::No clangd installed for project build';
           [[ ! $(which clangd) ]] && exit 1
         fi;
+        if ${{ inputs.project }} && [[ ! $(llvm-config --version 2>/dev/null) ]]; then
+          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
+          sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
+          sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################" || echo -e '::error::No llvm tools installed for project build';
+          [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
+        fi;
         if ${{ inputs.analyzer == '1' }} && ${{ inputs.project }} && [[ $(whereis -b run-clang-tidy) ]]; then
-          echo -e "\n[in-use] $(whereis -b run-clang-tidy)";
+          echo -e "\n[clang-tools] $(whereis -b run-clang-tidy)";
           echo 'run_clang_tidy=run-clang-tidy' >> "${GITHUB_ENV}";
         elif ${{ inputs.analyzer == '1' }} && ${{ inputs.project }}; then
-          echo -e "\n[in-use] run-clang-tidy; /scripts/tools/run-clang-tidy.py action";
+          echo -e "\n[clang-tools] run-clang-tidy: /scripts/tools/run-clang-tidy.py";
           echo "run_clang_tidy=${{ github.action_path }}/scripts/tools/run-clang-tidy.py" >> "${GITHUB_ENV}";
         fi;
         if (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}) && [[ ! $(which CodeChecker) ]]; then
@@ -509,13 +509,6 @@ runs:
           file_type=$(find -type f -name "*.${{ inputs.filetype }}" | grep -v '\.git/.' | wc -l);
           percentage=$(echo "scale=2; (${file_type:-0} / ${total_files:-0}) * 100" | bc);
           include_dirs=$(find -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | wc -l);
-          include_list() {
-            find "${repository%/*}" -not \( -path "*/.github" -prune -o -path "*/.git" -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
-              if [[ -d "${include}" ]]; then
-                echo -n "${include} "
-              fi;
-            done;
-          }
           file_types() {
             find -type f | grep -iEo '\_[[:alnum:]]+$|\-[[:alnum:]]+$|\.[[:alnum:]]+$|[[:alnum:]]+$' | tr -d '_\-\.' | sort | uniq -c | sed 's/^ *//' | while IFS= read -r file; do
               echo "${file} files"
@@ -535,12 +528,11 @@ runs:
           if ${{ inputs.project }} && [[ "$(file_types)" ]]; then
             echo -e "\n#####################\nProject File Types:\n#####################\n\n$(file_types)";
           fi;
-          if [[ "$(include_list)" ]]; then
-            echo "target_include_dirs=$(include_list)" >> "${GITHUB_ENV}";
-            echo -e "\n#####################\nInclude directories: \033[1m${include_dirs}\033[0m\n#####################\n";
+          if [[ "${include_dirs}" ]]; then
+            echo -e "\n#####################\nInclude directories: \033[1m${include_dirs}\033[0m\n#####################";
           fi;
           if [[ "${total_files:-0}" > '0' ]]; then
-            echo -e "The total percentage of ${{ inputs.filetype }} files is: \033[1m${percentage:-0}%\033[0m"
+            echo -e "\nThe total percentage of ${{ inputs.filetype }} files is: \033[1m${percentage:-0}%\033[0m"
             echo -e "\n#####################\nRepository: \033[1m${repo}\033[0m\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
           else
             echo -e "\n#####################\n::error::Repository: ${repo} files missing?\n#####################\n\nProject has no files.. Exiting";
@@ -653,15 +645,17 @@ runs:
             if [[ -d "${github}/${{ env.repository_base }}" ]]; then
               find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
-                  echo -n "${dir} ";
                   count=$((include_count++));
+                  echo -e "-I${dir}" >> 'compile_flags.txt';
+                  echo -n "${dir} ";
                 fi;
               done;
             else
               find "${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
-                  echo -n "${dir} ";
                   count=$((include_count++));
+                  echo -e "-I${dir}" >> 'compile_flags.txt';
+                  echo -n "${dir} ";
                 fi;
               done;
             fi;
@@ -687,7 +681,7 @@ runs:
           fi;
           if [[ "$(cmake_includes)" ]]; then
             echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
-            echo -e "\n####################\n\tcheck-file added ${count} header include directories\n####################\n" | process_input;
+            echo -e "\n####################\n\tcheck-file added ${count} header include directories\n####################" | process_input;
           fi;
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input;
