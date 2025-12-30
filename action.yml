@@ -650,16 +650,15 @@ runs:
           }
           cmake_includes() {
             if [[ -d "${github}/${{ env.repository_base }}" ]]; then
-              echo "${github}/${{ env.repository_base }}/include "
-              find ${github}/${{ env.repository_base }} -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'asm' -o -name 'mfd' -o -name 'mtk' -o -name 'mach' -o -name 'linux' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              find ${github}/${{ env.repository_base }} -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
-                  echo -n "${dir#./} ";
+                  echo -n "${dir} ";
                 fi;
               done;
             else
-              find ${{ env.repository_base }} -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'asm' -o -name 'mfd' -o -name 'mtk' -o -name 'mach' -o -name 'linux' -o -name 'include' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              find ${{ env.repository_base }} -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
-                  echo -n "${dir#./} ";
+                  echo -n "${dir} ";
                 fi;
               done;
             fi;
