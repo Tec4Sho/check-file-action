@@ -255,11 +255,11 @@ runs:
         fi;
         if ${{ inputs.project }} && [[ ! $(llvm-config --version 2>/dev/null) ]]; then
           echo '';
-          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
-          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 22 >/dev/null)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
+          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
+          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 21 >/dev/null 2>&1)"
           sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev clang-tools 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################" || echo -e '::error::No llvm tools installed for project build';
-          sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-22 100 >/dev/null || python3 -m pip install clang-tools && clang-tools --install latest --directory /usr/local/bin # Adjust directory as needed
+          sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-21 100 >/dev/null || python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/local/bin >/dev/null; # Adjust directory as needed
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
@@ -526,8 +526,9 @@ runs:
            done;
           }
           file_types() {
+            type_count=0
             file_count | while IFS= read -r file; do
-              type_count=$((type_count++));
+              type_count=$(expr ${type_count} + 1);
               echo "${type_count}" > count.txt;
             done;
             cat count.txt && rm count.txt;
@@ -660,7 +661,7 @@ runs:
             if [[ -d "${github}/${{ env.repository_base }}" ]]; then
               find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'drm' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
-                  include_count=$((include_count++));
+                  include_count=$(expr ${include_count} + 1);
                   echo "${include_count}" > "${count}";
                   echo -e "-I${dir}" >> 'compile_flags.txt';
                   echo -n "${dir} ";
@@ -669,7 +670,7 @@ runs:
             else
               find "${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
-                  include_count=$((include_count++));
+                  include_count=$(expr ${include_count} + 1);
                   echo "${include_count}" > "${count}";
                   echo -e "-I${dir}" >> 'compile_flags.txt';
                   echo -n "${dir} ";
