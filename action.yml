@@ -256,10 +256,10 @@ runs:
         if ${{ inputs.project }} && [[ ! $(llvm-config --version 2>/dev/null) ]]; then
           echo '';
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
-          sudo bash -c "$(sudo wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- 22 >/dev/null 2>&1)"
+          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 22 >/dev/null)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
           sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev clang-tools 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################" || echo -e '::error::No llvm tools installed for project build';
-          sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-22 100 >/dev/null;
+          sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-22 100 >/dev/null || python3 -m pip install clang-tools && clang-tools --install latest --directory /usr/local/bin # Adjust directory as needed
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
@@ -528,20 +528,21 @@ runs:
           file_types() {
             file_count | while IFS= read -r file; do
               type_count=$((type_count++));
+              echo "${type_count}" > count.txt;
             done;
-            export "${type_count}";
+            cat count.txt && rm count.txt;
           }     
           if ${{ inputs.project }} && [[ "$(directory)" ]]; then
-            echo -e "\n#####################\nSource Directories:\n#####################\n\n$(directory)";
+            echo -e "\n#####################\nProject Source Directories:\n#####################\n\n$(directory)";
           fi;
           if ${{ inputs.project }} && [[ "$(file_count)" ]]; then
             echo -e "\n#####################\nProject File Types:\n#####################\n\n$(file_count)";
           fi;
           if [[ "$(file_types)" ]]; then
-            echo -e "\n#####################\nTotal Filetypes: \033[1m${type_count}\033[0m\n#####################";
+            echo -e "\n#####################\nDifferent File Types: \033[1m$(file_types)\033[0m\n#####################";
           fi;
           if [[ "${include_dirs}" ]]; then
-            echo -e "\n#####################\nInclude Directories: \033[1m${include_dirs}\033[0m\n#####################";
+            echo -e "\n#####################\nTotal Include Directories: \033[1m${include_dirs}\033[0m\n#####################";
           fi;
           if [[ "${total_files:-0}" > '0' ]]; then
             echo -e "\nThe total percentage of ${{ inputs.filetype }} files is: \033[1m${percentage:-0}%\033[0m"
@@ -574,6 +575,7 @@ runs:
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export ALLOW_MISSING_DEPENDENCIES=true
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+        export WITH_TIDY=1
         export LC_ALL=C
         set +e
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
@@ -584,6 +586,7 @@ runs:
         github=${GITHUB_WORKSPACE};
         update=true
         fixed=false
+        count='count.txt';
         include_count=0
         process_input() {
           while IFS= read -r log; do
@@ -658,20 +661,20 @@ runs:
               find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'drm' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   include_count=$((include_count++));
+                  echo "${include_count}" > "${count}";
                   echo -e "-I${dir}" >> 'compile_flags.txt';
                   echo -n "${dir} ";
                 fi;
               done;
-              export "${include_count}";
             else
               find "${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   include_count=$((include_count++));
+                  echo "${include_count}" > "${count}";
                   echo -e "-I${dir}" >> 'compile_flags.txt';
                   echo -n "${dir} ";
                 fi;
               done;
-              export "${include_count}";
             fi;
           }
           clang_includes() {
@@ -696,7 +699,7 @@ runs:
           fi;
           if [[ "$(cmake_includes)" ]]; then
             echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
-            echo -e "\n####################\n\tcheck-file added ${include_count} header include directories\n####################" | process_input;
+            echo -e "\n####################\n\tcheck-file added $(cat ${count}) header include directories\n####################" | process_input;
           fi;
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input;
@@ -826,6 +829,7 @@ runs:
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export ALLOW_MISSING_DEPENDENCIES=true
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+        export WITH_TIDY=1
         export LC_ALL=C
         set +e
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
