@@ -249,7 +249,7 @@ runs:
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
-          sudo apt-get install -yq clang-tools clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
+          sudo apt-get -yq install clang-format-$(lsb_release -cs) clang-tidy-$(lsb_release -rs | cut -d. -f1) clang-tools-$(lsb_release -rs | cut -d. -f1) 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if ${{ inputs.project }} && ${{ inputs.analyzer == '3' }} && [[ ! $(which clangd-tidy) ]]; then
@@ -572,7 +572,6 @@ runs:
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
         export LC_ALL=C
         set +e
-        include_count=0
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${GITHUB_WORKSPACE}/${repository}_project.log";
         check_build=false
@@ -650,15 +649,16 @@ runs:
             done;
           }
           cmake_includes() {
+            local include_count=0
             if [[ -d "${github}/${{ env.repository_base }}" ]]; then
-              find ${github}/${{ env.repository_base }} -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   echo -n "${dir} ";
                   count=$((include_count++));
                 fi;
               done;
             else
-              find ${{ env.repository_base }} -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              find "${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   echo -n "${dir} ";
                   count=$((include_count++));
