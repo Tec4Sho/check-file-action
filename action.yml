@@ -257,11 +257,11 @@ runs:
           echo '';
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
-          sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################" || echo -e '::error::No llvm tools installed for project build';
+          sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev clang-tools 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################" || echo -e '::error::No llvm tools installed for project build';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
-          sudo apt-get -yq install clang-tools-$(lsb_release -cs) 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
+          sudo apt-get -yq install clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if ${{ inputs.analyzer == '1' }} && ${{ inputs.project }} && [[ $(whereis -b run-clang-tidy) ]]; then
@@ -535,7 +535,7 @@ runs:
           if ${{ inputs.project }} && [[ "$(file_count)" ]]; then
             echo -e "\n#####################\nProject File Types:\n#####################\n\n$(file_count)";
           fi;
-          if [[ "${file_types}" ]]; then
+          if [[ "$(file_types)" ]]; then
             echo -e "\n#####################\nTotal Filetypes: \033[1m${type_count}\033[0m\n#####################";
           fi;
           if [[ "${include_dirs}" ]]; then
@@ -651,7 +651,7 @@ runs:
             done;
           }
           cmake_includes() {
-            local include_count=0
+            include_count='0';
             if [[ -d "${github}/${{ env.repository_base }}" ]]; then
               find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'drm' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
@@ -721,7 +721,7 @@ runs:
           fi;
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }}; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-            { time "${{ env.run_clang_tidy }}" -p . -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -- -Iinclude/; } 2>&1 | process_input;
+            { time "${{ env.run_clang_tidy }}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
