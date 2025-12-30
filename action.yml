@@ -220,7 +220,6 @@ runs:
           echo "/usr/local/bin" >> "${GITHUB_PATH}";
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -vpf "${HOME}/.local/bin/cmake" '/usr/local/bin/'
-          echo '';
         fi;
         if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
           sudo apt-get -yq install cmake 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies Installed\n####################" || echo -e '::error::No cmake installed for project build'; 
@@ -242,10 +241,6 @@ runs:
           sudo apt-get -yq install python3 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\npython3 dependencies Installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
-        if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
-          sudo apt-get -yq install clang-format-$(lsb_release -cs) clang-tidy-$(lsb_release -cs) clang-tools-$(lsb_release -cs) 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
-          [[ ! $(which clang-tidy) ]] && exit 1
-        fi;
         if ${{ inputs.project }} && ${{ inputs.analyzer == '3' }} && [[ ! $(which clangd-tidy) ]]; then
           python3 -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################\n" || echo -e '::error::No clangd-tidy installed for project checks';
           if [[ $(which clangd-tidy) ]]; then
@@ -259,10 +254,15 @@ runs:
           [[ ! $(which clangd) ]] && exit 1
         fi;
         if ${{ inputs.project }} && [[ ! $(llvm-config --version 2>/dev/null) ]]; then
+          echo '';
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
           sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################" || echo -e '::error::No llvm tools installed for project build';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
+        fi;
+        if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
+          sudo apt-get -yq install clang-tools-$(lsb_release -cs) 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed Exiting';
+          [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if ${{ inputs.analyzer == '1' }} && ${{ inputs.project }} && [[ $(whereis -b run-clang-tidy) ]]; then
           echo -e "\n[clang-tools] $(whereis -b run-clang-tidy)";
@@ -505,31 +505,41 @@ runs:
         if [[ -n "${{ env.repository_base }}" ]]; then
           cd "${{ env.repository_base }}";
           src=$(ls 2>/dev/null);
+          type_count=0
           total_files=$(find -type f | grep -v '\.git/.' | wc -l);
           file_type=$(find -type f -name "*.${{ inputs.filetype }}" | grep -v '\.git/.' | wc -l);
           percentage=$(echo "scale=2; (${file_type:-0} / ${total_files:-0}) * 100" | bc);
           include_dirs=$(find -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | wc -l);
-          file_types() {
+          file_count() {
             find -type f | grep -iEo '\_[[:alnum:]]+$|\-[[:alnum:]]+$|\.[[:alnum:]]+$|[[:alnum:]]+$' | tr -d '_\-\.' | sort | uniq -c | sed 's/^ *//' | while IFS= read -r file; do
               echo "${file} files"
             done;
           }
-          dir_files() {
+          directory() {
            for dir in ${src[@]}; do
              if [ -d "$dir" ]; then
                count=$(find "$dir" -type f 2>/dev/null | wc -l);
                echo "${dir}: ${count} files"
              fi;
            done;
-          }        
-          if ${{ inputs.project }} && [[ "$(dir_files)" ]]; then
-            echo -e "\n#####################\nSource Directories:\n#####################\n\n$(dir_files)";
+          }
+          file_types() {
+            file_count | while IFS= read -r file; do
+              type_count=$((type_count++));
+            done;
+            export "${type_count}";
+          }     
+          if ${{ inputs.project }} && [[ "$(directory)" ]]; then
+            echo -e "\n#####################\nSource Directories:\n#####################\n\n$(directory)";
           fi;
-          if ${{ inputs.project }} && [[ "$(file_types)" ]]; then
-            echo -e "\n#####################\nProject File Types:\n#####################\n\n$(file_types)";
+          if ${{ inputs.project }} && [[ "$(file_count)" ]]; then
+            echo -e "\n#####################\nProject File Types:\n#####################\n\n$(file_count)";
+          fi;
+          if [[ "${file_types}" ]]; then
+            echo -e "\n#####################\nTotal Filetypes: \033[1m${type_count}\033[0m\n#####################";
           fi;
           if [[ "${include_dirs}" ]]; then
-            echo -e "\n#####################\nInclude directories: \033[1m${include_dirs}\033[0m\n#####################";
+            echo -e "\n#####################\nInclude Directories: \033[1m${include_dirs}\033[0m\n#####################";
           fi;
           if [[ "${total_files:-0}" > '0' ]]; then
             echo -e "\nThe total percentage of ${{ inputs.filetype }} files is: \033[1m${percentage:-0}%\033[0m"
@@ -572,7 +582,7 @@ runs:
         github=${GITHUB_WORKSPACE};
         update=true
         fixed=false
-        count=0
+        include_count=0
         process_input() {
           while IFS= read -r log; do
             if ${{ inputs.output == '1' }}; then
@@ -645,19 +655,21 @@ runs:
             if [[ -d "${github}/${{ env.repository_base }}" ]]; then
               find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
-                  count=$((include_count++));
+                  include_count=$((include_count++));
                   echo -e "-I${dir}" >> 'compile_flags.txt';
                   echo -n "${dir} ";
                 fi;
               done;
+              export "${include_count}";
             else
               find "${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
-                  count=$((include_count++));
+                  include_count=$((include_count++));
                   echo -e "-I${dir}" >> 'compile_flags.txt';
                   echo -n "${dir} ";
                 fi;
               done;
+              export "${include_count}";
             fi;
           }
           clang_includes() {
@@ -672,6 +684,7 @@ runs:
               echo -e "${file#./}";
             done;
           }
+          mkdir -p build/fixes
           echo 'build_error=false' >> "${GITHUB_ENV}";
           echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
           echo "github_source_files=false" >> "${GITHUB_ENV}";
@@ -681,7 +694,7 @@ runs:
           fi;
           if [[ "$(cmake_includes)" ]]; then
             echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
-            echo -e "\n####################\n\tcheck-file added ${count} header include directories\n####################" | process_input;
+            echo -e "\n####################\n\tcheck-file added ${include_count} header include directories\n####################" | process_input;
           fi;
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input;
@@ -689,7 +702,6 @@ runs:
           if [[ -f "${cmake_list}" ]]; then
             echo -e '\n####################\n\tCMakeLists.txt found continuing...\n####################' | process_input;
           fi;
-          mkdir -p build/fixes
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             if [[ "$(source_dirs)" ]] && [[ "$(cmake_includes)" ]]; then
@@ -709,7 +721,7 @@ runs:
           fi;
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }}; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-            { time "${{ env.run_clang_tidy }}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)"; } 2>&1 | process_input;
+            { time "${{ env.run_clang_tidy }}" -p . -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -834,7 +846,9 @@ runs:
             fi;
           done;
         }
-        echo 'check_build=false' >> "${GITHUB_ENV}";
+        if ! ${{ env.check_build }}; then
+          echo 'check_build=false' >> "${GITHUB_ENV}";
+        fi;
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
           update=false
@@ -992,7 +1006,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
-          if [[ ${check_build} ]]; then
+          if [[ "${check_build}" ]]; then
             echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
           else
             echo -e '\n####################\n\tProject Not Checked Exiting...\n####################\n' | process_input;
