@@ -653,7 +653,7 @@ runs:
           cmake_includes() {
             local include_count=0
             if [[ -d "${github}/${{ env.repository_base }}" ]]; then
-              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'drm' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   include_count=$((include_count++));
                   echo -e "-I${dir}" >> 'compile_flags.txt';
@@ -721,7 +721,7 @@ runs:
           fi;
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }}; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-            { time "${{ env.run_clang_tidy }}" -p . -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)"; } 2>&1 | process_input;
+            { time "${{ env.run_clang_tidy }}" -p . -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" -- -Iinclude/; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
