@@ -247,9 +247,11 @@ runs:
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
           sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
           [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)";
-          python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/local/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies Installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
+          [[ $(which clang-tidy-18) ]] && sudo rm -vf "$(which clang-tidy-18)";
+          python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies Installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
           [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -f "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy' && sudo ln -vf '/usr/bin/clang-tidy' '/usr/bin/clang-tidy-18';
           [[ -e '/usr/bin/clang-tidy' ]] && [[ -e '/usr/bin/clang-tidy-21' ]] && sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-21 100 >/dev/null || [[ -e '/usr/local/bin/clang-tidy' ]] && [[ -e '/usr/bin/clang-tidy-21' ]] && sudo update-alternatives --install /usr/local/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-21 100 >/dev/null;
+          [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
