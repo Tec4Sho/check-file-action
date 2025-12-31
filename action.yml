@@ -248,7 +248,7 @@ runs:
           sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
           [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)";
           python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies Installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
-          [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/bin/clang-tidy" ]] && sudo cp -pf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy' && sudo ln -vsf '/usr/bin/clang-tidy' '/usr/bin/clang-tidy-18'
+          [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo cp -pf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy' && sudo ln -vsf '/usr/bin/clang-tidy' '/usr/bin/clang-tidy-18'
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
@@ -656,7 +656,8 @@ runs:
           cmake_includes() {
             include_count='0';
             if [[ -d "${github}/${{ env.repository_base }}" ]]; then
-              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'generated' -o -name 'internal' -o -name 'engine' -o -name 'crypto' -o -name 'subdev' -o -name 'media' -o -name 'linux' -o -name 'acpi' -o -name 'mach' -o -name 'drm' -o -name 'asm' -o -name 'net' -o -name 'mtk' -o -name 'fs' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \(        \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   include_count=$(expr ${include_count} + 1);
                   echo "${include_count}" > "${count}";
@@ -998,11 +999,12 @@ runs:
             if [[ "${clang_files_missing:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################" | process_input;
               echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}" | process_input;
-              echo -e "\n####################\nCHECK-FILE FOUND MISSING FILES:\n####################\n" | process_input;
-              for missing in ${clang_files_list}; do
+              echo -e "\n####################\nCHECK-FILE FIND MISSING FILES:\n####################\n" | process_input;
+              for missing in "${clang_files_list}"; do
+                echo "locating missing file... ${missing}";
                 path="${missing%/*}";
                 file="${missing##*/}";
-                find -type f \( -path "*/${path}/*" -o -path "*" \) -name "${file}" -print | process_input;
+                find . -type f \( -path "*/${path}/*" -o -path '*' \) -name "${file}" -print | process_input || echo "Cannot locate missing file... ${missing}";
               done;
             fi;
           fi;
