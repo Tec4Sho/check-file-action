@@ -247,8 +247,9 @@ runs:
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
           sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
           [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)";
-          python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies Installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
-          [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo cp -pf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy' && sudo ln -vsf '/usr/bin/clang-tidy' '/usr/bin/clang-tidy-18'
+          python3 -m pip install clang-tools >/dev/null && sudo clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies Installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
+          [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo cp -pf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy' && sudo ln -vf '/usr/bin/clang-tidy' '/usr/bin/clang-tidy-18';
+          [[ -e '/usr/bin/clang-tidy' ]] && [[ -e '/usr/bin/clang-tidy-21' ]] && sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-21 100 >/dev/null;
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
@@ -640,7 +641,7 @@ runs:
           echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################" | process_input;
           echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################" | process_input;
           if ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
-            codechecker_analyzers=$(CodeChecker checkers | grep -B 1 -m 100 "enable" | grep -v "enable");
+            codechecker_analyzers=$(CodeChecker checkers | grep -B 1 -m 50 "enable" | grep -v "enable");
             echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\n\n${codechecker_analyzers}" | process_input;
           fi;
           echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
@@ -665,14 +666,14 @@ runs:
                 fi;
               done;
             else
-              find "${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'include' -o -name 'linux' -o -name 'asm' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   include_count=$(expr ${include_count} + 1);
                   echo "${include_count}" > "${count}";
                   echo -e "-I${dir}" >> 'compile_flags.txt';
                   echo -n "${dir} ";
                 fi;
-              done;
+              done
             fi;
           }
           clang_includes() {
