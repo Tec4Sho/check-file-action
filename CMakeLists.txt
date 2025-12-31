@@ -73,10 +73,12 @@ file(GLOB_RECURSE ALL_HEADERS CONFIGURE_DEPENDS "*.h")
 # Add the system, project include directory to your target
 if(DEFINED PROJECT_INCLUDE_DIRS)
   target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_INCLUDE_DIRS}")
+  target_include_directories("${PROJECT_NAME}" SYSTEM PRIVATE "/home/runner/.local/lib/python*/site-packages/clang_tidy/data/lib/clang/*/include")
   target_include_directories("${PROJECT_NAME}" SYSTEM PUBLIC "/usr/include")
   message(STATUS "Project Includes: cmake added include directories. clang analyzing multiple includes [check]")
 elseif(ENV${github_include_dirs})
   target_include_directories("${PROJECT_NAME}" PRIVATE "ENV${github_include_dirs}")
+  target_include_directories("${PROJECT_NAME}" SYSTEM PRIVATE "/home/runner/.local/lib/python*/site-packages/clang_tidy/data/lib/clang/*/include")
   target_include_directories("${PROJECT_NAME}" SYSTEM PUBLIC "/usr/include")
   message(STATUS "Project Includes: cmake added include directories. clang analyzing multiple includes [build]")
 elseif(DEFINED ALL_HEADERS) # Extract the unique directory paths from the list of header files
