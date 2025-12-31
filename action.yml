@@ -246,7 +246,7 @@ runs:
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 21 >/dev/null 2>&1)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
           sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
-          sudo apt-get remove --purge -yq clang-tidy >/dev/null;
+          sudo apt-get remove --purge -yq clang-tidy-* >/dev/null;
           [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)";
           python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies Installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
           sudo cp -vpf "${HOME}/.local/bin/clang-tidy" '/usr/bin/';
