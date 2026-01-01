@@ -249,7 +249,7 @@ runs:
           [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)" && echo '';
           [[ $(which clang-tidy-18) ]] && sudo rm -vf "$(which clang-tidy-18)";
           sudo apt-get -yq install clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
-          [[ -e '/usr/bin/clang-tidy' ]] && sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-21 100 >/dev/null || echo '::warning::No clang-tidy-21 found... updating';
+          [[ -e '/usr/bin/clang-tidy-18' ]] && sudo update-alternatives --install /usr/bin/clang-tidy-18 clang-tidy-18 /usr/bin/clang-tidy 100 >/dev/null || echo '::warning::No clang-tidy-21 found... updating';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
@@ -660,7 +660,7 @@ runs:
           cmake_includes() {
             include_count='0';
             if [[ -d "${github}/${{ env.repository_base }}" ]]; then
-              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'drm' -o -name 'elfutils' -o -name 'fs' -o -name 'mach' -o -name 'mt-plat' -o -name 'net' -o -name 'pci' -o -name 'subcmd' -o -name 'subdev' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'asm' -o -name 'drm' -o -name 'fs' -o -name 'mach' -o -name 'mt-plat' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   include_count=$(expr ${include_count} + 1);
                   echo "${include_count}" > "${count}";
