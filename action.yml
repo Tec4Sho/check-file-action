@@ -144,7 +144,7 @@ runs:
     - name: Linux Distro
       run: |
         echo '';
-        echo -e "\n####################\nCheck-File-Action-Pro version 2.0.0 [Beta Stable]\n####################\n";
+        echo -e "####################\nCheck-File-Action-Pro version 2.0.0 [Beta Stable]\n####################\n";
         if [[ -r '/etc/os-release' ]]; then
           . /etc/os-release
           if [[ "${ID}" == 'ubuntu' ]]; then
@@ -181,7 +181,6 @@ runs:
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
         sudo apt-get update -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
-        sudo apt-get --fix-broken install -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         if ${{ inputs.project }}; then
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "Current CMake version (${cmake_version}) is older than ${required_version}. Updating..."
@@ -374,6 +373,7 @@ runs:
           echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
         fi;
         echo "${PATH}:/usr/local/bin:" | sudo tee -a ~/.bashrc >/dev/null;
+        sudo apt-get --fix-broken install -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         echo '';
       shell: bash
       continue-on-error: false
