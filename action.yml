@@ -659,12 +659,12 @@ runs:
           cmake_includes() {
             include_count='0';
             if [[ -d "${github}/${{ env.repository_base }}" ]]; then
-              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'asm' -o -name 'arm' -o -name 'drm' -o -name 'fs' -o -name 'mach' -o -name 'mt-plat' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'asm' -o -name 'arm' -o -name 'drm' -o -name 'fs' -o -name 'mach' -o -name 'mt-plat' -o -name 'subdev' -o -name 'include' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   include_count=$(expr ${include_count} + 1);
                   echo "${include_count}" > "${count}";
                   echo -e "-I${dir}" >> 'compile_flags.txt';
-                  echo -n "${dir};";
+                  echo -n "${dir} ";
                 fi;
               done;
             else
