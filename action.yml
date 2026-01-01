@@ -248,7 +248,7 @@ runs:
           [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)" && echo '';
           [[ $(which clang-tidy-18) ]] && sudo rm -vf "$(which clang-tidy-18)";
           sudo apt-get -yq install clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
-          [[ -e '/usr/bin/clang-tidy-18' ]] && sudo update-alternatives --install /usr/bin/clang-tidy-18 clang-tidy-18 /usr/bin/clang-tidy 100 >/dev/null || echo '::warning::No clang-tidy-21 found... updating';
+          [[ -e '/usr/bin/clang-tidy-21' ]] && sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-21 100 >/dev/null || echo '::warning::No clang-tidy-21 found... updating';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
@@ -660,7 +660,7 @@ runs:
           cmake_includes() {
             include_count='0';
             if [[ -d "${github}/${{ env.repository_base }}" ]]; then
-              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'asm' -o -name 'drm' -o -name 'fs' -o -name 'mach' -o -name 'mt-plat' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'asm' -o -name 'arm' -o -name 'drm' -o -name 'fs' -o -name 'mach' -o -name 'mt-plat' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   include_count=$(expr ${include_count} + 1);
                   echo "${include_count}" > "${count}";
@@ -1002,15 +1002,14 @@ runs:
             if [[ "${clang_files_missing:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################" | process_input;
               echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}" | process_input;
-              echo -e "\n####################\nCHECK-FILE FIND MISSING FILES: ?\n####################\n" | process_input;
+              echo -e "\n####################\nCHECK-FILE FIND MISSING FILES:\n####################\n" | process_input;
               for missing_file in ${clang_files_list[@]}; do
-                echo "locating missing file... ${missing_file}" | process_input;
-                path="${missing_file%/*}";
-                file="${missing_file##*/}";
-                if [[ $(echo "${path}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-                  find . -type f -name "${file}" -print | process_input || echo "Cannot locate missing file... ${missing_file}" | process_input;
+                echo "locating missing ${missing_file} file... ?" | process_input;
+                missing_file=$(echo ${missing_file#../} | tr -d "'");
+                if [[ $(echo "${missing_file%/*}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
+                  find . -type f -name "${missing_file%/*}" -print | process_input || echo "Cannot locate missing file... ${missing_file}" | process_input;
                 else
-                  find . -type f -path "*/${path}/*" -name "${file}" -print | process_input || echo "Cannot locate missing file... ${missing_file}" | process_input;
+                  find . -type f -path "*/${missing_file%/*}/*" -name "${missing_file##*/}" -print | process_input || echo "Cannot locate missing file... ${missing_file}" | process_input;
                 fi;
               done;
             fi;
