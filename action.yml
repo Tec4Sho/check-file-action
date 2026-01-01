@@ -665,7 +665,7 @@ runs:
                   include_count=$(expr ${include_count} + 1);
                   echo "${include_count}" > "${count}";
                   echo -e "-I${dir}" >> 'compile_flags.txt';
-                  echo -n "${dir} ";
+                  echo -n "${dir};";
                 fi;
               done;
             else
@@ -674,7 +674,7 @@ runs:
                   include_count=$(expr ${include_count} + 1);
                   echo "${include_count}" > "${count}";
                   echo -e "-I${dir}" >> 'compile_flags.txt';
-                  echo -n "${dir} ";
+                  echo -n "${dir};";
                 fi;
               done
             fi;
