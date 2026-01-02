@@ -686,7 +686,7 @@ runs:
                 echo -e "-I${include}" >> 'compile_flags.txt';
                 echo -n "${include#./};";
               done;
-            fi:
+            fi;
           }
           clang_includes() {
             find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
