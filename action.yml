@@ -1012,17 +1012,17 @@ runs:
                 file="${file##*/}";
                 file="${file#../}";
                 file="${file#..}";
-                if [[ $(echo "${path}" | grep '.h') ]]; then
-                  locate=$(find -type f -name "${file}" -print | process_input);
-                  if [[ "${locate}" ]]; then
-                    echo "Location found @: ${locate} ✅";
+                if [[ "${path}" == "${file}" ]]; then
+                  locate=$(find -type f -name "${file}" -print);
+                  if [[ -n "${locate}" ]]; then
+                    echo "Location found @: ${locate} ✅" | process_input;
                   else
                     echo "Cannot locate missing file ${missing_file} ❌" | process_input;
                   fi;
-                else
-                  locate=$(find -type f -path "*/${path}/*" -name "${file}" -print | process_input);
-                  if [[ "${locate}" ]]; then
-                    echo "Location found @: ${locate} ✅";
+                elif [[ "${path}" != "${file}" ]]; then
+                  locate=$(find -type f -path "*/${path}/*" -name "${file}" -print);
+                  if [[ -n "${locate}" ]]; then
+                    echo "Location found @: ${locate} ✅" | process_input;
                   else
                     echo "Cannot locate missing file ${missing_file} ❌" | process_input;
                   fi;
