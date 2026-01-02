@@ -572,11 +572,11 @@ runs:
     - name: Check Project
       if: inputs.project == 'true'
       run: |
+        export WITH_TIDY=1
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export ALLOW_MISSING_DEPENDENCIES=true
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-        export WITH_TIDY=1
         export LC_ALL=C
         set +e
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
@@ -600,6 +600,7 @@ runs:
             fi;
           done;
         }
+        [[ -f "${repository}_project.log" ]] && cp "${repository}_project.log" "${project}";
         echo 'check_build=false' >> "${GITHUB_ENV}";
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
