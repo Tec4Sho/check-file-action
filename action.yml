@@ -615,7 +615,7 @@ runs:
           clang_version="$(clang --version)";
           verify_config="$(clang-tidy --verify-config)";
           cmake_version="$(cmake --version)";
-          compile_json="$(find -type f -name 'compile_commands.json' -print -quit)";
+          compile_json='./build/compile_commands.json';
           clang_checks="$(clang-tidy --list-checks)";
           gcc_version="$(gcc --version)";
           gpp_version="$(g++ --version)";
@@ -623,6 +623,7 @@ runs:
           clang_file='parameter-file';
           clang_tidy='.clang-tidy';
           clangd_tidy='/home/runner/.local/bin/clangd-tidy';
+          clang_includes='./build/check-file-include.txt';
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################" | process_input;
           echo -e "\n####################\nCompiler: ${gcc_version}\n####################" | process_input;
@@ -678,6 +679,14 @@ runs:
                 fi;
               done
             fi;
+            if [[ -s "${clang_includes}" ]]; then
+              for include in ${clang_includes[@]}; do
+                include_count=$(expr ${include_count} + 1);
+                echo "${include_count} extra" > "${count}";
+                echo -e "-I${include}" >> 'compile_flags.txt';
+                echo -n "${include#./};";
+              done;
+            fi:
           }
           clang_includes() {
             find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
@@ -1017,6 +1026,7 @@ runs:
                   locate=$(find -type f -name "${file}" -print);
                   if [[ -n "${locate}" ]]; then
                     echo "Location found @: ${locate} ✅" | process_input;
+                    echo "${locate%/*}" >> ./build/check-file-include.txt;
                   else
                     echo "Cannot locate missing file ${missing_file} ❌" | process_input;
                   fi;
@@ -1024,11 +1034,15 @@ runs:
                   locate=$(find -type f -path "*/${path}/*" -name "${file}" -print);
                   if [[ -n "${locate}" ]]; then
                     echo "Location found @: ${locate} ✅" | process_input;
+                    echo "${locate%/*}" >> ./build/check-file-include.txt
                   else
                     echo "Cannot locate missing file ${missing_file} ❌" | process_input;
                   fi;
                 fi;
               done;
+              if [[ -f './build/check-file-include.txt' ]]; then
+                awk '!seen[$0]++' './build/check-file-include.txt' > './build/check-file-included.txt';
+              fi;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
@@ -1040,7 +1054,7 @@ runs:
           echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
-          fi;
+          fi; 
           if [[ "${check_build}" ]]; then
             echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
           else
