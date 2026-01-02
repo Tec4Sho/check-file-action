@@ -600,7 +600,7 @@ runs:
             fi;
           done;
         }
-        [[ -f "${repository}_project.log" ]] && cp "${repository}_project.log" "${project}";
+        [[ -f "${project_log##*/}" ]] && cp -f "${project_log##*/}" "${project_log}";
         echo 'check_build=false' >> "${GITHUB_ENV}";
         if ! ${{ inputs.update }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
