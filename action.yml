@@ -1919,7 +1919,7 @@ runs:
     - name: Check Workspace
       run: |
         echo '';
-        echo -e "Repository Project Size:\n\n$(du -shd 1 ${{ inputs.dirname }})\n";
+        echo -e "Repository Project Size:\n\n$(du . -sh -d 1)\n";
       shell: bash
       continue-on-error: true
 
