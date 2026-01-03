@@ -122,10 +122,66 @@ inputs:
     - 2 # Build new compile_commands_json & check project. [CodeChecker Build Multiple-Files]
     - 3 # Build check includes & check project. [Deheader Dry-Run Multiple-Files]
     - 4 # Build fix includes & check project. [Deheader Build Single-Files]
+  clean:
+    description: 'Clean workflow on checkout'
+    type: boolean
+    required: false
+    default: 'true'
+  repo:
+    description: 'Add repository checkout'
+    type: boolean
+    required: true
+    default: 'true'
 
 runs:
   using: composite
   steps:
+
+    - name: Restore Workspace
+      if: inputs.stored == 'true'
+      id: restore-workspace-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ${GITHUB_WORKSPACE}
+          ~/opt/hostedtoolcache
+          ~/var/cache/apt/archives
+        key: ${{ runner.os }}-workspace-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+        restore-keys: |
+          ${{ runner.os }}-workspace-${{ github.event.pull_request.head.sha || github.sha }}
+          ${{ runner.os }}-workspace
+          ${{ runner.os }}
+        enableCrossOsArchive: true
+      continue-on-error: true
+
+    - name: Access repo info and branch
+      run: |
+        echo '';
+      # Access using default environment variables
+        echo "Repository Name with Owner: $GITHUB_REPOSITORY"
+        echo "Ref (branch/tag): $GITHUB_REF"   
+      # Constructing the full URL
+        REPO_URL="github.com"
+        echo "Repository URL: $REPO_URL"
+      # Extracting the branch name (for branches)
+        BRANCH_NAME=$(echo $GITHUB_REF | cut -d / -f 3)
+        echo "Branch Name: $BRANCH_NAME"
+      # Accessing via the context
+        echo "Repository URL via context: ${{ github.server_url }}/${{ github.repository }}"
+        echo "Branch name via context (simple case): ${{ github.ref_name }}"
+      shell: bash
+      continue-on-error: true
+
+    - name: Clone Recovery Repo
+      if: inputs.repo == 'true' && steps.restore-workspace-cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v6
+      with:
+        repository: ${{ github.server_url }}/${{ github.repository }}
+        path: ${{ inputs.dirname }}
+        ref: ${{ github.ref }}
+        clean: ${{ inputs.clean }}
+        fetch-depth: 1
+        show-progress: false
 
     - name: Set up Go 1.25.3
       if: inputs.filename != ''
@@ -1840,6 +1896,19 @@ runs:
         fi;
         echo '';
       shell: bash
+      continue-on-error: true
+
+    - name: Save Workspace
+      if: inputs.stored == 'true' && steps.restore-workspace-cache.outputs.cache-hit != 'true'
+      id: save-workspace-cache
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          ${GITHUB_WORKSPACE}
+          ~/opt/hostedtoolcache
+          ~/var/cache/apt/archives
+        key: ${{ steps.restore-workspace-cache.outputs.cache-primary-key }}
+        enableCrossOsArchive: true
       continue-on-error: true
 
     - name: Action Check
