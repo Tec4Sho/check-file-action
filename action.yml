@@ -145,7 +145,6 @@ runs:
         path: |
           ./${{ inputs.dirname }}
           /opt/hostedtoolcache
-          /var/cache/apt/archives
         key: ${{ runner.os }}-workspace-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
         restore-keys: |
           ${{ runner.os }}-workspace-${{ github.event.pull_request.head.sha || github.sha }}
@@ -178,15 +177,16 @@ runs:
         clean: ${{ inputs.clean }}
         fetch-depth: 1
         show-progress: false
+      continue-on-error: false
 
     - name: Set up Go 1.25.3
       if: inputs.filename != ''
       uses: actions/setup-go@v2
       with:
-        go-version: 1.25.3
+        go-version: 'stable'
       continue-on-error: true
 
-    - name: Setup Clang Compiler 
+    - name: Setup Clang Compiler
       if: inputs.project == 'true'
       uses: rlalik/setup-cpp-compiler@master
       with:
@@ -716,7 +716,7 @@ runs:
             include_count_extra='0';
             include_count='0';
             if [[ -d "${github}/${{ env.repository_base }}" ]]; then
-              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'boardcom' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'drivers' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'include' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'lib' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'sound' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+              find "${github}/${{ env.repository_base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'asm' -o -name 'core' -o -name 'drm' -o -name 'drivers' -o -name 'include' -o -name 'linux' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   include_count=$(expr ${include_count} + 1);
                   echo "${include_count}" > "${count1}";
@@ -1904,7 +1904,6 @@ runs:
         path: |
           ./${{ inputs.dirname }}
           /opt/hostedtoolcache
-          /var/cache/apt/archives
         key: ${{ steps.restore-workspace-cache.outputs.cache-primary-key }}
         enableCrossOsArchive: true
       continue-on-error: true
