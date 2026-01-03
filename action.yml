@@ -427,6 +427,7 @@ runs:
         if [[ -d "${HOME}/codechecker/build/CodeChecker/bin" ]]; then
           echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
         fi;
+        echo "repo=${repository%/*}" >> "${GITHUB_ENV}";
         echo "${PATH}:/usr/local/bin:" | sudo tee -a ~/.bashrc >/dev/null;
         sudo apt-get --fix-broken install -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         echo '';
@@ -1085,7 +1086,7 @@ runs:
                 file="${file#../}";
                 file="${file#..}";
                 if [[ "${path}" == "${file}" ]]; then
-                  locate=$(find -type f -name "${file}" -print);
+                  locate=$(find ${{ env.repo }} -type f -name "${file}" -print);
                   if [[ -n "${locate}" ]]; then
                     echo "Location found @: ${locate} ✅" | process_input;
                     echo "${locate%/*}" >> 'check-file-include.txt';
@@ -1093,7 +1094,7 @@ runs:
                     echo "Cannot locate missing file ${missing_file} ❌" | process_input;
                   fi;
                 elif [[ "${path}" != "${file}" ]]; then
-                  locate=$(find -type f -path "*/${path}/*" -name "${file}" -print);
+                  locate=$(find ${{ env.repo }} -type f -path "*/${path}/*" -name "${file}" -print);
                   if [[ -n "${locate}" ]]; then
                     echo "Location found @: ${locate} ✅" | process_input;
                     echo "${locate%/*}" >> 'check-file-include.txt'
