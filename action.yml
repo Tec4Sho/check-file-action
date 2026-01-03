@@ -1040,15 +1040,18 @@ runs:
                   fi;
                 fi;
               done;
+              found=false
               if [[ -s 'check-file-include.txt' ]]; then
-                awk '!seen[$0]++' 'check-file-include.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "Found includes added to build/check-file-includes.txt\nTo get file use ( upload: true )\nThen add it to your repository root before re-checking!!!\nDuplicates $(rm -vf 'check-file-include.txt')\n" | process_input;
+                awk '!seen[$0]++' 'check-file-include.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\nDuplicate paths in file $(rm -vf 'check-file-include.txt')\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n" | process_input;
+                found=true
               fi;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
           fi;
-          if ${{ inputs.build > '0' }}; then
+          if ${{ inputs.build > '0' }} || [[ "${found}" ]]; then
+            rm -Rf ${github}/build
             cp -Rf ./build ${github}/ && echo -e '\n####################\n\tbuild directory updated continuing...\n####################' | process_input;
           fi;
           echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
@@ -1061,7 +1064,7 @@ runs:
             echo -e '\n####################\n\tProject Not Checked Exiting...\n####################\n' | process_input;
           fi;
         else
-          echo -e '::error::Missing .git directory' | process_input;
+          echo -e '::error::Missing/Bad source directory' | process_input;
         fi;
       shell: bash
       working-directory: ${{ env.repository_base }}
