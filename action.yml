@@ -734,7 +734,7 @@ runs:
                 fi;
               done
             fi;
-            if [[ -s "${clang_includes}" ]]; then
+            if [[ -s "${clang_includes}" ]] && ${{ inputs.include }}; then
               while IFS= read -r include; do
                 include_count_extra=$(expr ${include_count_extra} + 1);
                 echo "${include_count_extra}" > "${count2}";
@@ -766,7 +766,7 @@ runs:
           if [[ "$(cmake_includes)" ]]; then
             echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
             if [[ -f "${count2}" ]]; then
-              echo -e "\n####################\n\tcheck-file added $(cat ${count1}) + $(cat ${count2}) extra header include directories\n####################" | process_input;
+              echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n\tcheck-file added $(cat ${count2}) extra header include directories\n####################" | process_input;
             else
               echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n####################" | process_input;
             fi;
@@ -1118,7 +1118,8 @@ runs:
           echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
-          fi; 
+          fi;
+          echo "github_include_dirs=true" >> "${GITHUB_ENV}";
           if [[ "${check_build}" ]]; then
             echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
           else
