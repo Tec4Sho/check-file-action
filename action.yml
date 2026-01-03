@@ -1916,6 +1916,13 @@ runs:
       shell: bash
       continue-on-error: true
 
+    - name: Check Workspace
+      run: |
+        echo '';
+        echo -e "Repository Project Size:\n\n$(sudo du -shx -d 1 2>/dev/null)\n";
+      shell: bash
+      continue-on-error: true
+
     - name: Exiting
       run: |
         echo '';
