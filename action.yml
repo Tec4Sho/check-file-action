@@ -890,6 +890,7 @@ runs:
             echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
             exit 1
           fi;
+          [[ -f 'compile_flags.txt' ]] && mv -f 'compile_flags.txt' 'build/';
         fi;
         echo '';
       shell: bash
@@ -1075,7 +1076,7 @@ runs:
               echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################" | process_input;
               echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}" | process_input;
               echo -e "\n####################\nCHECK-FILE FIND MISSING FILES:\n####################\n" | process_input;
-              for missing_file in ${clang_files_list[@]}; do
+              echo "${clang_files_list}" | while IFS= read -r missing_file; do
                 echo "locating missing ${missing_file} file ...." | process_input;
                 path="${missing_file//\'/}";
                 path="${path%/*}";
@@ -1089,7 +1090,7 @@ runs:
                   locate=$(find ${{ env.repo }} -type f -name "${file}" -print);
                   if [[ -n "${locate}" ]]; then
                     echo "Location found @: ${locate} ✅" | process_input;
-                    echo "${locate%/*}" >> 'check-file-include.txt';
+                    echo "${locate%/*}" >> 'check-file-includes.txt';
                   else
                     echo "Cannot locate missing file ${missing_file} ❌" | process_input;
                   fi;
@@ -1097,16 +1098,16 @@ runs:
                   locate=$(find ${{ env.repo }} -type f -path "*/${path}/*" -name "${file}" -print);
                   if [[ -n "${locate}" ]]; then
                     echo "Location found @: ${locate} ✅" | process_input;
-                    echo "${locate%/*}" >> 'check-file-include.txt'
+                    echo "${locate%/*}" >> 'check-file-includes.txt'
                   else
                     echo "Cannot locate missing file ${missing_file} ❌" | process_input;
                   fi;
                 fi;
               done;
               found=false
-              if [[ -s 'check-file-include.txt' ]]; then
-                awk '!/\.h$|\.c$/ { sub(/\/$/, ""); print }' 'check-file-include.txt' > 'check-file-include-tmp.txt';
-                awk '!seen[$0]++' 'check-file-include-tmp.txt' > 'check-file-includes.txt' && mv -f 'check-file-includes.txt' 'build/check-file-includes.txt' && rm 'check-file-include-tmp.txt' && echo -e "\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n" | process_input;
+              if [[ -s 'check-file-includes.txt' ]]; then
+                awk '!/\.h$|\.c$/ { sub(/\/$/, ""); print }' 'check-file-includes.txt' > 'check-file-include-tmp.txt';
+                awk '!seen[$0]++' 'check-file-include-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n" | process_input;
                 found=true
               fi;
             fi;
