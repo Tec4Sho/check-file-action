@@ -172,7 +172,7 @@ runs:
       if: inputs.repo == 'true' && steps.restore-workspace-cache.outputs.cache-hit != 'true'
       uses: actions/checkout@v6
       with:
-        repository: ${{ github.server_url }}/${{ github.repository }}
+        repository: ${{ github.repository }}
         path: ${{ inputs.dirname }}
         ref: ${{ github.ref }}
         clean: ${{ inputs.clean }}
