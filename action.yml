@@ -139,36 +139,22 @@ runs:
 
     - name: Restore Workspace
       if: inputs.stored == 'true'
-      id: restore-workspace-cache
+      id: restore-cache
       uses: actions/cache/restore@v4
       with:
         path: |
           ./${{ inputs.dirname }}
-          /opt/hostedtoolcache
-        key: ${{ runner.os }}-workspace-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+        key: ${{ runner.os }}-${{ inputs.dirname }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ hashFiles('compile_commands.json') }}
         restore-keys: |
-          ${{ runner.os }}-workspace-${{ github.event.pull_request.head.sha || github.sha }}
-          ${{ runner.os }}-workspace
+          ${{ runner.os }}-${{ inputs.dirname }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          ${{ runner.os }}-${{ inputs.dirname }}-${{ github.event.pull_request.head.sha || github.sha }}
+          ${{ runner.os }}-${{ inputs.dirname }}
           ${{ runner.os }}
         enableCrossOsArchive: true
       continue-on-error: true
 
-    - name: Access repo info and branch
-      run: |
-        echo '';
-        echo "Repository Name with Owner: $GITHUB_REPOSITORY"
-        echo "Ref (branch/tag): $GITHUB_REF"
-        REPO_URL="github.com"
-        echo "Repository URL: $REPO_URL"
-        BRANCH_NAME=$(echo $GITHUB_REF | cut -d / -f 3)
-        echo "Branch Name: $BRANCH_NAME"
-        echo "Repository URL via context: ${{ github.server_url }}/${{ github.repository }}"
-        echo "Branch name via context (simple case): ${{ github.ref_name }}"
-      shell: bash
-      continue-on-error: true
-
     - name: Clone Recovery Repo
-      if: ${{ steps.restore-workspace-cache.outputs.cache-hit != 'true' }} && ${{ inputs.repo == 'true' }}
+      if: steps.restore-cache.outputs.cache-hit != 'true' && inputs.repo == 'true'
       uses: actions/checkout@v6
       with:
         repository: ${{ github.repository }}
@@ -178,6 +164,20 @@ runs:
         fetch-depth: 1
         show-progress: false
       continue-on-error: false
+
+    - name: Access repo info and branch
+      run: |
+        echo '';
+        echo "Repository Name with Owner: $GITHUB_REPOSITORY"
+        echo "Ref (branch/tag): $GITHUB_REF"
+        REPO_URL=${{ github.server_url }}
+        echo "Repository Main URL: $REPO_URL"
+        BRANCH_NAME=${{ github.ref }}
+        echo "Branch Name: $BRANCH_NAME"
+        echo "Repository URL via context: ${{ github.server_url }}/${{ github.repository }}"
+        echo -e "Branch name via context: ${{ github.ref_name }}\n"
+      shell: bash
+      continue-on-error: true
 
     - name: Set up Go 1.25.3
       if: inputs.filename != ''
@@ -1071,7 +1071,7 @@ runs:
             if [[ "${clang_files_missing:-0}" > '0' ]]; then
               echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################" | process_input;
               echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}" | process_input;
-              echo -e "\n####################\nCHECK-FILE FIND MISSING FILES:\n####################\n" | process_input;
+              echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES:\n####################\n" | process_input;
               echo "${clang_files_list}" | while IFS= read -r missing_file; do
                 echo "locating missing ${missing_file} file ...." | process_input;
                 path="${missing_file//\'/}";
@@ -1102,8 +1102,8 @@ runs:
               done;
               found=false
               if [[ -s 'check-file-includes.txt' ]]; then
-                awk '!/\.h$|\.c$/ { sub(/\/$/, ""); print }' 'check-file-includes.txt' > 'check-file-include-tmp.txt';
-                awk '!seen[$0]++' 'check-file-include-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n" | process_input;
+                awk '!/\.h$|\.c$/ { sub(/\/$/, ""); print }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
+                awk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "::notice::\nMissing files found during auto locate!!!\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( repo: true ) & ( stored: true )\nFeature caches local repo current files state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input;
                 found=true
               fi;
             fi;
@@ -1897,14 +1897,13 @@ runs:
       continue-on-error: true
 
     - name: Save Workspace
-      if: ${{ steps.restore-workspace-cache.outputs.cache-hit != 'true' }} && ${{ inputs.repo == 'true' }}
-      id: save-workspace-cache
+      if: steps.restore-cache.outputs.cache-hit != 'true' && inputs.repo == 'true'
+      id: save-cache
       uses: actions/cache/save@v4
       with:
         path: |
           ./${{ inputs.dirname }}
-          /opt/hostedtoolcache
-        key: ${{ steps.restore-workspace-cache.outputs.cache-primary-key }}
+        key: ${{ steps.restore-cache.outputs.cache-primary-key }}
         enableCrossOsArchive: true
       continue-on-error: true
 
@@ -1919,7 +1918,7 @@ runs:
     - name: Check Workspace
       run: |
         echo '';
-        echo -e "Repository Project Size:\n\n$(sudo du -shx -d 1 2>/dev/null)\n";
+        echo -e "Repository Project Size:\n\n$(du -shd 1 ${{ inputs-dirname }})\n";
       shell: bash
       continue-on-error: true
 
@@ -1938,4 +1937,4 @@ runs:
         text "${textc}\n";
       shell: bash
       continue-on-error: true
-## Version 2.0.0 Professional (beta 5)
+## Version 2.0.0 Professional (beta stable 10)
