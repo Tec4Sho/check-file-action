@@ -157,16 +157,12 @@ runs:
     - name: Access repo info and branch
       run: |
         echo '';
-      # Access using default environment variables
         echo "Repository Name with Owner: $GITHUB_REPOSITORY"
-        echo "Ref (branch/tag): $GITHUB_REF"   
-      # Constructing the full URL
+        echo "Ref (branch/tag): $GITHUB_REF"
         REPO_URL="github.com"
         echo "Repository URL: $REPO_URL"
-      # Extracting the branch name (for branches)
         BRANCH_NAME=$(echo $GITHUB_REF | cut -d / -f 3)
         echo "Branch Name: $BRANCH_NAME"
-      # Accessing via the context
         echo "Repository URL via context: ${{ github.server_url }}/${{ github.repository }}"
         echo "Branch name via context (simple case): ${{ github.ref_name }}"
       shell: bash
