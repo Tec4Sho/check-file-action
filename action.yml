@@ -144,6 +144,8 @@ runs:
       with:
         path: |
           ./${{ inputs.dirname }}
+          /opt/hostedtoolcache
+          /var/cache/apt/archives
         key: ${{ runner.os }}-workspace-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
         restore-keys: |
           ${{ runner.os }}-workspace-${{ github.event.pull_request.head.sha || github.sha }}
@@ -1901,6 +1903,8 @@ runs:
       with:
         path: |
           ./${{ inputs.dirname }}
+          /opt/hostedtoolcache
+          /var/cache/apt/archives
         key: ${{ steps.restore-workspace-cache.outputs.cache-primary-key }}
         enableCrossOsArchive: true
       continue-on-error: true
