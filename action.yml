@@ -170,14 +170,11 @@ runs:
     - name: Access repo info and branch
       run: |
         echo '';
-        echo "Repository Name with Owner: $GITHUB_REPOSITORY"
-        echo "Ref (branch/tag): $GITHUB_REF"
-        REPO_URL=${{ github.server_url }}
-        echo "Repository Main URL: $REPO_URL"
-        BRANCH_NAME=${{ github.ref }}
-        echo "Branch Name: $BRANCH_NAME"
+        echo "Repository Owner and Name: ${GITHUB_REPOSITORY}"
+        echo "Branch Name: ${{ github.ref_name }}"
+        echo "GitHub URL: ${{ github.server_url }}"
         echo "Repository URL via context: ${{ github.server_url }}/${{ github.repository }}"
-        echo -e "Branch name via context: ${{ github.ref_name }}\n"
+        echo -e "Ref (branch/tag) via context: ${{ github.ref }}\n"
       shell: bash
       continue-on-error: true
 
@@ -1900,7 +1897,7 @@ runs:
       continue-on-error: true
 
     - name: Save Workspace
-      if: steps.restore.outputs.cache-primary-key == '' && inputs.repo == 'true'
+      if: steps.restore.outputs.cache-hit != 'true' && inputs.repo == 'true'
       uses: actions/cache/save@v4
       id: save
       with:
