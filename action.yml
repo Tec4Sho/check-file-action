@@ -139,16 +139,15 @@ runs:
 
     - name: Restore Workspace
       if: inputs.stored == 'true'
-      uses: actions/cache/restore@v5
       id: restore
+      uses: actions/cache/restore@v5
       env:
         cache-name: check-file-action
       with:
         path: |
           ./${{ inputs.dirname }}
-        key: ${{ runner.os }}-${{ env.cache-name }}-${{ inputs.dirname }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+        key: ${{ runner.os }}-${{ env.cache-name }}-${{ inputs.dirname }}-${{ github.event.pull_request.head.sha || github.sha }}
         restore-keys: |
-          ${{ runner.os }}-${{ env.cache-name }}-${{ inputs.dirname }}-${{ github.event.pull_request.head.sha || github.sha }}
           ${{ runner.os }}-${{ env.cache-name }}-${{ inputs.dirname }}
           ${{ runner.os }}-${{ env.cache-name }}
           ${{ runner.os }}
@@ -156,7 +155,7 @@ runs:
       continue-on-error: true
 
     - name: Clone Recovery Repo
-      if: ${{ inputs.repo == 'true' && steps.restore.outputs.cache-hit != 'true' }}
+      if: ${{ inputs.repo == 'true' && steps.restore.outputs.cache-hit == 'false' }}
       uses: actions/checkout@v6
       with:
         repository: ${{ github.repository }}
