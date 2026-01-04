@@ -141,9 +141,9 @@ runs:
       if: inputs.stored == 'true'
       uses: actions/cache/restore@v4
       id: restore
+      env:
+        cache-name: check-file-action
       with:
-        env:
-          cache-name: check-file-action
         path: |
           ./${{ inputs.dirname }}
         key: ${{ runner.os }}-${{ env.cache-name }}-${{ inputs.dirname }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
