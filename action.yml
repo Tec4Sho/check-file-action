@@ -156,7 +156,7 @@ runs:
       continue-on-error: true
 
     - name: Clone Recovery Repo
-      if: inputs.repo == 'true' && steps.restore.outputs.cache-hit == 'false' || steps.restore.outputs.cache-hit == ''
+      if: ${{ inputs.repo == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       uses: actions/checkout@v6
       with:
         repository: ${{ github.repository }}
@@ -1897,7 +1897,7 @@ runs:
       continue-on-error: true
 
     - name: Save Workspace
-      if: inputs.repo == 'true' && steps.restore.outputs.cache-hit == 'false' || steps.restore.outputs.cache-hit == ''
+      if: ${{ inputs.repo == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       uses: actions/cache/save@v5
       id: save
       with:
