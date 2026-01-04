@@ -139,7 +139,7 @@ runs:
 
     - name: Restore Workspace
       if: inputs.stored == 'true'
-      uses: actions/cache/restore@v4
+      uses: actions/cache/restore@v5
       id: restore
       env:
         cache-name: check-file-action
@@ -156,7 +156,7 @@ runs:
       continue-on-error: true
 
     - name: Clone Recovery Repo
-      if: steps.restore.outputs.cache-hit != 'true' && inputs.repo == 'true'
+      if: inputs.repo == 'true' && steps.restore.outputs.cache-hit == 'false' || steps.restore.outputs.cache-hit == ''
       uses: actions/checkout@v6
       with:
         repository: ${{ github.repository }}
@@ -1897,8 +1897,8 @@ runs:
       continue-on-error: true
 
     - name: Save Workspace
-      if: steps.restore.outputs.cache-hit != 'true' && inputs.repo == 'true'
-      uses: actions/cache/save@v4
+      if: inputs.repo == 'true' && steps.restore.outputs.cache-hit == 'false' || steps.restore.outputs.cache-hit == ''
+      uses: actions/cache/save@v5
       id: save
       with:
         path: |
