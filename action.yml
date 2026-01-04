@@ -155,7 +155,7 @@ runs:
       continue-on-error: true
 
     - name: Clone Recovery Repo
-      if: ${{ inputs.repo == 'true' && steps.restore.outputs.cache-hit == 'false' }}
+      if: ${{ inputs.repo == 'true' && steps.restore.outputs.cache-hit == '' }}
       uses: actions/checkout@v6
       with:
         repository: ${{ github.repository }}
