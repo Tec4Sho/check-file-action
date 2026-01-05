@@ -136,8 +136,30 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Linux Distro Check
+      run: |
+        echo '';
+        echo -e "####################\nCheck-File-Action-Pro version 2.0.0 [Beta Stable]\n####################\n";
+        if [[ -r '/etc/os-release' ]]; then
+          . /etc/os-release
+          if [[ "${ID}" == 'ubuntu' ]]; then
+            echo "Name: ${NAME}"
+            echo "Version: ${VERSION}"
+            echo "ID: ${ID}"
+            echo "ID Like: ${ID_LIKE}"
+            echo "Pretty Name: ${PRETTY_NAME}"
+            echo "Version ID: ${VERSION_ID}"
+          else
+            echo "Not running an Ubuntu distribution. ID=${ID}, VERSION=${VERSION}"
+          fi;
+        else
+          echo "Not running a distribution with /etc/os-release available"
+        fi;
+        echo '';
+      shell: bash
+      continue-on-error: true
 
-    - name: Restore Workspace
+    - name: Restore Project
       if: inputs.stored == 'true'
       id: restore
       uses: actions/cache/restore@v5
@@ -166,6 +188,9 @@ runs:
     - name: Access repo info and branch
       run: |
         echo '';
+        if ${{ steps.restore.outputs.cache-hit == 'true' }}; then
+          echo -e "####################\nCheck-File Restored Repository Project From Cache\n####################\n";
+        fi:
         echo "Repository Owner and Name: ${GITHUB_REPOSITORY}"
         echo "Branch Name: ${{ github.ref_name }}"
         echo "GitHub URL: ${{ github.server_url }}"
@@ -186,29 +211,6 @@ runs:
       uses: rlalik/setup-cpp-compiler@master
       with:
         compiler: ${{ inputs.compiler }}
-      continue-on-error: true
-
-    - name: Linux Distro
-      run: |
-        echo '';
-        echo -e "####################\nCheck-File-Action-Pro version 2.0.0 [Beta Stable]\n####################\n";
-        if [[ -r '/etc/os-release' ]]; then
-          . /etc/os-release
-          if [[ "${ID}" == 'ubuntu' ]]; then
-            echo "Name: ${NAME}"
-            echo "Version: ${VERSION}"
-            echo "ID: ${ID}"
-            echo "ID Like: ${ID_LIKE}"
-            echo "Pretty Name: ${PRETTY_NAME}"
-            echo "Version ID: ${VERSION_ID}"
-          else
-            echo "Not running an Ubuntu distribution. ID=${ID}, VERSION=${VERSION}"
-          fi;
-        else
-          echo "Not running a distribution with /etc/os-release available"
-        fi;
-        echo '';
-      shell: bash
       continue-on-error: true
 
     - name: Installing Dependencies
@@ -446,7 +448,7 @@ runs:
           text "${text1c}";
           echo -e '\nAbsolute Path Mode';
           echo "base=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
-          base=/
+          base="${GITHUB_WORKSPACE}";
         else
           text "${text2a}";
           text "${text2b}";
@@ -1801,7 +1803,7 @@ runs:
       shell: bash
       continue-on-error: true
 
-    - name: Save Workspace
+    - name: Save Project
       if: ${{ inputs.repo == 'true' && steps.restore.outputs.cache-hit == '' || env.github_include_dirs == 'true' }}
       uses: actions/cache/save@v5
       id: save
@@ -1819,10 +1821,10 @@ runs:
       shell: bash
       continue-on-error: true
 
-    - name: Check Workspace
+    - name: Check Project Size
       run: |
         echo '';
-        echo -e "Repository Project Size: $(du ${{ inputs.dirname }} -shx)\n";
+        echo -e "Repository Project Size: $(du -shx)\n";
       shell: bash
       continue-on-error: true
 
