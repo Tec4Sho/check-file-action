@@ -405,14 +405,15 @@ runs:
       continue-on-error: false
       
     - name: Set Directory Base
-      if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
+      if: inputs.pattern != '' || inputs.filename != '' || inputs.project == 'true'
       run: |
         echo '';
+        set -o pipefail
         repair_file='check-file-repaired.txt';
         repo=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         echo 'database=database' >> "${GITHUB_ENV}";
         text1a="####################";
-        text1b="DEFAULT DIRECTORY (SYSTEM ROOT)";
+        text1b="DEFAULT DIRECTORY (GITHUB ROOT)";
         text1c="####################";
         text2a="####################";
         text2b="DEFAULT DIRECTORY (GITHUB WORKSPACE)";
@@ -480,27 +481,27 @@ runs:
           else
             text "\n${text5a}";
             text "${text6}";
-            text "${text5c}" && exit 1
+            text "${text5c}";
           fi;
         fi;
-        if [[ "${{ inputs.filename }}" != '' ]]; then
+        if ${{ inputs.filename != '' }}; then
           text "\n${text7a}";
           text "${text7b}";
           text "${text7c}";
         fi;
-        if [[ "${{ inputs.pattern }}" != '' ]] && [[ "${{ inputs.filetype }}" != 'none' ]]; then
+        if ${{ inputs.pattern != '' }} && ${{ inputs.filetype != '' }}; then
           text "\n${text8a}";
           text "${text8b}";
           text "${text8c}";
-        elif [[ "${{ inputs.pattern }}" != '' ]]; then
+        elif ${{ inputs.pattern != '' }}; then
           text "\n${text9a}";
           text "${text9b}";
           text "${text9c}";
         fi;
         dirname=${{ inputs.dirname }};
         echo "dirname=${dirname}" >> "${GITHUB_ENV}";
-        if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analyzer > 0 }}; then
-          text "::warning:: inputs.project: and inputs.filename: both enabled disables inputs.analyzer:\nTo remove this warning use ( inputs.analyzer: 0 )\n";
+        if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analyzer > '0' }}; then
+          text "::warning:: project:true and filename:set both enabled auto sets analyzer:0 to disable\nTo remove this warning use ( analyzer: 0 )\n";
           echo "analyzer=0" >> "${GITHUB_ENV}";
         else
           echo "analyzer=${{ inputs.analyzer }}" >> "${GITHUB_ENV}";
@@ -1569,7 +1570,7 @@ runs:
         fi;
         echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
         echo -e "\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n";
-        if [[ "${{ inputs.filetype }}" != 'none' ]]; then
+        if [[ "${{ inputs.filetype }}" != '' ]]; then
           for type in ${types[@]}; do
             echo '| Runtime |';
             matches=${matched1};
