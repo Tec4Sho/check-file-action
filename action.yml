@@ -144,8 +144,7 @@ runs:
       env:
         cache-name: check-file-action
       with:
-        path: |
-          ./${{ inputs.dirname }}
+        path: '.'
         key: ${{ runner.os }}-${{ env.cache-name }}-${{ github.event.pull_request.head.sha || github.sha }}
         restore-keys: |
           ${{ runner.os }}-${{ env.cache-name }}
@@ -771,15 +770,15 @@ runs:
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
               { time clang-tidy @parameter-file; } 2>&1 | process_input;
               if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-              echo -e "\n::notice::Errors found checking project files" | process_input;
-              check_build=true
-              echo 'check_build=true' >> "${GITHUB_ENV}";
-              echo 'build_error=true' >> "${GITHUB_ENV}";
-            elif [[ -s "${project_log}" ]]; then
-              echo -e "\n::notice::No errors found checking project files" | process_input;
-              check_build=true
-              echo 'check_build=true' >> "${GITHUB_ENV}";
-            fi;
+                echo -e "\n::notice::Errors found checking project files" | process_input;
+                check_build=true
+                echo 'check_build=true' >> "${GITHUB_ENV}";
+                echo 'build_error=true' >> "${GITHUB_ENV}";
+              elif [[ -s "${project_log}" ]]; then
+                echo -e "\n::notice::No errors found checking project files" | process_input;
+                check_build=true
+                echo 'check_build=true' >> "${GITHUB_ENV}";
+              fi;
             else
               exit 1
             fi;
@@ -808,9 +807,9 @@ runs:
             echo -e '\n####################\n\tCODECHECKER ANALYZING FILES...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
-             sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
+              sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
             else
-             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
+              echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
             { time CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./results &&  CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
@@ -1808,8 +1807,7 @@ runs:
       uses: actions/cache/save@v5
       id: save
       with:
-        path: |
-          ./${{ inputs.dirname }}
+        path: '.'
         key: ${{ steps.restore.outputs.cache-primary-key }}
         enableCrossOsArchive: true
       continue-on-error: true
