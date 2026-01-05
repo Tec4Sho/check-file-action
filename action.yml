@@ -976,6 +976,7 @@ runs:
           deheader_removed=$(grep -sEc 'remove' "${project_log}");
           codechecker_success=$(grep -sFc 'successfully' "${project_log}");
           codechecker_errors=$(grep -sFc 'Error while processing' "${project_log}");
+          clang_replacements=$(find -path '*/fixes/*' -type f -name "*.yaml" -print | xargs -r -P "$(nproc --all)" -n 500 grep -F 'Replacements:' | grep -v -c '[\[\]]');
           clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
           clang_files_list=$(grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
           clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
@@ -997,6 +998,9 @@ runs:
           fi;
           if [[ "${clang_notes:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::⚠️ check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are fix suggestions for files that should be addressed before compiling.\n####################" | process_input;
+          fi;
+          if [[ "${clang_replacements:-0}" > '0' ]]; then
+            echo -e "\n####################\n::notice::✅ check-file applied ${clang_replacements} clang replacement fixes for ${file_type} file(s) checked. [Hints] Clang export fixes are stored in build/fixes for download. Try using different (analyzer: 1, 2, or 4) for more possible error fixes.\n####################" | process_input;
           fi;
           if [[ "${deheader_removed:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::✅ check-file removed ${deheader_removed} extra inclusions in ${file_type} file(s) checked. [Hints] Try manually removing any extra includes in files before compiling.\n####################" | process_input;
