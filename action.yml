@@ -1032,7 +1032,7 @@ runs:
                   echo "Cannot locate missing file ${file}  [ ❌ ]" | process_input;
                 fi;
               elif [[ "${path}" != "${file}" ]]; then
-                locate=$(find "${{ env.base }}" -type f -path "*/${path}/*" -name "${file}" -print);
+                locate=$(find "${{ env.base }}" -type f \( -path "*/${path}/*" -o -path "*/*/*" \) -name "${file}" -print);
                 if [[ "${locate}" ]]; then
                   echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt'
@@ -1110,9 +1110,9 @@ runs:
           fi;
         else
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(sudo find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
+            files=$(sudo find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
           else
-            files=$(sudo find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*${{ inputs.filename }}" -print);
+            files=$(sudo find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
           fi;
         fi;
         if [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
@@ -1168,7 +1168,7 @@ runs:
                   final="${i}";
                   count2=$((include_count++));
                   count3=$((include_total++));
-                  header=$(sudo find . -type f \( -path "*/$(dirname ${i})/*" -o -path "*/$(dirname ${file})/*" -o -path "*" \) -name "$(basename ${i})" -print -quit);
+                  header=$(sudo find . -type f \( -path "*/$(dirname ${i})/*" -o -path "*/$(dirname ${file})/*" -o -path "*/*/*" \) -name "$(basename ${i})" -print -quit);
                   if [[ -f "${header}" ]]; then
                     echo "$(dirname ${header#./})" >> "${include1}";
                   else
@@ -1344,9 +1344,9 @@ runs:
           fi;
         else
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
+            files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
           else
-            files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*${{ inputs.filename }}" -print);
+            files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
           fi;
         fi;
         if [[ $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
@@ -1467,9 +1467,9 @@ runs:
           fi;
         else
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print);
+            files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
           else
-            files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*${{ inputs.filename }}" -print);
+            files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
           fi;
         fi;
         if [[ ${path} ]]; then
@@ -1526,9 +1526,9 @@ runs:
           fi;
         else
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(sudo find / -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}" -print 2>/dev/null);
+            files=$(sudo find / -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print 2>/dev/null);
           else
-            files=$(sudo find / -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*${{ inputs.filename }}" -print 2>/dev/null);
+            files=$(sudo find / -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print 2>/dev/null);
           fi;
         fi;
         file_count=1
@@ -1560,15 +1560,15 @@ runs:
         set +e
         file_count=1
         if ${{ inputs.database }}; then
-          matched1=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
-          content1=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
-          matched2=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
-          content2=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
+          matched1=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
+          content1=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
+          matched2=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
+          content2=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
         else
-          matched1=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*.${type}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
-          content1=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "*.${type}" -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
-          matched2=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
-          content2=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
+          matched1=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
+          content1=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
+          matched2=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
+          content2=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
         fi;
         echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
         echo -e "\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n";
@@ -1628,7 +1628,7 @@ runs:
       if: inputs.filename != '' && inputs.content == 'true'
       run: |
         echo ''
-        check_file=$(dirname $(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*" \) -name "${{ inputs.filename }}"));
+        check_file=$(dirname $(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}"));
         if [[ ${{ env.file_found }} != 0  ]]; then
           echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }} file(s)\n####################\n";
           ls -Shap "${check_file}";
