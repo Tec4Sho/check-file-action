@@ -1013,32 +1013,32 @@ runs:
           if [[ "${clang_files_missing:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################" | process_input;
             echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}" | process_input;
-            echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES:\n####################\n" | process_input;
+            echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES IN: ${{ env.base }}\n####################\n" | process_input;
             echo "${clang_files_list}" | while IFS= read -r missing_file; do
               echo "locating missing ${missing_file} file ...." | process_input;
               path1="${missing_file//\'/}";
               path2="${path1%/*}";
               path3="${path2#../}";
-              path4="${path3#..}";
+              path="${path3#..}";
               file1="${missing_file//\'/}";
               file2="${file1##*/}";
               file3="${file2#../}";
-              file4="${file3#..}";
-              if [[ "${path4}" == "${file4}" ]]; then
-                locate=$(find "${{ env.base }}" -type f -name "${file4}" -print);
+              file="${file3#..}";
+              if [[ "${path}" == "${file}" ]]; then
+                locate=$(find "${{ env.base }}" -type f -name "${file}" -print);
                 if [[ "${locate}" ]]; then
-                  echo "Location found @: ${locate} ✅" | process_input;
+                  echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt';
                 else
-                  echo "Cannot locate missing file ${missing_file} ❌" | process_input;
+                  echo "Cannot locate missing file ${file}  [ ❌ ]" | process_input;
                 fi;
-              elif [[ "${path4}" != "${file1}" ]]; then
-                locate=$(find "${{ env.base }}" -type f -path "*/${path4}/*" -name "${file4}" -print);
+              elif [[ "${path}" != "${file}" ]]; then
+                locate=$(find "${{ env.base }}" -type f -path "*/${path}/*" -name "${file}" -print);
                 if [[ "${locate}" ]]; then
-                  echo "Location found @: ${locate} ✅" | process_input;
+                  echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt'
                 else
-                  echo "Cannot locate missing file ${missing_file} ❌" | process_input;
+                  echo "Cannot locate missing file ${path}/${file}  [ ❌ ]" | process_input;
                 fi;
               fi;
             done;
