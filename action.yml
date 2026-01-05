@@ -393,6 +393,9 @@ runs:
           fi;
         fi;
         echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
+        if [[ -d '/usr/local/bin' ]]; then
+          echo '/usr/local/bin' >> "${GITHUB_PATH}";
+        fi;
         if [[ -d "${HOME}/.local/bin" ]]; then
           echo "${HOME}/.local/bin" >> "${GITHUB_PATH}";
         fi;
@@ -425,7 +428,7 @@ runs:
         text5a="####################";
         text5b="Database Performance Mode Enabled";
         text5c="####################";
-        text6="Database not found exiting";
+        text6="::error::Database not found exiting";
         text7a="####################";
         text7b="Searching directories for ${{ inputs.filename }}) file(s)";
         text7c="####################";
@@ -559,7 +562,6 @@ runs:
           echo -e "\n#####################\nRepository: \033[1m${repo}\033[0m\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
         else
           echo -e "\n#####################\n::error::Repository: ${repo} files missing? Exiting....\n#####################\n";
-          exit 1;
         fi;
         text "\n${text10a}" 2>/dev/null;
         text "${text10b}" 2>/dev/null;
@@ -736,7 +738,7 @@ runs:
           if [[ -e 'compile_commands.json' ]]; then
             echo -e '\n####################\n\tcompile_commands.json file symlinked continuing...\n####################' | process_input;
           fi;
-          if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }}; then
+          if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e 'compile_commands.json' ]]; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
             { time "${{ env.run_clang_tidy }}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)"; } 2>&1 | process_input;
             [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && clang-format -style=LLVM -dump-config > .clang-format | process_input;
@@ -751,11 +753,10 @@ runs:
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
-          elif [[ ! "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }}; then
+          elif [[ ! "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e 'compile_commands.json' ]]; then
             echo -e "\n####################\n\t::error:: run-clang-tidy missing in repo Exiting...\n####################\n" | process_input;
-            exit 1
           fi;
-          if [[ -f "${clang_file}" ]] && ${{ env.analyzer == '2' }}; then
+          if [[ -f "${clang_file}" ]] && ${{ env.analyzer == '2' }} && [[ -e 'compile_commands.json' ]]; then
             echo ' ' >> "${clang_file}";
             files_list=false
             if [[ "$(clang_includes)" ]] && [[ "$(source_files)" ]] ; then
@@ -783,16 +784,13 @@ runs:
                 check_build=true
                 echo 'check_build=true' >> "${GITHUB_ENV}";
               fi;
-            else
-              exit 1
             fi;
-          elif [[ ! -e "${clang_file}" ]] && ${{ env.analyzer == '2' }}; then
+          elif [[ ! -e "${clang_file}" ]] && ${{ env.analyzer == '2' }} && [[ -e 'compile_commands.json' ]]; then
             echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n" | process_input;
-            exit 1
           fi;
-          if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }}; then
+          if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e 'compile_commands.json' ]]; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILES\n####################\n' | process_input;
-            { time find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 4 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm -- -I"${src_tree%/*}/include" || true' bash; } 2>&1 | process_input;
+            { time find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 100 -P "$(nproc --all)" clangd-tidy -p build/ -j "$(nproc --all)" --color always --tqdm -- -I"${src_tree%/*}/include" || true' bash; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -803,11 +801,10 @@ runs:
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
-          elif [[ ! -e "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }}; then
+          elif [[ ! -e "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e 'compile_commands.json' ]]; then
             echo -e "\n####################\n\t::error::${clangd_tidy##/*} file missing in repo Exiting...\n####################\n" | process_input;
-            exit 1
           fi;
-          if [[ -d 'build' ]] && ${{ env.analyzer == '4' }}; then
+          if [[ $(which CodeChecker) ]] && ${{ env.analyzer == '4' }} && [[ -e 'compile_commands.json' ]]; then
             echo -e '\n####################\n\tCODECHECKER ANALYZING FILES...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
@@ -826,9 +823,8 @@ runs:
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
-          elif [[ ! -d 'build' ]] && ${{ env.analyzer == '4' }}; then
-            echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
-            exit 1
+          elif [[ ! $(which CodeChecker) ]] && ${{ env.analyzer == '4' }} && [[ -e 'compile_commands.json' ]]; then
+            echo -e "\n####################\n\t::error::CodeChecker not installed Exiting...\n####################\n" | process_input;
           fi;
           [[ -f 'compile_flags.txt' ]] && mv -f 'compile_flags.txt' 'build/';
         fi;
