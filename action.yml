@@ -349,7 +349,7 @@ runs:
           sudo apt-get -yq install ripgrep 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
-        if ${{ inputs.cachert }} && [[ ! $(which ansi2txt) ]]; then
+        if ${{ inputs.report }} && [[ ! $(which ansi2txt) ]]; then
           sudo apt-get -yq install ansi2txt 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text2}" || echo -e '::error::No ansi2txt installed for cleaning log report';
         fi;
         if ${{ inputs.project }} && [[ ! $(which update-ca-certificates) ]]; then
@@ -1634,7 +1634,7 @@ runs:
       continue-on-error: true
 
     - name: Cleanup Artifacts Report
-      if: inputs.cachert == 'true'
+      if: inputs.report == 'true'
       run: |
         echo '';
         set +e
@@ -1744,7 +1744,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading Build_Cache Artifacts
-      if: inputs.cachert == 'true' && inputs.filename != '' && env.file_found == '1' && inputs.stored == 'true'
+      if: inputs.report == 'true' && inputs.filename != '' && env.file_found == '1' && inputs.stored == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_checked
@@ -1753,7 +1753,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ inputs.filename }} Error Report Artifact
-      if: inputs.cachert == 'true' && inputs.filename != '' && env.file_found == '1'
+      if: inputs.report == 'true' && inputs.filename != '' && env.file_found == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.filename }}_error.log
@@ -1762,7 +1762,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ env.github_repository }} Project Report Artifact
-      if: inputs.cachert == 'true' && inputs.project == 'true' && env.check_build == 'true'
+      if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_project.log
@@ -1771,7 +1771,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ inputs.filename }} Error Report Artifacts
-      if: inputs.cachert == 'true' && inputs.filename != '' && env.file_found == '1' && env.file2_parted == '1'
+      if: inputs.report == 'true' && inputs.filename != '' && env.file_found == '1' && env.file2_parted == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.filename }}_split_error.log
@@ -1780,7 +1780,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Report Artifacts
-      if: inputs.cachert == 'true' && inputs.project == 'true' && env.check_build == 'true' && env.file1_parted == '1'
+      if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true' && env.file1_parted == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_split_project.log
