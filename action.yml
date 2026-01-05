@@ -470,12 +470,12 @@ runs:
           fi;
         fi;
         if ${{ inputs.database }}; then
-          sudo find "${file_path}" -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -print | sort -t/ -k1.2 > "${GITHUB_WORKSPACE}/database";
-          if [[ -s "${GITHUB_WORKSPACE}/database" ]]; then
+          sudo find "${base}" -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -print | sort -t/ -k1.2 > 'database';
+          if [[ -s 'database' ]]; then
             text "\n${text5a}";
             text "${text5b}";
             text "${text5c}";
-            echo "database=${GITHUB_WORKSPACE}/database" >> "${GITHUB_ENV}";
+            echo 'database=database' >> "${GITHUB_ENV}";
           else
             text "\n${text6a}";
             text "${text6b}";
@@ -1040,8 +1040,7 @@ runs:
             found=false
             if [[ -s 'check-file-includes.txt' ]]; then
               awk '!/\.h$|\.c$/ { sub(/\/$/, ""); print }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
-              awk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "::notice::\nMissing files found during auto locate!!!\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( repo: true ) & ( stored: true )\nFeature caches local repo current files state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input;
-              found=true
+              awk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "::notice::\nMissing files found during auto locate!!!\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( repo: true ) & ( stored: true )\nFeature caches local repo current files state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
@@ -1051,7 +1050,10 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
-          echo "github_include_dirs=true" >> "${GITHUB_ENV}";
+          echo "github_include_dirs=false" >> "${GITHUB_ENV}";
+          if [[ "${found}" ]]; then
+            echo "github_include_dirs=true" >> "${GITHUB_ENV}";
+          fi;
           if [[ "${check_build}" ]]; then
             echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
           else
@@ -1803,7 +1805,7 @@ runs:
       continue-on-error: true
 
     - name: Save Workspace
-      if: ${{ inputs.repo == 'true' && steps.restore.outputs.cache-hit == '' }}
+      if: ${{ inputs.repo == 'true' && steps.restore.outputs.cache-hit == '' || env.github_include_dirs == 'true' }}
       uses: actions/cache/save@v5
       id: save
       with:
