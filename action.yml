@@ -1015,7 +1015,7 @@ runs:
             echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}" | process_input;
             echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES IN: ${{ env.base }}\n####################\n" | process_input;
             echo "${clang_files_list}" | while IFS= read -r missing_file; do
-              echo "locating missing ${missing_file} file ...." | process_input;
+              echo "Locating missing ${missing_file} file ...." | process_input;
               path1="${missing_file//\'/}";
               path2="${path1%/*}";
               path3="${path2#../}";
