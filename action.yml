@@ -461,11 +461,11 @@ runs:
           if [[ -f ${repaired} ]]; then
             text "\n${text3a}";
             text "${text3b}";
-            text "${text3c}\n";
+            text "${text3c}";
           else
             text "\n${text4a}";
             text "${text4b}";
-            text "${text4c}\n";
+            text "${text4c}";
             date '+%Y%m%d' > "${repaired}" || echo -e "::warning::${repaired} backup file not found";
           fi;
         fi;
@@ -498,7 +498,6 @@ runs:
         fi;
         dirname=${{ inputs.dirname }};
         echo "dirname=${dirname}" >> "${GITHUB_ENV}";
-        fi;
         if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analyzer > 0 }}; then
           text "::warning:: inputs.project: and inputs.filename: both enabled disables inputs.analyzer:\nTo remove this warning use ( inputs.analyzer: 0 )\n";
           echo "analyzer=0" >> "${GITHUB_ENV}";
