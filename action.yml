@@ -295,7 +295,6 @@ runs:
           [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)" && echo '';
           [[ $(which clang-tidy-18) ]] && sudo rm -vf "$(which clang-tidy-18)";
           sudo apt-get -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
-          [[ $(whereis clang-apply-replacements) ]] && echo -e "clang-apply-replacements found: $(which clang-apply-replacements)\n";
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
@@ -306,9 +305,13 @@ runs:
         fi;
         if ${{ inputs.analyzer == '1' }} && ${{ inputs.project }} && [[ $(which run-clang-tidy) ]]; then
           echo -e "\n[clang-tools] $(whereis -b run-clang-tidy)";
+          [[ $(whereis clang-format) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-format)";
+          [[ $(whereis clang-apply-replacements) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-apply-replacements)";
           echo 'run_clang_tidy=run-clang-tidy' >> "${GITHUB_ENV}";
         elif ${{ inputs.analyzer == '1' }} && ${{ inputs.project }}; then
           echo -e "\n[clang-tools] run-clang-tidy: /scripts/tools/run-clang-tidy.py";
+          [[ $(whereis clang-format) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-format)";
+          [[ $(whereis clang-apply-replacements) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-apply-replacements)";
           echo "run_clang_tidy=${{ github.action_path }}/scripts/tools/run-clang-tidy.py" >> "${GITHUB_ENV}";
         fi;
         if ${{ inputs.project }} && ${{ inputs.analyzer == '3' }} && [[ ! $(which clangd-tidy) ]]; then
@@ -674,7 +677,7 @@ runs:
           cmake_includes() {
             include_count_extra='0';
             include_count='0';
-            find "${{ env.base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'asm' -o -name 'core' -o -name 'drm' -o -name 'drivers' -o -name 'linux' -o -name 'include' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+            find "${{ env.base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'boardcom' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'drivers' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'include' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'lib' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'sound' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               if [[ -d "${dir}" ]]; then
                 include_count=$(expr ${include_count} + 1);
                 echo "${include_count}" > "${count1}";
@@ -714,7 +717,7 @@ runs:
           if [[ "$(cmake_includes)" ]]; then
             echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
             if [[ -f "${count2}" ]]; then
-              echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n\tcheck-file added $(cat ${count2}) extra header include directories\n####################" | process_input;
+              echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n\tcheck-file updated $(cat ${count2}) additional header directories\n####################" | process_input;
             else
               echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n####################" | process_input;
             fi;
