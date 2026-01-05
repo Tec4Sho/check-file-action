@@ -1016,25 +1016,25 @@ runs:
             echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES:\n####################\n" | process_input;
             echo "${clang_files_list}" | while IFS= read -r missing_file; do
               echo "locating missing ${missing_file} file ...." | process_input;
-              path="${missing_file//\'/}";
-              path="${path%/*}";
-              path="${path#../}";
-              path="${path#..}";
-              file="${missing_file//\'/}";
-              file="${file##*/}";
-              file="${file#../}";
-              file="${file#..}";
-              if [[ "${path}" == "${file}" ]]; then
-                locate=$(find "${{ env.base }}" -type f -name "${file}" -print);
-                if [[ -n "${locate}" ]]; then
+              path1="${missing_file//\'/}";
+              path2="${path1%/*}";
+              path3="${path2#../}";
+              path4="${path3#..}";
+              file1="${missing_file//\'/}";
+              file2="${file1##*/}";
+              file3="${file2#../}";
+              file4="${file3#..}";
+              if [[ "${path4}" == "${file4}" ]]; then
+                locate=$(find "${{ env.base }}" -type f -name "${file4}" -print);
+                if [[ "${locate}" ]]; then
                   echo "Location found @: ${locate} ✅" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt';
                 else
                   echo "Cannot locate missing file ${missing_file} ❌" | process_input;
                 fi;
-              elif [[ "${path}" != "${file}" ]]; then
-                locate=$(find "${{ env.base }}" -type f -path "*/${path}/*" -name "${file}" -print);
-                if [[ -n "${locate}" ]]; then
+              elif [[ "${path4}" != "${file1}" ]]; then
+                locate=$(find "${{ env.base }}" -type f -path "*/${path4}/*" -name "${file4}" -print);
+                if [[ "${locate}" ]]; then
                   echo "Location found @: ${locate} ✅" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt'
                 else
