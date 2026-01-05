@@ -294,7 +294,8 @@ runs:
           sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
           [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)" && echo '';
           [[ $(which clang-tidy-18) ]] && sudo rm -vf "$(which clang-tidy-18)";
-          sudo apt-get -yq install clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
+          sudo apt-get -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
+          [[ $(whereis clang-apply-replacements) ]] && echo -e "clang-apply-replacements found: $(which clang-apply-replacements)\n";
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
