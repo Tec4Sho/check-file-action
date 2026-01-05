@@ -441,38 +441,10 @@ runs:
         chmod -R 0755 "${{ github.action_path }}/scripts";
         text() {
           local text="$1";
-          echo -e "${text}"
+          echo -e "${text}";
         }
-        if ${{ inputs.rootdir }}; then
-          text "${text1a}";
-          text "${text1b}";
-          text "${text1c}";
-          echo -e '\nAbsolute Path Mode';
-          echo "base=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
-          base="${GITHUB_WORKSPACE}";
-        else
-          text "${text2a}";
-          text "${text2b}";
-          text "${text2c}";
-          echo -e "\nRelative Path Mode";
-          echo 'base=.' >> "${GITHUB_ENV}";
-          base='.'
-        fi;
-        if (${{ inputs.stored }} || ${{ env.update }}) && [[ -f "${repair_file}" ]]; then
-          repaired="${repair_file}";
-          if [[ -f ${repaired} ]]; then
-            text "\n${text3a}";
-            text "${text3b}";
-            text "${text3c}";
-          else
-            text "\n${text4a}";
-            text "${text4b}";
-            text "${text4c}";
-            date '+%Y%m%d' > "${repaired}" || echo -e "::warning::${repaired} backup file not found";
-          fi;
-        fi;
         
-        src=$(ls 2>/dev/null);
+        src=$(ls .);
         type_count=0
         total_files=$(find -type f | grep -v '\.git/.' | wc -l);
         file_type0=$(find -type f -name "*.${{ inputs.filetype }}" | grep -v '\.git/.' | wc -l);
@@ -489,9 +461,9 @@ runs:
         }
         directory() {
           for dir in ${src[@]}; do
-            if [ -d "$dir" ]; then
-              count=$(find "$dir" -type f 2>/dev/null | wc -l);
-              echo "${dir}: ${count} files"
+            if [ -d "${dir}" ]; then
+              count=$(find "${dir}" -type f | wc -l);
+              echo "${dir}: ${count} files";
              fi;
           done;
         }
