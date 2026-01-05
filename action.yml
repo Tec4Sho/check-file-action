@@ -1809,7 +1809,7 @@ runs:
       continue-on-error: true
 
     - name: Save Project
-      if: ${{ inputs.cache == 'true' }} && ${{ steps.restore.outputs.cache-hit != 'true' || env.github_include_dirs == 'true' }}
+      if: inputs.cache == 'true' && steps.restore.outputs.cache-hit == 'true'
       uses: actions/cache/save@v5
       id: save
       with:
