@@ -167,15 +167,14 @@ runs:
         cache-name: check-file-action
       with:
         path: '.'
-        key: ${{ runner.os }}-${{ env.cache-name }}-${{ github.event.pull_request.head.sha || github.sha }}
+        key: ${{ runner.os }}-${{ env.cache-name }}
         restore-keys: |
-          ${{ runner.os }}-${{ env.cache-name }}
           ${{ runner.os }}
         enableCrossOsArchive: true
-      continue-on-error: true
+      continue-on-error: false
 
     - name: Clone Recovery Repo
-      if: ${{ inputs.cache == 'false' }} || ${{ steps.restore.outputs.cache-hit != 'true' }}
+      if: inputs.cache == 'false' || steps.restore.outputs.cache-hit != 'true'
       uses: actions/checkout@v6
       with:
         repository: ${{ github.repository }}
@@ -1810,7 +1809,7 @@ runs:
       continue-on-error: true
 
     - name: Save Project
-      if: ${{ inputs.cache == 'true' }} && ${{ steps.restore.outputs.cache-hit == '' || env.github_include_dirs == 'true' }}
+      if: ${{ inputs.cache == 'true' }} && ${{ steps.restore.outputs.cache-hit != 'true' || env.github_include_dirs == 'true' }}
       uses: actions/cache/save@v5
       id: save
       with:
