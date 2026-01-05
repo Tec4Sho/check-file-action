@@ -160,7 +160,7 @@ runs:
       continue-on-error: true
 
     - name: Restore Project
-      if: inputs.stored == 'true'
+      if: inputs.repo == 'true'
       id: restore
       uses: actions/cache/restore@v5
       env:
