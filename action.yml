@@ -160,7 +160,7 @@ runs:
       continue-on-error: true
 
     - name: Restore Project
-      if: inputs.repo == 'true'
+      if: inputs.cache == 'true'
       id: restore
       uses: actions/cache/restore@v5
       env:
@@ -175,7 +175,7 @@ runs:
       continue-on-error: true
 
     - name: Clone Recovery Repo
-      if: ${{ inputs.repo == 'true' && steps.restore.outputs.cache-hit == '' }}
+      if: ${{ inputs.cache == 'true' && steps.restore.outputs.cache-hit == '' }}
       uses: actions/checkout@v6
       with:
         repository: ${{ github.repository }}
@@ -349,7 +349,7 @@ runs:
           sudo apt-get -yq install ripgrep 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
-        if ${{ inputs.report }} && [[ ! $(which ansi2txt) ]]; then
+        if ${{ inputs.cachert }} && [[ ! $(which ansi2txt) ]]; then
           sudo apt-get -yq install ansi2txt 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text2}" || echo -e '::error::No ansi2txt installed for cleaning log report';
         fi;
         if ${{ inputs.project }} && [[ ! $(which update-ca-certificates) ]]; then
@@ -478,9 +478,9 @@ runs:
             text "${text5c}";
             echo 'database=database' >> "${GITHUB_ENV}";
           else
-            text "\n${text6a}";
-            text "${text6b}";
-            text "${text6c}" && exit 1
+            text "\n${text5a}";
+            text "${text6}";
+            text "${text5c}" && exit 1
           fi;
         fi;
         if [[ "${{ inputs.filename }}" != '' ]]; then
@@ -549,12 +549,12 @@ runs:
           echo -e "\n#####################\nTotal Include Directories: \033[1m${include_dirs}\033[0m\n#####################";
         fi;
         if [[ "${total_files:-0}" > '0' ]] && ${{ inputs.filetype != '' }}; then
-          echo -e "\nThe total percentage of ${{ inputs.filetype }} files is: \033[1m${percentage0:-0}%\033[0m"
-          echo -e "\nThe total percentage of header files is: \033[1m${percentage2:-0}%\033[0m"
+          echo -e "\nThe total percentage of ${{ inputs.filetype }} files is: \033[1m${percentage0:-0}%\033[0m";
+          echo -e "\nThe total percentage of header files is: \033[1m${percentage2:-0}%\033[0m";
           echo -e "\n#####################\nRepository: \033[1m${repo}\033[0m\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
         elif [[ "${total_files:-0}" > '0' ]]; then
-          echo -e "\nThe total percentage of c/c++ files is: \033[1m${percentage1:-0}%\033[0m"
-          echo -e "\nThe total percentage of header files is: \033[1m${percentage2:-0}%\033[0m"
+          echo -e "\nThe total percentage of c/c++ files is: \033[1m${percentage1:-0}%\033[0m";
+          echo -e "\nThe total percentage of header files is: \033[1m${percentage2:-0}%\033[0m";
           echo -e "\n#####################\nRepository: \033[1m${repo}\033[0m\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
         else
           echo -e "\n#####################\n::error::Repository: ${repo} files missing? Exiting....\n#####################\n";
@@ -1634,7 +1634,7 @@ runs:
       continue-on-error: true
 
     - name: Cleanup Artifacts Report
-      if: inputs.report == 'true'
+      if: inputs.cachert == 'true'
       run: |
         echo '';
         set +e
@@ -1744,7 +1744,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading Build_Cache Artifacts
-      if: inputs.report == 'true' && inputs.filename != '' && env.file_found == '1' && inputs.stored == 'true'
+      if: inputs.cachert == 'true' && inputs.filename != '' && env.file_found == '1' && inputs.stored == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_checked
@@ -1753,7 +1753,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ inputs.filename }} Error Report Artifact
-      if: inputs.report == 'true' && inputs.filename != '' && env.file_found == '1'
+      if: inputs.cachert == 'true' && inputs.filename != '' && env.file_found == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.filename }}_error.log
@@ -1762,7 +1762,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ env.github_repository }} Project Report Artifact
-      if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true'
+      if: inputs.cachert == 'true' && inputs.project == 'true' && env.check_build == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_project.log
@@ -1771,7 +1771,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ inputs.filename }} Error Report Artifacts
-      if: inputs.report == 'true' && inputs.filename != '' && env.file_found == '1' && env.file2_parted == '1'
+      if: inputs.cachert == 'true' && inputs.filename != '' && env.file_found == '1' && env.file2_parted == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.filename }}_split_error.log
@@ -1780,7 +1780,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Report Artifacts
-      if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true' && env.file1_parted == '1'
+      if: inputs.cachert == 'true' && inputs.project == 'true' && env.check_build == 'true' && env.file1_parted == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_split_project.log
@@ -1792,21 +1792,21 @@ runs:
       if: inputs.filename != '' || inputs.pattern != '' || inputs.project == 'true'
       run: |
         date
-        if [[ -f "${GITHUB_WORKSPACE}/${{ env.github_repository }}_project.log" ]]; then
-          echo -e "\nPROJECT: $(rm -vf ${GITHUB_WORKSPACE}/${{ env.github_repository }}_project.log)";
+        if [[ -f "${{ env.github_repository }}_project.log" ]]; then
+          echo -e "\nPROJECT: $(rm -vf ${{ env.github_repository }}_project.log)";
         fi;
-        if [[ -f "${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log" ]]; then
-          echo -e "\nLOGFILE: $(rm -vf ${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log)";
+        if [[ -f "${{ inputs.filename }}_error.log" ]]; then
+          echo -e "\nLOGFILE: $(rm -vf ${{ inputs.filename }}_error.log)";
         fi;
-        if [[ -f "${GITHUB_WORKSPACE}/database" ]]; then
-          echo -e "\nDATABASE: $(rm -vf ${GITHUB_WORKSPACE}/database)";
+        if [[ -e "database" ]]; then
+          echo -e "\nDATABASE: $(rm -vf database)";
         fi;
         echo '';
       shell: bash
       continue-on-error: true
 
     - name: Save Project
-      if: ${{ inputs.repo == 'true' && steps.restore.outputs.cache-hit == '' || env.github_include_dirs == 'true' }}
+      if: ${{ inputs.cache == 'true' && steps.restore.outputs.cache-hit == '' }} || ${{ inputs.cache == 'true' && env.github_include_dirs == 'true' }}
       uses: actions/cache/save@v5
       id: save
       with:
