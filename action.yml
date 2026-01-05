@@ -471,41 +471,7 @@ runs:
             date '+%Y%m%d' > "${repaired}" || echo -e "::warning::${repaired} backup file not found";
           fi;
         fi;
-        if ${{ inputs.database }}; then
-          sudo find "${base}" -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -print | sort -t/ -k1.2 > 'database';
-          if [[ -s 'database' ]]; then
-            text "\n${text5a}";
-            text "${text5b}";
-            text "${text5c}";
-            echo 'database=database' >> "${GITHUB_ENV}";
-          else
-            text "\n${text5a}";
-            text "${text6}";
-            text "${text5c}";
-          fi;
-        fi;
-        if ${{ inputs.filename != '' }}; then
-          text "\n${text7a}";
-          text "${text7b}";
-          text "${text7c}";
-        fi;
-        if ${{ inputs.pattern != '' }} && ${{ inputs.filetype != '' }}; then
-          text "\n${text8a}";
-          text "${text8b}";
-          text "${text8c}";
-        elif ${{ inputs.pattern != '' }}; then
-          text "\n${text9a}";
-          text "${text9b}";
-          text "${text9c}";
-        fi;
-        dirname=${{ inputs.dirname }};
-        echo "dirname=${dirname}" >> "${GITHUB_ENV}";
-        if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analyzer > '0' }}; then
-          text "::warning:: project:true and filename:set both enabled auto sets analyzer:0 to disable\nTo remove this warning use ( analyzer: 0 )\n";
-          echo "analyzer=0" >> "${GITHUB_ENV}";
-        else
-          echo "analyzer=${{ inputs.analyzer }}" >> "${GITHUB_ENV}";
-        fi;
+        
         src=$(ls 2>/dev/null);
         type_count=0
         total_files=$(find -type f | grep -v '\.git/.' | wc -l);
