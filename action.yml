@@ -190,7 +190,7 @@ runs:
         echo '';
         if ${{ steps.restore.outputs.cache-hit == 'true' }}; then
           echo -e "####################\nCheck-File Restored Repository Project From Cache\n####################\n";
-        fi:
+        fi;
         echo "Repository Owner and Name: ${GITHUB_REPOSITORY}"
         echo "Branch Name: ${{ github.ref_name }}"
         echo "GitHub URL: ${{ github.server_url }}"
