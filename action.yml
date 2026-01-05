@@ -379,7 +379,6 @@ runs:
           sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
           [[ ! $(which checkmake) ]] && exit 1
         fi;
-        fi;
         if ${{ inputs.filename != '' }} || ${{ inputs.pattern != '' }}; then
           if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
             sudo ln -sf "$(which bat)" /usr/bin/batcat >/dev/null || echo -e '::error::No batcat installed Exiting';
