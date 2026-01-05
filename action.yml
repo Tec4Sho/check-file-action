@@ -674,7 +674,6 @@ runs:
                 echo -n "${dir};";
               fi;
             done;
-            fi;
             if [[ -s "${clang_includes}" ]] && ${{ inputs.include }}; then
               while IFS= read -r include; do
                 include_count_extra=$(expr ${include_count_extra} + 1);
