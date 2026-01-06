@@ -542,11 +542,10 @@ runs:
         }
         file_types() {
           type_count=0
-          file_count | while IFS= read -r file; do
+          while IFS= read -r file; do
             type_count=$(expr ${type_count} + 1);
-              echo "${type_count}" > count.txt;
-          done;
-          cat count.txt && rm count.txt;
+          done < <(file_count);
+          echo "${type_count}";
         }     
         if ${{ inputs.project }} && [[ "$(directory)" ]]; then
           echo -e "\n#####################\nProject Source Directories:\n#####################\n\n$(directory)";
@@ -682,18 +681,18 @@ runs:
           cmake_includes() {
             include_count_extra='0';
             include_count='0';
-            find "${{ env.base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'boardcom' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'drivers' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'include' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'lib' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'sound' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
+            include=$(find "${{ env.base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'boardcom' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'drivers' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'include' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'lib' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'sound' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+            while IFS= read -r dir; do
               if [[ -d "${dir}" ]]; then
-                include_count=$(expr ${include_count} + 1);
+                include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
                 echo -e "-I${dir}" >> 'compile_flags.txt';
                 echo -n "${dir};";
               fi;
-            done;
+            done <<< "${includes}";
             if [[ -s "${clang_includes}" ]] && ${{ inputs.include }}; then
               while IFS= read -r include; do
-                include_count_extra=$(expr ${include_count_extra} + 1);
-                echo "${include_count_extra}" > "${count2}";
+                include_count_extra=$((include_count_extra + 1));
                 echo -e "-I${include}" >> 'compile_flags.txt';
                 echo -n "${include#./};";
               done < "${clang_includes}";
@@ -721,10 +720,10 @@ runs:
           fi;
           if [[ "$(cmake_includes)" ]]; then
             echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
-            if [[ -f "${count2}" ]]; then
-              echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n\tcheck-file updated $(cat ${count2}) additional header directories\n####################" | process_input;
+            if [[ "${include_count_extra}" > '0' ]]; then
+              echo -e "\n####################\n\tcheck-file added ${include_count} header include directories\n\tcheck-file updated ${include_count_extra} additional header directories\n####################" | process_input;
             else
-              echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n####################" | process_input;
+              echo -e "\n####################\n\tcheck-file added ${include_count} header include directories\n####################" | process_input;
             fi;
           fi;
           if [[ -f "${clang_tidy}" ]]; then
@@ -1064,7 +1063,7 @@ runs:
             found=false
             if [[ -s 'check-file-includes.txt' ]]; then
               awk '!/\.h$|\.c$/ { sub(/\/$/, ""); print }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
-              awk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::✅ check-file located ${located_count} files. ${missing_count} missing out of {file_count}!!!\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
+              awk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::✅ check-file located ${located_count} files. ${missing_count} missing out of ${file_count} total!!!\n\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
