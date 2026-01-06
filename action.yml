@@ -627,7 +627,9 @@ runs:
         include2='include_file2.txt';
         include3='include_sources.txt';
         [[ -f "${include3}" ]] && rm "${include3}";
+        echo 'test 1'
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${files}" ]]; then
+        echo 'test 2'
           { time for file in ${files[@]}; do
             search_path="${file}";
             check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
