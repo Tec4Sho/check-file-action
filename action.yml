@@ -635,7 +635,7 @@ runs:
             search_path="${file}";
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n" | process_input;
-            echo "$(dirname ${file})";
+            echo -e "\nLocation: ${file}";
             if ${{ inputs.include }}; then
               IFS=$'\n';
               includes=$(find $(dirname ${file}) -name $(basename ${file}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
