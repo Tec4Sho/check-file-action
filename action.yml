@@ -990,6 +990,7 @@ runs:
           clang_errors=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
           clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
           clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}");
+          located_count=1
           if [[ "${clang_warnings:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible errors.\n####################" | process_input;
           fi;
@@ -1032,28 +1033,34 @@ runs:
               file2="${file1##*/}";
               file3="${file2#../}";
               file="${file3#..}";
+              located=false;
               if [[ "${path}" == "${file}" ]]; then
                 locate=$(find "${{ env.base }}" -type f -name "${file}" -print);
                 if [[ "${locate}" ]]; then
+                  located=true;
                   echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt';
                 else
                   echo "Cannot locate missing file ${file}  [ ❌ ]" | process_input;
                 fi;
               elif [[ "${path}" != "${file}" ]]; then
-                locate=$(find "${{ env.base }}" -type f \( -path "*/${path}/*" -o -path "*/*/*" \) -name "${file}" -print);
+                locate=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${path}/${file}" -print);
                 if [[ "${locate}" ]]; then
+                  located=true;
                   echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt'
                 else
                   echo "Cannot locate missing file ${path}/${file}  [ ❌ ]" | process_input;
                 fi;
               fi;
+              if [[ "${located}" ]]; then
+                located_count=$((located_count++));
+              fi;
             done;
             found=false
             if [[ -s 'check-file-includes.txt' ]]; then
               awk '!/\.h$|\.c$/ { sub(/\/$/, ""); print }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
-              awk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::Missing files found during auto locate!!!\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
+              awk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::${located_count} Missing files found during auto locate!!!\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
