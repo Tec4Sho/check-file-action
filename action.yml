@@ -1023,7 +1023,7 @@ runs:
             echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################" | process_input;
             echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}" | process_input;
             echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES IN: ${{ env.base }}\n####################\n" | process_input;
-            echo "${clang_files_list}" | while IFS= read -r missing_file; do
+            while IFS= read -r missing_file; do
               echo "Locating missing ${missing_file} file ...." | process_input;
               path1="${missing_file//\'/}";
               path2="${path1%/*}";
@@ -1036,7 +1036,7 @@ runs:
               if [[ "${path}" == "${file}" ]]; then
                 locate=$(find "${{ env.base }}" -type f -name "${file}" -print);
                 if [[ "${locate}" ]]; then
-                  located_count=$(expr ${located_count} + 1);
+                  located_count=$((located_count + 1));
                   echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt';
                 else
@@ -1045,20 +1045,19 @@ runs:
               elif [[ "${path}" != "${file}" ]]; then
                 locate=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${path}/${file}" -print);
                 if [[ "${locate}" ]]; then
-                  located_count=$(expr ${located_count} + 1);
+                  located_count=$((located_count + 1));
                   echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt'
                 else
                   echo "Cannot locate missing file ${path}/${file}  [ ❌ ]" | process_input;
                 fi;
               else
-                located_count=$(expr ${located_count} + 1);
                 echo "Location unknown for ${missing_file} file  [ ❌ ]" | process_input;
               fi;
               if [[ "${located}" ]]; then
                 located_count=$(expr ${located_count} + 1);
               fi;
-            done;
+            done <<< "${clang_files_list}";
             found=false
             if [[ -s 'check-file-includes.txt' ]]; then
               awk '!/\.h$|\.c$/ { sub(/\/$/, ""); print }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
