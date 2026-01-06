@@ -170,13 +170,16 @@ runs:
       continue-on-error: true
 
     - name: Restore Project
-      if: inputs.cache == 'true'
+      if: inputs.cache == 'true' && ( inputs.stored == 'true' || inputs.source == 'true' )
       id: restore
       uses: actions/cache/restore@v5
       env:
         cache-name: check-file-action
       with:
-        path: '.'
+        path: |
+          check-file-sources.txt
+          check-file-includes.txt
+          check-file-repaired.txt
         key: ${{ runner.os }}-${{ env.cache-name }}
         restore-keys: |
           ${{ runner.os }}
@@ -184,7 +187,7 @@ runs:
       continue-on-error: false
 
     - name: Clone Recovery Repo
-      if: inputs.repository == 'true' && ( inputs.cache == 'false' || steps.restore.outputs.cache-hit != 'true' )
+      if: inputs.repository == 'true'
       uses: actions/checkout@v6
       with:
         repository: ${{ github.repository }}
@@ -198,7 +201,7 @@ runs:
       run: |
         echo '';
         if ${{ steps.restore.outputs.cache-hit == 'true' }}; then
-          echo -e "####################\nCheck-File Restored Repository Project From Cache\n####################\n";
+          echo -e "####################\nCheck-File Restored Repository Sources Config From Cache\n####################\n";
         fi;
         echo "Repository Owner and Name: ${GITHUB_REPOSITORY}"
         echo "Branch Name: ${{ github.ref_name }}"
@@ -625,7 +628,7 @@ runs:
         fi;
         include1='include_file1.txt';
         include2='include_file2.txt';
-        include3='include_sources.txt';
+        include3='check-file-sources.txt';
         [[ -f "${include3}" ]] && rm "${include3}";
         echo 'test 1'
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${files}" ]]; then
@@ -686,7 +689,7 @@ runs:
         github=${GITHUB_WORKSPACE};
         update=true
         fixed=false
-        clang_sources='include_sources.txt';
+        clang_sources='check-file-sources.txt';
         count1='count1.txt';
         count2='count2.txt';
         count3='count3.txt';
@@ -769,12 +772,12 @@ runs:
             if ${{ inputs.source }} && [[ -s "${clang_sources}" ]] && ${{ inputs.include }}; then
               while IFS= read -r include; do
                 include_source_count=$((include_source_count + 1));
-                echo "${include_count_extra}" > "${count3}";
+                echo "${include_source_count}" > "${count3}";
                 echo -e "-I${include}" >> 'compile_flags.txt';
                 echo -n "${include#./};";
               done < "${clang_sources}";
             else
-              header_source=$(find "${{ env.base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'boardcom' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'drivers' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'include' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'lib' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'sound' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(find "${{ env.base }}" -not \( -path '*/CMakeFiles' -prune -o -path '*/build' -prune -o -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'boardcom' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'drivers' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'include' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'lib' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'sound' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   include_count=$((include_count + 1));
@@ -794,7 +797,7 @@ runs:
             fi;
           }
           clang_includes() {
-            find "${{ env.base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            find "${{ env.base }}" -not \( -path '*/CMakeFiles' -prune -o -path '*/build' -prune -o -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               if [[ -d "${include}" ]]; then
                 echo -e "--extra-arg=-I${include#./}";
               fi;
@@ -815,7 +818,7 @@ runs:
           fi;
           if [[ "$(cmake_includes)" ]]; then
             echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
-            if [[ -s "${count2}" ]]; then
+            if [[ -f "${count2}" ]]; then
               echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n\tcheck-file updated $(cat ${count2}) additional header directories\n####################" | process_input;
             else
               echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n####################" | process_input;
@@ -1131,7 +1134,7 @@ runs:
               file="${file3#..}";
               if [[ "${path}" == "${file}" ]]; then
                 locate=$(find "${{ env.base }}" -type f -name "${file}" -print);
-                if [[ "${locate}" ]]; then
+                if [[ -f "${locate}" ]] || [[ -n "${locate}" ]]; then
                   located_count=$((located_count + 1));
                   echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt';
@@ -1141,7 +1144,7 @@ runs:
                 fi;
               elif [[ "${path}" != "${file}" ]]; then
                 locate=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${path}/${file}" -print);
-                if [[ "${locate}" ]]; then
+                if [[ -f "${locate}" ]] || [[ -n "${locate}" ]]; then
                   located_count=$((located_count + 1));
                   echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt'
@@ -1171,9 +1174,11 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
-          echo "github_include_dirs=false" >> "${GITHUB_ENV}";
+          echo "github_include_dirs=" >> "${GITHUB_ENV}";
           if [[ "${found}" ]]; then
-            echo "github_include_dirs=true" >> "${GITHUB_ENV}";
+            echo "includes=true" >> "${GITHUB_ENV}";
+          else
+            echo "includes=false" >> "${GITHUB_ENV}";
           fi;
           if [[ "${check_build}" ]]; then
             echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
@@ -1926,11 +1931,14 @@ runs:
       continue-on-error: true
 
     - name: Save Project
-      if: inputs.cache == 'true' && steps.restore.outputs.cache-hit != 'true'
+      if: inputs.cache == 'true' && ( inputs.stored == 'true' || inputs.source == 'true' || env.includes == 'true' ) && steps.restore.outputs.cache-hit != 'true'
       uses: actions/cache/save@v5
       id: save
       with:
-        path: '.'
+        path: |
+          check-file-sources.txt
+          check-file-includes.txt
+          check-file-repaired.txt
         key: ${{ steps.restore.outputs.cache-primary-key }}
         enableCrossOsArchive: true
       continue-on-error: true
