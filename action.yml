@@ -991,6 +991,8 @@ runs:
           clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
           clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}");
           located_count=0
+          missing_count=0
+          file_count=0
           if [[ "${clang_warnings:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible errors.\n####################" | process_input;
           fi;
@@ -1040,6 +1042,7 @@ runs:
                   echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt';
                 else
+                  missing_count=$((missing_count + 1));
                   echo "Cannot locate missing file ${file}  [ ❌ ]" | process_input;
                 fi;
               elif [[ "${path}" != "${file}" ]]; then
@@ -1049,19 +1052,19 @@ runs:
                   echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt'
                 else
+                  missing_count=$((missing_count + 1));
                   echo "Cannot locate missing file ${path}/${file}  [ ❌ ]" | process_input;
                 fi;
               else
+                missing_count=$((missing_count + 1));
                 echo "Location unknown for ${missing_file} file  [ ❌ ]" | process_input;
               fi;
-              if [[ "${located}" ]]; then
-                located_count=$(expr ${located_count} + 1);
-              fi;
+              file_count=$((file_count + 1));
             done <<< "${clang_files_list}";
             found=false
             if [[ -s 'check-file-includes.txt' ]]; then
               awk '!/\.h$|\.c$/ { sub(/\/$/, ""); print }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
-              awk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::✅ check-file found ${located_count} missing files during auto locate check!!!\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
+              awk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::✅ check-file located ${located_count} files. ${missing_count} missing out of {file_count}!!!\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
