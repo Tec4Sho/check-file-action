@@ -1,6 +1,11 @@
 name: Check File Action
 description: 'Check file - Add filename to check for errors or text Word to search for within workspace files'
 inputs:
+  repository:
+    description: 'Auto clone user remote repo locally for checks'
+    type: boolean
+    required: false
+    default: 'true'
   analyzer:
     description: 'Analyze all project files using options 1 - 2 - 3 - 4'
     required: false
@@ -174,7 +179,7 @@ runs:
       continue-on-error: false
 
     - name: Clone Recovery Repo
-      if: inputs.cache == 'false' || steps.restore.outputs.cache-hit != 'true'
+      if: inputs.repository == 'true' && ( inputs.cache == 'false' || steps.restore.outputs.cache-hit != 'true' )
       uses: actions/checkout@v6
       with:
         repository: ${{ github.repository }}
