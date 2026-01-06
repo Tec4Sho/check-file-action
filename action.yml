@@ -693,6 +693,7 @@ runs:
             if [[ -s "${clang_includes}" ]] && ${{ inputs.include }}; then
               while IFS= read -r include; do
                 include_count_extra=$((include_count_extra + 1));
+                echo "${include_count_extra}" > "${count2}";
                 echo -e "-I${include}" >> 'compile_flags.txt';
                 echo -n "${include#./};";
               done < "${clang_includes}";
@@ -720,10 +721,10 @@ runs:
           fi;
           if [[ "$(cmake_includes)" ]]; then
             echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
-            if [[ "${include_count_extra}" > '0' ]]; then
-              echo -e "\n####################\n\tcheck-file added ${include_count} header include directories\n\tcheck-file updated ${include_count_extra} additional header directories\n####################" | process_input;
+            if [[ -s "${count2}" ]]; then
+              echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n\tcheck-file updated $(cat ${count2}) additional header directories\n####################" | process_input;
             else
-              echo -e "\n####################\n\tcheck-file added ${include_count} header include directories\n####################" | process_input;
+              echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n####################" | process_input;
             fi;
           fi;
           if [[ -f "${clang_tidy}" ]]; then
