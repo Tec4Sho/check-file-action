@@ -83,10 +83,15 @@ inputs:
     required: false
     default: 'false'
   include:
-    description: 'Check include files called by C/C++ filename searches if true'
+    description: 'Check include file when checking source C/C++ filename'
     type: boolean
     required: false
     default: 'true'
+  source:
+    description: 'Check all C/C++ files for header directories to auto include in cmakelist.txt'
+    type: boolean
+    required: false
+    default: 'true'  
   number:
     description: 'Number of files to check before stopping action'
     type: number
@@ -586,6 +591,81 @@ runs:
       shell: bash
       continue-on-error: false
 
+    - name: Cmake Source Files Fixer
+      if: inputs.source == 'true'
+      run: |
+        export LC_ALL=C
+        SAVEIFS=${IFS}
+        include_count=1
+        include_total=1
+        file_count=1
+        file_name="${{ inputs.filename }}";
+        file_type="${file_name##*.}";
+        error_log="${{ inputs.filename }}_error.log";
+        checked=false
+        count2=0
+        github=${GITHUB_WORKSPACE};
+        process_input() {
+          while IFS= read -r log; do
+            if ${{ inputs.output == '1' }}; then
+              echo -e "${log}" | tee -a "${error_log}";
+            elif ${{ inputs.output == '2' }}; then
+              echo -e "${log}" >> "${error_log}";
+            elif ${{ inputs.output == '3' }}; then
+              echo -e "${log}";
+            fi;
+          done;
+        } 2>&1;
+        echo -e "\n####################\nCheck-File Cmake Sources Includes Auto Fix [Analzyer]\n####################\n" | process_input;
+        if ${{ inputs.database }}; then
+          regex="\.${{ inputs.filetype }}$";
+          files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
+        else
+          files=$(sudo find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${{ inputs.filetype }}" -print);
+        fi;
+        include1='include_file1.txt';
+        include2='include_file2.txt';
+        include3='include_sources.txt';
+        [[ -f "${include3}" ]] && rm "${include3}";
+        if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${files}" ]]; then
+          { time for file in ${files[@]}; do
+          search_path="${file}";
+          check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
+          count1=$((file_count++));
+          echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n" | process_input;
+          echo "$(dirname ${file})";
+          if ${{ inputs.include }}; then
+            IFS=$'\n';
+            includes=$(find $(dirname ${file}) -name $(basename ${file}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
+            if [[ ${includes} ]]; then
+              echo -e "\n# Found Include File(s):\n${includes}\n" | process_input;
+              echo > "${include1}";
+              for i in ${includes[@]}; do
+                final="${i}";
+                count2=$((include_count++));
+                count3=$((include_total++));
+                header=$(sudo find . -type f \( -path "*/$(dirname ${i})/*" -o -path "*/$(dirname ${file})/*" -o -path "*/*/*" \) -name "$(basename ${i})" -print -quit);
+                if [[ -f "${header}" ]]; then
+                  echo "$(dirname ${header#./})" >> "${include1}";
+                else
+                  echo -e "\n::notice:: include source file ${i} is missing\n" | process_input;
+                fi;
+              done;
+              IFS=${SAVEIFS};
+              if [[ -s "${include1}" ]]; then
+                awk '!seen[$0]++' "${include1}" > "${include2}";
+              fi;
+              if [[ -s "${include2}" ]]; then
+                while IFS= read -r include; do
+                  echo -n "${include};" >> "${include3}";
+                done < "${include2}";
+              fi;
+            fi;
+          done; } 2>&1 | process_input;
+        fi;
+      shell: bash
+      continue-on-error: true
+
     - name: Check Project
       if: inputs.project == 'true'
       run: |
@@ -603,9 +683,10 @@ runs:
         github=${GITHUB_WORKSPACE};
         update=true
         fixed=false
+        clang_sources='include_sources.txt';
         count1='count1.txt';
         count2='count2.txt';
-        include_count=0
+        count3='count3.txt';
         process_input() {
           while IFS= read -r log; do
             if ${{ inputs.output == '1' }}; then
@@ -679,24 +760,34 @@ runs:
             done;
           }
           cmake_includes() {
-            include_count_extra='0';
-            include_count='0';
-            header_source=$(find "${{ env.base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'boardcom' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'drivers' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'include' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'lib' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'sound' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
-            while IFS= read -r dir; do
-              if [[ -d "${dir}" ]]; then
-                include_count=$((include_count + 1));
-                echo "${include_count}" > "${count1}";
-                echo -e "-I${dir}" >> 'compile_flags.txt';
-                echo -n "${dir};";
-              fi;
-            done <<< "${header_source}";
-            if [[ -s "${clang_includes}" ]] && ${{ inputs.include }}; then
+            include_source_count=0
+            include_count_extra=0
+            include_count=0
+            if ${{ inputs.source }} && [[ -s "${clang_sources}" ]] && ${{ inputs.include }}; then
               while IFS= read -r include; do
-                include_count_extra=$((include_count_extra + 1));
-                echo "${include_count_extra}" > "${count2}";
+                include_source_count=$((include_source_count + 1));
+                echo "${include_count_extra}" > "${count3}";
                 echo -e "-I${include}" >> 'compile_flags.txt';
                 echo -n "${include#./};";
-              done < "${clang_includes}";
+              done < "${clang_sources}";
+            else
+              header_source=$(find "${{ env.base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'boardcom' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'drivers' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'include' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'lib' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'sound' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+              while IFS= read -r dir; do
+                if [[ -d "${dir}" ]]; then
+                  include_count=$((include_count + 1));
+                  echo "${include_count}" > "${count1}";
+                  echo -e "-I${dir}" >> 'compile_flags.txt';
+                  echo -n "${dir};";
+                fi;
+              done <<< "${header_source}";
+              if [[ -s "${clang_includes}" ]] && ${{ inputs.include }}; then
+                while IFS= read -r include; do
+                  include_count_extra=$((include_count_extra + 1));
+                  echo "${include_count_extra}" > "${count2}";
+                  echo -e "-I${include}" >> 'compile_flags.txt';
+                  echo -n "${include#./};";
+                done < "${clang_includes}";
+              fi;
             fi;
           }
           clang_includes() {
@@ -801,7 +892,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e 'compile_commands.json' ]]; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILES\n####################\n' | process_input;
-            { time find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 100 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm -- -I"include/" || true' bash; } 2>&1 | process_input;
+            { time find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 100 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm || true' bash; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -1070,6 +1161,9 @@ runs:
           if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
           fi;
+          [[ -f ${count1} ]] && rm "${count1}";
+          [[ -f ${count2} ]] && rm "${count2}";
+          [[ -f ${count3} ]] && rm "${count3}";
           echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
