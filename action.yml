@@ -990,7 +990,7 @@ runs:
           clang_errors=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
           clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
           clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}");
-          located_count=1
+          located_count=0
           if [[ "${clang_warnings:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible errors.\n####################" | process_input;
           fi;
@@ -1033,7 +1033,6 @@ runs:
               file2="${file1##*/}";
               file3="${file2#../}";
               file="${file3#..}";
-              located=false;
               if [[ "${path}" == "${file}" ]]; then
                 locate=$(find "${{ env.base }}" -type f -name "${file}" -print);
                 if [[ "${locate}" ]]; then
@@ -1041,6 +1040,7 @@ runs:
                   echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt';
                 else
+                  located=false;
                   echo "Cannot locate missing file ${file}  [ ❌ ]" | process_input;
                 fi;
               elif [[ "${path}" != "${file}" ]]; then
@@ -1050,11 +1050,15 @@ runs:
                   echo "Location found @: ${locate}  [ ✅ ]" | process_input;
                   echo "${locate%/*}" >> 'check-file-includes.txt'
                 else
+                  located=false;
                   echo "Cannot locate missing file ${path}/${file}  [ ❌ ]" | process_input;
                 fi;
+              else
+                located=false;
+                echo "Location unknown for ${missing_file} file  [ ❌ ]" | process_input;
               fi;
               if [[ "${located}" ]]; then
-                located_count=$((located_count++));
+                located_count=$(expr ${located_count} + 1);
               fi;
             done;
             found=false
@@ -1845,7 +1849,7 @@ runs:
     - name: Check Project Size
       run: |
         echo '';
-        echo -e "Repository Project Size: $(du -shx)\n";
+        echo -e "Repository Project Total Size: $(du ${{ env.base }} -shx)\n";
       shell: bash
       continue-on-error: true
 
