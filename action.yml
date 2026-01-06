@@ -681,7 +681,7 @@ runs:
           cmake_includes() {
             include_count_extra='0';
             include_count='0';
-            include=$(find "${{ env.base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'boardcom' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'drivers' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'include' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'lib' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'sound' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+            header_source=$(find "${{ env.base }}" -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'boardcom' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'drivers' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'include' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'lib' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'sound' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
             while IFS= read -r dir; do
               if [[ -d "${dir}" ]]; then
                 include_count=$((include_count + 1));
@@ -689,7 +689,7 @@ runs:
                 echo -e "-I${dir}" >> 'compile_flags.txt';
                 echo -n "${dir};";
               fi;
-            done <<< "${includes}";
+            done <<< "${header_source}";
             if [[ -s "${clang_includes}" ]] && ${{ inputs.include }}; then
               while IFS= read -r include; do
                 include_count_extra=$((include_count_extra + 1));
@@ -1021,7 +1021,7 @@ runs:
             echo -e "\n####################\n::notice::🚫 check-file found ${deheader_inclusion} extra inclusions in ${file_type} file(s) checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
           if [[ "${clang_files_missing:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and not directly missing.\n####################" | process_input;
+            echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and many duplicate files.\n####################" | process_input;
             echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}" | process_input;
             echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES IN: ${{ env.base }}\n####################\n" | process_input;
             while IFS= read -r missing_file; do
