@@ -634,13 +634,17 @@ runs:
           { time for file in ${files[@]}; do
             search_path="${file}";
             count1=$((file_count++));
-            echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n" | process_input;
-            echo -e "\nLocation: ${file}";
+            if ${{ inputs.content }}; then
+              echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n" | process_input;
+              echo -e "\nSource File Location: ${file}";
+            fi;
             if ${{ inputs.include }}; then
               IFS=$'\n';
               includes=$(find $(dirname ${file}) -name $(basename ${file}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
               if [[ ${includes} ]]; then
-                echo -e "\n# Found Include File(s):\n${includes}\n" | process_input;
+                if ${{ inputs.content }}; then
+                  echo -e "\n\t# Found Include File(s):\n${includes}" | process_input;
+                fi;
                 echo > "${include1}";
                 for i in ${includes[@]}; do
                   final="${i}";
@@ -659,7 +663,7 @@ runs:
                 fi;
                 if [[ -s "${include2}" ]]; then
                   while IFS= read -r include; do
-                    echo -n "${include};" >> "${include3}";
+                    echo "${include}" >> "${include3}";
                   done < "${include2}";
                 fi;
               fi;
@@ -715,7 +719,13 @@ runs:
           clang_version="$(clang --version)";
           verify_config="$(clang-tidy --verify-config)";
           cmake_version="$(cmake --version)";
-          compile_json='build/compile_commands.json';
+          if [[ -f 'compile_commands.json' ]]; then
+             compile_json='compile_commands.json';
+          elif [[ -f 'build/compile_commands.json' ]]; then
+             compile_json='build/compile_commands.json';
+          else
+             compile_json='build/compile_commands.json';
+          fi;
           clang_checks="$(clang-tidy --list-checks)";
           gcc_version="$(gcc --version)";
           gpp_version="$(g++ --version)";
@@ -815,7 +825,9 @@ runs:
           fi;
           if [[ "$(cmake_includes)" ]]; then
             echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
-            if [[ -f "${count2}" ]]; then
+            if [[ -f "${count3}" ]]; then
+              echo -e "\n####################\n\tcheck-file added $(cat ${count3}) source include directories [auto mode]\n\tcheck-file updated $(cat ${count2}) additional header directories\n####################" | process_input;
+            elif [[ -f "${count2}" ]]; then
               echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n\tcheck-file updated $(cat ${count2}) additional header directories\n####################" | process_input;
             else
               echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n####################" | process_input;
@@ -829,9 +841,9 @@ runs:
           fi;
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            if [[ "$(source_dirs)" ]] && [[ "$(cmake_includes)" ]]; then
+            if [[ "$(source_dirs)" ]] && [[ "$(cmake_includes)" ]] && [[ ! -f "${compile_json}" ]]; then
               cmake -S . -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
-            else
+            elif [[ ! -f "${compile_json}" ]]; then
               cmake -S . -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning:: ( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             fi;
             if [[ "${PIPESTATUS[0]}" == '0' ]]; then
@@ -845,7 +857,7 @@ runs:
           fi;
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e 'compile_commands.json' ]]; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-            { time "${{ env.run_clang_tidy }}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)"; } 2>&1 | process_input;
+            { time "${{ env.run_clang_tidy }}" -p "${compile_json}" -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)"; } 2>&1 | process_input;
             [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && clang-format -style=LLVM -dump-config > .clang-format | process_input;
             [[ $(whereis clang-apply-replacements) ]] && { time clang-apply-replacements build/fixes --format --style='.clang-format' --ignore-insert-conflict --remove-change-desc-files; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
@@ -895,7 +907,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e 'compile_commands.json' ]]; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILES\n####################\n' | process_input;
-            { time find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 100 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build/ -j "$(nproc --all)" --color always --tqdm || true' bash; } 2>&1 | process_input;
+            { time find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 100 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p "${compile_json}" -j "$(nproc --all)" --color always --tqdm || true' bash; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -917,7 +929,7 @@ runs:
             else
               echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
-            { time CodeChecker analyze ./build/compile_commands.json --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./results &&  CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
+            { time CodeChecker analyze "${compile_json}" --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./results &&  CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -967,6 +979,13 @@ runs:
             fi;
           done;
         }
+        if [[ -f 'compile_commands.json' ]]; then
+          compile_json='compile_commands.json';
+        elif [[ -f 'build/compile_commands.json' ]]; then
+          compile_json='build/compile_commands.json';
+        else
+          compile_json='build/compile_commands.json';
+        fi;
         if ! ${{ env.check_build }}; then
           echo 'check_build=false' >> "${GITHUB_ENV}";
         fi;
@@ -1012,7 +1031,7 @@ runs:
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
           [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
-          { time CodeChecker log --build "make -v -f ${{ inputs.makefile }} -j $(nproc --all)" --output ./build/compile_commands.json; } 2>&1 | process_input;
+          { time CodeChecker log --build "make -v -f ${{ inputs.makefile }} -j $(nproc --all)" --output "${compile_json}"; } 2>&1 | process_input;
           if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found building project files" | process_input;
             check_build=true
@@ -1195,7 +1214,6 @@ runs:
         SAVEIFS=${IFS}
         include_count=1
         include_total=1
-        compile_json='compile_commands.json';
         build_cache='build_cache';
         clang_file='.clang-tidy';
         repaired='check-file-repaired.txt';
@@ -1218,6 +1236,13 @@ runs:
             fi;
           done;
         } 2>&1;
+        if [[ -f 'compile_commands.json' ]]; then
+          compile_json='compile_commands.json';
+        elif [[ -f 'build/compile_commands.json' ]]; then
+          compile_json='build/compile_commands.json';
+        else
+          compile_json='build/compile_commands.json';
+        fi;
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
