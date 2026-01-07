@@ -637,10 +637,10 @@ runs:
               echo -e "\n####################\n\tSOURCE FILE ( ${count1} )\n####################\n" | process_input;
               echo -e "\nSource File Location: ${file}";
             else
-              echo -e "\nAnalyzing Includes Source File ${count1}: $(basename ${file})";
+              echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             fi;
             if ${{ inputs.include }}; then
-              includes=$(find $(dirname ${file}) -name $(basename ${file}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
+              includes=$(find "${file%/*}" -name "${file##*/}" -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
               if [[ ${includes} ]]; then
                 if ${{ inputs.content }}; then
                   echo -e "\n\t# Found Include File(s):\n${includes}" | process_input;
@@ -650,9 +650,10 @@ runs:
                   final="${i}";
                   count2=$((include_count++));
                   count3=$((include_total++));
-                  header=$(sudo find . -type f \( -path "*/$(dirname ${i})/*" -o -path "*/$(dirname ${file})/*" -o -path "*/*/*" \) -name "$(basename ${i})" -print -quit);
+                  header=$(find -type f \( -path "*/${i%/*}/*" -o -path "*/${file%/*}/*" -o -path "*/*/*" \) -name "${i##*/}" -print -quit);
                   if [[ -f "${header}" ]]; then
-                    echo "$(dirname ${header#./})" >> "${include1}";
+                    header=${header%/*}
+                    echo "${header#./}" >> "${include1}";
                   else
                     echo -e "\n::notice:: include source file ${i} is missing\n" | process_input;
                   fi;
@@ -677,9 +678,9 @@ runs:
             awk '!seen[$0]++' "${include3}" > "${include}";
           fi;
           echo -e "\n::notice::Total include source file added ( ${count3} )\n[Note] included directories may be much less after duplicate cleaning!!!\n" | process_input;
-          [[ -s "${include}" ]] && cp -vf "${include}" build/
+          [[ -s "${include}" ]] && cp -vf "${include}" build/ | process_input;
           duration=$((SECONDS - start_time))
-          echo -e "\nThe step took $duration seconds to execute.\n";
+          echo -e "\nThe overall process took ${duration} seconds to execute.\n" | process_input;
         fi;
       shell: bash
       continue-on-error: true
@@ -1215,6 +1216,7 @@ runs:
         else
           echo -e '::error::Missing/Bad source directory' | process_input;
         fi;
+        echo -e '\nTOTAL RUNTIME ${SECOND} SECONDS!!!' | process_input;
       shell: bash
       continue-on-error: true
 
