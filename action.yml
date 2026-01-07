@@ -692,7 +692,7 @@ runs:
                     count3=$((include_total++));
                     echo "${real_path#./}" >> "${include1}";
                     if ${{ inputs.source }}; then
-                      echo -e "\n\033[33mSource file include ( ${include} ) is located!!!  \033[0m[ ✅ ]\n\nREAL LOCATION: ${header}" | process_input;
+                      echo -e "\n\033[33mSource file include ( ${include} ) is located!!!  \033[0m[ ✅ ]\n\nREAL LOCATION: ${real_path}" | process_input;
                     fi;
                   else
                     echo -e "\n\033[31m::notice::Source file include ( ${include#./} ) is missing!?  \033[0m[ ❌ ]" | process_input;
