@@ -639,7 +639,7 @@ runs:
               echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             fi;
             if ${{ inputs.include }}; then
-              includes=$(find "${file%/*}" -type f -name "${file##*/}" -exec grep 'include' "{}" \;);                 
+              includes=$(find "${file%/*}" -type f -name "${file##*/}" -exec grep -sF '#include' "{}" \;);                 
               includes=$(echo "${includes}" | awk '{print $2}' | tr -d '<>"');
               if [[ ${includes} ]]; then
                 if ${{ inputs.content }}; then
