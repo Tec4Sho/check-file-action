@@ -628,7 +628,8 @@ runs:
         fi;
         include1='include_file1.txt';
         include2='include_file2.txt';
-        include3='check-file-sources.txt';
+        include3='include_file3.txt';
+        include='check-file-sources.txt';
         [[ -f "${include3}" ]] && rm "${include3}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${files}" ]]; then
           { time for file in ${files[@]}; do
@@ -669,7 +670,10 @@ runs:
               fi;
             fi;
           done; } 2>&1 | process_input;
-          cp -vf "${include3}" build/
+          if [[ -s "${include1}" ]]; then
+            awk '!seen[$0]++' "${include3}" > "${include}";
+          fi;
+          cp -vf "${include}" build/
           echo '';
         fi;
       shell: bash
