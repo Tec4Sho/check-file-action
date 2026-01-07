@@ -645,7 +645,7 @@ runs:
               includes=$(find "${file%/*}" -type f -name "${file##*/}" -exec sed -n 's/^#include[[:space:]]*[<"]\(.*\)[>"]/\1/p' "{}" +);
               if [[ ${includes} ]]; then
                 if ${{ inputs.content }}; then
-                  echo -e "\n\tLocated Include File(s):\n${includes}" | process_input;
+                  echo -e "\n\tLocated include file(s):\n${includes}" | process_input;
                 fi;
                 echo > "${include1}";
                 while IFS= read -r include; do
@@ -670,10 +670,10 @@ runs:
                     count3=$((include_total++));
                     echo "${header#./}" >> "${include1}";
                     if ${{ inputs.content }}; then
-                      echo -e "\nSource File ( #include ${include} ) Is Located!!!  [ ✅ ]\n\nPATH LOCATION: ${header}" | process_input;
+                      echo -e "\nSource file include ( ${include} ) is located!!!  [ ✅ ]\n\nFILE LOCATION: ${header}" | process_input;
                     fi;
                   else
-                    echo -e "\n::notice::Source File ( #include ${include} ) Is Missing!!!  [ ❌ ]" | process_input;
+                    echo -e "\n::notice::Source file include ( ${include} ) is missing!?  [ ❌ ]\n\nFILE NAME: ${file##*/}" | process_input;
                   fi;
                 done <<< "${includes[@]}";
                 if [[ -s "${include1}" ]]; then
@@ -690,7 +690,7 @@ runs:
               export "${count2}";
               export "${count3}";
             fi;
-            echo -e "\nTotal include source file added ${count2} during file check!!!\n" | process_input;
+            echo -e "\nCheck-File added ${count2} include headers during ${file##*/} file scan!!!\n" | process_input;
           done <<< "${files[@]}";
           if [[ -s "${include3}" ]]; then
             awk '!seen[$0]++' "${include3}" > "${include}";
