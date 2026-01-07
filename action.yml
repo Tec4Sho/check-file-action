@@ -652,7 +652,7 @@ runs:
                 while IFS= read -r include; do
                   path1="${include//\'/}";
                   path2="${path1%/*}";
-                  path3="${path3##\.\.\/}"
+                  path3="${path2##\.\.\/}"
                   clean_path="${path3#..}";
                   file1="${include//\'/}";
                   file2="${file1##*/}";
@@ -676,8 +676,8 @@ runs:
                   awk '!seen[$0]++' "${include1}" > "${include2}";
                 fi;
                 if [[ -s "${include2}" ]]; then
-                  while IFS= read -r include; do
-                    echo "${include}" >> "${include3}";
+                  while IFS= read -r included; do
+                    echo "${included}" >> "${include3}";
                   done < "${include2}";
                 fi;
               fi;
