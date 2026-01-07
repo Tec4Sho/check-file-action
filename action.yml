@@ -640,22 +640,29 @@ runs:
               echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             fi;
             if ${{ inputs.include }}; then
-              includes=$(find "${file%/*}" -name "${file##*/}" -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
+              includes=$(find "${file%/*}" -type f -name "${file##*/}" -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
               if [[ ${includes} ]]; then
                 if ${{ inputs.content }}; then
                   echo -e "\n\tLocated Include File(s):\n${includes}" | process_input;
                 fi;
                 echo > "${include1}";
-                for i in ${includes[@]}; do
-                  final="${i}";
+                for inc in ${includes[@]}; do
+                  path1="${inc//\'/}";
+                  path2="${path1%/*}";
+                  path3="${path2#../}";
+                  path4="${path3#..}";
+                  file1="${inc//\'/}";
+                  file2="${file1##*/}";
+                  file3="${file2#../}";
+                  file4="${file3#..}";
                   count2=$((include_count++));
                   count3=$((include_total++));
-                  header=$(find -type f \( -path "*/${i%/*}/*" -o -path "*/${file%/*}/*" -o -path "*/*/*" \) -name "${i##*/}" -print -quit);
+                  header=$(find "${{ env.base }}" -type f \( -path "*/${path4}/*" -o -path "*/${file%/*}/*" -o -path "*/*/*" \) -name "${file4}" -print -quit);
                   if [[ -f "${header}" ]]; then
                     header=${header%/*}
                     echo "${header#./}" >> "${include1}";
                   else
-                    echo -e "\n::notice:: include source file ${i} is missing\n" | process_input;
+                    echo -e "\n::notice:: include source file ${inc} is missing\n" | process_input;
                   fi;
                 done;
                 if [[ -s "${include1}" ]]; then
