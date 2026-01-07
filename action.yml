@@ -150,7 +150,8 @@ runs:
     - name: Linux Distro Check
       run: |
         echo '';
-        echo -e "####################\nCheck-File-Action-Pro version 2.0.0 [Beta Stable]\n####################\n";
+        echo 'export ANSIBLE_FORCE_COLOR=true' | sudo tee -a ~/.bashrc >/dev/null;
+        echo -e "####################\n\033[31mCheck-File-Action-Pro version 2.0.0 [Beta Stable]\033[0m\n####################\n";
         if [[ -r '/etc/os-release' ]]; then
           . /etc/os-release
           if [[ "${ID}" == 'ubuntu' ]]; then
@@ -672,25 +673,29 @@ runs:
                   else
                     header=$(find "${{ env.base }}" -type f -name "${clean_name#./}" -print);
                   fi;
-                  real_path="$(realpath --no-symlinks ${clean_path#./}/${clean_name#./} 2>/dev/null)";
+                  if [[ "${clean_path#./}" != "${clean_name#./}" ]]; then
+                    real_path="$(realpath --no-symlinks */${clean_path#./}/${clean_name#./})";
+                  else
+                    real_path="$(realpath --no-symlinks */${clean_name#./})";
+                  fi;
                   if [[ "${header}" ]]; then
                     header=${header%/*}
                     count2=$((include_count++));
                     count3=$((include_total++));
                     echo "${header#./}" >> "${include1}";
                     if ${{ inputs.content }}; then
-                      echo -e "\nSource file include ( ${include} ) is located!!!  [ ✅ ]\n\nFILE LOCATION: ${header}" | process_input;
+                      echo -e "\n\033[33mSource file include ( ${include} ) is located!!!  \033[0m[ ✅ ]\n\nFILE LOCATION: ${header}" | process_input;
                     fi;
                   elif [[ "${real_path}" ]]; then
                     real_path=${real_path%/*}
                     count2=$((include_count++));
                     count3=$((include_total++));
                     echo "${real_path#./}" >> "${include1}";
-                    if ${{ inputs.content }}; then
-                      echo -e "\nSource file include ( ${include} ) is located!!!  [ ✅ ]\n\nREAL LOCATION: ${header}" | process_input;
+                    if ${{ inputs.source }}; then
+                      echo -e "\n\033[33mSource file include ( ${include} ) is located!!!  \033[0m[ ✅ ]\n\nREAL LOCATION: ${header}" | process_input;
                     fi;
                   else
-                    echo -e "\n::notice::Source file include ( ${include#./} ) is missing!? Real path unknown [ ❌ ]" | process_input;
+                    echo -e "\n\033[31m::notice::Source file include ( ${include#./} ) is missing!?  \033[0m[ ❌ ]" | process_input;
                   fi;
                 done <<< "${includes[@]}";
                 if [[ -s "${include1}" ]]; then
@@ -707,12 +712,12 @@ runs:
               export "${count2}";
               export "${count3}";
             fi;
-            echo -e "\nCheck-File added ${count2} include headers during ${file##*/} file scan!!!\n" | process_input;
+            echo -e "\n\033[1m\033[32mCheck-File successfully added ${count2} includes during ${file##*/} file scan!!!\033[0m\n" | process_input;
           done <<< "${files[@]}";
           if [[ -s "${include3}" ]]; then
             awk '!seen[$0]++' "${include3}" > "${include}";
           fi;
-          echo -e "\n::notice::Total include source file added ( ${count3} )\n[Note] included directories may be much less after duplicate cleaning!!!\n" | process_input;
+          echo -e "\n\033[34m::notice::Total include source file added ( ${count3} )\n[Note] included directories may be much less after duplicate cleaning!!!\033[0m\n" | process_input;
           [[ -s "${include}" ]] && cp -vf "${include}" build/ | process_input;
           duration=$((SECONDS - start_time))
           echo -e "\nThe overall process took ${duration} seconds to execute.\n" | process_input;
