@@ -624,7 +624,7 @@ runs:
           regex="\.${{ inputs.filetype }}$";
           files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
         else
-          files=$(sudo find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${{ inputs.filetype }}" -print);
+          files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${{ inputs.filetype }}" -print);
         fi;
         include1='include_file1.txt';
         include2='include_file2.txt';
@@ -669,6 +669,8 @@ runs:
               fi;
             fi;
           done; } 2>&1 | process_input;
+          cp -vf "${include3}" build/
+          echo '';
         fi;
       shell: bash
       continue-on-error: true
