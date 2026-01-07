@@ -621,20 +621,20 @@ runs:
             fi;
           done;
         }
-        echo -e "\n####################\n\tPROGRESSIVE SCAN MODE\n####################\n" | process_input;
-        files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print | sort -n | cut -d' ' -f 2- 2>/dev/null | xargs -r -n 100 -P "$(nproc --all)");
+        echo -e "\n####################\n\tPROGRESSIVE SCAN MODE\n####################" | process_input;
+        files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print | sort -n | cut -d' ' -f 2- 2>/dev/null | xargs -r -P "$(nproc --all)");
         include1='include_file1.txt';
         include2='include_file2.txt';
         include3='include_file3.txt';
         include='check-file-sources.txt';
         [[ -f "${include3}" ]] && rm "${include3}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${files}" ]]; then
-          echo -e "\n####################\nCheck-File Auto Fix Sources Include [Status; Analzying]\n####################\n" | process_input;
+          echo -e "\n####################\nCheck-File Auto Fix Sources Include [Status; Analzying]\n####################" | process_input;
           while IFS= read -r file; do
             search_path="${file}";
             count1=$((file_count++));
             if ${{ inputs.content }}; then
-              echo -e "\n####################\n\tSOURCE FILE ( ${count1} )\n####################\n" | process_input;
+              echo -e "\n####################\n\tSOURCE FILE ( ${count1} )\n####################" | process_input;
               echo -e "\nSource File Location: ${file}";
             else
               echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
@@ -643,7 +643,7 @@ runs:
               includes=$(find "${file%/*}" -name "${file##*/}" -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
               if [[ ${includes} ]]; then
                 if ${{ inputs.content }}; then
-                  echo -e "\n\t# Found Include File(s):\n${includes}" | process_input;
+                  echo -e "\n\tLocated Include File(s):\n${includes}" | process_input;
                 fi;
                 echo > "${include1}";
                 for i in ${includes[@]}; do
