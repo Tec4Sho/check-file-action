@@ -646,12 +646,12 @@ runs:
                   echo -e "\n\tLocated Include File(s):\n${includes}" | process_input;
                 fi;
                 echo > "${include1}";
-                for inc in ${includes[@]}; do
-                  path1="${inc//\'/}";
+                while IFS= read -r include; do
+                  path1="${include//\'/}";
                   path2="${path1%/*}";
                   path3="${path3##\.\.\/}"
                   clean_path="${path3#..}";
-                  file1="${inc//\'/}";
+                  file1="${include//\'/}";
                   file2="${file1##*/}";
                   file3="${file2##\.\.\/}"
                   clean_name="${file3#..}";               
@@ -668,7 +668,7 @@ runs:
                   else
                     echo -e "\n::notice:: include source file ${inc} is missing\n" | process_input;
                   fi;
-                done;
+                done <<< "${includes}";
                 if [[ -s "${include1}" ]]; then
                   awk '!seen[$0]++' "${include1}" > "${include2}";
                 fi;
