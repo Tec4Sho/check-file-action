@@ -624,7 +624,7 @@ runs:
           done;
         }
         echo -e "\n####################\n\tPROGRESSIVE SCAN MODE\n####################" | process_input;
-        files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print | sort -n | cut -d' ' -f 2- 2>/dev/null);
+        files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print);
         include1='include_file1.txt';
         include2='include_file2.txt';
         include3='include_file3.txt';
@@ -642,7 +642,7 @@ runs:
               echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             fi;
             if ${{ inputs.include }}; then
-              includes=$(find "${file%/*}" -type f -name "${file##*/}" -print0 | xargs -0 -r grep -E '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<>"');
+              includes=$(find "${file%/*}" -type f -name "${file##*/}" -exec sed -n 's/^#include[[:space:]]*[<"]\(.*\)[>"]/\1/p' "{}" +);
               if [[ ${includes} ]]; then
                 if ${{ inputs.content }}; then
                   echo -e "\n\tLocated Include File(s):\n${includes}" | process_input;
