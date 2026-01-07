@@ -639,7 +639,8 @@ runs:
               echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             fi;
             if ${{ inputs.include }}; then
-              includes=$(find "${file%/*}" -type f -name "${file##*/}" -print | grep -sF 'include' | awk '{print $2}' | tr -d '<>"');
+              includes=$(find "${file%/*}" -type f -name "${file##*/}" -exec grep 'include' "{}" \;);                 
+              includes=$(echo "${includes}" | awk '{print $2}' | tr -d '<>"');
               if [[ ${includes} ]]; then
                 if ${{ inputs.content }}; then
                   echo -e "\n\tLocated Include File(s):\n${includes}" | process_input;
@@ -655,7 +656,7 @@ runs:
                   file3="${file2#../}";
                   clean_name="${file3#..}";               
                   if [[ "${clean_path}" != "${clean_name}" ]]; then
-                    header=$(find "${{ env.base }}" -type f -path "*/${clean_path}/*" -name "${clean_name}" -print);
+                    header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path}/${clean_name}" -print);
                   elif [[ "${clean_path}" == "${clean_name}" ]]; then
                     header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);
                   fi;
