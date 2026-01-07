@@ -118,9 +118,10 @@ inputs:
     default: 1
     type: choice
     options:
-    - 1 # Log to terminal and file.
-    - 2 # Log to file only.
-    - 3 # Log to terminal only.
+    - 1 # Output to terminal log and error/project file.
+    - 2 # Output to error/project file only.
+    - 3 # Output to terminal log only.
+    - 4 # Disable most output.
   build:
     description: 'Fix Errors found while building repository project'
     type: choice
@@ -610,13 +611,15 @@ runs:
         count2=0
         github=${GITHUB_WORKSPACE};
         process_input() {
-          while IFS= read -r log; do
+          while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
-              echo -e "${log}" | tee -a "${project_log}";
+              echo -e "${output}" | tee -a "${project_log}";
             elif ${{ inputs.output == '2' }}; then
-              echo -e "${log}" >> "${project_log}";
+              echo -e "${output}" >> "${project_log}";
             elif ${{ inputs.output == '3' }}; then
-              echo -e "${log}";
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
             fi;
           done;
         }
@@ -718,13 +721,15 @@ runs:
         count2='count2.txt';
         count3='count3.txt';
         process_input() {
-          while IFS= read -r log; do
+          while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
-              echo -e "${log}" | tee -a "${project_log}";
+              echo -e "${output}" | tee -a "${project_log}";
             elif ${{ inputs.output == '2' }}; then
-              echo -e "${log}" >> "${project_log}";
+              echo -e "${output}" >> "${project_log}";
             elif ${{ inputs.output == '3' }}; then
-              echo -e "${log}";
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
             fi;
           done;
         }
@@ -992,13 +997,15 @@ runs:
         fixed=false
         count=1
         process_input() {
-          while IFS= read -r log; do
+          while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
-              echo -e "${log}" | tee -a "${project_log}";
+              echo -e "${output}" | tee -a "${project_log}";
             elif ${{ inputs.output == '2' }}; then
-              echo -e "${log}" >> "${project_log}";
+              echo -e "${output}" >> "${project_log}";
             elif ${{ inputs.output == '3' }}; then
-              echo -e "${log}";
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
             fi;
           done;
         }
@@ -1250,13 +1257,15 @@ runs:
         count2=0
         github=${GITHUB_WORKSPACE};
         process_input() {
-          while IFS= read -r log; do
+          while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
-              echo -e "${log}" | tee -a "${error_log}";
+              echo -e "${output}" | tee -a "${error_log}";
             elif ${{ inputs.output == '2' }}; then
-              echo -e "${log}" >> "${error_log}";
+              echo -e "${output}" >> "${error_log}";
             elif ${{ inputs.output == '3' }}; then
-              echo -e "${log}";
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
             fi;
           done;
         } 2>&1;
@@ -1491,13 +1500,15 @@ runs:
         file_type="${file_name##*.}";
         error_log="${{ inputs.filename }}_error.log";
         process_input() {
-          while IFS= read -r log; do
+          while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
-              echo -e "${log}" | tee -a "${error_log}";
+              echo -e "${output}" | tee -a "${error_log}";
             elif ${{ inputs.output == '2' }}; then
-              echo -e "${log}" >> "${error_log}";
+              echo -e "${output}" >> "${error_log}";
             elif ${{ inputs.output == '3' }}; then
-              echo -e "${log}";
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
             fi;
           done;
         } 2>&1;
@@ -1614,13 +1625,15 @@ runs:
         path='/home/runner/checkmake.ini';
         error_log="${{ inputs.filename }}_error.log";
         process_input() {
-          while IFS= read -r log; do
+          while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
-              echo -e "${log}" | tee -a "${error_log}";
+              echo -e "${output}" | tee -a "${error_log}";
             elif ${{ inputs.output == '2' }}; then
-              echo -e "${log}" >> "${error_log}";
+              echo -e "${output}" >> "${error_log}";
             elif ${{ inputs.output == '3' }}; then
-              echo -e "${log}";
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
             fi;
           done;
         } 2>&1;
