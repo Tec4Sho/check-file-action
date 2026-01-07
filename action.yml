@@ -597,6 +597,7 @@ runs:
     - name: Cmake Source Files Fixer
       if: inputs.source == 'true'
       run: |
+        start_time=${SECONDS}
         export LC_ALL=C
         SAVEIFS=${IFS}
         include_count=1
@@ -629,7 +630,7 @@ runs:
         [[ -f "${include3}" ]] && rm "${include3}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${files}" ]]; then
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [Status; Analzying]\n####################\n" | process_input;
-          { time while IFS= read -r -d '' file; do
+          while IFS= read -r -d '' file; do
             search_path="${file}";
             count1=$((file_count++));
             if ${{ inputs.content }}; then
@@ -671,13 +672,14 @@ runs:
               export "${count3}";
             fi;
             echo -e "\nTotal include source file added ${count2} during file check!!!\n" | process_input;
-          done <<< "${files}"; } 2>&1 | process_input;
+          done <<< "${files}";
           if [[ -s "${include3}" ]]; then
             awk '!seen[$0]++' "${include3}" > "${include}";
           fi;
           echo -e "\n::notice::Total include source file added ( ${count3} )\n[Note] included directories may be much less after duplicate cleaning!!!\n" | process_input;
-          cp -vf "${include}" build/
-          echo '';
+          [[ -s "${include}" ]] && cp -vf "${include}" build/
+          duration=$((SECONDS - start_time))
+          echo -e "\nThe step took $duration seconds to execute.\n";
         fi;
       shell: bash
       continue-on-error: true
