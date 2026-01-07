@@ -663,15 +663,16 @@ runs:
                   file5="${file4%'\n'}"
                   file6="${file5%\\}"
                   clean_name="${file6#..}";
-                  if [[ "${clean_path}" == '' ]] || [[ "${clean_path}" == ' ' ]]; then
+                  if [[ "${clean_path#./}" == '' ]] || [[ "${clean_path#./}" == ' ' ]]; then
                     header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);
-                  elif [[ "${clean_path}" == "${clean_name}" ]]; then
+                  elif [[ "${clean_path#./}" == "${clean_name#./}" ]]; then
                     header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);   
-                  elif [[ "${clean_path}" != "${clean_name}" ]]; then
-                    header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path}/${clean_name}" -print);  
+                  elif [[ "${clean_path#./}" != "${clean_name#./}" ]]; then
+                    header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path#./}/${clean_name#./}" -print);  
                   else
-                    header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);
+                    header=$(find "${{ env.base }}" -type f -name "${clean_name#./}" -print);
                   fi;
+                  real_path="$(realpath --no-symlinks ${clean_path#./}/${clean_name#./} 2>/dev/null)";
                   if [[ "${header}" ]]; then
                     header=${header%/*}
                     count2=$((include_count++));
@@ -680,8 +681,16 @@ runs:
                     if ${{ inputs.content }}; then
                       echo -e "\nSource file include ( ${include} ) is located!!!  [ ✅ ]\n\nFILE LOCATION: ${header}" | process_input;
                     fi;
+                  elif [[ "${real_path}" ]]; then
+                    real_path=${real_path%/*}
+                    count2=$((include_count++));
+                    count3=$((include_total++));
+                    echo "${real_path#./}" >> "${include1}";
+                    if ${{ inputs.content }}; then
+                      echo -e "\nSource file include ( ${include} ) is located!!!  [ ✅ ]\n\nREAL LOCATION: ${header}" | process_input;
+                    fi;
                   else
-                    echo -e "\n::notice::Source file include ( ${include} ) is missing!?  [ ❌ ]" | process_input;
+                    echo -e "\n::notice::Source file include ( ${include#./} ) is missing!? Real path unknown [ ❌ ]" | process_input;
                   fi;
                 done <<< "${includes[@]}";
                 if [[ -s "${include1}" ]]; then
