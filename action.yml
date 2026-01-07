@@ -639,7 +639,7 @@ runs:
               echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             fi;
             if ${{ inputs.include }}; then
-              includes=$(find "${file%/*}" -type f -name "${file##*/}" -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
+              includes=$(find "${file%/*}" -type f -name "${file##*/}" -print | grep -sF 'include' | awk '{print $2}' | tr -d '<>"');
               if [[ ${includes} ]]; then
                 if ${{ inputs.content }}; then
                   echo -e "\n\tLocated Include File(s):\n${includes}" | process_input;
@@ -649,16 +649,20 @@ runs:
                   path1="${inc//\'/}";
                   path2="${path1%/*}";
                   path3="${path2#../}";
-                  path4="${path3#..}";
+                  clean_path="${path3#..}";
                   file1="${inc//\'/}";
                   file2="${file1##*/}";
                   file3="${file2#../}";
-                  file4="${file3#..}";
-                  count2=$((include_count++));
-                  count3=$((include_total++));
-                  header=$(find "${{ env.base }}" -type f \( -path "*/${path4}/*" -o -path "*/${file%/*}/*" -o -path "*/*/*" \) -name "${file4}" -print -quit);
-                  if [[ -f "${header}" ]]; then
+                  clean_name="${file3#..}";               
+                  if [[ "${clean_path}" != "${clean_name}" ]]; then
+                    header=$(find "${{ env.base }}" -type f -path "*/${clean_path}/*" -name "${clean_name}" -print);
+                  elif [[ "${clean_path}" == "${clean_name}" ]]; then
+                    header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);
+                  fi;
+                  if [[ "${header}" ]]; then
                     header=${header%/*}
+                    count2=$((include_count++));
+                    count3=$((include_total++));
                     echo "${header#./}" >> "${include1}";
                   else
                     echo -e "\n::notice:: include source file ${inc} is missing\n" | process_input;
