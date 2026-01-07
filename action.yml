@@ -604,43 +604,41 @@ runs:
         file_count=1
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        error_log="${{ inputs.filename }}_error.log";
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        project_log="${repository}_project.log";
         checked=false
         count2=0
         github=${GITHUB_WORKSPACE};
         process_input() {
           while IFS= read -r log; do
             if ${{ inputs.output == '1' }}; then
-              echo -e "${log}" | tee -a "${error_log}";
+              echo -e "${log}" | tee -a "${project_log}";
             elif ${{ inputs.output == '2' }}; then
-              echo -e "${log}" >> "${error_log}";
+              echo -e "${log}" >> "${project_log}";
             elif ${{ inputs.output == '3' }}; then
               echo -e "${log}";
             fi;
           done;
-        } 2>&1;
-        echo -e "\n####################\nCheck-File Cmake Sources Includes Auto Fix [Analzyer]\n####################\n" | process_input;
-        if ${{ inputs.database }}; then
-          regex="\.${{ inputs.filetype }}$";
-          files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
-        else
-          files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${{ inputs.filetype }}" -print);
-        fi;
+        }
+        echo -e "\n####################\n\tPROGRESSIVE SCAN MODE\n####################\n" | process_input;
+        files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 100 -P "$(nproc --all)");
         include1='include_file1.txt';
         include2='include_file2.txt';
         include3='include_file3.txt';
         include='check-file-sources.txt';
         [[ -f "${include3}" ]] && rm "${include3}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${files}" ]]; then
-          { time for file in ${files[@]}; do
+          echo -e "\n####################\nCheck-File Auto Fix Sources Include [Status; Analzying]\n####################\n" | process_input;
+          { time while IFS= read -r -d '' file; do
             search_path="${file}";
             count1=$((file_count++));
             if ${{ inputs.content }}; then
-              echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n" | process_input;
+              echo -e "\n####################\n\tSOURCE FILE ( ${count1} )\n####################\n" | process_input;
               echo -e "\nSource File Location: ${file}";
+            else
+              echo -e "\nAnalyzing Includes Source File ${count1}: $(basename ${file})";
             fi;
             if ${{ inputs.include }}; then
-              IFS=$'\n';
               includes=$(find $(dirname ${file}) -name $(basename ${file}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
               if [[ ${includes} ]]; then
                 if ${{ inputs.content }}; then
@@ -658,7 +656,6 @@ runs:
                     echo -e "\n::notice:: include source file ${i} is missing\n" | process_input;
                   fi;
                 done;
-                IFS=${SAVEIFS};
                 if [[ -s "${include1}" ]]; then
                   awk '!seen[$0]++' "${include1}" > "${include2}";
                 fi;
@@ -669,10 +666,16 @@ runs:
                 fi;
               fi;
             fi;
-          done; } 2>&1 | process_input;
-          if [[ -s "${include1}" ]]; then
+            if [[ ! -f "${file}" ]]; then
+              export "${count2}";
+              export "${count3}";
+            fi;
+            echo -e "\nTotal include source file added ${count2} during file check!!!\n" | process_input;
+          done <<< "${files}"; } 2>&1 | process_input;
+          if [[ -s "${include3}" ]]; then
             awk '!seen[$0]++' "${include3}" > "${include}";
           fi;
+          echo -e "\n::notice::Total include source file added ( ${count3} )\n[Note] included directories may be much less after duplicate cleaning!!!\n" | process_input;
           cp -vf "${include}" build/
           echo '';
         fi;
