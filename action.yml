@@ -634,13 +634,13 @@ runs:
         include='check-file-sources.txt';
         [[ -f "${include}" ]] && rm -f "${include}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${files}" ]]; then
-          echo -e "\n####################\nCheck-File Auto Fix Sources Include [Status; \032[34mAnalzying\033[0m]\n####################" | process_input;
-          while IFS= read -d '\0' -r file; do
+          echo -e "\n####################\nCheck-File Auto Fix Sources Include [Status; \033[34mAnalzying\033[0m]\n####################" | process_input;
+          while IFS= read -d '' -r file; do
             include_count=0
             count1=$((file_count++));
             if ${{ inputs.content }}; then
-              echo -e "\n####################\n\tSOURCE FILE ( ${count1} )\n####################" | process_input;
-              echo -e "\nSource File Location: ${file}";
+              echo -e "\n####################\n\t\033[33mSOURCE FILE\033[0m ( ${count1} )\n####################" | process_input;
+              echo -e "\nSource File Location: ${file}" | process_input;
             else
               echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             fi;
@@ -708,7 +708,11 @@ runs:
           if [[ -s "${include3}" ]]; then
             awk '!seen[$0]++' "${include3}" > "${include}";
           fi;
-          echo -e "\n::notice::\033[34mTotal include source file added \033[0m( ${count3} )\033[33m during scan.\033[0m\n[Note] included directories may be much less after duplicate cleaning!!!\n" | process_input;
+          if [[ "${includes_found}" ]]; then
+            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m ${count3}\n[Note] included directories may be much less after duplicate cleaning!!!\n" | process_input;
+          else
+            echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m';
+          fi;
           [[ -s "${include}" ]] && cp -vf "${include}" build/ | process_input;
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
