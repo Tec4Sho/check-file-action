@@ -613,8 +613,10 @@ runs:
         include_total=0
         include_dirs=0
         file_count=0
+        count1=0
         count2=0
         count3=0
+        count4=0
         checked=false
         include1='include_file1.txt';
         include2='include_file2.txt';
@@ -747,7 +749,7 @@ runs:
               header=$(find "${{ env.base }}" -type f -name "${clean_name#./}" -print);
             fi;
             if [[ "${header}" ]]; then
-              header=${header%/*}
+              header="${header%/*}";
               count2=$((include_count++));
               count3=$((include_total++));
               echo "${header#./}" >> "${include1}";
@@ -768,7 +770,7 @@ runs:
           if [[ "${includes_found}" ]]; then
             echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m ${count3}\n[Note] ${count4} included directories may be much less after duplicate cleaning!!!\n" | process_input;
           else
-            echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m';
+            echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
           fi;
           [[ -s "${include}" ]] && cp -vf "${include}" build/ | process_input;
           seconds=$((SECONDS - start_time));
