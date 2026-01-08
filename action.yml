@@ -634,7 +634,7 @@ runs:
         include='check-file-sources.txt';
         [[ -f "${include}" ]] && rm -f "${include}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${files}" ]]; then
-          echo -e "\n####################\nCheck-File Auto Fix Sources Include [Status; \033[34mAnalzying\033[0m]\n####################" | process_input;
+          echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \032[34mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
             include_count=0
             count1=$((file_count++));
@@ -682,7 +682,7 @@ runs:
                     count3=$((include_total++));
                     echo "${header#./}" >> "${include1}";
                     if ${{ inputs.content }}; then
-                      echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include} )\033[0m\033[33m is located!!!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
+                      echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
                     fi;
                   else
                     echo -e "\n::notice::\033[31mSource file include \033[0m( ${include#./} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
@@ -700,9 +700,9 @@ runs:
               fi;
             fi;
             if [[ "${includes_found}" ]]; then
-              echo -e "\n\033[32mCheck-File successfully added ${count2} includes after scanning file: \033[0m\033[1m${file##*/}!!!\033[0m" | process_input;
+              echo -e "\n✅ ${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${file##*/}\033[0m" | process_input;
             else
-              echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${file##*/}!!!\033[0m" | process_input;
+              echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${file##*/}\033[0m" | process_input;
             fi;  
           done <<< "${files[@]}";
           if [[ -s "${include3}" ]]; then
