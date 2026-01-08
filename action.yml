@@ -457,7 +457,7 @@ runs:
         text9b="Searching all files for ${{ inputs.pattern }} match(s)";
         text9c="####################";
         text10a="#####################";
-        text10b="\033[1m# CHECK FILE ACTION #\033[0m";
+        text10b="#\033[1m\033[32m CHECK FILE ACTION \033[0m#";
         text10c="#####################";
         chmod -R 0755 "${{ github.action_path }}/scripts";
         text() {
@@ -626,7 +626,7 @@ runs:
             fi;
           done;
         }
-        echo -e "\n####################\n\tPROGRESSIVE SCAN MODE\n####################" | process_input;
+        echo -e "\n####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print0);
         include1='include_file1.txt';
         include2='include_file2.txt';
@@ -634,8 +634,8 @@ runs:
         include='check-file-sources.txt';
         [[ -f "${include}" ]] && rm -f "${include}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${files}" ]]; then
-          echo -e "\n####################\nCheck-File Auto Fix Sources Include [Status; Analzying]\n####################" | process_input;
-          while IFS= read -r file; do
+          echo -e "\n####################\nCheck-File Auto Fix Sources Include [Status; \032[34mAnalzying\033[0m]\n####################" | process_input;
+          while IFS= read -d '\0' -r file; do
             include_count=0
             count1=$((file_count++));
             if ${{ inputs.content }}; then
@@ -653,7 +653,7 @@ runs:
                 fi;
                 includes_found=true
                 echo > "${include1}";
-                while IFS= read -d '' -r include; do
+                while IFS= read -r include; do
                   path1="${include//\'/}";
                   path2="${path1%/*}";
                   path3="${path2##\.\.\/}";
@@ -2050,7 +2050,7 @@ runs:
           echo -e "${text}"
         }
         texta="######################";
-        textb="\033[1m# CHECK FILE EXITING #\033[0m";
+        textb="#\033[1m\033[32m CHECK FILE EXITING \033[0m#";
         textc="######################";
         text "${texta}";
         text "${textb}";
