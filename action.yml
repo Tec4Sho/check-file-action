@@ -627,7 +627,7 @@ runs:
           done;
         }
         echo -e "\n####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print0);
+        files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print);
         include1='include_file1.txt';
         include2='include_file2.txt';
         include3='include_file3.txt';
@@ -635,7 +635,7 @@ runs:
         [[ -f "${include}" ]] && rm -f "${include}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${files}" ]]; then
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [Status; \033[34mAnalzying\033[0m]\n####################" | process_input;
-          while IFS= read -d '' -r file; do
+          while IFS= read -r file; do
             include_count=0
             count1=$((file_count++));
             if ${{ inputs.content }}; then
