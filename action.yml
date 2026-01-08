@@ -627,7 +627,7 @@ runs:
           done;
         }
         echo -e "\n####################\n\tPROGRESSIVE SCAN MODE\n####################" | process_input;
-        files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print);
+        files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print0);
         include1='include_file1.txt';
         include2='include_file2.txt';
         include3='include_file3.txt';
@@ -645,13 +645,15 @@ runs:
               echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             fi;
             if ${{ inputs.include }}; then
-              includes=$(find "${file%/*}" -type f -name "${file##*/}" -exec sed -n 's/^#include[[:space:]]*[<"]\(.*\)[>"]/\1/p' "{}" +);
+              includes_found=false
+              includes=$(grep -soP '#include\s*("|<)\K[^">]+(?=["|>])' "${file}");
               if [[ ${includes} ]]; then
                 if ${{ inputs.content }}; then
                   echo -e "\n\tLocated include file(s):\n${includes}" | process_input;
                 fi;
+                includes_found=true
                 echo > "${include1}";
-                while IFS= read -r include; do
+                while IFS= read -d '' -r include; do
                   path1="${include//\'/}";
                   path2="${path1%/*}";
                   path3="${path2##\.\.\/}";
@@ -681,10 +683,10 @@ runs:
                     count3=$((include_total++));
                     echo "${header#./}" >> "${include1}";
                     if ${{ inputs.content }}; then
-                      echo -e "\n\033[33mSource file include ( ${include} ) is located!!!  \033[0m[ ✅ ]\n\nFILE LOCATION: ${header}" | process_input;
+                      echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include} )\033[0m\033[33m is located!!!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
                     fi;
                   else
-                    echo -e "\n\033[31m::notice::Source file include ( ${include#./} ) is missing!?  \033[0m[ ❌ ]" | process_input;
+                    echo -e "\n::notice::\033[31mSource file include \033[0m( ${include#./} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                   fi;
                 done <<< "${includes[@]}";
                 if [[ -s "${include1}" ]]; then
@@ -697,16 +699,18 @@ runs:
                 fi;
               fi;
             fi;
-            if [[ ! -f "${file}" ]]; then
+            if [[ "${includes_found}" ]]; then
+              echo -e "\n\033[32mCheck-File successfully added ${count2} includes after scanning file: \033[0m\033[1m${file##*/}!!!\033[0m" | process_input;
               export "${count2}";
               export "${count3}";
-            fi;
-            echo -e "\n\033[1m\033[32mCheck-File successfully added ${count2} includes after scanning ${file##*/} file!!!\033[0m\n" | process_input;
+            else
+              echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${file##*/}!!!\033[0m" | process_input;
+            fi;  
           done <<< "${files[@]}";
           if [[ -s "${include3}" ]]; then
             awk '!seen[$0]++' "${include3}" > "${include}";
           fi;
-          echo -e "\n\033[34m::notice::Total include source file added ( ${count3} )\n[Note] included directories may be much less after duplicate cleaning!!!\033[0m\n" | process_input;
+          echo -e "\n::notice::\033[34mTotal include source file added \033[0m( ${count3} )\033[33m during scan.\033[0m\n[Note] included directories may be much less after duplicate cleaning!!!\n" | process_input;
           [[ -s "${include}" ]] && cp -vf "${include}" build/ | process_input;
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
