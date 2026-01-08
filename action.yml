@@ -651,7 +651,6 @@ runs:
                 if ${{ inputs.content }}; then
                   echo -e "\n\tLocated include file(s):\n${includes}" | process_input;
                 fi;
-                includes_found=true
                 echo > "${include1}";
                 while IFS= read -r include; do
                   path1="${include//\'/}";
@@ -697,12 +696,11 @@ runs:
                     echo "${included}" >> "${include3}";
                   done < "${include2}";
                 fi;
+                includes_found=true
               fi;
             fi;
             if [[ "${includes_found}" ]]; then
               echo -e "\n\033[32mCheck-File successfully added ${count2} includes after scanning file: \033[0m\033[1m${file##*/}!!!\033[0m" | process_input;
-              export "${count2}";
-              export "${count3}";
             else
               echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${file##*/}!!!\033[0m" | process_input;
             fi;  
