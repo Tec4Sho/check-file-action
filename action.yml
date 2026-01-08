@@ -599,7 +599,9 @@ runs:
     - name: Cmake Source Files Fixer
       if: inputs.source == 'true'
       run: |
-        start_time=${SECONDS}
+        echo '';
+        set +e
+        start_time="${SECONDS}";
         export LC_ALL=C
         SAVEIFS=${IFS}
         include_total=0
@@ -653,14 +655,14 @@ runs:
                   path1="${include//\'/}";
                   path2="${path1%/*}";
                   path3="${path2##\.\.\/}";
-                  path4="${path3#./}";
+                  path4="${path3##[./]*}"
                   path5="${path4%'\n'}"
                   path6="${path5%\\}"
                   clean_path="${path6#..}";
                   file1="${include//\'/}";
                   file2="${file1##*/}";
                   file3="${file2##\.\.\/}";
-                  file4="${file3#./}";
+                  file4="${file3##[./]*}"
                   file5="${file4%'\n'}"
                   file6="${file5%\\}"
                   clean_name="${file6#..}";
@@ -673,11 +675,6 @@ runs:
                   else
                     header=$(find "${{ env.base }}" -type f -name "${clean_name#./}" -print);
                   fi;
-                  if [[ "${clean_path#./}" != "${clean_name#./}" ]]; then
-                    real_path="$(realpath --no-symlinks */${clean_path#./}/${clean_name#./})";
-                  else
-                    real_path="$(realpath --no-symlinks */${clean_name#./})";
-                  fi;
                   if [[ "${header}" ]]; then
                     header=${header%/*}
                     count2=$((include_count++));
@@ -685,14 +682,6 @@ runs:
                     echo "${header#./}" >> "${include1}";
                     if ${{ inputs.content }}; then
                       echo -e "\n\033[33mSource file include ( ${include} ) is located!!!  \033[0m[ ✅ ]\n\nFILE LOCATION: ${header}" | process_input;
-                    fi;
-                  elif [[ "${real_path}" ]]; then
-                    real_path=${real_path%/*}
-                    count2=$((include_count++));
-                    count3=$((include_total++));
-                    echo "${real_path#./}" >> "${include1}";
-                    if ${{ inputs.source }}; then
-                      echo -e "\n\033[33mSource file include ( ${include} ) is located!!!  \033[0m[ ✅ ]\n\nREAL LOCATION: ${real_path}" | process_input;
                     fi;
                   else
                     echo -e "\n\033[31m::notice::Source file include ( ${include#./} ) is missing!?  \033[0m[ ❌ ]" | process_input;
@@ -712,15 +701,17 @@ runs:
               export "${count2}";
               export "${count3}";
             fi;
-            echo -e "\n\033[1m\033[32mCheck-File successfully added ${count2} includes during ${file##*/} file scan!!!\033[0m\n" | process_input;
+            echo -e "\n\033[1m\033[32mCheck-File successfully added ${count2} includes after scanning ${file##*/} file!!!\033[0m\n" | process_input;
           done <<< "${files[@]}";
           if [[ -s "${include3}" ]]; then
             awk '!seen[$0]++' "${include3}" > "${include}";
           fi;
           echo -e "\n\033[34m::notice::Total include source file added ( ${count3} )\n[Note] included directories may be much less after duplicate cleaning!!!\033[0m\n" | process_input;
           [[ -s "${include}" ]] && cp -vf "${include}" build/ | process_input;
-          duration=$((SECONDS - start_time))
-          echo -e "\nThe overall process took ${duration} seconds to execute.\n" | process_input;
+          seconds=$((SECONDS - start_time));
+          m=$((seconds / 60));
+          s=$((seconds % 60));
+          printf "Project Auto Include Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
         fi;
       shell: bash
       continue-on-error: true
@@ -1013,6 +1004,7 @@ runs:
         export WITH_TIDY=1
         export LC_ALL=C
         set +e
+        start_time=${SECONDS};
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${repository}_project.log";
@@ -1260,7 +1252,10 @@ runs:
         else
           echo -e '::error::Missing/Bad source directory' | process_input;
         fi;
-        echo -e '\nTOTAL RUNTIME ${SECOND} SECONDS!!!' | process_input;
+        seconds=$((SECONDS - start_time))
+        m=$((seconds / 60))
+        s=$((seconds % 60))
+        printf "Project Runtime: %d minutes and %d seconds\n" "$m" "$s"
       shell: bash
       continue-on-error: true
 
