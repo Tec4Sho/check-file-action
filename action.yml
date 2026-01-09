@@ -774,7 +774,7 @@ runs:
               echo "${included}" >> "${include}";
             done < "${include2}";
           fi;  
-        7  if [[ "${includes_found}" ]]; then
+          if [[ "${includes_found}" ]]; then
             echo -e "\n::notice::\033[34mTotal include source files added during scan\033[0m ${count3}\n[Hint] ${count4} included directories may be much less after duplicate cleaning!!!\n" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
