@@ -601,7 +601,6 @@ runs:
       if: inputs.source == 'true'
       run: |
         echo '';
-        set +e
         start_time="${SECONDS}";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
@@ -609,6 +608,7 @@ runs:
         project_log="${repository}_project.log";
         export LC_ALL=C
         SAVEIFS="${IFS}";
+        include_missing=0
         include_count=0
         include_total=0
         include_dirs=0
@@ -617,12 +617,13 @@ runs:
         count2=0
         count3=0
         count4=0
+        count5=0
         checked=false
         include1='include_file1.txt';
         include2='include_file2.txt';
         include3='include_file3.txt';
         include='check-file-sources.txt';
-        github=${GITHUB_WORKSPACE};
+        github="${GITHUB_WORKSPACE}";
         process_input() {
           while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
@@ -658,19 +659,21 @@ runs:
                 echo > "${include1}";
                 while IFS= read -r include; do
                   path1="${include//\'/}";
-                  path2="${path1%/*}";
+                  path2="${path#:}";
                   path3="${path2##\.\.\/}";
-                  path4="${path3##[./]*}"
-                  path5="${path4%'\n'}"
-                  path6="${path5%\\}"
-                  clean_path="${path6#..}";
+                  path4="${path3##[./]*}";
+                  path5="${path4%'\n'}";
+                  path6="${path5%\\}";
+                  path7="${path7#..}";
+                  clean_path="${path6%/*}";
                   file1="${include//\'/}";
-                  file2="${file1##*/}";
+                  file2="${file1#:}";
                   file3="${file2##\.\.\/}";
                   file4="${file3##[./]*}"
-                  file5="${file4%'\n'}"
-                  file6="${file5%\\}"
-                  clean_name="${file6#..}";
+                  file5="${file4%'\n'}";
+                  file6="${file5%\\}";
+                  file7="${file6#..}";
+                  clean_name="${file7##*/}";
                   if [[ "${clean_path#./}" == '' ]] || [[ "${clean_path#./}" == ' ' ]]; then
                     header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);
                   elif [[ "${clean_path#./}" == "${clean_name#./}" ]]; then
@@ -687,6 +690,7 @@ runs:
                     echo "${header#./}" >> "${include1}";
                     echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
                   else
+                    count5=$((include_missing++));
                     echo -e "\n::notice::\033[31mSource file include \033[0m( ${include#./} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                   fi;
                 done <<< "${includes[@]}";
@@ -709,12 +713,15 @@ runs:
             fi;  
           done <<< "${files[@]}";
           if [[ -s "${include3}" ]]; then
-            awk '!seen[$0]++' "${include3}" > "${include}";
+            awk '!seen[$0]++' "${include3}" > "${include}" 2>/dev/null;
           fi;
           if [[ "${includes_found}" ]]; then
-            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m ${count3}\n[Note] ${count4} included directories may be much less after duplicate cleaning!!!\n" | process_input;
+            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m ${count3}\n[Hint] ${count4} included directories may be much less after duplicate cleaning!!!\n" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m';
+          fi;
+          if [[ "${count5}" > '0' ]]; then
+            echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m ${count5}\n[Hint] Many source files can be calling the same missing include files!";
           fi;
           [[ -s "${include}" ]] && cp -vf "${include}" build/ | process_input;
           seconds=$((SECONDS - start_time));
@@ -722,7 +729,7 @@ runs:
           s=$((seconds % 60));
           printf "Project Auto Include Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
         elif [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${include_files}" ]]; then
-          echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Disabled\033[0m  [ 🚫 ]" | process_input;
+          echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [ 🚫 ]" | process_input;
           echo > "${include1}";
           while IFS= read -r include; do
             path1="${include//\'/}";
@@ -754,6 +761,7 @@ runs:
               count3=$((include_total++));
               echo "${header#./}" >> "${include1}";
             else
+              count5=$((include_missing++));
               echo -e "\n::notice::\033[31mSource file include \033[0m( ${include#./} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
             fi;
             includes_found=true
@@ -766,11 +774,14 @@ runs:
               count4=$((include_dirs++));
               echo "${included}" >> "${include}";
             done < "${include2}";
-          fi;  
+          fi;
           if [[ "${includes_found}" ]]; then
-            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m ${count3}\n[Note] ${count4} included directories may be much less after duplicate cleaning!!!\n" | process_input;
+            echo -e "\n::notice::\033[34mTotal include source files added during scan\033[0m ${count3}\n[Hint] ${count4} included directories may be much less after duplicate cleaning!!!\n" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
+          fi;
+          if [[ "${count5}" > '0' ]]; then
+            echo -e "\n::warning::\033[34m⚠️ Total include source files missing during scan\033[0m ${count5}\n[Hint] Many source files can be calling the same missing include files!";
           fi;
           [[ -s "${include}" ]] && cp -vf "${include}" build/ | process_input;
           seconds=$((SECONDS - start_time));
