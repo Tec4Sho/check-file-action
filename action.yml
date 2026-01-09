@@ -741,11 +741,7 @@ runs:
               file3="${file2%'\n'}";
               file4="${file3%\\}";
               clean_file="${file4##*/}";
-              if [[ "${clean_path}" == '' ]] || [[ "${clean_path}" == ':' ]]; then
-                header=$(find "${{ env.base }}" -type f -name "${clean_file}" -print);
-              elif [[ "${clean_path}" == "${clean_file}" ]]; then
-                header=$(find "${{ env.base }}" -type f -name "${clean_file}" -print);   
-              elif [[ "${clean_path}" != "${clean_file}" ]]; then
+              if [[ "$(echo ${include} | grep '/')" ]] || [[ "${clean_path}" != "${clean_file}" ]]; then
                 header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path}/${clean_file}" -print);  
               elif [[ "${clean_file#./}" != '' ]]; then
                 header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print);
