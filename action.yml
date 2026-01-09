@@ -639,7 +639,7 @@ runs:
         }
         echo -e "\n####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print);
-        include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -exec grep -sEo '^#include[[:space:]]+[<"].*[>"]' "{}" \;);
+        include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r -P "$(nproc --all)" -n 1 grep -sE '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include}" ]] && rm -f "${include}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.content }} && [[ "${files}" ]]; then
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \032[34mAnalzying\033[0m ]\n####################" | process_input;
@@ -729,7 +729,6 @@ runs:
         elif [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${include_files}" ]]; then
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [ 🚫 ]" | process_input;
           echo > "${include1}";
-          include_files=$(echo "${include_files}" | awk '{print $2}' | tr -d '<">' | sort -u);
           while IFS= read -r include; do
             path1="${include//\'/}";
             path2="${path1##+([.:/])}";
