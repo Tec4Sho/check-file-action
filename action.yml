@@ -639,7 +639,7 @@ runs:
         }
         echo -e "\n####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print);
-        include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r grep -sE '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
+        include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r -P "$(nproc --all)" -n 1 grep -sEo '^#include[[:space:]]+[<"].*[>"]' 2>/dev/null | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include}" ]] && rm -f "${include}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.content }} && [[ "${files}" ]]; then
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \032[34mAnalzying\033[0m ]\n####################" | process_input;
@@ -660,22 +660,26 @@ runs:
                 while IFS= read -r include; do
                   path1="${include//\'/}";
                   path2="${path1##+([.:/])}";
-                  path3="${path2%'\n'}";
-                  path4="${path3%\\}";
-                  clean_path="${path4%/*}";
+                  path3="${path2##\.\.\/}";
+                  path4="${path3##[./]*}"
+                  path5="${path4%'\n'}"
+                  path6="${path5%\\}"
+                  clean_path="${path6%/*}";
                   file1="${include//\'/}";
                   file2="${file1##+([.:/])}";
-                  file3="${file2%'\n'}";
-                  file4="${file3%\\}";
-                  clean_name="${file4##*/}";
-                  if [[ "${clean_path}" == '' ]] || [[ "${clean_path}" == ' ' ]]; then
+                  file3="${file2##\.\.\/}";
+                  file4="${file3##[./]*}"
+                  file5="${file4%'\n'}"
+                  file6="${file5%\\}"
+                  clean_name="${file6##*/}";
+                  if [[ "${clean_path#./}" == '' ]] || [[ "${clean_path#./}" == ' ' ]]; then
                     header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);
-                  elif [[ "${clean_path}" == "${clean_name}" ]]; then
+                  elif [[ "${clean_path#./}" == "${clean_name#./}" ]]; then
                     header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);   
-                  elif [[ "${clean_path}" != "${clean_name}" ]]; then
-                    header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path}/${clean_name}" -print);  
+                  elif [[ "${clean_path#./}" != "${clean_name#./}" ]]; then
+                    header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path#./}/${clean_name#./}" -print);  
                   else
-                    header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);
+                    header=$(find "${{ env.base }}" -type f -name "${clean_name#./}" -print);
                   fi;
                   if [[ "${header}" ]]; then
                     header="${header%/*}";
@@ -727,15 +731,21 @@ runs:
           echo > "${include1}";
           while IFS= read -r include; do
             path1="${include//\'/}";
-            path2="${path1##+([.:/])}";
-            path3="${path2%'\n'}";
-            path4="${path3%\\}";
-            clean_path="${path4%/*}";
+            path2="${path1##[.]*}";
+            path3="${path2##\.\.\/}";
+            path4="${path3##[./]*}"
+            path5="${path4%'\n'}"
+            path6="${path5%\\}";
+            path7="${path6##+([.:/])}";
+            clean_path="${path7%/*}";
             file1="${include//\'/}";
-            file2="${file1##+([.:/])}";
-            file3="${file2%'\n'}";
-            file4="${file3%\\}";
-            clean_name="${file4##*/}";
+            file2="${file1##[.]*}";
+            file3="${file2##\.\.\/}";
+            file4="${file3##[./]*}"
+            file5="${file4%'\n'}"
+            file6="${file5%\\}";
+            file7="${file6##+([.:/])}";
+            clean_name="${file7##*/}";
             if [[ "${clean_path#./}" == '' ]] || [[ "${clean_path#./}" == ' ' ]]; then
               header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);
             elif [[ "${clean_path#./}" == "${clean_name#./}" ]]; then
@@ -765,7 +775,7 @@ runs:
               echo "${included}" >> "${include}";
             done < "${include2}";
           fi;  
-          if [[ "${includes_found}" ]]; then
+        7  if [[ "${includes_found}" ]]; then
             echo -e "\n::notice::\033[34mTotal include source files added during scan\033[0m ${count3}\n[Hint] ${count4} included directories may be much less after duplicate cleaning!!!\n" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
@@ -773,7 +783,7 @@ runs:
           if [[ "${count5}" > '0' ]]; then
             echo -e "\n::warning::\033[34m⚠️ Total include source files missing during scan\033[0m ${count5}\n[Hint] Many source files can be calling the same missing include files!";
           fi;
-          [[ -s "${include}" ]] && mkdir -p build && cp -vf "${include}" build/ | process_input;
+          [[ -s "${include}" ]] && cp -vf "${include}" build/ | process_input;
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
           s=$((seconds % 60));
