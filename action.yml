@@ -732,21 +732,19 @@ runs:
           include_files=$(echo "${include_files}" | awk '{print $2}' | tr -d '<">' | sort -u);
           while IFS= read -r include; do
             path1="${include//\'/}";
-            path2="${path1##[.]*}";
+            path2="${path1##+([.:/])}";
             path3="${path2##\.\.\/}";
             path4="${path3##[./]*}"
             path5="${path4%'\n'}"
-            path6="${path5%\\}";
-            path7="${path6##+([.:/])}";
-            clean_path="${path7%/*}";
+            path6="${path5%\\}"
+            clean_path="${path6%/*}";
             file1="${include//\'/}";
-            file2="${file1##[.]*}";
+            file2="${file1##+([.:/])}";
             file3="${file2##\.\.\/}";
             file4="${file3##[./]*}"
             file5="${file4%'\n'}"
-            file6="${file5%\\}";
-            file7="${file6##+([.:/])}";
-            clean_name="${file7##*/}";
+            file6="${file5%\\}"
+            clean_name="${file6##*/}";
             if [[ "${clean_path#./}" == '' ]] || [[ "${clean_path#./}" == ' ' ]]; then
               header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);
             elif [[ "${clean_path#./}" == "${clean_name#./}" ]]; then
