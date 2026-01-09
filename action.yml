@@ -731,26 +731,34 @@ runs:
           echo > "${include1}";
           while IFS= read -r include; do
             if [[ "$(echo ${include} | grep '\.h$')" ]]; then
+              header_path=false;
               path1="${include##+(*./)}";
               path2="${path1##[:]*}";
               path3="${path2%'\n'}";
               path4="${path3%\\}";
               clean_path="${path4%/*}";
+              header_file=false;
               file1="${include##+(*./)}";
               file2="${file1##[:]*}";
               file3="${file2%'\n'}";
               file4="${file3%\\}";
               clean_file="${file4##*/}";
               if [[ "$(echo ${include} | grep '/')" ]] || [[ "${clean_path}" != "${clean_file}" ]]; then
-                header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path}/${clean_file}" -print);  
+                header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path}/${clean_file}" -print);
+                header_path=true;
               elif [[ "${clean_file#./}" != '' ]]; then
                 header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print | awk -F'/' '{NF--; print $0}' | sort -u);
+                header_file=true;
               fi;
-              if [[ "${header}" ]]; then
+              if [[ -n "${header}" ]]; then
                 header="${header#./}";
                 count2=$((include_count++));
                 count3=$((include_total++));
-                echo -e "${header}" | tee -a "${include1}";
+                if [[ "${header_path}" ]]; then
+                  echo "${header%/*}" | tee -a "${include1}";
+                elif [[ "${header_file}" ]]; then
+                  echo "${header}" | tee -a "${include1}";
+                fi;
               else
                 count5=$((include_missing++));
                 echo -e "\n::notice::\033[31mSource file #include \033[0m( ${include} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
