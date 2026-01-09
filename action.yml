@@ -749,7 +749,7 @@ runs:
               if [[ "${header}" ]]; then
                 count2=$((include_count++));
                 count3=$((include_total++));
-                echo "${header%/*}" | tee -a "${include1}";
+                echo "${header%/*}" >> "${include1}";
               else
                 count5=$((include_missing++));
                 echo -e "\n::notice::\033[31mSource file #include \033[0m( ${include} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
@@ -761,9 +761,9 @@ runs:
             awk '!seen[$0]++' "${include1}" > "${include2}";
           fi;
           if [[ -s "${include2}" ]]; then
-            while IFS= read -r include; do
+            while IFS= read -r included; do
               count4=$((include_dirs++));
-              echo "${include%/*}" >> "${include}";
+              echo "${included}" >> "${include}";
             done < "${include2}";
           fi;  
           if [[ "${includes_found}" ]]; then
