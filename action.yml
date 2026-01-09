@@ -730,7 +730,7 @@ runs:
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [ low ]" | process_input;
           echo > "${include1}";
           while IFS= read -r include; do
-            if [[ "$(echo ${include} | grep '\.h$')" ]]; then
+            if [[ "$(echo ${include} | grep -q '\.h$')" ]]; then
               header_path=false;
               path1="${include##+(*./)}";
               path2="${path1##[:]*}";
@@ -743,22 +743,18 @@ runs:
               file3="${file2%'\n'}";
               file4="${file3%\\}";
               clean_file="${file4##*/}";
-              if [[ "$(echo ${include} | grep '/')" ]] || [[ "${clean_path}" != "${clean_file}" ]]; then
-                header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path}/${clean_file}" -print);
+              if [[ "$(echo ${include} | grep -q '/')" ]]; then
+                header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path}/${clean_file}" -print | sed 's/\/[^/]*$//');
                 header_path=true;
-              elif [[ "${clean_file#./}" != '' ]]; then
-                header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print | awk -F'/' '{NF--; print $0}' | sort -u);
+              else
+                header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print | sed 's/\/[^/]*$//' | sort -u);
                 header_file=true;
               fi;
-              if [[ -n "${header}" ]]; then
+              if [[ "${header}" ]]; then
                 header="${header#./}";
                 count2=$((include_count++));
                 count3=$((include_total++));
-                if [[ "${header_path}" ]]; then
-                  echo "${header%/*}" | tee -a "${include1}";
-                elif [[ "${header_file}" ]]; then
-                  echo "${header}" | tee -a "${include1}";
-                fi;
+                echo "${header}" | tee -a "${include1}";
               else
                 count5=$((include_missing++));
                 echo -e "\n::notice::\033[31mSource file #include \033[0m( ${include} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
