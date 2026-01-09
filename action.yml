@@ -744,17 +744,16 @@ runs:
               file4="${file3%\\}";
               clean_file="${file4##*/}";
               if [[ "$(echo ${include} | grep -q '/')" ]]; then
-                header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path}/${clean_file}" -print | sed 's/\/[^/]*$//');
+                header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path}/${clean_file}" -print);
                 header_path=true;
               else
-                header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print | sed 's/\/[^/]*$//' | sort -u);
+                header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print -quit);
                 header_file=true;
               fi;
               if [[ "${header}" ]]; then
-                header="${header#./}";
                 count2=$((include_count++));
                 count3=$((include_total++));
-                echo "${header}" | tee -a "${include1}";
+                echo "${header%/*}" | tee -a "${include1}";
               else
                 count5=$((include_missing++));
                 echo -e "\n::notice::\033[31mSource file #include \033[0m( ${include} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
@@ -768,11 +767,7 @@ runs:
           if [[ -s "${include2}" ]]; then
             while IFS= read -r include; do
               count4=$((include_dirs++));
-              if [[ -d "${include}" ]]; then
-                echo -e "${include}" >> "${include}";
-              else
-                echo -e "${include%/*}" >> "${include}";
-              fi;
+              echo "${include%/*}" >> "${include}";
             done < "${include2}";
           fi;  
           if [[ "${includes_found}" ]]; then
