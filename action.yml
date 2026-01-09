@@ -730,39 +730,33 @@ runs:
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [ 🚫 ]" | process_input;
           echo > "${include1}";
           while IFS= read -r include; do
-            path1="${include//\"/}";
-            path2="${path1##+([<>])}";
-            path3="${path2##+([.:/])}";
-            path4="${path3##\.\.\/}";
-            path5="${path4##[./]*}";
-            path6="${path5%'\n'}";
-            path7="${path6%\\}";
-            clean_path="${path7%/*}";
-            file1="${include//\"/}";
-            file2="${file1##+([<>])}";
-            file3="${file2##+([.:/])}";
-            file4="${file3##\.\.\/}";
-            file5="${file4##[./]*}";
-            file6="${file5%'\n'}";
-            file7="${file6%\\}";
-            clean_name="${file7##*/}";
+            path1="${include##+(*./)}";
+            path2="${path1##[:]*}";
+            path3="${path2%'\n'}";
+            path4="${path3%\\}";
+            clean_path="${path4%/*}";
+            file1="${include##+(*./)}";
+            file2="${file1##[:]*}";
+            file3="${file2%'\n'}";
+            file4="${file3%\\}";
+            clean_file="${file4##*/}";
             if [[ "${clean_path#./}" == '' ]] || [[ "${clean_path#./}" == ' ' ]]; then
-              header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);
+              header=$(find "${{ env.base }}" -type f -name "${clean_file}" -print);
             elif [[ "${clean_path#./}" == "${clean_name#./}" ]]; then
-              header=$(find "${{ env.base }}" -type f -name "${clean_name}" -print);   
+              header=$(find "${{ env.base }}" -type f -name "${clean_file}" -print);   
             elif [[ "${clean_path#./}" != "${clean_name#./}" ]]; then
-              header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path#./}/${clean_name#./}" -print);  
+              header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path#./}/${clean_file#./}" -print);  
             else
-              header=$(find "${{ env.base }}" -type f -name "${clean_name#./}" -print);
+              header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print);
             fi;
-            if [[ "${header}" ]]; then
-              header="${header%/*}";
+            if [[ -e "${header}" ]]; then
+              header="${header#./}";
               count2=$((include_count++));
               count3=$((include_total++));
-              echo "${header#./}" | tee -a "${include1}";
+              echo "${header%/*}" | tee -a "${include1}";
             else
               count5=$((include_missing++));
-              echo -e "\n::notice::\033[31mSource file include \033[0m( dirty=${include} | cleaned=${clean_path#./}/${clean_name#./} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
+              echo -e "\n::notice::\033[31mSource file include \033[0m( Original=${include} || Cleaned=${clean_path#./}/${clean_file#./} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
             fi;
             includes_found=true
           done <<< "${include_files[@]}";
@@ -770,9 +764,13 @@ runs:
             awk '!seen[$0]++' "${include1}" > "${include2}";
           fi;
           if [[ -s "${include2}" ]]; then
-            while IFS= read -r included; do
+            while IFS= read -r include; do
               count4=$((include_dirs++));
-              echo "${included}" | tee -a "${include}";
+              if [[ -f "${include}" ]]; then
+                echo "${include%/*}" | tee -a "${include}";
+              else
+                echo "${include}" | tee -a "${include}";
+              fi;
             done < "${include2}";
           fi;  
           if [[ "${includes_found}" ]]; then
