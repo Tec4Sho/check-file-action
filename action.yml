@@ -744,16 +744,16 @@ runs:
               if [[ "$(echo ${include} | grep '/')" ]] || [[ "${clean_path}" != "${clean_file}" ]]; then
                 header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path}/${clean_file}" -print);  
               elif [[ "${clean_file#./}" != '' ]]; then
-                header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print);
+                header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print | awk -F'/' '{NF--; print $0}' | sort -u);
               fi;
               if [[ "${header}" ]]; then
                 header="${header#./}";
                 count2=$((include_count++));
                 count3=$((include_total++));
-                echo -e "${header%/*}" | tee -a "${include1}";
+                echo -e "${header}" | tee -a "${include1}";
               else
                 count5=$((include_missing++));
-                echo -e "\n::notice::\033[31mSource file include \033[0m( Original=${include} || Cleaned=${clean_path}/${clean_file} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
+                echo -e "\n::notice::\033[31mSource file #include \033[0m( ${include} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
               fi;
               includes_found=true
             fi;
@@ -764,15 +764,15 @@ runs:
           if [[ -s "${include2}" ]]; then
             while IFS= read -r include; do
               count4=$((include_dirs++));
-              if [[ -f "${include}" ]]; then
-                echo -e "${include%/*}" | tee -a "${include}";
+              if [[ -d "${include}" ]]; then
+                echo -e "${include}" >> "${include}";
               else
-                echo -e "${include}" | tee -a "${include}";
+                echo -e "${include%/*}" >> "${include}";
               fi;
             done < "${include2}";
           fi;  
           if [[ "${includes_found}" ]]; then
-            echo -e "\n::notice::\033[34mTotal include source files added during scan\033[0m ${count3}\n[Hint] ${count4} included directories may be much less after duplicate cleaning!!!\n" | process_input;
+            echo -e "\n::notice::\033[34mTotal include source files scanned\033[0m ${count3}\n[Hint] Their were ${count4} include directories added this may be much less after duplicate cleaning!!!\n" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
           fi;
