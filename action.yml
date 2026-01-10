@@ -652,7 +652,7 @@ runs:
             echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             if ${{ inputs.include }}; then
               includes_found=false
-              include_source=$(awk '/include / {gsub(/"/, "", $2); print $2}' "${file}" 2>/dev?null | tr -d '<>' | sort -u);
+              include_source=$(awk '/include / {gsub(/"/, "", $2); print $2}' "${file}" 2>/dev/null | tr -d '<>' | sort -u);
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tLocated include file(s):\n${include_source}" | process_input;
                 while IFS= read -r include; do
