@@ -639,7 +639,7 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print | sort -u);
+        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r -P "$(nproc --all)" sort);
         include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.content }} && [[ "${files}" ]]; then
@@ -705,12 +705,12 @@ runs:
           fi;
           echo -e "\n::notice::\033[32mTotal source file checked during scan\033[0m\033[1m ${count1}\033[0m" | process_input;
           if [[ "${includes_found}" ]]; then
-            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m ${count3}\n[Hint] ${count4} included directories may be much less after duplicate cleaning!!!" | process_input;
+            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories left after duplicate cleaning!!!" | process_input;
           else
-            echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m';
+            echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
           fi;
           if [[ "${count5}" > '0' ]]; then
-            echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m ${count5}\n[Hint] Many source files can be calling the same missing include files!";
+            echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${count5}\033[0m\n[Hint] Many source files calling the same \033[31mmissing include files.\033[0m\nSet option \033[1m( content: false )\033[0m to get a exact missing list count quickly!" | process_input;
           fi;
           [[ -s "${include_list}" ]] && mkdir -p build && cp -vf "${include_list}" build/ | process_input;
           seconds=$((SECONDS - start_time));
@@ -766,7 +766,7 @@ runs:
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
           fi;
           if [[ "${count5}" > '0' ]]; then
-            echo -e "\n::warning::\033[34m⚠️ Total include source files missing during scan:\033[0m\033[31m ${count5}\033[0m\n[Hint] Many source files might be calling these same \033[31mmissing include files!\033[0m";
+            echo -e "\n::warning::\033[34m⚠️ Total include source files missing during scan:\033[0m\033[31m ${count5}\033[0m\n[Hint] Many source files might be calling these same \033[31mmissing include files!\033[0m" | process_input;
           fi;
           [[ -s "${include_list}" ]] && mkdir -p build && cp -vf "${include_list}" build/ | process_input;
           seconds=$((SECONDS - start_time));
