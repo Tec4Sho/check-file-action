@@ -613,11 +613,11 @@ runs:
         include_total=0
         include_dirs=0
         file_count=0
-        count1=0
-        count2=0
-        count3=0
-        count4=0
-        count5=0
+        count1=1
+        count2=1
+        count3=1
+        count4=1
+        count5=1
         checked=false
         include1='include_file1.txt';
         include2='include_file2.txt';
@@ -637,12 +637,12 @@ runs:
             fi;
           done;
         }
-        echo -e "\n####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
+        echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         files=$(find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${{ inputs.filetype }}" -print);
         include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
-        [[ -f "${include}" ]] && rm -f "${include}";
+        [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.content }} && [[ "${files}" ]]; then
-          echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \032[34mAnalzying\033[0m ]\n####################" | process_input;
+          echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
             include_count=0
             count1=$((file_count++));
@@ -651,8 +651,8 @@ runs:
             echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             if ${{ inputs.include }}; then
               includes_found=false
-              includes=$(grep -soP '#include\s*("|<)\K[^">]+(?=["|>])' "${file}" | awk '{print $2}' | tr -d '<">' | sort -u);
-              if [[ ${includes} ]]; then
+              include_source=$(grep -soP '#include\s*("|<)\K[^">]+(?=["|>])' "${file}" | awk '{print $2}' | tr -d '<">' | sort -u);
+              if [[ ${include_source} ]]; then
                 if ${{ inputs.content }}; then
                   echo -e "\n\tLocated include file(s):\n${includes}" | process_input;
                 fi;
@@ -684,23 +684,25 @@ runs:
                       echo -e "\n::notice::\033[31mSource file include \033[0m( ${include} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                     fi;
                   fi;
-                done <<< "${includes[@]}";
+                done <<< "${include_source[@]}";
                 includes_found=true
               fi;
+              if [[ "${includes_found}" ]]; then
+                echo -e "\n ${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
+              else
+                echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
+              fi;  
             fi;
-            if [[ "${includes_found}" ]]; then
-              echo -e "\n ${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
-            else
-              echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
-            fi;  
           done <<< "${files[@]}";
           if [[ -s "${include1}" ]]; then
             awk '!seen[$0]++' "${include1}" > "${include2}";
           fi;
           if [[ -s "${include2}" ]]; then
-            while IFS= read -r included; do
+            while IFS= read -r includes; do
               count4=$((include_dirs++));
-              echo "${included}" >> "${include3}";
+              if [[ "${includes}" != ':' ]]; then
+                echo "${includes}" >> "${include_list}";
+              fi;
             done < "${include2}";
           fi;
           if [[ "${includes_found}" ]]; then
