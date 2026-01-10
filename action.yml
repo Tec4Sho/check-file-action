@@ -1322,7 +1322,7 @@ runs:
         else
           echo -e '::error::Missing/Bad source directory' | process_input;
         fi;
-        seconds="$((SECONDS - start_time))";
+        seconds="$((SECONDS + start_time))";
         m=$((seconds / 60))
         s=$((seconds % 60))
         printf "Project Runtime: %d minutes and %d seconds\n" "$m" "$s"
