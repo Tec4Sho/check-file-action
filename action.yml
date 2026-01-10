@@ -705,6 +705,7 @@ runs:
           fi;
           echo -e "\n::notice::\033[32mTotal source file checked during scan\033[0m\033[1m ${count1}\033[0m" | process_input;
           if [[ "${includes_found}" ]]; then
+            echo 'check_build=true' >> "${GITHUB_ENV}";
             echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories left after duplicate cleaning!!!" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
