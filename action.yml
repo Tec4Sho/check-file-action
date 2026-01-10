@@ -651,10 +651,10 @@ runs:
             echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             if ${{ inputs.include }}; then
               includes_found=false
-              include_source=$(grep -soP '#include\s*("|<)\K[^">]+(?=["|>])' "${file}" | awk '{print $2}' | tr -d '<">' | sort -u);
+              include_source=$(grep -sEo '^#include[[:space:]]+[<"].*[>"]' "${file}" | awk '{print $2}' | tr -d '<">' | sort -u);
               if [[ ${include_source} ]]; then
                 if ${{ inputs.content }}; then
-                  echo -e "\n\tLocated include file(s):\n${includes}" | process_input;
+                  echo -e "\n\tLocated include file(s):\n${include_source}" | process_input;
                 fi;
                 echo > "${include1}";
                 while IFS= read -r include; do
