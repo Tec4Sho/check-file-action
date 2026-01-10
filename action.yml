@@ -759,14 +759,14 @@ runs:
             done < "${include2}";
           fi;  
           if [[ "${includes_found}" ]]; then
-            echo -e "\n::notice::\033[34mTotal include source files scanned:\033[0m \033[1m${count3}\033[0m\n[Hint] Their were \033[1m${count4}\033[0m include directories added this may be much less after duplicate cleaning!!!\n" | process_input;
+            echo -e "\n::notice::\033[34mTotal include source files scanned:\033[0m \033[1m${count3}\033[0m\n[Hint] Their were \033[1m${count4}\033[0m include directories added,\nYou can \033[35mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[32m500\033[0m" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
           fi;
           if [[ "${count5}" > '0' ]]; then
-            echo -e "\n::warning::\033[34m⚠️ Total include source files missing during scan:\033[0m \033[1m${count5}\033[1m\n[Hint] Many source files could be calling these same \033[1mmissing include files!\033[0m";
+            echo -e "\n::warning::\033[34m⚠️ Total include source files missing during scan:\033[0m\033[31m ${count5}\033[0m\n[Hint] Many source files might be calling these same \033[31mmissing include files!\033[0m";
           fi;
-          [[ -s "${include}" ]] && cp -vf "${include}" build/ | process_input;
+          [[ -s "${include_list}" ]] && mkdir -p build && cp -vf "${include_list}" build/ | process_input;
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
           s=$((seconds % 60));
@@ -779,6 +779,7 @@ runs:
       if: inputs.project == 'true'
       run: |
         export WITH_TIDY=1
+        start_time="${SECONDS}";
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export ALLOW_MISSING_DEPENDENCIES=true
@@ -1058,6 +1059,8 @@ runs:
           [[ -f 'compile_flags.txt' ]] && mv -f 'compile_flags.txt' 'build/';
         fi;
         echo '';
+        seconds="$((SECONDS - start_time))";
+        echo "seconds=${seconds}" >> "${GITHUB_ENV}";
       shell: bash
       continue-on-error: true
       
@@ -1071,7 +1074,7 @@ runs:
         export WITH_TIDY=1
         export LC_ALL=C
         set +e
-        start_time=${SECONDS};
+        start_time="${{ env.seconds }}";
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${repository}_project.log";
@@ -1319,7 +1322,7 @@ runs:
         else
           echo -e '::error::Missing/Bad source directory' | process_input;
         fi;
-        seconds=$((SECONDS - start_time))
+        seconds="$((SECONDS - start_time))";
         m=$((seconds / 60))
         s=$((seconds % 60))
         printf "Project Runtime: %d minutes and %d seconds\n" "$m" "$s"
