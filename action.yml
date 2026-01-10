@@ -203,7 +203,7 @@ runs:
       run: |
         echo '';
         if ${{ steps.restore.outputs.cache-hit == 'true' }}; then
-          echo -e "####################\nCheck-File Restored Repository Sources Config From Cache\n####################\n";
+          echo -e "####################\n\033[32mCheck-File Restored Project Configuration From Cache!\033[0m\n####################\n";
         fi;
         echo "Repository Owner and Name: ${GITHUB_REPOSITORY}"
         echo "Branch Name: ${{ github.ref_name }}"
@@ -772,6 +772,7 @@ runs:
           s=$((seconds % 60));
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
         fi;
+        echo '';
       shell: bash
       continue-on-error: true
 
@@ -844,7 +845,7 @@ runs:
           else
             echo -e "\n####################\nWorkspace Folder: ${repository}\n####################" | process_input;
           fi;
-          echo -e "\n####################\nProject Build: ${{ github.repository }}\n####################" | process_input;
+          echo -e "\n####################\nProject Build:\033[32m ${{ github.repository }}\033[0m\n####################" | process_input;
           echo -e "\n####################\nCompiler: ${gcc_version}\n####################" | process_input;
           echo -e "\n####################\nCompiler: ${gpp_version}\n####################" | process_input;
           echo -e "\n####################\nCompiler: ${clang_version}\n####################" | process_input;
@@ -868,7 +869,7 @@ runs:
             echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\n\n${codechecker_analyzers}" | process_input;
           fi;
           echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
-          echo -e "\n####################\nChecking Repository ${{ env.base }}\n####################" | process_input;
+          echo -e "\n####################\nChecking Repository:\033[32m ${{ env.base }}\033[0m\n####################" | process_input;
           echo -e "\n####################\nChecking for ${file_type} files\n####################" | process_input;
           source_dirs() {
             find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
@@ -2104,7 +2105,7 @@ runs:
     - name: Check Project Size
       run: |
         echo '';
-        echo -e "Repository Project Total Size: $(du ${{ env.base }} -shx)\n";
+        echo -e "\033[33mRepository Project Total Size:\033[0m \033[1m$(du ${{ env.base }} -shx)\033[0m\n";
       shell: bash
       continue-on-error: true
 
