@@ -609,16 +609,16 @@ runs:
         project_log="${repository}_project.log";
         export LC_ALL=C
         SAVEIFS="${IFS}";
-        include_missing=0
-        include_count=0
-        include_total=0
-        include_dirs=0
-        file_count=0
-        count1=1
-        count2=1
-        count3=1
-        count4=1
-        count5=1
+        include_missing=1
+        include_count=1
+        include_total=1
+        include_dirs=1
+        file_count=1
+        count1=0
+        count2=0
+        count3=0
+        count4=0
+        count5=0
         checked=false
         include1='include_file1.txt';
         include2='include_file2.txt';
@@ -639,7 +639,7 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r -P "$(nproc --all)" sort);
+        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r -P "$(nproc --all)" -I {} sh -c 'sort "{}" < /dev/null');
         include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.content }} && [[ "${files}" ]]; then
