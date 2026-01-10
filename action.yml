@@ -622,7 +622,7 @@ runs:
         include1='include_file1.txt';
         include2='include_file2.txt';
         include3='include_file3.txt';
-        include='check-file-sources.txt';
+        include_list='check-file-sources.txt';
         github="${GITHUB_WORKSPACE}";
         process_input() {
           while IFS= read -r output; do
@@ -761,9 +761,11 @@ runs:
             awk '!seen[$0]++' "${include1}" > "${include2}";
           fi;
           if [[ -s "${include2}" ]]; then
-            while IFS= read -r included; do
+            while IFS= read -r includes; do
               count4=$((include_dirs++));
-              echo "${included}" >> "${include}";
+              if [[ "${includes}" != ':' ]]; then
+                echo "${includes}" >> "${include_list}";
+              fi;
             done < "${include2}";
           fi;  
           if [[ "${includes_found}" ]]; then
