@@ -640,7 +640,7 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r -P "$(nproc --all)" grep -HEo '^#include[[:space:]]+[<"].*[>"]' | sort -u);
+        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r -P "$(nproc --all)" grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | sort -u);
         include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.content }} && [[ "${files}" ]]; then
@@ -656,7 +656,7 @@ runs:
             echo -e "\nAnalyzing Includes Source File ${name_count}: ${name##*/}" | process_input;
             if ${{ inputs.include }}; then
               includes_found=false
-              include_source=$(echo "${file}" | awk '{print $2}' | tr -d '<">' | sort -u);
+              include_source=$(echo "${file}" | awk '{print $2}');
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tinclude file: ${include_source}" | process_input;
                   if [[ $(echo "${include_source}" | grep '\.h$') ]]; then
@@ -693,7 +693,7 @@ runs:
                 echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ 🚫 ]" | process_input;
               fi;  
             fi;
-          done <<< ${files[@]};
+          done <<< "${files[@]}";
           if [[ -s "${include1}" ]]; then
             awk '!seen[$0]++' "${include1}" > "${include2}";
           fi;
