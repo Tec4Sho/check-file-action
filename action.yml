@@ -645,7 +645,6 @@ runs:
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.content }} && [[ "${files}" ]]; then
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
-            include_count=0
             count1=$((file_count++));
             echo -e "\n####################\n\t\033[33mSOURCE FILE\033[0m ( ${count1} )\n####################" | process_input;
             echo -e "\nSource File Location: ${file%%:*}" | process_input;
@@ -676,18 +675,18 @@ runs:
                       count2=$((include_count++));
                       count3=$((include_total++));
                       echo "${header%/*}" >> "${include1}";          
-                      echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
+                      echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include_source} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
                     else
                       count5=$((include_missing++));
-                      echo -e "\n::notice::\033[31mSource file include \033[0m( ${include} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
+                      echo -e "\n::notice::\033[31mSource file include \033[0m( ${include_source} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                     fi;       
                   fi;
                 includes_found=true                
               fi;
               if [[ "${includes_found}" ]]; then
-                echo -e "\n ${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
+                echo -e "\n ${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ✅ ]" | process_input;
               else
-                echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
+                echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ 🚫 ]" | process_input;
               fi;  
             fi;
           done <<< ${files[@]};
