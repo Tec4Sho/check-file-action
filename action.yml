@@ -624,6 +624,7 @@ runs:
         include2='include_file2.txt';
         include3='include_file3.txt';
         include_list='check-file-sources.txt';
+        name_count_file='name_count_file.txt';
         github="${GITHUB_WORKSPACE}";
         process_input() {
           while IFS= read -r output; do
@@ -646,10 +647,13 @@ runs:
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
             count1=$((file_count++));
-            echo -e "\n####################\n\t\033[33mSOURCE FILE\033[0m ( ${count1} )\n####################" | process_input;
+            echo -e "\n####################\n\t\033[33mSOURCE FILE INCLUDE\033[0m ( ${count1} )\n####################" | process_input;
             echo -e "\nSource File Location: ${file%%:*}" | process_input;
             name="${file%%:*}";
-            echo -e "\nAnalyzing Includes Source File ${count1}: ${name##*/}" | process_input;
+            name_count="${name##*/}";
+            echo "${name_count}" >> "${name_count_file}";
+            name_count=$(cat "${name_count_file}" | sort -u | wc -l);
+            echo -e "\nAnalyzing Includes Source File ${name_count}: ${name##*/}" | process_input;
             if ${{ inputs.include }}; then
               includes_found=false
               include_source=$(echo "${file}" | awk '{print $2}' | tr -d '<">' | sort -u);
@@ -684,7 +688,7 @@ runs:
                 includes_found=true                
               fi;
               if [[ "${includes_found}" ]]; then
-                echo -e "\n ${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ✅ ]" | process_input;
+                echo -e "\n ${count1}\033[32m includes successfully added after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ✅ ]" | process_input;
               else
                 echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ 🚫 ]" | process_input;
               fi;  
@@ -701,10 +705,10 @@ runs:
               fi;
             done < "${include2}";
           fi;
-          echo -e "\n::notice::\033[32mTotal source file checked during scan\033[0m\033[1m ${count1}\033[0m" | process_input;
+          echo -e "\n::notice::\033[32mTotal source file checked during scan\033[0m\033[1m ${name_count}\033[0m" | process_input;
           if [[ "${includes_found}" ]]; then
             echo 'check_build=true' >> "${GITHUB_ENV}";
-            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories left after duplicate cleaning!!!" | process_input;
+            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count1}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories left after duplicate cleaning!!!" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
           fi;
