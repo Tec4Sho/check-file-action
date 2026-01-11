@@ -639,7 +639,7 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r -P "$(nproc --all)" -n 1 -I {} sh -c 'sort "{}" < /dev/null');
+        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r -I {} sh -c 'sort "{}" < /dev/null');
         include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.content }} && [[ "${files}" ]]; then
