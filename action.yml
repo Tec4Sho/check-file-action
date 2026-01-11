@@ -641,7 +641,7 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | sort -u);
+        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
@@ -663,7 +663,7 @@ runs:
             if [[ "${include_source}" ]]; then
               includes_found=true
               echo -e "\n\tinclude file: ${include_source}" | process_input;
-              if [[ $(echo "${include_source}" | grep '\.h$') ]] && [[ ! $(grep -sF "${include_source}" "${include_count_file}") ]]; then
+              if [[ $(echo "${include_source}" | grep '\.h$') ]] && [[ ! $(grep "${include_source}" "${include_count_file}") ]]; then
                 echo "${include_source}" >> "${include_count_file}";
                 path1="${include_source##+(*./)}";
                 path2="${path1##[:]*}";
@@ -690,7 +690,9 @@ runs:
                   count2=$((include_count--));
                   count5=$((include_missing++));
                   echo -e "\n::notice::\033[31mSource file include \033[0m( ${include_source} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
-                fi;       
+                fi;
+              else
+                echo -e "\n\033[34mSource file include \033[0m\033[1m( ${include_source} )\033[0m\033[33m was already located in files!\033[0m  [ ✅ ]";
               fi;                     
             fi;
             if [[ "${includes_found}" == 'true' ]]; then
