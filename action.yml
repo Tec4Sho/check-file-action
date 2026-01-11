@@ -639,7 +639,7 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print);
+        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | sort -u);
         include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.content }} && [[ "${files}" ]]; then
@@ -682,7 +682,7 @@ runs:
                       echo -e "\n::notice::\033[31mSource file include \033[0m( ${include} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                     fi;
                   fi;
-                done <<< "${include_source[@]}";
+                done <<< ${include_source[@]};
                 includes_found=true
               fi;
               if [[ "${includes_found}" ]]; then
@@ -691,7 +691,7 @@ runs:
                 echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
               fi;  
             fi;
-          done <<< "${files[@]}";
+          done <<< ${files[@]};
           if [[ -s "${include1}" ]]; then
             awk '!seen[$0]++' "${include1}" > "${include2}";
           fi;
