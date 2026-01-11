@@ -620,11 +620,12 @@ runs:
         count4=0
         count5=0
         checked=false
-        include1='include_file1.txt';
-        include2='include_file2.txt';
-        include3='include_file3.txt';
+        include1='include-file1.txt';
+        include2='include-file2.txt';
+        include3='include-file3.txt';
         include_list='check-file-sources.txt';
-        name_count_file='name_count_file.txt';
+        name_count_file='name-count-file.txt';
+        include_count_file='include-count-file.txt';
         github="${GITHUB_WORKSPACE}";
         process_input() {
           while IFS= read -r output; do
@@ -640,9 +641,12 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r -P "$(nproc --all)" grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | sort -u);
+        files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | sort -u);
         include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
+        [[ -f "${include1}" ]] && rm -f "include-file*.txt";
+        [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
+        [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.content }} && [[ "${files}" ]]; then
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
@@ -654,44 +658,44 @@ runs:
             echo "${name_count}" >> "${name_count_file}";
             name_count=$(cat "${name_count_file}" | sort -u | wc -l);
             echo -e "\nAnalyzing Includes Source File ${name_count}: ${name##*/}" | process_input;
-            if ${{ inputs.include }}; then
-              includes_found=false
-              include_source=$(echo "${file}" | awk '{print $2}');
-              if [[ "${include_source}" ]]; then
-                echo -e "\n\tinclude file: ${include_source}" | process_input;
-                  if [[ $(echo "${include_source}" | grep '\.h$') ]]; then
-                    path1="${include_source##+(*./)}";
-                    path2="${path1##[:]*}";
-                    path3="${path2%'\n'}";
-                    path4="${path3%\\}";
-                    clean_path="${path4%/*}";
-                    file1="${include_source##+(*./)}";
-                    file2="${file1##[:]*}";
-                    file3="${file2%'\n'}";
-                    file4="${file3%\\}";
-                    clean_file="${file4##*/}";
-                    if [[ "${clean_path#./}" == "${clean_name#./}" ]]; then
-                      header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path#./}/${clean_name#./}" -print);
-                    else
-                      header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print -quit);
-                    fi;
-                    if [[ "${header}" ]]; then
-                      count2=$((include_count++));
-                      count3=$((include_total++));
-                      echo "${header%/*}" >> "${include1}";          
-                      echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include_source} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
-                    else
-                      count5=$((include_missing++));
-                      echo -e "\n::notice::\033[31mSource file include \033[0m( ${include_source} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
-                    fi;       
-                  fi;
-                includes_found=true                
-              fi;
-              if [[ "${includes_found}" ]]; then
-                echo -e "\n ${count1}\033[32m includes successfully added after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ✅ ]" | process_input;
-              else
-                echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ 🚫 ]" | process_input;
-              fi;  
+            includes_found=false
+            include_source=$(echo "${file}" | awk '{print $2}');
+            if [[ "${include_source}" ]]; then
+              includes_found=true
+              echo -e "\n\tinclude file: ${include_source}" | process_input;
+              if [[ $(echo "${include_source}" | grep '\.h$') ]] && [[ ! $(grep -sF "${include_source}" "${include_count_file}") ]]; then
+                echo "${include_source}" >> "${include_count_file}";
+                path1="${include_source##+(*./)}";
+                path2="${path1##[:]*}";
+                path3="${path2%'\n'}";
+                path4="${path3%\\}";
+                clean_path="${path4%/*}";
+                file1="${include_source##+(*./)}";
+                file2="${file1##[:]*}";
+                file3="${file2%'\n'}";
+                file4="${file3%\\}";
+                clean_file="${file4##*/}";
+                if [[ "${clean_path#./}" == "${clean_name#./}" ]]; then
+                  header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path#./}/${clean_name#./}" -print);
+                else
+                  header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print);
+                fi;
+                if [[ "${header}" ]]; then
+                  count2=$((include_count++));
+                  count3=$((include_total++));
+                  echo "${header%/*}" >> "${include1}";          
+                  echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include_source} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
+                else
+                  includes_found=false
+                  count5=$((include_missing++));
+                  echo -e "\n::notice::\033[31mSource file include \033[0m( ${include_source} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
+                fi;       
+              fi;                     
+            fi;
+            if [[ "${includes_found}" ]]; then
+              echo -e "\n ${count1}\033[32m includes successfully added after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ✅ ]" | process_input;
+            else
+              echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ 🚫 ]" | process_input;
             fi;
           done <<< "${files[@]}";
           if [[ -s "${include1}" ]]; then
@@ -700,10 +704,15 @@ runs:
           if [[ -s "${include2}" ]]; then
             while IFS= read -r includes; do
               count4=$((include_dirs++));
-              if [[ "${includes}" != ':' ]]; then
-                echo "${includes}" >> "${include_list}";
+              if [[ $(echo "${includes}" | grep '\.h$') ]]; then
+                echo "${includes%/*}" >> "${include3}";
+              else
+                echo "${includes}" >> "${include3}";
               fi;
             done < "${include2}";
+          fi;
+          if [[ -s "${include3}" ]]; then
+            awk '!seen[$0]++' "${include3}" > "${include_list}";
           fi;
           echo -e "\n::notice::\033[32mTotal source file checked during scan\033[0m\033[1m ${name_count}\033[0m" | process_input;
           if [[ "${includes_found}" ]]; then
