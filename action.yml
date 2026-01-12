@@ -649,15 +649,18 @@ runs:
         [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.content }} && [[ "${files}" ]]; then
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
-          while IFS= read -r file; do
-            count1=$((file_count++));
-            echo -e "\n####################\n\t\033[33mSOURCE FILE INCLUDE\033[0m ( ${count1} )\n####################" | process_input;
-            echo -e "\nSource File Location: ${file%%:*}" | process_input;
+          while IFS= read -r file; do         
             name="${file%%:*}";
             name_count="${name##*/}";
-            echo "${name_count}" >> "${name_count_file}";
-            name_count=$(cat "${name_count_file}" | sort -u | wc -l);
-            echo -e "\nAnalyzing Includes Source File ${name_count}: ${name##*/}" | process_input;
+            if [[ $(grep "${name_count}" "${name_count_file}" ]]; then
+              echo -e "\nAnalyzing Source File: ${name##*/}" | process_input;
+            else
+              count1=$((file_count++));
+              echo "${name_count}" >> "${name_count_file}";
+              echo -e "\n####################\n\t\033[33mSOURCE FILE INCLUDE\033[0m ( ${count1} )\n####################" | process_input;
+              echo -e "\nSource File Location: ${file%%:*}" | process_input;
+              echo -e "\nChecking Include Objectives In Source File: ${name##*/}  [${count1}]" | process_input;
+            fi;
             includes_found=false
             include_source=$(echo "${file}" | awk '{print $2}');
             if [[ "${include_source}" ]]; then
@@ -696,7 +699,7 @@ runs:
               fi;                     
             fi;
             if [[ "${includes_found}" == 'true' ]]; then
-              echo -e "\n ${count1}\033[32m includes successfully added after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ✅ ]" | process_input;
+              echo -e "\n ${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ✅ ]" | process_input;
             else
               echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ 🚫 ]" | process_input;
             fi;
