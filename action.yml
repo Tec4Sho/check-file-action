@@ -713,10 +713,18 @@ runs:
           if [[ -s "${include2}" ]]; then
             while IFS= read -r includes; do
               count4=$((include_dirs++));
-              if [[ "${includes}" != ':' ]]; then
-                echo "${includes}" >> "${include_list}";
+              if [[ $(echo "${includes}" | grep '\.h$') ]]; then
+                echo "${includes%/*}" >> "${include3}";
+              else
+                echo "${includes}" >> "${include3}";
               fi;
             done < "${include2}";
+          fi;
+          if [[ -s "${include3}" ]]; then
+            awk '!seen[$0]++' "${include3}" > "${include_list}";
+          fi;
+          if [[ -s "${include_list}" ]]; then
+            count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
           fi;
           echo -e "\n::notice::\033[32mTotal source file checked during scan\033[0m\033[1m ${count1}\033[0m" | process_input;
           if [[ "${includes_found}" ]]; then
