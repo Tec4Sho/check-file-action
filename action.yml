@@ -662,11 +662,11 @@ runs:
             echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             if ${{ inputs.include }}; then
               includes_found=false
-              include_source=$(LC_ALL=C grep -sEo '^#include[[:space:]]+[<"].*[>"]' "${file}" | awk '{print $2}' | tr -d '<">' | sort -u);
+              include_source=$(LC_ALL=C grep -sEo '^#include[[:space:]]+[<"].*[>"]' "${file}" 2>/dev/null | awk '{print $2}' | tr -d '<">' | sort -u);
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tinclude file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
-                  if ([[ "${include}" == *".h" ]] || [[ "${include}" == *".hh" ]] || [[ "${include}" == *".hpp" ]] || [[ "${include}" == *".h++" ]]) && [[ ! $(grep "${include}" "${include_count_file}") ]]; then
+                  if ([[ "${include}" == *".h" ]] || [[ "${include}" == *".hh" ]] || [[ "${include}" == *".hpp" ]] || [[ "${include}" == *".h++" ]]) && [[ ! $(LC_ALL=C grep "${include}" "${include_count_file}") ]]; then
                     echo "${include}" >> "${include_count_file}"
                     path1="${include##+(*./)}";
                     path2="${path1##[:]*}";
@@ -713,7 +713,7 @@ runs:
           if [[ -s "${include2}" ]]; then
             while IFS= read -r includes; do
               count4=$((include_dirs++));
-              if [[ $(echo "${includes}" | grep '\.h$') ]]; then
+              if [[ "${includes}" == *".h" ]] || [[ "${includes}" == *".hh" ]] || [[ "${includes}" == *".hpp" ]] || [[ "${includes}" == *".h++" ]]; then
                 echo "${includes%/*}" >> "${include3}";
               else
                 echo "${includes}" >> "${include3}";
@@ -805,7 +805,7 @@ runs:
           if [[ -s "${include2}" ]]; then
             while IFS= read -r includes; do
               count4=$((include_dirs++));
-              if [[ $(echo "${includes}" | grep '\.h$') ]]; then
+              if [[ "${includes}" == *".h" ]] || [[ "${includes}" == *".hh" ]] || [[ "${includes}" == *".hpp" ]] || [[ "${includes}" == *".h++" ]]; then
                 echo "${includes%/*}" >> "${include3}";
               else
                 echo "${includes}" >> "${include3}";
@@ -852,7 +852,7 @@ runs:
                 header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path#./}/${clean_name#./}" -print);
                 shopt -u extglob
               else
-                header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print -quit);
+                header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print);
               fi;
               if [[ "${header}" ]]; then
                 count2=$((include_count++));
@@ -871,11 +871,19 @@ runs:
           if [[ -s "${include2}" ]]; then
             while IFS= read -r includes; do
               count4=$((include_dirs++));
-              if [[ "${includes}" != ':' ]]; then
-                echo "${includes}" >> "${include_list}";
+              if [[ "${includes}" == *".h" ]] || [[ "${includes}" == *".hh" ]] || [[ "${includes}" == *".hpp" ]] || [[ "${includes}" == *".h++" ]]; then
+                echo "${includes%/*}" >> "${include3}";
+              else
+                echo "${includes}" >> "${include3}";
               fi;
             done < "${include2}";
-          fi;  
+          fi;
+          if [[ -s "${include3}" ]]; then
+            awk '!seen[$0]++' "${include3}" > "${include_list}";
+          fi;
+          if [[ -s "${include_list}" ]]; then
+            count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
+          fi;
           if [[ "${includes_found}" == 'true' ]]; then
             echo 'check_build=true' >> "${GITHUB_ENV}";
             echo -e "\n::notice::\033[34mTotal include source files scanned:\033[0m \033[1m${count3}\033[0m\n[Hint] Their were \033[1m${count4}\033[0m include directories added,\nYou can \033[35mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[32m500\033[0m" | process_input;
