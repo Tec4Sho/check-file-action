@@ -652,7 +652,7 @@ runs:
           while IFS= read -r file; do         
             name="${file%%:*}";
             name_count="${name##*/}";
-            if [[ $(grep "${name_count}" "${name_count_file}" ]]; then
+            if [[ $(grep "${name_count}" "${name_count_file}") ]]; then
               echo -e "\nAnalyzing Source File: ${name##*/}" | process_input;
             else
               count1=$((file_count++));
