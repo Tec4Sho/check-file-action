@@ -88,10 +88,14 @@ inputs:
     required: false
     default: 'true'
   source:
-    description: 'Check all C/C++ files for header directories to auto include in cmakelist.txt'
-    type: boolean
+    description: 'Check all soucre files for include directories to auto add for clang/cmake'
     required: false
-    default: 'true'  
+    default: 1
+    type: choice
+    options:
+    - 1 # Locate all includes in sources and display all content found about files.
+    - 2 # Locate all includes in sources and display more content found about files.
+    - 3 # Locate all includes in sources and display less content found about files. 
   number:
     description: 'Number of files to check before stopping action'
     type: number
@@ -599,7 +603,7 @@ runs:
       continue-on-error: false
 
     - name: Cmake Source Files Fixer
-      if: inputs.source == 'true'
+      if: inputs.source > '0'
       run: |
         echo '';
         start_time="${SECONDS}";
@@ -640,6 +644,7 @@ runs:
             fi;
           done;
         }
+        shopt -s extglob
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
@@ -647,7 +652,86 @@ runs:
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
         [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
-        if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.content }} && [[ "${files}" ]]; then
+        if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.source == '1' }} && [[ "${files}" ]]; then
+          echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
+          while IFS= read -r file; do
+            include_count=0
+            count1=$((file_count++));
+            echo -e "\n####################\n\t\033[33mSOURCE FILE\033[0m ( ${count1} )\n####################" | process_input;
+            echo -e "\nSource File Location: ${file}" | process_input;
+            echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
+            if ${{ inputs.include }}; then
+              includes_found=false
+              include_source=$(awk '/include / {gsub(/"/, "", $2); print $2}' "${file}" 2>/dev/null | tr -d '<>' | sort -u);
+              if [[ "${include_source}" ]]; then
+                echo -e "\n\tLocated include file(s):\n${include_source}" | process_input;
+                while IFS= read -r include; do
+                  if [[ "${include}" == *".h" ]] && [[ ! $(grep "${include}" "${include_count_file}") ]]; then
+                    echo "${include}" >> "${include_count_file}"
+                    path1="${include##+(*./)}";
+                    path2="${path1##[:]*}";
+                    path3="${path2%'\n'}";
+                    path4="${path3%\\}";
+                    clean_path="${path4%/*}";
+                    file1="${include##+(*./)}";
+                    file2="${file1##[:]*}";
+                    file3="${file2%'\n'}";
+                    file4="${file3%\\}";
+                    clean_file="${file4##*/}";
+                    if [[ ${include} == *"/"* ]]; then
+                      header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${path4##+(*./)}" -print);
+                    else
+                      header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print -quit);
+                    fi;
+                    if [[ "${header}" ]]; then
+                      count2=$((include_count++));
+                      count3=$((include_total++));
+                      echo "${header%/*}" >> "${include1}";          
+                      echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
+                    else
+                      count5=$((include_missing++));
+                      echo -e "\n::notice::\033[31mSource file include \033[0m( ${file4} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
+                    fi;
+                  else
+                    echo -e "\n::notice::\033[32mSource file include \033[0m( ${include} )\033[31m was added already!!!\033[0m  [ skipped ]" | process_input;
+                  fi;
+                done <<< ${include_source[@]};
+                includes_found=true
+              fi;
+              if [[ "${includes_found}" ]]; then
+                echo -e "\n ${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
+              else
+                echo -e "\n\033[32mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
+              fi;  
+            fi;
+          done <<< ${files[@]};
+          if [[ -s "${include1}" ]]; then
+            awk '!seen[$0]++' "${include1}" > "${include2}";
+          fi;
+          if [[ -s "${include2}" ]]; then
+            while IFS= read -r includes; do
+              count4=$((include_dirs++));
+              if [[ "${includes}" != ':' ]]; then
+                echo "${includes}" >> "${include_list}";
+              fi;
+            done < "${include2}";
+          fi;
+          echo -e "\n::notice::\033[32mTotal source file checked during scan\033[0m\033[1m ${count1}\033[0m" | process_input;
+          if [[ "${includes_found}" ]]; then
+            echo 'check_build=true' >> "${GITHUB_ENV}";
+            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories left after duplicate cleaning!!!" | process_input;
+          else
+            echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
+          fi;
+          if [[ "${count5}" > '0' ]]; then
+            echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${count5}\033[0m\n[Hint] Many source files calling the same \033[31mmissing include files.\033[0m\nSet option \033[1m( content: false )\033[0m to get a exact missing list count quickly!" | process_input;
+          fi;
+          [[ -s "${include_list}" ]] && mkdir -p build && cp -vf "${include_list}" build/ | process_input;
+          seconds=$((SECONDS - start_time));
+          m=$((seconds / 60));
+          s=$((seconds % 60));
+          printf "Project Auto Include Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
+        elif [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.source == '2' }} && [[ "${files}" ]]; then
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do         
             name="${file%%:*}";
@@ -678,7 +762,7 @@ runs:
                 file4="${file3%\\}";
                 clean_file="${file4##*/}";
                 if [[ ${include_source} == *"/"* ]]; then
-                  header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${file4##+(*./)}" -type f -print);
+                  header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${file4##+(*./)}" -print);
                 else
                   header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print);
                 fi;
@@ -737,7 +821,7 @@ runs:
           m=$((seconds / 60));
           s=$((seconds % 60));
           printf "Project Auto Include Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
-        elif [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ "${include_files}" ]]; then
+        elif [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.source == '3' }} && [[ "${include_files}" ]]; then
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m low \033[0m]" | process_input;
           echo > "${include1}";
           while IFS= read -r include; do
