@@ -90,7 +90,7 @@ inputs:
   source:
     description: 'Check all soucre files for include directories to auto add for clang/cmake'
     required: false
-    default: 1
+    default: 2
     type: choice
     options:
     - 1 # Locate all includes in sources and display all content found about files.
@@ -644,7 +644,6 @@ runs:
             fi;
           done;
         }
-        shopt -s extglob
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         include_files=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
@@ -679,7 +678,9 @@ runs:
                     file4="${file3%\\}";
                     clean_file="${file4##*/}";
                     if [[ ${include} == *"/"* ]]; then
+                      shopt -s extglob
                       header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${path4##+(*./)}" -print);
+                      shopt -u extglob
                     else
                       header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print -quit);
                     fi;
@@ -762,7 +763,9 @@ runs:
                 file4="${file3%\\}";
                 clean_file="${file4##*/}";
                 if [[ ${include_source} == *"/"* ]]; then
+                  shopt -s extglob
                   header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${file4##+(*./)}" -print);
+                  shopt -u extglob
                 else
                   header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print);
                 fi;
@@ -837,7 +840,9 @@ runs:
               file4="${file3%\\}";
               clean_file="${file4##*/}";
               if [[ "${clean_path#./}" != "${clean_name#./}" ]]; then
+                shopt -s extglob
                 header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path#./}/${clean_name#./}" -print);
+                shopt -u extglob
               else
                 header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print -quit);
               fi;
