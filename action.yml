@@ -657,15 +657,15 @@ runs:
             else
               count1=$((file_count++));
               echo "${name_count}" >> "${name_count_file}";
-              echo -e "\n####################\n\t\033[33mSOURCE FILE INCLUDE\033[0m ( ${count1} )\n####################" | process_input;
+              echo -e "\n####################\n\t\033[33mSOURCE FILE\033[0m ( ${count1} )\n####################" | process_input;
               echo -e "\nSource File Location: ${file%%:*}" | process_input;
-              echo -e "\nChecking Include Objectives In Source File: ${name##*/}  [${count1}]" | process_input;
+              echo -e "\nChecking include objective in source file: ${name##*/}  [ \033[1m${count1}\033[0m ]" | process_input;
             fi;
             includes_found=false
             include_source=$(echo "${file}" | awk '{print $2}');
             if [[ "${include_source}" ]]; then
               includes_found=true
-              echo -e "\n\tinclude file: ${include_source}" | process_input;
+              echo -e "\n\tinclude source: ${include_source}" | process_input;
               if [[ ${include_source} == *".h" ]]; then
                 path1="${include_source##+(*./)}";
                 path2="${path1##[:]*}";
@@ -678,7 +678,7 @@ runs:
                 file4="${file3%\\}";
                 clean_file="${file4##*/}";
                 if [[ ${include_source} == *"/"* ]]; then
-                  header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${include_source##+(*./)}" -type f -print);
+                  header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${file4##+(*./)}" -type f -print);
                 else
                   header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print);
                 fi;
@@ -691,18 +691,18 @@ runs:
                 else
                   includes_missing=true
                   count5=$((include_missing++));
-                  echo -e "\n::notice::\033[31mSource file include \033[0m( ${include_source}    ${clean_path}/${clean_file} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
+                  echo -e "\n::notice::\033[31mSource file include \033[0m( ${file4##+(*./)} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                 fi;
               fi;                     
             fi;
             if [[ "${includes_found}" == 'true' ]]; then
-              echo -e "\n ${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ✅ ]" | process_input;
+              echo -e "\n${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ✅ ]" | process_input;
             elif [[ "${includes_missing}" == 'true' ]]; then
               echo -e "\n\033[32mCheck-File discovered missing include objective after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ❌ ]" | process_input;
             else
               echo -e "\n\033[32mCheck-File discovered no include objective after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ 🚫 ]" | process_input;
             fi;
-          done <<< ${files[@]};
+          done <<< "${files[@]}";
           if [[ -s "${include1}" ]]; then
             awk '!seen[$0]++' "${include1}" > "${include2}";
           fi;
