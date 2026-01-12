@@ -666,8 +666,8 @@ runs:
             if [[ "${include_source}" ]]; then
               includes_found=true
               echo -e "\n\tinclude file: ${include_source}" | process_input;
-              if [[ $(echo "${include_source}" | grep '\.h$') ]] && [[ ! $(grep "${include_source}" "${include_count_file}") ]]; then
-                echo "${include_source}" >> "${include_count_file}";
+              if [[ $(echo "${include_source}" | grep '\.h$') ]]; then
+               # echo "${include_source}" >> "${include_count_file}";
                 path1="${include_source##+(*./)}";
                 path2="${path1##[:]*}";
                 path3="${path2%'\n'}";
@@ -679,15 +679,15 @@ runs:
                 file4="${file3%\\}";
                 clean_file="${file4##*/}";
                 if [[ $(echo "${include_source}" | grep -F '/') ]]; then
-                  header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${include_source}" -print);
+                  header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path}/${clean_file}" -print);
                 else
-                  header=$(find "${{ env.base }}" -type f -name "${include_source}" -print);
+                  header=$(find "${{ env.base }}" -type f -name "${clean_file}" -print);
                 fi;
                 if [[ "${header}" ]]; then
                   count2=$((include_count++));
                   count3=$((include_total++));
                   echo "${header%/*}" >> "${include1}";          
-                  echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include_source} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
+                  echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include_source} a.k.a ${clean_path}/${clean_file} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
                 else
                   includes_found=false
                   count5=$((include_missing++));
