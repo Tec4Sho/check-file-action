@@ -812,7 +812,7 @@ runs:
           echo -e "\n::notice::\033[32mTotal source files checked during scan\033[0m\033[1m ${count1}\033[0m" | process_input;
           if [[ "${includes_found}" == 'true' ]]; then
             echo 'check_build=true' >> "${GITHUB_ENV}";
-            echo -e "\n::notice::\033[34mTotal include source files added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories left after first duplicate cleaning!!!" | process_input;
+            echo -e "\n::notice::\033[34mTotal include source files added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories left after duplicate cleaning!!!" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
           fi;
@@ -882,6 +882,18 @@ runs:
           m=$((seconds / 60));
           s=$((seconds % 60));
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
+        fi;
+        if [[ "${includes_found}" == 'true' ]]; then
+          echo "include_count={count4}" >> "${GITHUB_ENV}";
+        else
+          echo 'include_count=0' >> "${GITHUB_ENV}";
+        fi;
+        if ${{ inputs.number > '0' }}; then
+          echo "source_include=false" >> "${GITHUB_ENV}";
+        elif [[ "${count4}" => '2000' ]]; then
+          echo "source_include=true" >> "${GITHUB_ENV}";
+        else
+          echo "source_include=false" >> "${GITHUB_ENV}";
         fi;
         echo '';
       shell: bash
@@ -994,19 +1006,26 @@ runs:
             include_count=0
             if ${{ inputs.number > '0' }}; then
               file_count=${{ inputs.number }};
+              echo "source_include=false" >> "${GITHUB_ENV}";
+            elif ${{ env.include_count > '2000' }}; then
+              file_count=${{ env.include_count }};
+              echo "source_include=true" >> "${GITHUB_ENV}";
             else
               file_count='500';
-            fi;
-            if ${{ inputs.source }} && [[ -s "${clang_sources}" ]] && ${{ inputs.include }}; then
-              while IFS= read -r include; do
-                include_source_count=$((include_source_count + 1));      
-                echo "${include_source_count}" > "${count3}";
-                echo -e "-I${include}" >> 'compile_flags.txt';
-                echo -n "${include#./};";
-                if [[ "${include_source_count}" -eq "${file_count}" ]]; then
-                  break;
-                fi;              
-              done < "${clang_sources}";
+              echo "source_include=false" >> "${GITHUB_ENV}";
+            fi;            
+            if ${{ inputs.source > '0' }} && [[ -s "${clang_sources}" ]] && ${{ inputs.include }}; then
+              if [[ "${file_count}" < '2000' ]]; then
+                while IFS= read -r include; do
+                  include_source_count=$((include_source_count + 1));      
+                  echo "${include_source_count}" > "${count3}";
+                  echo -e "-I${include}" >> 'compile_flags.txt';
+                  echo -n "${include#./};";
+                  if [[ "${include_source_count}" -eq "${file_count}" ]]; then
+                    break;
+                  fi;              
+                done < "${clang_sources}";
+              fi;
             else
               header_source=$(find "${{ env.base }}" -not \( -path '*/CMakeFiles' -prune -o -path '*/build' -prune -o -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'android' -o -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'babeltrace' -o -name 'block' -o -name 'boardcom' -o -name 'core' -o -name 'crypto' -o -name 'drm' -o -name 'drivers' -o -name 'elfutils' -o -name 'engine' -o -name 'fs' -o -name 'generated' -o -name 'glade' -o -name 'gpu' -o -name 'gxio' -o -name 'helpers' -o -name 'hv' -o -name 'idle_monitor' -o -name 'inc' -o -name 'include' -o -name 'internal' -o -name 'kwregs' -o -name 'kutf' -o -name 'lib' -o -name 'liblockdep' -o -name 'linux' -o -name 'mach' -o -name 'media' -o -name 'mtk' -o -name 'mt-plat' -o -name 'net' -o -name 'nvif' -o -name 'pci' -o -name 'sound' -o -name 'subcmd' -o -name 'subdev' -o -name 'symbol' -o -name 'sysdep' -o -name 'traceevent' -o -name 'ttm' -o -name 'tests' -o -name 'uapi' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r dir; do
@@ -1049,7 +1068,9 @@ runs:
           fi;
           if [[ "$(cmake_includes)" ]]; then
             echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
-            if [[ -f "${count3}" ]]; then
+            if ${{ env.include_count > '2000' }}; then
+              echo -e "\n####################\n\tcheck-file added \033[1m${{ env.include_count }}\033[0m source include directories [source:\033[32m auto mode\033[0m]\n\tcmake max additional header objectives updated successfully!\n####################" | process_input;
+            elif [[ -f "${count3}" ]]; then
               echo -e "\n####################\n\tcheck-file added \033[1m$(cat ${count3})\033[0m source include directories [source:\033[32m auto mode\033[0m]\n\tcmake additional header objectives updated successfully!\n####################" | process_input;
             elif [[ -f "${count2}" ]]; then
               echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n\tcheck-file updated $(cat ${count2}) additional header directories\n####################" | process_input;
