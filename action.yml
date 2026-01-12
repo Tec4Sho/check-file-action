@@ -645,7 +645,7 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files1=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | sort -u);
+        include_files1=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | sort);
         include_files2=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         include_files3=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
@@ -662,11 +662,11 @@ runs:
             echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             if ${{ inputs.include }}; then
               includes_found=false
-              include_source=$(awk '/include / {gsub(/"/, "", $2); print $2}' "${file}" 2>/dev/null | tr -d '<>' | sort -u);
+              include_source=$(LC_ALL=C grep -sEo '^#include[[:space:]]+[<"].*[>"]' "${file}" | awk '{print $2}' | tr -d '<">' | sort -u);
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tinclude file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
-                  if [[ "${include}" == *".h" ]] && [[ ! $(grep "${include}" "${include_count_file}") ]]; then
+                  if ([[ "${include}" == *".h" ]] || [[ "${include}" == *".hh" ]] || [[ "${include}" == *".hpp" ]] || [[ "${include}" == *".h++" ]]) && [[ ! $(grep "${include}" "${include_count_file}") ]]; then
                     echo "${include}" >> "${include_count_file}"
                     path1="${include##+(*./)}";
                     path2="${path1##[:]*}";
@@ -694,7 +694,7 @@ runs:
                       count5=$((include_missing++));
                       echo -e "\n::notice::\033[31mSource file include \033[0m( ${file4} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                     fi;
-                  else
+                  elif [[ "${include}" == *".h" ]] || [[ "${include}" == *".hh" ]] || [[ "${include}" == *".hpp" ]] || [[ "${include}" == *".h++" ]]; then
                     echo -e "\n::notice::\033[32mSource file include \033[0m( ${include} )\033[31m was added already!!!\033[0m  [ skipped ]" | process_input;
                   fi;
                 done <<< ${include_source[@]};
@@ -752,7 +752,7 @@ runs:
             if [[ "${include_source}" ]]; then
               includes_found=true
               echo -e "\n\tinclude source: ${include_source}" | process_input;
-              if [[ ${include_source} == *".h" ]]; then
+              if [[ "${include_source}" == *".h" ]] || [[ "${include_source}" == *".hh" ]] || [[ "${include_source}" == *".hpp" ]] || [[ "${include_source}" == *".h++" ]]; then
                 path1="${include_source##+(*./)}";
                 path2="${path1##[:]*}";
                 path3="${path2%'\n'}";
@@ -828,7 +828,7 @@ runs:
         elif [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.source == '3' }} && [[ "${include_files3}" ]]; then
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m low \033[0m]" | process_input;
           while IFS= read -r include; do
-            if [[ $(echo "${include}" | grep '\.h$') ]]; then
+            if [[ "${include}" == *".h" ]] || [[ "${include}" == *".hh" ]] || [[ "${include}" == *".hpp" ]] || [[ "${include}" == *".h++" ]]; then
               path1="${include##+(*./)}";
               path2="${path1##[:]*}";
               path3="${path2%'\n'}";
