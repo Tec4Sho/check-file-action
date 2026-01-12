@@ -678,10 +678,10 @@ runs:
                 file3="${file2%'\n'}";
                 file4="${file3%\\}";
                 clean_file="${file4##*/}";
-                if [[ "${clean_path#./}" != "${clean_name#./}" ]]; then
-                  header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path#./}/${clean_name#./}" -print);
+                if [[ $(echo "${include_source}" | grep -F '/') ]]; then
+                  header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${include_source}" -print);
                 else
-                  header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print);
+                  header=$(find "${{ env.base }}" -type f -name "${include_source}" -print);
                 fi;
                 if [[ "${header}" ]]; then
                   count2=$((include_count++));
