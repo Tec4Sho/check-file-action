@@ -690,7 +690,6 @@ runs:
                   echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include_source} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
                 else
                   includes_found=false
-                  count2=$((include_count--));
                   count5=$((include_missing++));
                   echo -e "\n::notice::\033[31mSource file include \033[0m( ${include_source} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                 fi;
