@@ -300,11 +300,8 @@ runs:
           [[ ! $(which git) ]] && exit 1
         fi;
         if [[ ! $(which fdfind) ]]; then
-          sudo apt-get -yq install fd-find 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nfd dependencies install\n####################" || echo -e '::error::No fd installed for file searches';
-          [[ ! $(which fd-find) ]] && echo -e '[fd-find found]\n';
-          [[ ! $(which fdfind) ]] && echo -e '[fdfind found]\n';
-          [[ ! $(which fd) ]] && echo -e '[fd-find found]\n';
-          [[ ! $(which fdfind) ]] && echo -e '::error::[No fd found]\n';
+          sudo apt-get -yq install fd-find 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nfd dependencies install\n####################" || echo -e '::error::No fdfind installed for file searches';
+          [[ ! $(which fdfind) ]] && echo -e '::error::[No fdfind found]\n';
         fi;
         if [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && ${{ inputs.repair }} && ${{ inputs.filename != '' }}; then
           sudo apt-get -yq install gcc g++ 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
@@ -654,7 +651,7 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files1=$(fd -ace "${{ inputs.filetype }}" "${{ env.base }}" | sort);
+        include_files1=$(fdfind -a -c -e "${{ inputs.filetype }}" "${{ env.base }}" | sort);
         include_files2=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         include_files3=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
@@ -699,10 +696,10 @@ runs:
                     clean_file="${file4##*/}";
                     if [[ ${include} == *"/"* ]]; then
                       shopt -s extglob
-                      header=$(fd -c -a -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
+                      header=$(fdfind -c -a -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
                       shopt -u extglob
                     else
-                      header=$(fd -c -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                      header=$(fdfind -c -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
                     fi;
                     if [[ "${header}" ]]; then
                       count2=$((include_count++));
