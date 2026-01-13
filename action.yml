@@ -653,6 +653,7 @@ runs:
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
         [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
         if [[ $(echo "${{ inputs.filetype }}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && ${{ inputs.source == '1' }} && [[ "${include_files1}" ]]; then
+          declare -A processed
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
             include_count=0
@@ -662,12 +663,19 @@ runs:
             echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             if ${{ inputs.include }}; then
               includes_found=false
-              include_source=$(LC_ALL=C grep -sEo '^#include[[:space:]]+[<"].*[>"]' "${file}" 2>/dev/null | awk '{print $2}' | tr -d '<">' | sort -u);
+              include_source=$(awk '
+                /^[[:space:]]*#[[:space:]]*include[[:space:]]+[<"]/ {
+                split($0, parts, /[<>"]/)
+                filename = parts[2]
+                if (filename != "" && !seen[filename]++) {
+                  print filename
+                }
+              }' "${file}");
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tinclude file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
-                  if ([[ "${include}" == *".h" ]] || [[ "${include}" == *".hh" ]] || [[ "${include}" == *".hpp" ]] || [[ "${include}" == *".h++" ]]) && [[ ! $(LC_ALL=C grep "${include}" "${include_count_file}") ]]; then
-                    echo "${include}" >> "${include_count_file}"
+                  if ([[ "${include}" == *".h" ]] || [[ "${include}" == *".hh" ]] || [[ "${include}" == *".hpp" ]] || [[ "${include}" == *".h++" ]]) && [[ ! "${processed[$include]}" ]]; then
+                    # echo "${include}" >> "${include_count_file}"
                     path1="${include##+(*./)}";
                     path2="${path1##[:]*}";
                     path3="${path2%'\n'}";
