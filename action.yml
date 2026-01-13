@@ -651,7 +651,7 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files1=$(fdfind -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | sort);
+        include_files1=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | sort);
         include_files2=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         include_files3=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
