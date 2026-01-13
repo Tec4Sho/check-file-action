@@ -59,7 +59,7 @@ target_sources("${PROJECT_NAME}" PUBLIC "${PROJECT_SRC_FILES}")
 
 if(DEFINED PROJECT_SRC_FILES)
   message(STATUS "Project Files: cmake added source files")
-elseif($ENV{github_source_files})
+elseif(DEFINED $ENV{github_source_files})
   message(STATUS "Project Files: cmake found source files")
 else()
   message(STATUS "Project Files: cmake added no files")
@@ -71,7 +71,7 @@ file(GLOB_RECURSE ALL_HEADERS CONFIGURE_DEPENDS "*.h")
 set(CHECK_FILE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/check-file-sources.txt")
 
 # Add the system, project include directory to your target
-if(DEFINED CHECK_FILE_SOURCES AND $ENV{source_include})
+if(DEFINED CHECK_FILE_SOURCES AND EXISTS ${CHECK_FILE_SOURCES} AND $ENV{include_source})
   target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/*")
   file(STRINGS "${CHECK_FILE_SOURCES}" FILE_PATHS)
   message(STATUS "Processing auto include source paths: $ENV{include_count}")
