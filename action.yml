@@ -659,7 +659,7 @@ runs:
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
         [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
-        if [[ "${{ inputs.filetype }}" == *.[c][c]*  ]] && ${{ inputs.source == '1' }} && [[ "${include_files1}" ]]; then
+        if [[ "${{ inputs.filetype }}" == [c]*  ]] && ${{ inputs.source == '1' }} && [[ "${include_files1}" ]]; then
           declare -A processed
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m all \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
@@ -675,9 +675,9 @@ runs:
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tinclude file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
-                  if [[ "${include}" == *.[h][h]* ]] && [[ -n "${processed[$include]}" ]]; then
+                  if [[ "${include}" == *.[h]* ]] && [[ -n "${processed[$include]}" ]]; then
                     echo -e "\n\033[1mNotice:\033[0m\033[32mSource file include \033[0m( ${include} )\033[33m was added already!!!\033[0m [ \033[1mskipped\033[0m ]" | process_input;
-                  elif [[ "${include}" == *.[h][h]* ]]; then
+                  elif [[ "${include}" == *.[h]* ]]; then
                     processed["$include"]=1
                     path1="${include##+(*./)}";
                     path2="${path1##[:]*}";
@@ -722,7 +722,7 @@ runs:
           if [[ -s "${include2}" ]]; then
             while IFS= read -r includes; do
               count4=$((include_dirs++));
-              if [[ "${include}" == *.[h][h]* ]]; then
+              if [[ "${include}" == *.[h]* ]]; then
                 echo "${includes%/*}" >> "${include3}";
               else
                 echo "${includes}" >> "${include3}";
@@ -751,7 +751,7 @@ runs:
           m=$((seconds / 60));
           s=$((seconds % 60));
           printf "Project Auto Include Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
-        elif [[ "${{ inputs.filetype }}" == *.[c][c]*  ]] && ${{ inputs.source == '2' }} && [[ "${include_files2}" ]]; then
+        elif [[ "${{ inputs.filetype }}" == [c]*  ]] && ${{ inputs.source == '2' }} && [[ "${include_files2}" ]]; then
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m mid \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do         
@@ -771,7 +771,7 @@ runs:
             if [[ "${include_source}" ]]; then
               includes_found=true
               echo -e "\n\tinclude source: ${include_source}" | process_input;
-              if [[ "${include}" == *.[h][h]* ]]; then
+              if [[ "${include}" == *.[h]* ]]; then
                 path1="${include_source##+(*./)}";
                 path2="${path1##[:]*}";
                 path3="${path2%'\n'}";
@@ -816,7 +816,7 @@ runs:
           if [[ -s "${include2}" ]]; then
             while IFS= read -r includes; do
               count4=$((include_dirs++));
-              if [[ "${include}" == *.[h][h]* ]]; then
+              if [[ "${include}" == *.[h]* ]]; then
                 echo "${includes%/*}" >> "${include3}";
               else
                 echo "${includes}" >> "${include3}";
@@ -844,11 +844,11 @@ runs:
           m=$((seconds / 60));
           s=$((seconds % 60));
           printf "Project Auto Include Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
-        elif [[ "${{ inputs.filetype }}" == *.[c][c]*  ]] && ${{ inputs.source == '3' }} && [[ "${include_files3}" ]]; then
+        elif [[ "${{ inputs.filetype }}" == [c]*  ]] && ${{ inputs.source == '3' }} && [[ "${include_files3}" ]]; then
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m low \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r include; do
-            if [[ "${include}" == *.[h][h]* ]]; then
+            if [[ "${include}" == *.[h]* ]]; then
               path1="${include##+(*./)}";
               path2="${path1##[:]*}";
               path3="${path2%'\n'}";
@@ -883,7 +883,7 @@ runs:
           if [[ -s "${include2}" ]]; then
             while IFS= read -r includes; do
               count4=$((include_dirs++));
-              if [[ "${include}" == *.[h][h]* ]]; then
+              if [[ "${include}" == *.[h]* ]]; then
                 echo "${includes%/*}" >> "${include3}";
               else
                 echo "${includes}" >> "${include3}";
@@ -910,7 +910,7 @@ runs:
           m=$((seconds / 60));
           s=$((seconds % 60));
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
-        elif [[ "${{ inputs.filetype }}" == *.[c][c]*  ]] && ${{ inputs.source == '4' }} && [[ "$(which gcc)" ]]; then
+        elif [[ "${{ inputs.filetype }}" == [c]*  ]] && ${{ inputs.source == '4' }} && [[ "$(which gcc)" ]]; then
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m all \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           gcc -M init/main.c | process_input;
