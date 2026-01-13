@@ -651,7 +651,7 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files1=$(fdfind -a -c -e "${{ inputs.filetype }}" "${{ env.base }}" | sort);
+        include_files1=$(fdfind -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | sort);
         include_files2=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         include_files3=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
@@ -696,10 +696,10 @@ runs:
                     clean_file="${file4##*/}";
                     if [[ ${include} == *"/"* ]]; then
                       shopt -s extglob
-                      header=$(fdfind -c -a -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
+                      header=$(fdfind -c auto -a -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
                       shopt -u extglob
                     else
-                      header=$(fdfind -c -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                      header=$(fdfind -c auto -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
                     fi;
                     if [[ "${header}" ]]; then
                       count2=$((include_count++));
@@ -921,7 +921,7 @@ runs:
         fi;
         if ${{ inputs.number > '0' }}; then
           echo "include_source=false" >> "${GITHUB_ENV}";
-        elif [[ "${count4}" => '2000' ]]; then
+        elif [[ "${count4}" > '2000' ]]; then
           echo "include_source=true" >> "${GITHUB_ENV}";
         else
           echo "include_source=false" >> "${GITHUB_ENV}";
