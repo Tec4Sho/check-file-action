@@ -266,16 +266,16 @@ runs:
             fi;
           fi;
         fi;
-        text0="####################\ngit dependencies Installed\n####################";
-        text1="####################\nripgrep dependencies Installed\n####################";
-        text2="####################\nansi2txt dependencies Installed\n####################";
-        text3="####################\nca-certificates dependencies Installed\n####################";
-        text4="####################\ncppcheck dependencies Installed\n####################";
-        text5="####################\nclang-tools dependencies Installed\n####################";
-        text6="####################\nshellharden dependencies Installed\n####################";
-        text7="####################\nshellcheck dependencies Installed\n####################";
-        text8="####################\ncheckmake dependencies Installed\n####################";
-        text9="####################\nbatcat dependencies Installed\n####################";
+        text0="####################\ngit dependencies installed\n####################";
+        text1="####################\nripgrep dependencies installed\n####################";
+        text2="####################\nansi2txt dependencies installed\n####################";
+        text3="####################\nca-certificates dependencies installed\n####################";
+        text4="####################\ncppcheck dependencies installed\n####################";
+        text5="####################\nclang-tools dependencies installed\n####################";
+        text6="####################\nshellharden dependencies installed\n####################";
+        text7="####################\nshellcheck dependencies installed\n####################";
+        text8="####################\ncheckmake dependencies installed\n####################";
+        text9="####################\nbatcat dependencies installed\n####################";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         github=${GITHUB_WORKSPACE};
@@ -284,41 +284,45 @@ runs:
           sudo rm -vf "$(which cmake)";
           sudo mkdir -p '/usr/local/bin'
           echo "/usr/local/bin" >> "${GITHUB_PATH}";
-          python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies Installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
+          python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -vpf "${HOME}/.local/bin/cmake" '/usr/local/bin/'
         fi;
         if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
-          sudo apt-get -yq install cmake 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies Installed\n####################" || echo -e '::error::No cmake installed for project build'; 
+          sudo apt-get -yq install cmake 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build'; 
           [[ ! $(which cmake) ]] && exit 1
         fi;
         if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic 2>/dev/null) ]]; then
-          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\n$(apt list linux-headers-generic 2>/dev/null) - $(uname -r) dependencies Installed\n####################" || echo -e "::error::No linux-headers-generic $(uname -r) installed for project build"; 
+          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\n$(apt list linux-headers-generic 2>/dev/null) - $(uname -r) dependencies installed\n####################" || echo -e "::error::No linux-headers-generic $(uname -r) installed for project build"; 
           [[ ! $(apt list linux-headers-generic 2>/dev/null) ]] && exit 1
         fi;
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
+        if [[ ! $(which fd) ]]; then
+          sudo apt-get -yq install fd-find 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nfd dependencies install\n####################" || echo -e '::error::No fd installed for file searches';
+          [[ ! $(which fd) ]] && exit 1
+        fi;
         if [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && ${{ inputs.repair }} && ${{ inputs.filename != '' }}; then
-          sudo apt-get -yq install gcc g++ 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies Installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
+          sudo apt-get -yq install gcc g++ 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
         fi;
         if ${{ inputs.project }} && ${{ inputs.analyzer == '2' }} && [[ ! $(which python3) ]]; then
-          sudo apt-get -yq install python3 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\npython3 dependencies Installed\n####################" || echo -e '::error::No python3 installed for project checks';
+          sudo apt-get -yq install python3 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
         if ${{ inputs.project }} && [[ ! $(llvm-config --version 2>/dev/null) ]]; then
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 21 >/dev/null 2>&1)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
-          sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies Installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
+          sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
           [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)" && echo '';
           [[ $(which clang-tidy-18) ]] && sudo rm -vf "$(which clang-tidy-18)";
           sudo apt-get -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
-          python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies Installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
+          python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
           [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
           [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
           [[ ! $(which clang-tidy) ]] && exit 1
@@ -335,7 +339,7 @@ runs:
           echo "run_clang_tidy=${{ github.action_path }}/scripts/tools/run-clang-tidy.py" >> "${GITHUB_ENV}";
         fi;
         if ${{ inputs.project }} && ${{ inputs.analyzer == '3' }} && [[ ! $(which clangd-tidy) ]]; then
-          python3 -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies Installed\n####################" || echo -e '::error::No clangd-tidy installed for project checks';
+          python3 -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies installed\n####################" || echo -e '::error::No clangd-tidy installed for project checks';
           if [[ $(which clangd-tidy) ]]; then
             echo -e "\nclangd-tidy path: $(which clangd-tidy)\n";
           else
@@ -343,8 +347,8 @@ runs:
           fi;
         fi;
         if (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}) && [[ ! $(which CodeChecker) ]]; then
-          sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies Installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
-          python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies Installed\n####################" || echo -e '::error::No codechecker installed for project checks';
+          sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
+          python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies installed\n####################" || echo -e '::error::No codechecker installed for project checks';
           sudo mkdir -p "/home/runner/codechecker/venv/include"
           sudo mkdir -p "/home/runner/codechecker/venv/bin"
           sudo chown -R "${USER}:${USER}" /home/runner/codechecker/
@@ -358,14 +362,14 @@ runs:
           fi;
         fi;
         if ${{ inputs.project }} && ${{ inputs.build > '2' }} && [[ ! $(which deheader) ]]; then
-          sudo apt-get -yq install deheader 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ndeheader dependencies Installed\n####################" || echo -e '::error::No deheader installed for project includes check';
+          sudo apt-get -yq install deheader 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ndeheader dependencies installed\n####################" || echo -e '::error::No deheader installed for project includes check';
           [[ ! $(which deheader) ]] && exit 1
         fi;
         if ${{ inputs.project }} && [[ ! $(dpkg -s build-essential 2>/dev/null) ]]; then
-          sudo apt-get -yq install build-essential device-tree-compiler 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nbuild-essential dependencies Installed\n####################" || echo -e '::error::No build-essential installed for project build';
+          sudo apt-get -yq install build-essential device-tree-compiler 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nbuild-essential dependencies installed\n####################" || echo -e '::error::No build-essential installed for project build';
         fi;
         if ${{ inputs.project }} && ${{ inputs.analyzer == 3 }} && [[ ! $(which tqdm) ]]; then
-          python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies Installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
+          python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
         fi;
         if ${{ inputs.pattern != '' }} && ${{ inputs.database }} && [[ ! $(which rg) ]]; then
@@ -613,6 +617,7 @@ runs:
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${repository}_project.log";
         export LC_ALL=C
+        export LS_COLORS
         SAVEIFS="${IFS}";
         include_missing=1
         include_count=1
@@ -646,7 +651,7 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files1=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | sort);
+        include_files1=$(fd -ace "${{ inputs.filetype }}" "${{ env.base }}" | sort);
         include_files2=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         include_files3=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
@@ -676,7 +681,7 @@ runs:
                 echo -e "\n\tinclude file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
                   if ([[ "${include}" == *".h" ]] || [[ "${include}" == *".hh" ]] || [[ "${include}" == *".hpp" ]] || [[ "${include}" == *".h++" ]]) && [[ -n "${processed[$include]}" ]]; then
-                    echo -e "\n::notice::\033[32mSource file include \033[0m( ${include} )\033[33m was added already!!!\033[0m [ \033[1mskipped\033[0m ]" | process_input;
+                    echo -e "\n\033[1mNotice:\033[0m\033[32mSource file include \033[0m( ${include} )\033[33m was added already!!!\033[0m [ \033[1mskipped\033[0m ]" | process_input;
                   elif [[ "${include}" == *".h" ]] || [[ "${include}" == *".hh" ]] || [[ "${include}" == *".hpp" ]] || [[ "${include}" == *".h++" ]]; then
                     processed["$include"]=1
                     path1="${include##+(*./)}";
@@ -691,10 +696,10 @@ runs:
                     clean_file="${file4##*/}";
                     if [[ ${include} == *"/"* ]]; then
                       shopt -s extglob
-                      header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${path4##+(*./)}" -print);
+                      header=$(fd -c -a -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
                       shopt -u extglob
                     else
-                      header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print -quit);
+                      header=$(fd -c -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
                     fi;
                     if [[ "${header}" ]]; then
                       count2=$((include_count++));
@@ -915,11 +920,11 @@ runs:
           echo 'include_count=0' >> "${GITHUB_ENV}";
         fi;
         if ${{ inputs.number > '0' }}; then
-          echo "source_include=false" >> "${GITHUB_ENV}";
+          echo "include_source=false" >> "${GITHUB_ENV}";
         elif [[ "${count4}" => '2000' ]]; then
-          echo "source_include=true" >> "${GITHUB_ENV}";
+          echo "include_source=true" >> "${GITHUB_ENV}";
         else
-          echo "source_include=false" >> "${GITHUB_ENV}";
+          echo "include_source=false" >> "${GITHUB_ENV}";
         fi;
         echo '';
       shell: bash
@@ -1032,13 +1037,13 @@ runs:
             include_count=0
             if ${{ inputs.number > '0' }}; then
               file_count=${{ inputs.number }};
-              echo "source_include=false" >> "${GITHUB_ENV}";
+              echo "include_source=false" >> "${GITHUB_ENV}";
             elif ${{ env.include_count > '2000' }}; then
               file_count=${{ env.include_count }};
-              echo "source_include=true" >> "${GITHUB_ENV}";
+              echo "include_source=true" >> "${GITHUB_ENV}";
             else
               file_count='500';
-              echo "source_include=false" >> "${GITHUB_ENV}";
+              echo "include_source=false" >> "${GITHUB_ENV}";
             fi;            
             if ${{ inputs.source > '0' }} && [[ -s "${clang_sources}" ]] && ${{ inputs.include }}; then
               if [[ "${file_count}" < '2000' ]]; then
