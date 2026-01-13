@@ -299,9 +299,12 @@ runs:
           sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
-        if [[ ! $(which fd) ]]; then
+        if [[ ! $(which fdfind) ]]; then
           sudo apt-get -yq install fd-find 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nfd dependencies install\n####################" || echo -e '::error::No fd installed for file searches';
-          [[ ! $(which fd) ]] && exit 1
+          [[ ! $(which fd-find) ]] && echo -e '[fd-find found]\n';
+          [[ ! $(which fdfind) ]] && echo -e '[fdfind found]\n';
+          [[ ! $(which fd) ]] [[ ! $(which fd-find) ]] && echo -e '[fd-find found]\n';
+          [[ ! $(which fdfind) ]] && echo -e '::error::[No fd found]\n'
         fi;
         if [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && ${{ inputs.repair }} && ${{ inputs.filename != '' }}; then
           sudo apt-get -yq install gcc g++ 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
