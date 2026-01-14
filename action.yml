@@ -915,7 +915,7 @@ runs:
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
             gcc -MM "${file}" -MF "${include_list}" 2>/dev/null | process_input;
-          done <<< "${files[@]}";
+          done <<< "${include_files1[@]}";
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
           s=$((seconds % 60));
