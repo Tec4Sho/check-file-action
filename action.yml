@@ -656,7 +656,7 @@ runs:
         include_files1=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         include_files2=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         include_files3=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
-        include_files4=$(fdfind -c always -e "${{ inputs.filetype }}" . | sort -k1,1);
+        include_files4=$(fdfind -c always -e "${{ inputs.filetype }}" .);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
@@ -930,19 +930,21 @@ runs:
           fi;
           if [[ -s "${project_log}" ]]; then
             grep -E '^[^/].*\.(h|hpp)$' "${project_log}" | grep -v '.o:' > 'input_file.txt' && sed -E 's|/[^/]*$||' 'input_file.txt' > 'output_file.txt';
-            while IFS= read -r path; do
-              count4=$((include_dirs++));
-              echo "${path%/..}" >> 'output.txt';
-            done < 'output_file.txt';
-            cat 'output.txt' | sort -u > "${include_list}";
+            if [[ -s 'output_file.txt' ]]; then
+              while IFS= read -r path; do
+                count4=$((include_dirs++));
+                echo "${path%/..}" >> 'output.txt';
+              done < 'output_file.txt';
+            fi;
+            [[ -s 'output.txt' ]] && cat 'output.txt' | sort -u > "${include_list}";
             if [[ -s "${include_list}" ]]; then
               count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
+              mkdir -p build && cp -vf "${include_list}" build/ | process_input;
             fi;
             echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m include directories added,\n[Hint] You can \033[31mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[31m500\033[0m" | process_input;
             includes_found=true
-            rm output.txt input_file.txt output_file.txt 2>/dev/null;
+            [[ -s 'output.txt' ]] rm output.txt input_file.txt output_file.txt 2>/dev/null;
           fi;
-          [[ -s "${include_list}" ]] && mkdir -p build && cp -vf "${include_list}" build/ | process_input;
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
           s=$((seconds % 60));
