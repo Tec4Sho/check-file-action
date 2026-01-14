@@ -939,6 +939,7 @@ runs:
           echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m\n[Hint] Their were \033[1m${count4}\033[0m include directories added,\nYou can \033[35mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[32m500\033[0m" | process_input;
           includes_found=true
           fi;
+          [[ -s "${include_list}" ]] && mkdir -p build && cp -vf "${include_list}" build/ | process_input;
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
           s=$((seconds % 60));
