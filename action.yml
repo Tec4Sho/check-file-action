@@ -969,24 +969,24 @@ runs:
       if: inputs.project == 'true'
       run: |
         export WITH_TIDY=1
+        export LC_ALL=C
         start_time="${SECONDS}";
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export ALLOW_MISSING_DEPENDENCIES=true
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-        export LC_ALL=C
-        set +e
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${repository}_project.log";
-        check_build=false
-        file_type='c';
-        github=${GITHUB_WORKSPACE};
-        update=true
-        fixed=false
         clang_sources='check-file-sources.txt';
         count1='count1.txt';
         count2='count2.txt';
         count3='count3.txt';
+        check_build=false
+        include_source=false
+        file_type='c';
+        github=${GITHUB_WORKSPACE};
+        update=true
+        fixed=false
         process_input() {
           while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
@@ -1073,12 +1073,15 @@ runs:
             if ${{ inputs.number > '0' }}; then
               file_count=${{ inputs.number }};
               echo "include_source=false" >> "${GITHUB_ENV}";
+              include_source=false
             elif ${{ env.include_count > '2000' }}; then
               file_count=${{ env.include_count }};
               echo "include_source=true" >> "${GITHUB_ENV}";
+              include_source=true
             else
               file_count='500';
               echo "include_source=false" >> "${GITHUB_ENV}";
+              include_source=false
             fi;            
             if [[ -s "${clang_sources}" ]] && ${{ inputs.include }}; then
               if [[ "${file_count}" < '2000' ]]; then
@@ -1154,9 +1157,9 @@ runs:
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             if ([[ "$(source_dirs)" ]] || [[ "$(cmake_includes)" ]]) && [[ ! -f "${compile_json}" ]]; then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
-              cmake -S . -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             elif [[ ! -f "${compile_json}" ]]; then
-              cmake -S . -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             fi;
             if [[ "${PIPESTATUS[0]}" == '0' ]]; then
               if ${{ inputs.upload }}; then
