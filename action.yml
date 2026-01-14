@@ -96,7 +96,7 @@ inputs:
     - 1 # Locate all includes in sources and display all content found about files.
     - 2 # Locate all includes in sources and display more content found about files.
     - 3 # Locate all includes in sources and display less content found about files.
-    - 4 # Locate all needed includes in sources and display all using gcc.
+    - 4 # Locate all includes in sources and create object dependencies displaying content found about files.
   number:
     description: 'Number of files to check before stopping action'
     type: number
@@ -914,9 +914,14 @@ runs:
         elif [[ "${{ inputs.filetype }}" == [c]*  ]] && ${{ inputs.source == '4' }} && [[ "${include_files4}" ]]; then
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m all \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
-          if [[ "$(which gcc)" ]]; then
+          if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             while IFS= read -r file; do
-              gcc -MM -MP "${file}" 2>/dev/null | process_input;
+              gcc -MMD -MP "${file}" 2>/dev/null | process_input;
+            done <<< "${include_files4[@]}";
+          echo 'check_build=true' >> "${GITHUB_ENV}";
+          elif [[ "$(which g++)" ]]; then
+            while IFS= read -r file; do
+              g++ -MMD -MP "${file}" 2>/dev/null | process_input;
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
