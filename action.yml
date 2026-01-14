@@ -300,7 +300,7 @@ runs:
           sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
-        if [[ ! $(which fdfind) ]]; then
+        if [[ ! $(which fdfind) ]] && ${{ inputs.source > '0' }}; then
           sudo apt-get -yq install fd-find 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nfd dependencies install\n####################" || echo -e '::error::No fdfind installed for file searches';
           [[ ! $(which fdfind) ]] && echo -e '::error::[No fdfind found]\n';
         fi;
@@ -653,8 +653,9 @@ runs:
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         include_files1=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
-        include_files2=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
-        include_files3=$(find "${{ env.base }}" -type f -name "*.${{ inputs.filetype }}" -print | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
+        include_files2=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
+        include_files3=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
+        include_files4=$(fdfind -c auto -e "${{ inputs.filetype }}" . | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
@@ -782,12 +783,12 @@ runs:
                 file3="${file2%'\n'}";
                 file4="${file3%\\}";
                 clean_file="${file4##*/}";
-                if [[ ${include_source} == *"/"* ]]; then
+                if [[ ${include} == *"/"* ]]; then
                   shopt -s extglob
-                  header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${file4##+(*./)}" -print);
+                  header=$(fdfind -c auto -a -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
                   shopt -u extglob
-                else
-                  header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print);
+                 else
+                   header=$(fdfind -c auto -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
                 fi;
                 includes_missing=false
                 if [[ "${header}" ]]; then
@@ -859,12 +860,12 @@ runs:
               file3="${file2%'\n'}";
               file4="${file3%\\}";
               clean_file="${file4##*/}";
-              if [[ "${clean_path#./}" != "${clean_name#./}" ]]; then
+              if [[ ${include} == *"/"* ]]; then
                 shopt -s extglob
-                header=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${clean_path#./}/${clean_name#./}" -print);
+                header=$(fdfind -c auto -a -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
                 shopt -u extglob
               else
-                header=$(find "${{ env.base }}" -type f -name "${clean_file#./}" -print);
+                header=$(fdfind -c auto -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
               fi;
               if [[ "${header}" ]]; then
                 count2=$((include_count++));
@@ -910,12 +911,15 @@ runs:
           m=$((seconds / 60));
           s=$((seconds % 60));
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
-        elif [[ "${{ inputs.filetype }}" == [c]*  ]] && ${{ inputs.source == '4' }} && [[ "$(which gcc)" ]]; then
+        elif [[ "${{ inputs.filetype }}" == [c]*  ]] && ${{ inputs.source == '4' }} && [[ "${include_files4}" ]]; then
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m all \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
-          while IFS= read -r file; do
-            gcc -MM "${file}" 2>/dev/null | process_input;
-          done <<< "${include_files1[@]}";
+          if [[ "$(which gcc)" ]]; then
+            while IFS= read -r file; do
+              gcc -MM -MP "${file}" 2>/dev/null | process_input;
+            done <<< "${include_files4[@]}";
+          echo 'check_build=true' >> "${GITHUB_ENV}";
+          fi;
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
           s=$((seconds % 60));
