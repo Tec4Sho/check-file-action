@@ -653,10 +653,10 @@ runs:
           done;
         }
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files1=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
-        include_files2=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
-        include_files3=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
-        include_files4=$(fdfind -c auto -e "${{ inputs.filetype }}" . | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
+        include_files1=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" -X awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
+        include_files2=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" -X grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
+        include_files3=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}"-X LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
+        include_files4=$(fdfind -c always -e "${{ inputs.filetype }}" . -X awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
@@ -935,9 +935,12 @@ runs:
               echo "${path%/..}" >> 'output.txt';
             done < 'output_file.txt';
             cat 'output.txt' | sort -u > "${include_list}";
-          echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m\n[Hint] Their were \033[1m${count4}\033[0m include directories added,\nYou can \033[35mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[32m500\033[0m" | process_input;
-          includes_found=true
-          rm output.txt input_file.txt output_file.txt
+            if [[ -s "${include_list}" ]]; then
+            count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
+            fi;
+            echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m include directories added,\n[Hint]You can \033[35mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[32m500\033[0m" | process_input;
+            includes_found=true
+            rm output.txt input_file.txt output_file.txt
           fi;
           [[ -s "${include_list}" ]] && mkdir -p build && cp -vf "${include_list}" build/ | process_input;
           seconds=$((SECONDS - start_time));
