@@ -918,13 +918,13 @@ runs:
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             while IFS= read -r file; do
               count1=$((file_count++));
-              gcc -MM "${file}" 2>/dev/null | process_input;
+              gcc -MM -MP "${file}" 2>/dev/null | process_input;
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "$(which g++)" ]]; then
             while IFS= read -r file; do
               count1=$((file_count++));
-              g++ -MM "${file}" 2>/dev/null | process_input;
+              g++ -MM -MP "${file}" 2>/dev/null | process_input;
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
@@ -936,14 +936,13 @@ runs:
                 echo "${path%/..}" >> 'output.txt';
               done < 'output_file.txt';
             fi;
-            [[ -s 'output.txt' ]] && cat 'output.txt' | sort -u > "${include_list}";
+            [[ -s 'output.txt' ]] && cat 'output.txt' | sort -u > "${include_list}" && rm output.txt input_file.txt output_file.txt 2>/dev/null;
             if [[ -s "${include_list}" ]]; then
               count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
               mkdir -p build && cp -vf "${include_list}" build/ | process_input;
             fi;
             echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m include directories added,\n[Hint] You can \033[31mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[31m500\033[0m" | process_input;
             includes_found=true
-            [[ -s 'output.txt' ]] rm output.txt input_file.txt output_file.txt 2>/dev/null;
           fi;
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
