@@ -631,6 +631,7 @@ runs:
         count4=0
         count5=0
         checked=false
+        includes_found=false
         include1='include-file1.txt';
         include2='include-file2.txt';
         include3='include-file3.txt';
@@ -916,14 +917,27 @@ runs:
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             while IFS= read -r file; do
+              count1=$((file_count++));
               gcc -MMD -MP "${file}" 2>/dev/null | process_input;
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "$(which g++)" ]]; then
             while IFS= read -r file; do
+              count1=$((file_count++));
               g++ -MMD -MP "${file}" 2>/dev/null | process_input;
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
+          fi;
+          if [[ -s "${project_log}" ]]; then
+            grep -E '^[^/].*\.(h|hpp)$' "${project_log}" | grep -v '.o:' > input_file.txt;
+            sed -E 's|/[^/]*$||' input_file.txt > output_file.txt;
+            while IFS= read -r file; do
+              count4=$((include_dirs++));
+              echo "${file%/..}" >> output.txt;
+            done < output_file.txt;
+            cat output.txt | sort -u > "${include_list}";
+          echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m\n[Hint] Their were \033[1m${count4}\033[0m include directories added,\nYou can \033[35mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[32m500\033[0m" | process_input;
+          includes_found=true
           fi;
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
