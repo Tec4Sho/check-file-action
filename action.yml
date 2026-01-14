@@ -914,7 +914,7 @@ runs:
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m all \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
-            gcc -MM "${file}" -MF "${include_list}" 2>/dev/null | process_input;
+            gcc -MM "${file}" 2>/dev/null | process_input;
           done <<< "${include_files1[@]}";
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
