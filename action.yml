@@ -656,7 +656,7 @@ runs:
         include_files1=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         include_files2=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         include_files3=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
-        include_files4=$(fdfind -p -c always -e "${{ inputs.filetype }}" . | sort -u);
+        include_files4=$(fdfind -p -c auto -e "${{ inputs.filetype }}" "${{ env.base }}" | sort -u);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
@@ -916,18 +916,18 @@ runs:
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m all \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
+            echo -e '\n[gcc mode]';
             while IFS= read -r file; do
               count1=$((file_count++));
-              gcc -MM "${file}" | process_input;
+              gcc -MM -MP "${file}" | process_input;
             done <<< "${include_files4[@]}";
-          echo -e '\n[gcc mode]';
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]]&& [[ "$(which g++)" ]]; then
+            echo -e '\n[g++ mode]';
             while IFS= read -r file; do
               count1=$((file_count++));
-              g++ -MM "${file}" | process_input;
+              g++ -MM -MP "${file}" | process_input;
             done <<< "${include_files4[@]}";
-          echo -e '\n[g++ mode]'
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
           if [[ -s "${project_log}" ]]; then
