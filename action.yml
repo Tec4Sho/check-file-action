@@ -918,13 +918,13 @@ runs:
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             while IFS= read -r file; do
               count1=$((file_count++));
-              gcc -MG -MP "${file}" | process_input;
+              gcc -MMP "${file}" | process_input;
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "$(which g++)" ]]; then
             while IFS= read -r file; do
               count1=$((file_count++));
-              g++ -MM -MP "${file}" | process_input;
+              g++ -MMP "${file}" | process_input;
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
