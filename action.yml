@@ -246,7 +246,7 @@ runs:
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
-        sudo add-apt-repository universe >/dev/null;
+        #sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository ppa:git-core/ppa >/dev/null;
         sudo apt-get update -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         if ${{ inputs.project }}; then
@@ -322,7 +322,7 @@ runs:
           sudo apt-get -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
-        if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | LC_ALL=C egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
+        if (${{ inputs.project }} || [[ "${file_type}" =~ ^(c|cc|cpp|c++|h|hh|hpp|t|tpp)$ ]]) && [[ ! $(which clang-tidy) ]]; then
           python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
           [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
           [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
@@ -383,24 +383,24 @@ runs:
         if ${{ inputs.project }} && [[ ! $(which update-ca-certificates) ]]; then
           sudo apt-get -yq install ca-certificates 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
-        if [[ -n $(echo "${file_type}" | LC_ALL=C egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ ! $(which cppcheck) ]]; then
+        if [[ "${file_type}" =~ ^(c|cc|cpp|c++|h|hh|hpp|t|tpp)$ ]] && [[ ! $(which cppcheck) ]]; then
           sudo apt-get -yq install cppcheck 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
           [[ ! $(which cppcheck) ]] && exit 1
         fi;
-        if [[ -n $(echo "${file_type}" | LC_ALL=C egrep -i "^sh$") ]] && ${{ inputs.repair }} && [[ ! $(which shellharden) ]]; then
+        if [[ "${file_type}" == [sh] ]] && ${{ inputs.repair }} && [[ ! $(which shellharden) ]]; then
           sudo wget -qO 'shellharden.tar.gz' 'https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-gnu.tar.gz' >/dev/null;
           sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e "${text6}" || echo -e '::error::No shellharden installed Exiting';
           [[ ! $(which shellharden) ]] && exit 1
         fi;
-        if [[ -n $(echo "${file_type}" | LC_ALL=C egrep -i "^sh$") ]] && [[ ! $(which shellcheck) ]]; then
+        if [[ "${file_type}" == [sh] ]] && [[ ! $(which shellcheck) ]]; then
           sudo apt-get -yq install shellcheck 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text7}" || echo -e '::error::No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1
         fi;
         checkmake_src='checkmake.ini';
         checkmake_des="${HOME}/checkmake.ini";
-        if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
+        if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | LC_ALL=C grep -E "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
           sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
-        elif [[ -n $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
+        elif [[ -n $(echo "${file_type}" | LC_ALL=C grep -E "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
           echo -e '\ncheckmake.ini file missing, needed for checkmake to function properly\n';
         fi;
         if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]] && [[ ! $(which checkmake) ]]; then
