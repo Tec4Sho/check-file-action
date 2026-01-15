@@ -962,7 +962,7 @@ runs:
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
         fi;
         if [[ "${includes_found}" == 'true' ]]; then
-          echo "include_count={count4}" >> "${GITHUB_ENV}";
+          echo "include_count=${count4}" >> "${GITHUB_ENV}";
         else
           echo 'include_count=0' >> "${GITHUB_ENV}";
         fi;
