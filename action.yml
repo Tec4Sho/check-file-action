@@ -924,14 +924,14 @@ runs:
             echo -e '\n[\033[1mgcc mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              gcc -MM -MP -MG "${file}" -MF dependencies.d 2>&1 | tee dependencies.d | process_input
+              gcc -MM -MP "${file}" -MF dependencies.d 2>&1 | tee dependencies.d | process_input
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mg++ mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              g++ -MM -MP -MG "${file}" -MF dependencies.d 2>&1 | tee dependencies.d | process_input
+              g++ -MM -MP "${file}" -MF dependencies.d 2>&1 | tee dependencies.d | process_input
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
