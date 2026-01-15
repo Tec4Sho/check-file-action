@@ -668,7 +668,7 @@ runs:
         [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
         if [[ "${{ inputs.filetype }}" == [c]*  ]] && ${{ inputs.source == '1' }} && [[ "${include_files1}" ]]; then
           declare -A processed
-          echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m all \033[0m]" | process_input;
+          echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m verbose \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
             include_count=0
@@ -759,7 +759,7 @@ runs:
           s=$((seconds % 60));
           printf "Project Auto Include Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
         elif [[ "${{ inputs.filetype }}" == [c]*  ]] && ${{ inputs.source == '2' }} && [[ "${include_files2}" ]]; then
-          echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m mid \033[0m]" | process_input;
+          echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m medium \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do         
             name="${file%%:*}";
@@ -918,7 +918,7 @@ runs:
           s=$((seconds % 60));
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
         elif [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '4' }} && [[ "${include_files4}" ]]; then
-          echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m all \033[0m]" | process_input;
+          echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m verbose \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             echo -e '\n[\033[1mgcc mode\033[0m]\n';
@@ -949,10 +949,14 @@ runs:
               count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
               mkdir -p build && cp -vf "${include_list}" build/ | process_input;
             fi;
-            clang_files_missing=$(LC_ALL=C grep -sEc 'file not found|no such file|missing file|file missing' "${project_log}");
+            clang_files_missing=$(LC_ALL=C grep -sEc 'file not found|No such file|missing file|file missing' "${project_log}");
+            clang_file_errors=$(LC_ALL=C grep -sFc 'error:' "${project_log}");
             echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m include directories added,\n[Hint] You can \033[31mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[31m500\033[0m" | process_input;
+            if [[ "${clang_file_errors}" > '0' ]]; then
+              echo -e "\n::notice::\033[34m⚠️ Total include source file errors during scan\033[0m\033[1m ${clang_file_errors}\033[0m\n[Hint] Many source files may report the same \033[31mfatal file errors.\033[0m\n\033[1mCheck-file notice file issues that needs repair before a build!!!\033[0m" | process_input;
+            fi;
             if [[ "${clang_files_missing}" > '0' ]]; then
-              echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${clang_files_missing}\033[0m\n[Hint] Many source files calling the same \033[31mmissing include files.\033[0m\nSet option \033[1m( source: 3 )\033[0m to get a exact missing list count quickly!" | process_input;
+              echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${clang_files_missing}\033[0m\n[Hint] Many source files call the same \033[31mmissing include files.\033[0m\nSet option \033[1m( source: 3/4 )\033[0m to get a exact missing list count quickly!" | process_input;
             fi;
             includes_found=true
           fi;
