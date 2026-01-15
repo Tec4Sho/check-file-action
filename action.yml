@@ -322,7 +322,7 @@ runs:
           sudo apt-get -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
-        if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
+        if (${{ inputs.project }} || [[ -n $(echo "${file_type}" | LC_ALL=C egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]) && [[ ! $(which clang-tidy) ]]; then
           python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
           [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
           [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
@@ -383,27 +383,27 @@ runs:
         if ${{ inputs.project }} && [[ ! $(which update-ca-certificates) ]]; then
           sudo apt-get -yq install ca-certificates 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
-        if [[ -n $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ ! $(which cppcheck) ]]; then
+        if [[ -n $(echo "${file_type}" | LC_ALL=C egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ ! $(which cppcheck) ]]; then
           sudo apt-get -yq install cppcheck 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
           [[ ! $(which cppcheck) ]] && exit 1
         fi;
-        if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && ${{ inputs.repair }} && [[ ! $(which shellharden) ]]; then
+        if [[ -n $(echo "${file_type}" | LC_ALL=C egrep -i "^sh$") ]] && ${{ inputs.repair }} && [[ ! $(which shellharden) ]]; then
           sudo wget -qO 'shellharden.tar.gz' 'https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-gnu.tar.gz' >/dev/null;
           sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e "${text6}" || echo -e '::error::No shellharden installed Exiting';
           [[ ! $(which shellharden) ]] && exit 1
         fi;
-        if [[ -n $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ ! $(which shellcheck) ]]; then
+        if [[ -n $(echo "${file_type}" | LC_ALL=C egrep -i "^sh$") ]] && [[ ! $(which shellcheck) ]]; then
           sudo apt-get -yq install shellcheck 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text7}" || echo -e '::error::No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1
         fi;
         checkmake_src='checkmake.ini';
         checkmake_des="${HOME}/checkmake.ini";
-        if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
+        if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
           sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
-        elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
+        elif [[ -n $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
           echo -e '\ncheckmake.ini file missing, needed for checkmake to function properly\n';
         fi;
-        if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ ! $(which checkmake) ]]; then
+        if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]] && [[ ! $(which checkmake) ]]; then
           go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "\n${text8}\n" || echo -e '::error::No checkmake installed Exiting';
           sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
           [[ ! $(which checkmake) ]] && exit 1
@@ -764,7 +764,7 @@ runs:
           while IFS= read -r file; do         
             name="${file%%:*}";
             name_count="${name##*/}";
-            if [[ $(grep "${name_count}" "${name_count_file}") ]]; then
+            if [[ $(LC_ALL=C grep "${name_count}" "${name_count_file}") ]]; then
               echo -e "\nAnalyzing Source File: ${name##*/}" | process_input;
             else
               count1=$((file_count++));
@@ -949,14 +949,16 @@ runs:
               count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
               mkdir -p build && cp -vf "${include_list}" build/ | process_input;
             fi;
-            clang_files_missing=$(LC_ALL=C grep -sEc 'file not found|No such file|missing file|file missing' "${project_log}");
+            clang_files_missing=$(LC_ALL=C grep -sFc 'No such file' "${project_log}");
+            clang_missing_count=$(LC_ALL=C grep -sF 'No such file or directory' "${project_log}" | awk '{print $4}' | tr -d ': ' | sort -u | wc -l);
             clang_file_errors=$(LC_ALL=C grep -sFc 'error:' "${project_log}");
             echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m include directories added,\n[Hint] You can \033[31mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[31m500\033[0m" | process_input;
             if [[ "${clang_file_errors}" > '0' ]]; then
               echo -e "\n::notice::\033[34m⚠️ Total include source file errors during scan\033[0m\033[1m ${clang_file_errors}\033[0m\n[Hint] Many source files may report the same \033[31mfatal file errors.\033[0m\n\033[1mCheck-file notice file issues that needs repair before a build!!!\033[0m" | process_input;
             fi;
             if [[ "${clang_files_missing}" > '0' ]]; then
-              echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${clang_files_missing}\033[0m\n[Hint] Many source files call the same \033[31mmissing include files.\033[0m\nSet option \033[1m( source: 3/4 )\033[0m to get a exact missing list count quickly!" | process_input;
+              echo -e "\n::notice::\033[34m⚠️ Total include source file missing calls during scan\033[0m\033[1m ${clang_files_missing}\033[0m\n[Hint] Many source files call the same \033[31mmissing include files.\033[0m\nSet option \033[1m( source: 3/4 )\033[0m to get a exact missing list count quickly!" | process_input;
+              echo -e "\n::notice::\033[31m⚠️ Total include source files actually missing after scan\033[0m\033[1m ${clang_missing_count:-0}\033[0m\n";
             fi;
             includes_found=true
           fi;
@@ -1191,7 +1193,7 @@ runs:
             { time "${{ env.run_clang_tidy }}" -p "${compile_json}" -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)"; } 2>&1 | process_input;
             [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && clang-format -style=LLVM -dump-config > .clang-format | process_input;
             [[ $(whereis clang-apply-replacements) ]] && { time clang-apply-replacements build/fixes --format --style='.clang-format' --ignore-insert-conflict --remove-change-desc-files; } 2>&1 | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -1222,7 +1224,7 @@ runs:
               cp -vf "${clang_file}" 'build/check-source-files.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
               { time clang-tidy @parameter-file; } 2>&1 | process_input;
-              if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
+              if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
                 echo -e "\n::notice::Errors found checking project files" | process_input;
                 check_build=true
                 echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -1239,7 +1241,7 @@ runs:
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e 'compile_commands.json' ]]; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILES\n####################\n' | process_input;
             { time find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 100 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p "${compile_json}" -j "$(nproc --all)" --color always --tqdm || true' bash; } 2>&1 | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -1261,7 +1263,7 @@ runs:
               echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
             { time CodeChecker analyze "${compile_json}" --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./results &&  CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
-            if [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+            if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -1342,7 +1344,7 @@ runs:
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
           { time CodeChecker check -b "make clean && make -v -n -k -j $(nproc --all) -f ${{ inputs.makefile }}" -o ./results; } 2>&1 | process_input;
-          if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
+          if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found checking building files" | process_input;
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -1368,7 +1370,7 @@ runs:
           fi;
           [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
           { time CodeChecker log --build "make -v -f ${{ inputs.makefile }} -j $(nproc --all)" --output "${compile_json}"; } 2>&1 | process_input;
-          if [[ -s "${project_log}" ]] && [[ $(grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
+          if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found building project files" | process_input;
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -1389,7 +1391,7 @@ runs:
           echo -e '\n####################\n\tDeheader analyze sources includes...(dry-run -3)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
           { time deheader -m "make -v 3 -n -j $(nproc --all) -f ${{ inputs.makefile }}" -r -v; } 2>&1 | process_input;
-          if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
+          if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
             echo -e "\n::notice::duplicate includes found building project files" | process_input;
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -1409,7 +1411,7 @@ runs:
           echo -e '\n####################\n\tDeheader analyze & repair sources includes...(build -4)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
           { time deheader -m "make -v 2 -f ${{ inputs.makefile }}" -r -v; } 2>&1 | process_input;
-          if [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
+          if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
             echo -e "\n::notice::duplicate includes found building project files" | process_input;
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -1427,18 +1429,18 @@ runs:
         fi;
         if [[ -s "${project_log}" ]]; then
           echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################" | process_input;
-          deheader_duplicates=$(grep -sEc 'duplicates' "${project_log}");
-          deheader_inclusion=$(grep -sEc 'inclusion' "${project_log}");
-          deheader_removed=$(grep -sEc 'remove' "${project_log}");
-          codechecker_success=$(grep -sFc 'successfully' "${project_log}");
-          codechecker_errors=$(grep -sFc 'Error while processing' "${project_log}");
+          deheader_duplicates=$(LC_ALL=C grep -sEc 'duplicates' "${project_log}");
+          deheader_inclusion=$(LC_ALL=C grep -sEc 'inclusion' "${project_log}");
+          deheader_removed=$(LC_ALL=C grep -sEc 'remove' "${project_log}");
+          codechecker_success=$(LC_ALL=C grep -sFc 'successfully' "${project_log}");
+          codechecker_errors=$(LC_ALL=C grep -sFc 'Error while processing' "${project_log}");
           clang_replacements=$(find -path '*/fixes/*' -type f -name "*.yaml" -print | xargs -r -P "$(nproc --all)" -n 500 grep -F 'Replacements:' | grep -v -c '[\[\]]');
-          clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
-          clang_files_list=$(grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
-          clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
-          clang_errors=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
-          clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
-          clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}");
+          clang_files_missing=$(LC_ALL=C grep -sFc 'file not found' "${project_log}");
+          clang_files_list=$(LC_ALL=C grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
+          clang_warnings=$(LC_ALL=C grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
+          clang_errors=$(LC_ALL=C grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
+          clang_fixits=$(LC_ALL=C grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
+          clang_notes=$(LC_ALL=C grep -sEc 'note:|Note:|NOTE:' "${project_log}");
           located_count=0
           missing_count=0
           file_count=0
@@ -1587,11 +1589,11 @@ runs:
         fi;
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
             echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n" | process_input;
           else
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
+            files=$(LC_ALL=C grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
             echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n" | process_input;
           fi;
         else
@@ -1601,7 +1603,7 @@ runs:
             files=$(sudo find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
           fi;
         fi;
-        if [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
+        if [[ $(echo "${file_type}" | LC_ALL=C egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################\n' | process_input
@@ -1634,7 +1636,7 @@ runs:
           fi;
           { time for file in ${files[@]}; do
             search_path="${file}";
-            check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
+            check_date=$(LC_ALL=C grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n" | process_input;
             echo "$(dirname ${file})";
@@ -1644,7 +1646,7 @@ runs:
             fi;
             if ${{ inputs.include }}; then
               IFS=$'\n';
-              includes=$(sudo find $(dirname ${file}) -name $(basename ${file}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
+              includes=$(find $(dirname ${file}) -name $(basename ${file}) -exec sed -n 's/^#include <\(.*\)>/\1/p; s/^#include "\(.*\)"/\1/p' "{}" \;);
               include1='include_file1.txt';
               include2='include_file2.txt';
               if [[ ${includes} ]]; then
@@ -1654,7 +1656,7 @@ runs:
                   final="${i}";
                   count2=$((include_count++));
                   count3=$((include_total++));
-                  header=$(sudo find . -type f \( -path "*/$(dirname ${i})/*" -o -path "*/$(dirname ${file})/*" -o -path "*/*/*" \) -name "$(basename ${i})" -print -quit);
+                  header=$(find . -type f \( -path "*/$(dirname ${i})/*" -o -path "*/$(dirname ${file})/*" -o -path "*/*/*" \) -name "$(basename ${i})" -print -quit);
                   if [[ -f "${header}" ]]; then
                     echo "$(dirname ${header#./})" >> "${include1}";
                   else
@@ -1667,18 +1669,19 @@ runs:
                 fi;
                 if [[ -f "${include2}" ]]; then
                   if ${{ inputs.repair }}; then
-                    if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
+                    if ${{ inputs.stored }} && ${{ env.update }} && [[ $(LC_ALL=C grep -sF "${search_path}" "${repaired}") ]]; then
                       echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n" | process_input;
                       echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n" | process_input;
                     elif ${{ inputs.stored }} && ${{ env.update }}; then
-                      echo -e "\n\n####################\nDEHEADER & CLANG-TIDY FIX FILES ANALYZER (${count1})\n####################\n\n" | process_input;
-                      if [[ $(echo "${file_type}" | egrep "^c$|^cc$") ]]; then
-                        gcc -MM "${file}" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
-                      elif [[ $(echo "${file_type}" | egrep "^c..$") ]]; then
-                        g++ -MM "${file}" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
+                      echo -e "\n\n####################\nGCC/G++ FILES ANALYZER (${count1})\n####################\n\n" | process_input;
+                      if [[ "${file_type}" == [c] ]]; then
+                        gcc -MM -MP "${file}" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
+                      elif [[ "${file_type}" == [c]* ]]; then
+                        g++ -MM -MP "${file}" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
                       fi;
+                      echo -e "\n\n####################\nCLANG-TIDY FIX FILES ANALYZER (${count1})\n####################\n\n" | process_input;
                       clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"include/" | process_input || echo -e "::error:: ( $? )" | process_input;
-                      if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                      if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                         echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n" | process_input;
                       else
                         echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n" | process_input;
@@ -1688,13 +1691,13 @@ runs:
                       fixed=true
                     elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                       echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n" | process_input;
-                      if [[ $(echo "${file_type}" | egrep "^c$|^cc$") ]]; then
+                      if [[ $(echo "${file_type}" | LC_ALL=C egrep "^c$|^cc$") ]]; then
                         gcc -MM "${file}" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
-                      elif [[ $(echo "${file_type}" | egrep "^c..$") ]]; then
+                      elif [[ $(echo "${file_type}" | LC_ALL=C egrep "^c..$") ]]; then
                         g++ -MM "${file}" | process_input || echo -e "::error:: ( $? ) & broken pipe" | process_input;
                       fi;
                       clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -I"include/" 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
-                      if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                      if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                         echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n" | process_input;
                       else
                         echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n" | process_input;
@@ -1705,7 +1708,7 @@ runs:
                   else
                     echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\nFinal File: ${final}\n\n" | process_input;
                     cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --includes-file="${include2}" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
-                    if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                    if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                       echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n" | process_input;
                     else
                       echo -e "\n####################\nCHECK-FILE FOUND ERROR(S)\n####################\n" | process_input;
@@ -1720,13 +1723,13 @@ runs:
               include_count=1
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
+                if ${{ inputs.stored }} && ${{ env.update }} && [[ $(LC_ALL=C grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n" | process_input;
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping $(basename ${file})\n####################\n" | process_input;
                 elif ${{ inputs.stored }} && ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
-                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n" | process_input;
                   else
                     echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n" | process_input;
@@ -1737,7 +1740,7 @@ runs:
                 elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
-                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n" | process_input;
                   else
                     echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n" | process_input;
@@ -1755,7 +1758,7 @@ runs:
                 else
                   cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress="*" "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
                 fi;
-                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n" | process_input;
                 else
                   echo -e "\n####################\nCHECK-FILE FOUND ERROR(S)\n####################\n" | process_input;
@@ -1766,7 +1769,7 @@ runs:
             if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n" | process_input;
               cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=* --quiet "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
-              if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+              if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${file}\n####################\n" | process_input;
               else
                 echo -e "\n####################\nRECHECK-FILE FOUND ERROR(S) TO REPAIR\n####################\n" | process_input;
@@ -1792,7 +1795,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
-        elif [[ $(echo "${file_type}" | egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
+        elif [[ $(echo "${file_type}" | LC_ALL=C egrep "^c$|^c.$|^c..$|^h$|^h.$|^h..$|^t$|^t.$|^t..$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING C/C++ FILE TYPES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n";
         fi;
       shell: bash
@@ -1823,11 +1826,11 @@ runs:
         } 2>&1;
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n" | process_input;
           else
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}");
+            files=$(LC_ALL=C grep -sE "${regex}" "${{ env.database }}");
             echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n" | process_input;
           fi;
         else
@@ -1837,7 +1840,7 @@ runs:
             files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
           fi;
         fi;
-        if [[ $(echo "${file_type}" | egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
+        if [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^sh$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
           if ${{ inputs.content }}; then
             echo -e "\n# Found File Path(s)\n" | process_input;
@@ -1846,7 +1849,7 @@ runs:
           fi;
           { time -p for file in ${files[@]}; do
             search_path="${file}";
-            check_date=$(grep -Fs "${search_path}" "${repaired}" | cut -d' ' -f 2-);
+            check_date=$(LC_ALL=C grep -Fs "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count3=$((shellcheck_count++));
             echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n" | process_input;
             echo "$(dirname ${file})";
@@ -1856,13 +1859,13 @@ runs:
               echo -e "\n\n";
             fi;
             if ${{ inputs.repair }}; then
-              if ${{ inputs.stored }} && ${{ env.update }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
+              if ${{ inputs.stored }} && ${{ env.update }} && [[ $(LC_ALL=C grep -sF "${search_path}" "${repaired}") ]]; then
                 echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n" | process_input;
                 echo -e "\n####################\nRepaired on ${check_date}\nSkipping $(basename ${file})\n####################\n" | process_input;
               elif ${{ inputs.stored }} && ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input;
                 shellharden --syntax-suggest --transform "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
-                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n" | process_input;
                 else
                   echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n" | process_input;
@@ -1873,7 +1876,7 @@ runs:
               elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input;
                 shellharden --syntax-suggest --transform "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
-                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND ${file}\n####################\n" | process_input;
                 else
                   echo -e "\n####################\nSHELLHARDEN FOUND ERROR(S) TO REPAIR\n####################\n" | process_input;
@@ -1885,7 +1888,7 @@ runs:
             if ${{ inputs.recheck }}; then
               echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input;
               shellcheck --norc --severity=warning --color=always "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
-              if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+              if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################\n" | process_input;
               else
                 echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################\n" | process_input;
@@ -1894,7 +1897,7 @@ runs:
             elif ! ${{ inputs.repair }}; then
               echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input;
               shellcheck --norc --severity=warning --color=always "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
-              if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+              if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################\n" | process_input;
               else
                 echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################\n" | process_input;
@@ -1917,7 +1920,7 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
-        elif [[ $(echo "${file_type}" | egrep -i "^sh$") ]]; then
+        elif [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^sh$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING SH FILES\nNO $(echo ${{ inputs.filename }} | sed 's/[\/\$]//g') FOUND\n####################\n" | process_input;
         fi;
       shell: bash
@@ -1948,11 +1951,11 @@ runs:
         } 2>&1;
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n" | process_input;
           else
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}");
+            files=$(LC_ALL=C grep -sE "${regex}" "${{ env.database }}");
             echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n" | process_input;
           fi;
         else
@@ -1966,7 +1969,7 @@ runs:
           echo -e "\n####################\ncheckmake.ini found in system continuing ...\n####################\n" | process_input;
         fi;
         makefile_count=1
-        if [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
+        if [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
           { time -p for file in ${files[@]}; do
             count4=$((makefile_count++));
@@ -1979,7 +1982,7 @@ runs:
             fi;
             echo -e "\n####################\nCHECKMAKE ANALYZING $(basename ${file}) FOR ERROR(S) ($count4)\n####################\n" | process_input;
             checkmake "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) from checkmake" | process_input;
-            if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+            if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
               echo -e "\n####################\nCHECKMAKE NO ERRORS FOUND ${file}\n####################\n" | process_input;
             else
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n" | process_input;
@@ -1992,7 +1995,7 @@ runs:
             echo "file_error=1" >> "${GITHUB_ENV}";
           fi;
           echo "file_found=1" >> "${GITHUB_ENV}";
-        elif [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
+        elif [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING MK FILES\nNO ${{ inputs.filename }} FOUND\n####################\n" | process_input;
         fi;
       shell: bash
@@ -2007,11 +2010,11 @@ runs:
         file_type="${file_name##*.}";
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
           else
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}");
+            files=$(LC_ALL=C grep -sE "${regex}" "${{ env.database }}");
             echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
           fi;
         else
