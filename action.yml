@@ -924,14 +924,14 @@ runs:
             echo -e '\n[\033[1mgcc mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              gcc -MM -MP "${file}" -MF dependencies.d 2>&1 | tee dependencies.d | process_input
+              gcc -MM -MP "${file}" 2>&1 | process_input
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mg++ mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              g++ -MM -MP "${file}" -MF dependencies.d 2>&1 | tee dependencies.d | process_input
+              g++ -MM -MP "${file}" 2>&1 | process_input
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
@@ -948,9 +948,8 @@ runs:
               echo '';
               count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
               mkdir -p build && cp -vf "${include_list}" build/ | process_input;
-              [[ -s 'dependencies.d' ]] && cp -vf 'dependencies.d' build/ | process_input;
             fi;
-            clang_files_missing=$(LC_ALL=C grep -sEc 'file not found|missing file|file missing' "${project_log}");
+            clang_files_missing=$(LC_ALL=C grep -sEc 'file not found|no such file|missing file|file missing' "${project_log}");
             echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m include directories added,\n[Hint] You can \033[31mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[31m500\033[0m" | process_input;
             if [[ "${clang_files_missing}" > '0' ]]; then
               echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${clang_files_missing}\033[0m\n[Hint] Many source files calling the same \033[31mmissing include files.\033[0m\nSet option \033[1m( source: 3 )\033[0m to get a exact missing list count quickly!" | process_input;
