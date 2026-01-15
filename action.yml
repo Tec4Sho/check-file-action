@@ -652,11 +652,16 @@ runs:
             fi;
           done;
         }
+        if ${{ inputs.absolute }}; then
+          abs='-a';
+        else
+          abs='';
+        fi;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files1=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
-        include_files2=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
-        include_files3=$(fdfind -p -c auto -a -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
-        include_files4=$(fdfind -p -c auto -e "${{ inputs.filetype }}" "${{ env.base }}" | sort -u);
+        include_files1=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
+        include_files2=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
+        include_files3=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
+        include_files4=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
@@ -916,22 +921,22 @@ runs:
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m all \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
-            echo -e '\n[gcc mode]';
+            echo -e '\n[\033[1mgcc mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              gcc -MM -MP "${file}" | process_input;
+              gcc -MM -MP -MG "${file}" -MF dependencies.d 2>&1 | tee dependencies.d | process_input
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
-          elif [[ "${{ inputs.filetype }}" == [c]* ]]&& [[ "$(which g++)" ]]; then
-            echo -e '\n[g++ mode]';
+          elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
+            echo -e '\n[\033[1mg++ mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              g++ -MM -MP "${file}" | process_input;
+              g++ -MM -MP -MG "${file}" -MF dependencies.d 2>&1 | tee dependencies.d | process_input
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
           if [[ -s "${project_log}" ]]; then
-            grep -E '^[^/].*\.(h|hpp)$' "${project_log}" | grep -v '.o:' > 'input_file.txt' && sed -E 's|/[^/]*$||' 'input_file.txt' > 'output_file.txt';
+            LC_ALL=C grep -E '^[^/].*\.(h|hpp)$' "${project_log}" | grep -v '.o:' | awk '{print $1}' > 'input_file.txt' && sed -E 's|/[^/]*$||' 'input_file.txt' > 'output_file.txt';
             if [[ -s 'output_file.txt' ]]; then
               while IFS= read -r path; do
                 count4=$((include_dirs++));
@@ -940,10 +945,16 @@ runs:
             fi;
             [[ -s 'output.txt' ]] && cat 'output.txt' | sort -u > "${include_list}" && rm output.txt input_file.txt output_file.txt 2>/dev/null;
             if [[ -s "${include_list}" ]]; then
+              echo '';
               count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
               mkdir -p build && cp -vf "${include_list}" build/ | process_input;
+              [[ -s 'dependencies.d' ]] && cp -vf 'dependencies.d' build/ | process_input;
             fi;
+            clang_files_missing=$(LC_ALL=C grep -sEc 'file not found|missing file|file missing' "${project_log}");
             echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m include directories added,\n[Hint] You can \033[31mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[31m500\033[0m" | process_input;
+            if [[ "${clang_files_missing}" > '0' ]]; then
+              echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${clang_files_missing}\033[0m\n[Hint] Many source files calling the same \033[31mmissing include files.\033[0m\nSet option \033[1m( source: 3 )\033[0m to get a exact missing list count quickly!" | process_input;
+            fi;
             includes_found=true
           fi;
           seconds=$((SECONDS - start_time));
