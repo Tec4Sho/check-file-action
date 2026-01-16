@@ -1404,9 +1404,9 @@ runs:
         fi;
         if [[ -s "${project_log}" ]]; then
           echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################" | process_input;
-          deheader_duplicates=$(LC_ALL=C grep -sEc 'duplicates' "${project_log}");
-          deheader_inclusion=$(LC_ALL=C grep -sEc 'inclusion' "${project_log}");
-          deheader_removed=$(LC_ALL=C grep -sEc 'remove' "${project_log}");
+          deheader_duplicates=$(LC_ALL=C grep -sFc 'duplicates' "${project_log}");
+          deheader_inclusion=$(LC_ALL=C grep -sFc 'inclusion' "${project_log}");
+          deheader_removed=$(LC_ALL=C grep -sFc 'remove' "${project_log}");
           codechecker_success=$(LC_ALL=C grep -sFc 'successfully' "${project_log}");
           codechecker_errors=$(LC_ALL=C grep -sFc 'Error while processing' "${project_log}");
           clang_replacements=$(find -path '*/fixes/*' -type f -name "*.yaml" -print | xargs -r -P "$(nproc --all)" -n 500 grep -F 'Replacements:' | grep -v -c '[\[\]]');
