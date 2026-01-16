@@ -1385,7 +1385,7 @@ runs:
         if [[ -d 'build' ]] && ${{ inputs.build == '4' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tDeheader analyze & repair sources includes...(build -4)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
-          deheader -v -r -m "make -f ${{ inputs.makefile }}" | process_input;
+          deheader -v -r -m "make ${{ inputs.makefile }}" | process_input;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
             echo -e "\n::notice::duplicate includes found building project files" | process_input;
             check_build=true
