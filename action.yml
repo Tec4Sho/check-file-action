@@ -240,7 +240,6 @@ runs:
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
-        sudo add-apt-repository ppa:git-core/ppa >/dev/null;
         sudo add-apt-repository universe >/dev/null;
         sudo apt-get update -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{print $3}');
