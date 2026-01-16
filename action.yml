@@ -869,15 +869,15 @@ runs:
               clean_file="${file4##*/}";
               if [[ ${include} == *"/"* ]]; then
                 shopt -s extglob
-                header=$(fdfind -c auto "${abs}" -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
+                header=$(fdfind -p -c auto "${abs}" -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
                 shopt -u extglob
               else
-                header=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                header=$(fdfind -p -c auto "${abs}" -t f "${clean_file##+(*./)}" "${{ env.base }}");
               fi;
               if [[ "${header}" ]]; then            
-                while IFS= read -r header; do
+                while IFS= read -r src; do
                   count2=$((include_count++));
-                  echo "${header%/*}" >> "${include1}";
+                  echo "${src%/*}" >> "${include1}";
                 done <<< "${header}";
               elif [[ -n "${processed[$include]}" ]]; then
                 echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
