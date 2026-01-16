@@ -657,8 +657,8 @@ runs:
         fi;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         include_files1=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
-        include_files2=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r rg --color=auto --sort=path -H -o '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
-        include_files3=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r rg --color=auto --sort=path --trim -o '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
+        include_files2=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r rg --sort=path --trim -H -o '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
+        include_files3=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         include_files4=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
@@ -759,6 +759,7 @@ runs:
         elif [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '2' }} && [[ "${include_files2}" ]]; then
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[32m medium \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
+          declare -A processed
           while IFS= read -r file; do         
             name="${file%%:*}";
             name_count="${name##*/}";
@@ -796,12 +797,17 @@ runs:
                 fi;
                 includes_missing=false
                 if [[ "${header}" ]]; then
-                  count2=$((include_count++));
-                  count3=$((include_total++));
-                  echo "${header%/*}" >> "${include1}";          
-                  echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include_source} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
+                  while IFS= read -r includes; do
+                    count2=$((include_count++));
+                    count3=$((include_total++));
+                    echo "${includes%/*}" >> "${include1}";
+                    echo -e "\n\033[33mSource file include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${includes}" | process_input;
+                  done <<< ${header};
+                elif [[ -n "${processed[$include]}" ]]; then
+                  echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;        
                 else
                   includes_missing=true
+                  processed["$include"]=1
                   count5=$((include_missing++));
                   echo -e "\n::notice::\033[31mSource file include \033[0m( ${file4##+(*./)} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                 fi;
@@ -816,20 +822,7 @@ runs:
             fi;
           done <<< "${include_files2[@]}";
           if [[ -s "${include1}" ]]; then
-            awk '!seen[$0]++' "${include1}" > "${include2}";
-          fi;
-          if [[ -s "${include2}" ]]; then
-            while IFS= read -r includes; do
-              count4=$((include_dirs++));
-              if [[ "${include}" == *.[h]* ]]; then
-                echo "${includes%/*}" >> "${include3}";
-              else
-                echo "${includes}" >> "${include3}";
-              fi;
-            done < "${include2}";
-          fi;
-          if [[ -s "${include3}" ]]; then
-            awk '!seen[$0]++' "${include3}" > "${include_list}";
+            awk '!seen[$0]++' "${include1}" > "${include_list}";
           fi;
           if [[ -s "${include_list}" ]]; then
             count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
@@ -844,6 +837,7 @@ runs:
           if [[ "${count5}" > '0' ]]; then
             echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${count5}\033[0m\n[Hint] Many source files calling the same \033[31mmissing include files.\033[0m\nSet option \033[1m( source: 3 )\033[0m to get a exact missing list count quickly!" | process_input;
           fi;
+          unset processed;
           [[ -s "${include_list}" ]] && mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
@@ -902,6 +896,7 @@ runs:
           if [[ "${count5}" > '0' ]]; then
             echo -e "\n::warning::\033[34m⚠️ Total include source files missing during scan:\033[0m\033[31m ${count5}\033[0m\n[Hint] Many source files might be calling these same \033[31mmissing include files!\033[0m" | process_input;
           fi;
+          unset processed;
           [[ -s "${include_list}" ]] && mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
