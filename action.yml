@@ -680,7 +680,7 @@ runs:
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tinclude file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
-                  if [[ "${include}" == *.[h]* ]]; then
+                  if [[ "${include}" == *.[h]* || "${include}" == *.[c]* ]]; then
                     processed["$include"]=1
                     path1="${include##+(*./)}";
                     path2="${path1##[:]*}";
