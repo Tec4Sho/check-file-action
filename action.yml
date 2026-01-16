@@ -236,19 +236,19 @@ runs:
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
       run: |
         echo '';
+        echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
+        sudo add-apt-repository ppa:git-core/ppa >/dev/null;
+        sudo add-apt-repository universe >/dev/null;
+        sudo apt-get update -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{print $3}');
         required_version="4.2.1";
         linux_distro1="24.04";
         linux_distro2="22.04";
         linux_distro3="20.04";
         linux_verison=$(lsb_release -r | awk '{print $2}');
-        echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
-        echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
-        echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
-        echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
-        sudo add-apt-repository universe >/dev/null;
-        sudo add-apt-repository ppa:git-core/ppa >/dev/null;
-        sudo apt-get update -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         if ${{ inputs.project }}; then
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "Current CMake version (${cmake_version}) is older than ${required_version}. Updating..."
