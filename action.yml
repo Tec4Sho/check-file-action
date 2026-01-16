@@ -372,7 +372,7 @@ runs:
           python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
         fi;
-        if ${{ inputs.pattern != '' }} && ${{ inputs.database }} && [[ ! $(which rg) ]]; then
+        if ${{ inputs.pattern != '' }} && (${{ inputs.source > '0' }} || ${{ inputs.database }}) && [[ ! $(which rg) ]]; then
           sudo apt-get -yq install ripgrep 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
@@ -659,7 +659,7 @@ runs:
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         include_files1=$(fdfind -p -c always "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         include_files2=$(fdfind -p -c always "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
-        include_files3=$(fdfind -p -c always "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r grep -sEo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
+        include_files3=$(fdfind -p -c always "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r rg -Eo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         include_files4=$(fdfind -p -c always "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
@@ -874,10 +874,10 @@ runs:
                 header=$(fdfind -p -c auto "${abs}" -t f "${clean_file##+(*./)}" "${{ env.base }}");
               fi;
               if [[ "${header}" ]]; then            
-                while IFS= read -r src; do
+                while IFS= read -r includes; do
                   count2=$((include_count++));
-                  echo "${src%/*}" >> "${include1}";
-                done <<< "${header}";
+                  echo "${includes%/*}" >> "${include1}";
+                done <<< ${header};
               elif [[ -n "${processed[$include]}" ]]; then
                 echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
               else
@@ -887,7 +887,7 @@ runs:
               fi;
               includes_found=true
             fi;
-          done <<< "${include_files3[@]}";
+          done <<< ${include_files3[@]};
           if [[ -s "${include1}" ]]; then
             awk '!seen[$0]++' "${include1}" > "${include_list}";
           fi;
