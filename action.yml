@@ -610,7 +610,6 @@ runs:
       if: inputs.source > '0'
       run: |
         echo '';
-        set +e
         start_time="${SECONDS}";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
@@ -658,7 +657,7 @@ runs:
         fi;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         include_files1=$(fdfind -p -c always "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
-        include_files2=$(fdfind -p -c always "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r grep -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
+        include_files2=$(fdfind -p -c always "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r rg -HEo '^#include[[:space:]]+[<"].*[>"]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         include_files3=$(fdfind -p -c always "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r rg -Eo '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
         include_files4=$(fdfind -p -c always "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
