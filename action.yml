@@ -372,7 +372,7 @@ runs:
           python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
         fi;
-        if ${{ inputs.pattern != '' }} && (${{ inputs.source > '0' }} || ${{ inputs.database }}) && [[ ! $(which rg) ]]; then
+        if (${{ inputs.pattern != '' }} || ${{ inputs.database }} || ${{ inputs.source > '0' }}) && [[ ! $(which rg) ]]; then
           sudo apt-get -yq install ripgrep 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
