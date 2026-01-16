@@ -680,9 +680,7 @@ runs:
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tinclude file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
-                  if [[ "${include}" == *.[h]* ]] && [[ -n "${processed[$include]}" ]]; then
-                    echo -e "\n\033[1mNotice:\033[0m\033[32mSource file include \033[0m( ${include} )\033[33m was added already!!!\033[0m [ \033[1mskipped\033[0m ]" | process_input;
-                  elif [[ "${include}" == *.[h]* ]]; then
+                  if [[ "${include}" == *.[h]* ]]; then
                     processed["$include"]=1
                     path1="${include##+(*./)}";
                     path2="${path1##[:]*}";
@@ -702,40 +700,33 @@ runs:
                       header=$(fdfind -c auto -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
                     fi;
                     if [[ "${header}" ]]; then
-                      count2=$((include_count++));
-                      count3=$((include_total++));
-                      echo "${header%/*}" >> "${include1}";          
-                      echo -e "\n\033[33mSource file include \033[0m\033[1m( ${include} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${header}" | process_input;
+                      while IFS= read -r includes; do
+                        count2=$((include_count++));
+                        count3=$((include_total++));
+                        echo "${includes%/*}" >> "${include1}";
+                        echo -e "\n\033[33mSource file include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${includes}" | process_input;
+                      done <<< ${header};
+                      includes_found=true
+                    elif [[ -n "${processed[$include]}" ]]; then
+                      echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;        
                     else
+                      includes_found=false
+                      processed["${include}"]=1
                       count5=$((include_missing++));
-                      echo -e "\n::notice::\033[31mSource file include \033[0m( ${file4} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
+                      echo -e "\n::notice::\033[31mSource file include \033[0m( ${file4##+(*./)} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                     fi;
                   fi;
                 done <<< ${include_source[@]};
-                includes_found=true
               fi;
               if [[ "${includes_found}" ]]; then
-                echo -e "\n ${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
+                echo -e "\n${count2}\033[32m include objectives successfully added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
               else
-                echo -e "\n\033[34mCheck-File discovered no include objectives after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
+                echo -e "\n${count5}\033[33m include objectives confirmed missing after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
               fi;  
             fi;
           done <<< ${include_files1[@]};
           if [[ -s "${include1}" ]]; then
-            awk '!seen[$0]++' "${include1}" > "${include2}";
-          fi;
-          if [[ -s "${include2}" ]]; then
-            while IFS= read -r includes; do
-              count4=$((include_dirs++));
-              if [[ "${include}" == *.[h]* ]]; then
-                echo "${includes%/*}" >> "${include3}";
-              else
-                echo "${includes}" >> "${include3}";
-              fi;
-            done < "${include2}";
-          fi;
-          if [[ -s "${include3}" ]]; then
-            awk '!seen[$0]++' "${include3}" > "${include_list}";
+            awk '!seen[$0]++' "${include1}" > "${include_list}";
           fi;
           if [[ -s "${include_list}" ]]; then
             count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
@@ -743,7 +734,7 @@ runs:
           echo -e "\n::notice::\033[32mTotal source file checked during scan\033[0m\033[1m ${count1}\033[0m" | process_input;
           if [[ "${includes_found}" ]]; then
             echo 'check_build=true' >> "${GITHUB_ENV}";
-            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories left after duplicate cleaning!!!" | process_input;
+            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories added after duplicate cleaning!!!" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
           fi;
@@ -777,7 +768,7 @@ runs:
             if [[ "${include_source}" ]]; then
               includes_found=true
               echo -e "\n\tinclude source: ${include_source}" | process_input;
-              if [[ "${include}" == *.[h]* ]]; then
+              if [[ "${include_source}" == *.[h]* ]]; then
                 path1="${include_source##+(*./)}";
                 path2="${path1##[:]*}";
                 path3="${path2%'\n'}";
@@ -788,7 +779,7 @@ runs:
                 file3="${file2%'\n'}";
                 file4="${file3%\\}";
                 clean_file="${file4##*/}";
-                if [[ ${include} == *"/"* ]]; then
+                if [[ ${include_source} == *"/"* ]]; then
                   shopt -s extglob
                   header=$(fdfind -c auto "${abs}" -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
                   shopt -u extglob
@@ -803,11 +794,11 @@ runs:
                     echo "${includes%/*}" >> "${include1}";
                     echo -e "\n\033[33mSource file include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${includes}" | process_input;
                   done <<< ${header};
-                elif [[ -n "${processed[$include]}" ]]; then
-                  echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;        
+                elif [[ -n "${processed[$include_source]}" ]]; then
+                  echo -e "\n\033[33mSource file #include \033[0m( ${include_source} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;        
                 else
                   includes_missing=true
-                  processed["$include"]=1
+                  processed["${include_source}"]=1
                   count5=$((include_missing++));
                   echo -e "\n::notice::\033[31mSource file include \033[0m( ${file4##+(*./)} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                 fi;
@@ -830,7 +821,7 @@ runs:
           echo -e "\n::notice::\033[32mTotal source files checked during scan\033[0m\033[1m ${count1}\033[0m" | process_input;
           if [[ "${includes_found}" == 'true' ]]; then
             echo 'check_build=true' >> "${GITHUB_ENV}";
-            echo -e "\n::notice::\033[34mTotal include source files added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories left after duplicate cleaning!!!" | process_input;
+            echo -e "\n::notice::\033[34mTotal include source files added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories added after duplicate cleaning!!!" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
           fi;
