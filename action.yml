@@ -1318,7 +1318,7 @@ runs:
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          CodeChecker check -b "make clean && make -f ${{ inputs.makefile }} -n -k -j $(nproc --all)" -o ./results | process_input;
+          CodeChecker check -b "make clean && make ${{ inputs.makefile }} -n -k" | process_input;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found checking building files" | process_input;
             check_build=true
@@ -1343,14 +1343,14 @@ runs:
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          [[ -e '/build/compile_commands.json' ]] && rm -vf ./build/compile_commands.json | process_input;
-          CodeChecker log --build "make -v -f ${{ inputs.makefile }} -j $(nproc --all)" --output "${compile_json}" | process_input;
+          [[ -e "${compile_json}" ]] && rm -vf "${compile_json}" | process_input;
+          CodeChecker log --build "make ${{ inputs.makefile }}" --output "${compile_json}" | process_input;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found building project files" | process_input;
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ -s "${project_log}" ]]; then
-            echo -e "\n::notice::No errors found building project files" | process_input;
+            echo -e "\n::notice::No errors found building commands JSON file" | process_input;
             check_build=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
