@@ -288,7 +288,8 @@ runs:
           sudo cp -vpf "${HOME}/.local/bin/cmake" '/usr/local/bin/'
         fi;
         if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
-          sudo apt-get -yq install cmake 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build'; 
+          sudo apt-get -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';
+          [[ $(which lunch) ]] && echo -e "####################\nmake lunch dependencies installed\n####################"
           [[ ! $(which cmake) ]] && exit 1
         fi;
         if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic 2>/dev/null) ]]; then
@@ -1318,7 +1319,7 @@ runs:
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          CodeChecker check -b "lunch ${{ inputs.makefile }} && make -n -k" | process_input;
+          CodeChecker check -b "$(which lunch) ${{ inputs.makefile }} && make kernelimage -j$(nproc --all) -n -k" | process_input;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found checking building files" | process_input;
             check_build=true
