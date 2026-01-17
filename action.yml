@@ -252,8 +252,8 @@ runs:
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "Current CMake version (${cmake_version}) is older than ${required_version}. Updating..."
             sudo apt-get remove --purge -yq cmake >/dev/null;
-            sudo apt-get install -yq make ca-certificates gpg wget >/dev/null;
-            [[ $(which lunch) ]] && echo -e "####################\nmake lunch dependencies installed\n####################"\n;
+            sudo apt-get install -yq ca-certificates gpg wget >/dev/null;
+            [[ $(which make) ]] && echo -e "####################\nmake dependencies installed\n####################"\n || sudo apt-get install -yq make >/dev/null;
             sudo bash -c "$(sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null)";
             if [[ "${linux_verison}" == "${linux_distro1}" ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
@@ -2201,7 +2201,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Build Checks
-      if: inputs.build == '1' || inputs.build == '2' || inputs.analyzer == '4' && inputs.project == 'true' && env.build_files == '1'
+      if: inputs.analyzer == '4' && inputs.project == 'true' && env.build_files == '1'
       uses: actions/upload-artifact@v4
       with:
         name: Build For ${{ github.repository }} Repository.
