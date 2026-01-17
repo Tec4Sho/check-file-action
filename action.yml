@@ -1244,16 +1244,16 @@ runs:
             fi;
             if [[ -e "${codechecker}" ]] && [[ -e "${tidy_config}" ]]; then
               echo -e "\n${codechecker} and ${tidy_config} files were found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --tidy-config "${tidy_config}" -j"$(nproc -all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --tidy-config "${tidy_config}" --jobs "$(nproc --all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
             elif [[ -e "${codechecker}" ]]; then
               echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" -j"$(nproc -all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
             elif [[ -e "${tidy_config}" ]]; then
               echo -e "\n${tidy_config} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --tidy-config "${tidy_config}" -j"$(nproc -all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+              CodeChecker analyze "${compile_json}" --tidy-config "${tidy_config}" --jobs "$(nproc --all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
             else
               echo -e "\n${codechecker} and ${tidy_config} files were not found continuing without...\n" | process_input;
-              CodeChecker analyze "${compile_json}" -j"$(nproc -all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
             fi;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
@@ -1340,16 +1340,16 @@ runs:
           [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
           if [[ -e "${codechecker}" ]] && [[ -e "${tidy_config}" ]]; then
             echo -e "\n${codechecker} and ${tidy_config} files were found continuing...\n" | process_input;
-            CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" --config "${codechecker}" --tidy-config "${tidy_config}" -j"$(nproc -all)" -o ./reports && CodeChecker parse ./reports | process_input;
+            CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" --config "${codechecker}" --tidy-config "${tidy_config}" --jobs "$(nproc --all)" -o ./reports && CodeChecker parse ./reports | process_input;
           elif [[ -e "${codechecker}" ]]; then
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" --config "${codechecker}" -j"$(nproc -all)" -o ./reports && CodeChecker parse ./reports | process_input;
+            CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" --config "${codechecker}" --jobs "$(nproc --all)" -o ./reports && CodeChecker parse ./reports | process_input;
           elif [[ -e "${tidy_config}" ]]; then
             echo -e "\n${tidy_config} file was found continuing...\n" | process_input;
-            CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" --tidy-config "${tidy_config}" -j"$(nproc -all)" -o ./reports && CodeChecker parse ./reports | process_input;
+            CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" --tidy-config "${tidy_config}" --jobs "$(nproc --all)" -o ./reports && CodeChecker parse ./reports | process_input;
           else
             echo -e "\n${codechecker} and ${tidy_config} files were not found continuing without...\n" | process_input;
-            CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" -j"$(nproc -all)" -o ./reports && CodeChecker parse ./reports | process_input;
+            CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" --jobs "$(nproc --all)" -o ./reports && CodeChecker parse ./reports | process_input;
           fi; 
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found checking building files" | process_input;
