@@ -10,7 +10,7 @@ analyzer:
   - --keep-gcc-include-fixed
   - --no-missing-checker-error
   - --report-hash=context-free-v2
-  - --verbose=debug
+  - --verbose=info
   - --clean
 parse:
   - --trim-path-prefix=$HOME/workspace
