@@ -1,0 +1,15 @@
+# Used to include .clang-tidy file default analyzer objectives over code checker.yaml
+analyze:
+  # Enable specific clang-tidy checks
+  enable:
+    - clang-tidy:readability-function-size
+    - clang-tidy:modernize-use-nullptr
+
+  # Configure options for these checks
+  checker_config:
+    - clang-tidy:readability-function-size.StatementThreshold=100
+    - clang-tidy:modernize-use-nullptr.CheckMacros=false
+
+  # (Optional) Tell clang-tidy to look for .clang-tidy files too
+  analyzer_config:
+    - clang-tidy:take-config-from-directory=true

@@ -975,6 +975,7 @@ runs:
         project_log="${repository}_project.log";
         clang_sources='check-file-sources.txt';
         codechecker='codechecker.yaml';
+        tidy_config='clang-tidy.yaml';
         count1='count1.txt';
         count2='count2.txt';
         count3='count3.txt';
@@ -1241,7 +1242,19 @@ runs:
             else
               echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
-            CodeChecker analyze "${compile_json}" --config "${codechecker}" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+            if [[ -e "${codechecker}" ]] && [[ -e "${tidy_config}" ]]; then
+              echo -e "\n${codechecker} and ${tidy_config} files were found continuing...\n" | process_input;
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --tidy-config "${tidy_config}" -j"$(nproc -all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+            elif [[ -e "${codechecker}" ]]; then
+              echo -e "\n${codechecker} file was found continuing...\n" | process_input;
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" -j"$(nproc -all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+            elif [[ -e "${tidy_config}" ]]; then
+              echo -e "\n${tidy_config} file was found continuing...\n" | process_input;
+              CodeChecker analyze "${compile_json}" --tidy-config "${tidy_config}" -j"$(nproc -all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+            else
+              echo -e "\n${codechecker} and ${tidy_config} files were not found continuing without...\n" | process_input;
+              CodeChecker analyze "${compile_json}" -j"$(nproc -all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+            fi;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -1275,6 +1288,7 @@ runs:
         export WITH_TIDY=1
         export LC_ALL=C
         codechecker='codechecker.yaml';
+        tidy_config='clang-tidy.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${repository}_project.log";
@@ -1324,7 +1338,19 @@ runs:
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
           [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
-          CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" --config "${codechecker}" -o ./reports && CodeChecker parse ./reports | process_input;
+          if [[ -e "${codechecker}" ]] && [[ -e "${tidy_config}" ]]; then
+            echo -e "\n${codechecker} and ${tidy_config} files were found continuing...\n" | process_input;
+            CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" --config "${codechecker}" --tidy-config "${tidy_config}" -j"$(nproc -all)" -o ./reports && CodeChecker parse ./reports | process_input;
+          elif [[ -e "${codechecker}" ]]; then
+            echo -e "\n${codechecker} file was found continuing...\n" | process_input;
+            CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" --config "${codechecker}" -j"$(nproc -all)" -o ./reports && CodeChecker parse ./reports | process_input;
+          elif [[ -e "${tidy_config}" ]]; then
+            echo -e "\n${tidy_config} file was found continuing...\n" | process_input;
+            CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" --tidy-config "${tidy_config}" -j"$(nproc -all)" -o ./reports && CodeChecker parse ./reports | process_input;
+          else
+            echo -e "\n${codechecker} and ${tidy_config} files were not found continuing without...\n" | process_input;
+            CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" -j"$(nproc -all)" -o ./reports && CodeChecker parse ./reports | process_input;
+          fi; 
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found checking building files" | process_input;
             check_build=true
@@ -2209,7 +2235,7 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: Build For ${{ github.repository }} Repository.
-        path: results
+        path: reports
       continue-on-error: true
 
     - name: Uploading Build Files Artifacts
