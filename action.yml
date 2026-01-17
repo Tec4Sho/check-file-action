@@ -252,7 +252,8 @@ runs:
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "Current CMake version (${cmake_version}) is older than ${required_version}. Updating..."
             sudo apt-get remove --purge -yq cmake >/dev/null;
-            sudo apt-get install -yq ca-certificates gpg wget >/dev/null;
+            sudo apt-get install -yq make ca-certificates gpg wget >/dev/null;
+            [[ $(which lunch) ]] && echo -e "####################\nmake lunch dependencies installed\n####################"\n;
             sudo bash -c "$(sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null)";
             if [[ "${linux_verison}" == "${linux_distro1}" ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
@@ -288,12 +289,11 @@ runs:
           sudo cp -vpf "${HOME}/.local/bin/cmake" '/usr/local/bin/'
         fi;
         if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
-          sudo apt-get -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';
-          [[ $(which lunch) ]] && echo -e "####################\nmake lunch dependencies installed\n####################"
+          sudo apt-get -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
           [[ ! $(which cmake) ]] && exit 1
         fi;
         if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic 2>/dev/null) ]]; then
-          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\n$(apt list linux-headers-generic 2>/dev/null) - $(uname -r) dependencies installed\n####################" || echo -e "::error::No linux-headers-generic $(uname -r) installed for project build"; 
+          sudo apt-get -yq install linux-headers-generic linux-modules- 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\n$(apt list linux-headers-generic 2>/dev/null) - $(uname -r) dependencies installed\n####################" || echo -e "::error::No linux-headers-generic $(uname -r) installed for project build"; 
           [[ ! $(apt list linux-headers-generic 2>/dev/null) ]] && exit 1
         fi;
         if [[ ! $(which git) ]]; then
@@ -1238,7 +1238,7 @@ runs:
             else
               echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
-            { time CodeChecker analyze "${compile_json}" --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./results &&  CodeChecker store ./results -n "${repository}"; } 2>&1 | process_input;
+            CodeChecker analyze "${compile_json}" --enable sensitive --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker store ./results -n "${repository}" && CodeChecker parse --print-steps ./reports | process_input;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
@@ -1312,14 +1312,15 @@ runs:
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -d 'build' ]] && ${{ inputs.build == '1' }} && ${{ env.build_error == 'false' }}; then
-          echo -e '\n####################\n\t[1] CodeChecker building project from source files...(dry-run -1)\n####################\n' | process_input;
+          echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc';
           if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
             sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          CodeChecker check -b "$(which lunch) ${{ inputs.makefile }} && make kernelimage -j$(nproc --all) -n -k" | process_input;
+          [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
+          CodeChecker check -b "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" -o ./reports && CodeChecker parse --print-steps ./reports | process_input;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found checking building files" | process_input;
             check_build=true
@@ -1337,7 +1338,7 @@ runs:
           exit 1
         fi;
         if [[ -d 'build' ]] && ${{ inputs.build == '2' }} && ${{ env.build_error == 'false' }}; then
-          echo -e '\n####################\n\tCodeChecker building compile_commands.json & project sources...(build -2)\n####################\n' | process_input;
+          echo -e '\n####################\n\tCodeChecker building compile_commands.json from project sources...(json-run -2)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc';
           if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
             sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
@@ -1364,9 +1365,9 @@ runs:
           exit 1
         fi;
         if [[ -d 'build' ]] && ${{ inputs.build == '3' }} && ${{ env.build_error == 'false' }}; then
-          echo -e '\n####################\n\tDeheader analyze sources includes...(dry-run -3)\n####################\n' | process_input;
+          echo -e '\n####################\n\tDeheader analyze sources includes on build...(dry-run -3)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
-          deheader -v -r -m "make ${{ inputs.makefile }} -n -j $(nproc --all)" | process_input;
+          deheader -v -r -m "make ${{ inputs.makefile }} -n -j$(nproc --all)" | process_input;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
             echo -e "\n::notice::duplicate includes found building project files" | process_input;
             check_build=true
@@ -1384,9 +1385,10 @@ runs:
           exit 1
         fi;
         if [[ -d 'build' ]] && ${{ inputs.build == '4' }} && ${{ env.build_error == 'false' }}; then
-          echo -e '\n####################\n\tDeheader analyze & repair sources includes...(build -4)\n####################\n' | process_input;
+          echo -e '\n####################\n\tDeheader analyze & repair sources includes on build...(test-run -4)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
-          deheader -v -r -m "make ${{ inputs.makefile }}" | process_input;
+          [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
+          deheader -v -r -m "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" | process_input;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
             echo -e "\n::notice::duplicate includes found building project files" | process_input;
             check_build=true
