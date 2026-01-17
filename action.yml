@@ -1046,7 +1046,7 @@ runs:
           echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################" | process_input;
           echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################" | process_input;
           if ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
-            codechecker_analyzers=$(CodeChecker checkers | LC_ALL=C grep -s -B 1 -m 50 -F 'enable' 2>/dev/null | (grep -sv 'enable'; cat >/dev/null));
+            codechecker_analyzers=$(CodeChecker checkers --analyzers clangsa | head -n 50 2>/dev/null);
             echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\n\n${codechecker_analyzers}" | process_input;
           fi;
           echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
