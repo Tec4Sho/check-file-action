@@ -1,23 +1,22 @@
+# codechecker.yaml
 analyzer:
   # Enable/disable checkers.
-  - --disable=all
   - --enable=core.DivideZero
   - --enable=core.CallAndMessage
   # Analyzer configurations.
   - --analyzer-config=clangsa:unroll-loops=true
-  - --checker-config=clang-tidy:google-readability-function-size.StatementThreshold=100
+  - --analyzer-config=clang-tidy:take-config-from-directory=true # Corrected location
   # Optional options.
+  - --keep-gcc-include-fixed
+  - --no-missing-checker-error
   - --report-hash=context-free-v2
   - --verbose=debug
   - --clean
-
 parse:
   - --trim-path-prefix=$HOME/workspace
-
 server:
-  - --workspace=$HOME/workspace"
-  - --port=9090"
-
+  - --workspace=$HOME/workspace
+  - --port=9090
 store:
   - --name=run_name
   - --tag=my_tag
