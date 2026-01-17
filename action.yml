@@ -1318,7 +1318,7 @@ runs:
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          CodeChecker check -b "make -f ${{ inputs.makefile }} -n -k" | process_input;
+          CodeChecker check -b "lunch ${{ inputs.makefile }} && make -n -k" | process_input;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found checking building files" | process_input;
             check_build=true
