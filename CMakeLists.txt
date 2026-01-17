@@ -55,8 +55,6 @@ file(GLOB_RECURSE PROJECT_SRC_FILES "*.c")
 
 add_executable("${PROJECT_NAME}" "${PROJECT_SRC_FILES}") # Creates an executable target named "MyProject" from source files
 
-target_sources("${PROJECT_NAME}" PUBLIC "${PROJECT_SRC_FILES}") 
-
 if(DEFINED PROJECT_SRC_FILES)
   message(STATUS "Project Files: cmake added source files")
 elseif(DEFINED $ENV{github_source_files})
@@ -131,6 +129,7 @@ endif()
 
 if($ENV{github_build_project})
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -std=c90")
+  target_sources("${PROJECT_NAME}" PUBLIC "${PROJECT_SRC_FILES}") 
   message(STATUS "CMAKE_C_FLAGS; ${CMAKE_C_FLAGS}")
 else()
   message(STATUS "Project Build: clang tools analyzer only")
