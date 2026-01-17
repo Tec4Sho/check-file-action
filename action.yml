@@ -1046,8 +1046,8 @@ runs:
           echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################" | process_input;
           echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################" | process_input;
           if ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
-            codechecker_analyzers=$(CodeChecker checkers --analyzers clangsa | awk '/Status: enabled/{print prev}{prev=$0}');
-            echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled checks:\n\t${codechecker_analyzers}" | process_input;
+            codechecker_analyzers=$(CodeChecker checkers --analyzers clangsa | awk '/Status: enabled/{print prev}{prev=$0}' | awk '{printf "    %s\n", $0}');
+            echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled checks:\n${codechecker_analyzers}" | process_input;
           fi;
           echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
           echo -e "\n####################\nChecking Repository:\033[32m ${{ env.base }}\033[0m\n####################" | process_input;
@@ -1318,7 +1318,7 @@ runs:
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          CodeChecker check -b "make ${{ inputs.makefile }} -n -k" | process_input;
+          CodeChecker check -b "make -f ${{ inputs.makefile }} -n -k" | process_input;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found checking building files" | process_input;
             check_build=true
