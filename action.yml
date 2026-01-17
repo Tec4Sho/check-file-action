@@ -26,7 +26,7 @@ inputs:
     description: 'Make filename for building project source'
     type: string
     required: false
-    default: 'Makefile'
+    default: 'build/CMakeFiles/Makefile2'
   filename:
     description: 'Check for filename or search for text word matches'
     type: string
@@ -993,11 +993,11 @@ runs:
             fi;
           done;
         }
-        if ! ${{ inputs.update }}; then
+        if ${{ inputs.update == 'false' }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
           update=false
         fi;
-        if ${{ inputs.filetype != 'none' }}; then
+        if ${{ inputs.filetype != '' }}; then
           file_type="${{ inputs.filetype }}";
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
@@ -1046,7 +1046,7 @@ runs:
           echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################" | process_input;
           echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################" | process_input;
           if ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
-            codechecker_analyzers=$(CodeChecker checkers --analyzers clangsa);
+            codechecker_analyzers=$(CodeChecker checkers --analyzers clangsa | awk '/Status: enabled/{print prev}{prev=$0}');
             echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\n\n${codechecker_analyzers}" | process_input;
           fi;
           echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
