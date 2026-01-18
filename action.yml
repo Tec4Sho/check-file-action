@@ -1244,13 +1244,19 @@ runs:
             fi;
             if [[ -e "${codechecker}" ]] && [[ -e "${clangtidy}" ]]; then
               echo -e "\n${codechecker} and ${clangtidy} files were found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clang-tidy --output ./reports | process_input;
+              ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
+              CodeChecker parse --print-steps ./reports | process_input;
             elif [[ -e "${codechecker}" ]]; then
               echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clang-tidy --output ./reports | process_input;
+              ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
+              CodeChecker parse --print-steps ./reports | process_input;
             else
               echo -e "\n${codechecker} and ${clangtidy} files were not found continuing without...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --analyzers clangsa --output ./reports | process_input;
+              ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clangsa --apply ./reports | process_input;
+              CodeChecker parse ./reports | process_input;
             fi;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
@@ -1337,13 +1343,19 @@ runs:
           [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
           if [[ -e "${codechecker}" ]] && [[ -e "${clangtidy}" ]]; then
             echo -e "\n${codechecker} and ${clangtidy} files were found continuing...\n" | process_input;
-            CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+            CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clang-tidy --output ./reports | process_input;
+            ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
+            CodeChecker parse --print-steps ./reports | process_input;
           elif [[ -e "${codechecker}" ]]; then
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+            CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clang-tidy --output ./reports | process_input;
+            ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
+            CodeChecker parse --print-steps ./reports | process_input;
           else
             echo -e "\n${codechecker} and ${clangtidy} files were not found continuing without...\n" | process_input;
-            CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --output ./reports && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --apply ./reports && CodeChecker parse ./reports | process_input;
+            CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --analyzers clangsa --output ./reports | process_input;
+            ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clangsa --apply ./reports | process_input;
+            CodeChecker parse ./reports | process_input;
           fi;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found checking building files" | process_input;
@@ -2224,11 +2236,11 @@ runs:
         tag_name: ${{ github.run_id }}
       continue-on-error: true
 
-    - name: Uploading ${{ github.repository }} Project Build Checks
+    - name: Uploading ${{ github.repository }} Project Report Checks
       if: inputs.analyzer == '4' && inputs.project == 'true' && env.build_files == '1'
       uses: actions/upload-artifact@v4
       with:
-        name: Build For ${{ github.repository }} Repository.
+        name: ${{ env.github_repository }}_reports
         path: reports
       continue-on-error: true
 

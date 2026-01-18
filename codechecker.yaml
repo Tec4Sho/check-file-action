@@ -1,11 +1,13 @@
 # codechecker.yaml
 analyzer:
   # Enable/disable checkers.
+  - --disable=all
   - --enable=core.DivideZero
   - --enable=core.CallAndMessage
   # Analyzer configurations.
   - --analyzer-config=clangsa:unroll-loops=true
   - --analyzer-config=clang-tidy:take-config-from-directory=true # Corrected location
+  - --analyzer-config=clang-tidy:cc-verbatim-args-file=clang-tidy.yaml
   # Optional options.
   - --keep-gcc-include-fixed
   - --no-missing-checker-error
