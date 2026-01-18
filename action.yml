@@ -1244,19 +1244,20 @@ runs:
             fi;
             if [[ -e "${codechecker}" ]] && [[ -e "${clangtidy}" ]]; then
               echo -e "\n${codechecker} and ${clangtidy} files were found continuing...\n" | process_input;
+              CodeChecker check "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy | process_input;
+            elif ${{ inputs.repair }} && [[ -e "${codechecker}" ]]; then
+              echo -e "\nRepair mode ${codechecker} file was found continuing...\n" | process_input;
               CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy --output ./reports | process_input;
-              ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
+              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
               CodeChecker parse --print-steps ./reports | process_input;
-            elif [[ -e "${codechecker}" ]]; then
-              echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy --output ./reports | process_input;
-              ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
-              CodeChecker parse --print-steps ./reports | process_input;
-            else
-              echo -e "\n${codechecker} and ${clangtidy} files were not found continuing without...\n" | process_input;
+            elif ${{ inputs.repair }}; then
+              echo -e "\nRepair mode continuing without config file continuing...\n" | process_input;
               CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --analyzers clangsa --output ./reports | process_input;
               ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clangsa --apply ./reports | process_input;
               CodeChecker parse ./reports | process_input;
+            else
+              echo -e "\n${codechecker} and ${clangtidy} files were not found continuing...\n" | process_input;
+              CodeChecker check "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy | process_input;
             fi;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
@@ -1343,19 +1344,13 @@ runs:
           [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
           if [[ -e "${codechecker}" ]] && [[ -e "${clangtidy}" ]]; then
             echo -e "\n${codechecker} and ${clangtidy} files were found continuing...\n" | process_input;
-            CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy --output ./reports | process_input;
-            ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
-            CodeChecker parse --print-steps ./reports | process_input;
+            CodeChecker check -b "make -j$(nproc --all)" --config "${codechecker}" --jobs "$(nproc --all)" | process_input;
           elif [[ -e "${codechecker}" ]]; then
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clang-tidy --output ./reports | process_input;
-            ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clangsa clang-tidy --apply ./reports | process_input;
-            CodeChecker parse --print-steps ./reports | process_input;
+            CodeChecker check -b "make -j$(nproc --all)" --config "${codechecker}" --jobs "$(nproc --all)" | process_input;
           else
             echo -e "\n${codechecker} and ${clangtidy} files were not found continuing without...\n" | process_input;
-            CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --analyzers clangsa --output ./reports | process_input;
-            ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clangsa --apply ./reports | process_input;
-            CodeChecker parse ./reports | process_input;
+            CodeChecker check -b "make -j$(nproc --all)" --jobs "$(nproc --all)" | process_input;
           fi;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found checking building files" | process_input;
@@ -1403,7 +1398,7 @@ runs:
         if [[ -d 'build' ]] && ${{ inputs.build == '3' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tDeheader analyze sources includes on build...(dry-run -3)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
-          deheader -v -r -m "make ${{ inputs.makefile }} -n -j$(nproc --all)" | process_input;
+          deheader -v -r -m "make -n -j$(nproc --all)" | process_input;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
             echo -e "\n::notice::duplicate includes found building project files" | process_input;
             check_build=true
@@ -2237,7 +2232,7 @@ runs:
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Report Checks
-      if: inputs.analyzer == '4' && inputs.project == 'true' && env.build_files == '1'
+      if: inputs.analyzer == '4' && inputs.project == 'true' && inputs.repair == 'true' && env.build_files == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_reports
