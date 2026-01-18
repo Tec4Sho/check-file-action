@@ -1244,20 +1244,20 @@ runs:
             fi;
             if ${{ inputs.repair }} && [[ -e "${codechecker}" ]]; then
               echo -e "\nRepair mode ${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports | process_input;
-              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports | process_input;
-              CodeChecker parse ./reports --print-steps | process_input;
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input;
+              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input;
+              CodeChecker parse ./reports --print-steps 2>&1 | process_input;
             elif ${{ inputs.repair }}; then
               echo -e "\nRepair mode continuing without config file continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --output ./reports | process_input;
-              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports | process_input;
-              CodeChecker parse ./reports --print-steps | process_input;
+              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input;
+              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input;
+              CodeChecker parse ./reports --print-steps 2>&1 | process_input;
             elif [[ -e "${codechecker}" ]]; then
               echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker check --config "${codechecker}" --jobs "$(nproc --all)" --logfile "${compile_json}" --print-steps | process_input;
+              CodeChecker check --config "${codechecker}" --jobs "$(nproc --all)" --logfile "${compile_json}" --print-steps 2>&1 | process_input;
             else
               echo -e "\nRepair mode off and ${codechecker} file was not found continuing...\n" | process_input;
-              CodeChecker check --logfile "${compile_json}" --print-steps | process_input;
+              CodeChecker check --logfile "${compile_json}" --print-steps 2>&1 | process_input;
             fi;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
@@ -1344,10 +1344,10 @@ runs:
           [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
           if [[ -e "${codechecker}" ]]; then
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            CodeChecker check -b "make -j$(nproc --all)" --config "${codechecker}" --jobs "$(nproc --all)" --print-steps | process_input;
+            CodeChecker check -b "make -j$(nproc --all)" --config "${codechecker}" --jobs "$(nproc --all)" --print-steps 2>&1 | process_input;
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            CodeChecker check -b "make" --jobs "$(nproc --all)" --print-steps | process_input;
+            CodeChecker check -b "make" --jobs "$(nproc --all)" --print-steps 2>&1 | process_input;
           fi;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found checking building files" | process_input;
@@ -1374,7 +1374,7 @@ runs:
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
           [[ -e "${compile_json}" ]] && rm -vf "${compile_json}" | process_input;
-          CodeChecker log --build "make -j$(nproc --all)" --output "${compile_json}" | process_input;
+          CodeChecker log --build "make -j$(nproc --all)" --output "${compile_json}" 2>&1 | process_input;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found building project files" | process_input;
             check_build=true
