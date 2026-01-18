@@ -966,7 +966,7 @@ runs:
         start_time="${SECONDS}";
         export WITH_TIDY=1
         export LC_ALL=C
-        export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++"
+        export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export ALLOW_MISSING_DEPENDENCIES=true
@@ -975,7 +975,6 @@ runs:
         project_log="${repository}_project.log";
         clang_sources='check-file-sources.txt';
         codechecker='codechecker.yaml';
-        clangtidy='clang-tidy.yaml';
         count1='count1.txt';
         count2='count2.txt';
         count3='count3.txt';
@@ -1168,9 +1167,9 @@ runs:
           if [[ -e 'compile_commands.json' ]]; then
             echo -e '\n####################\n\tcompile_commands.json file symlinked continuing...\n####################' | process_input;
           fi;
-          if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e 'compile_commands.json' ]]; then
+          if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-            { time "${{ env.run_clang_tidy }}" -p "${compile_json}" -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)"; } 2>&1 | process_input;
+            "${{ env.run_clang_tidy }}" -p "${compile_json}" -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" | process_input;
             [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && clang-format -style=LLVM -dump-config > .clang-format | process_input;
             [[ $(whereis clang-apply-replacements) ]] && { time clang-apply-replacements build/fixes --format --style='.clang-format' --ignore-insert-conflict --remove-change-desc-files; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
@@ -1183,10 +1182,10 @@ runs:
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
-          elif [[ ! "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e 'compile_commands.json' ]]; then
+          elif [[ ! "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e "${compile_json}" ]]; then
             echo -e "\n####################\n\t::error:: run-clang-tidy missing in repo Exiting...\n####################\n" | process_input;
           fi;
-          if [[ -f "${clang_file}" ]] && ${{ env.analyzer == '2' }} && [[ -e 'compile_commands.json' ]]; then
+          if [[ -f "${clang_file}" ]] && ${{ env.analyzer == '2' }} && [[ -e "${compile_json}" ]]; then
             echo ' ' >> "${clang_file}";
             files_list=false
             if [[ "$(clang_includes)" ]] && [[ "$(source_files)" ]] ; then
@@ -1215,10 +1214,10 @@ runs:
                 echo 'check_build=true' >> "${GITHUB_ENV}";
               fi;
             fi;
-          elif [[ ! -e "${clang_file}" ]] && ${{ env.analyzer == '2' }} && [[ -e 'compile_commands.json' ]]; then
+          elif [[ ! -e "${clang_file}" ]] && ${{ env.analyzer == '2' }} && [[ -e "${compile_json}" ]]; then
             echo -e "\n####################\n\t::error:: parameter-file missing in repo Exiting...\n####################\n" | process_input;
           fi;
-          if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e 'compile_commands.json' ]]; then
+          if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILES\n####################\n' | process_input;
             find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 100 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p "${compile_json}" -j "$(nproc --all)" --color always --tqdm || true' bash | process_input;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
@@ -1231,10 +1230,10 @@ runs:
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
             fi;
-          elif [[ ! -e "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e 'compile_commands.json' ]]; then
+          elif [[ ! -e "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e "${compile_json}" ]]; then
             echo -e "\n####################\n\t::error::${clangd_tidy##/*} file missing in repo Exiting...\n####################\n" | process_input;
           fi;
-          if [[ $(which CodeChecker) ]] && ${{ env.analyzer == '4' }} && [[ -e 'compile_commands.json' ]]; then
+          if [[ $(which CodeChecker) ]] && ${{ env.analyzer == '4' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\n\tCODECHECKER ANALYZING FILES...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
@@ -1242,22 +1241,22 @@ runs:
             else
               echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
-            if [[ -e "${codechecker}" ]] && [[ -e "${clangtidy}" ]]; then
-              echo -e "\n${codechecker} and ${clangtidy} files were found continuing...\n" | process_input;
-              CodeChecker check --logfile "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy | process_input;
-            elif ${{ inputs.repair }} && [[ -e "${codechecker}" ]]; then
+            if ${{ inputs.repair }} && [[ -e "${codechecker}" ]]; then
               echo -e "\nRepair mode ${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy --output ./reports | process_input;
-              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
-              CodeChecker parse --print-steps ./reports | process_input;
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports | process_input;
+              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports | process_input;
+              CodeChecker parse ./reports --print-steps | process_input;
             elif ${{ inputs.repair }}; then
               echo -e "\nRepair mode continuing without config file continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --analyzers clangsa --output ./reports | process_input;
-              ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clangsa --apply ./reports | process_input;
-              CodeChecker parse ./reports | process_input;
+              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --output ./reports | process_input;
+              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports | process_input;
+              CodeChecker parse ./reports --print-steps | process_input;
+            elif [[ -e "${codechecker}" ]]; then
+              echo -e "\n${codechecker} file was found continuing...\n" | process_input;
+              CodeChecker check --config "${codechecker}" --jobs "$(nproc --all)" --logfile "${compile_json}" --print-steps | process_input;
             else
-              echo -e "\n${codechecker} and ${clangtidy} files were not found continuing...\n" | process_input;
-              CodeChecker check --logfile "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy | process_input;
+              echo -e "\nRepair mode off and ${codechecker} file was not found continuing...\n" | process_input;
+              CodeChecker check --logfile "${compile_json}" --print-steps | process_input;
             fi;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
@@ -1285,14 +1284,14 @@ runs:
       run: |
         echo '';
         start_time="${{ env.seconds }}";
+        export WITH_TIDY=1
+        export LC_ALL=C
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export ALLOW_MISSING_DEPENDENCIES=true
         export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-        export WITH_TIDY=1
-        export LC_ALL=C
+        export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
         codechecker='codechecker.yaml';
-        clangtidy='clang-tidy.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${repository}_project.log";
@@ -1342,15 +1341,12 @@ runs:
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
           [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
-          if [[ -e "${codechecker}" ]] && [[ -e "${clangtidy}" ]]; then
-            echo -e "\n${codechecker} and ${clangtidy} files were found continuing...\n" | process_input;
-            CodeChecker check -b "make -j$(nproc --all)" --config "${codechecker}" --jobs "$(nproc --all)" | process_input;
-          elif [[ -e "${codechecker}" ]]; then
+          if [[ -e "${codechecker}" ]]; then
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            CodeChecker check -b "make -j$(nproc --all)" --config "${codechecker}" --jobs "$(nproc --all)" | process_input;
+            CodeChecker check -b "make -j$(nproc --all)" --config "${codechecker}" --jobs "$(nproc --all)" --print-steps | process_input;
           else
-            echo -e "\n${codechecker} and ${clangtidy} files were not found continuing without...\n" | process_input;
-            CodeChecker check -b "make -j$(nproc --all)" --jobs "$(nproc --all)" | process_input;
+            echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
+            CodeChecker check -b "make" --jobs "$(nproc --all)" --print-steps | process_input;
           fi;
           if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found checking building files" | process_input;
