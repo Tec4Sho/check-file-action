@@ -1244,7 +1244,7 @@ runs:
             fi;
             if [[ -e "${codechecker}" ]] && [[ -e "${clangtidy}" ]]; then
               echo -e "\n${codechecker} and ${clangtidy} files were found continuing...\n" | process_input;
-              CodeChecker check "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy | process_input;
+              CodeChecker check --logfile "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy | process_input;
             elif ${{ inputs.repair }} && [[ -e "${codechecker}" ]]; then
               echo -e "\nRepair mode ${codechecker} file was found continuing...\n" | process_input;
               CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy --output ./reports | process_input;
@@ -1257,7 +1257,7 @@ runs:
               CodeChecker parse ./reports | process_input;
             else
               echo -e "\n${codechecker} and ${clangtidy} files were not found continuing...\n" | process_input;
-              CodeChecker check "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy | process_input;
+              CodeChecker check --logfile "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy | process_input;
             fi;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
