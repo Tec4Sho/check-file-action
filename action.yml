@@ -1007,10 +1007,10 @@ runs:
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -d "${{ env.base }}" ]]; then
-          clang_tidy_version="$(clang-tidy --version)";
-          clang_version="$(clang --version)";
-          verify_config="$(clang-tidy --verify-config)";
-          cmake_version="$(cmake --version)";
+          clang_tidy_version=$(clang-tidy --version);
+          clang_version=$(clang --version);
+          verify_config=$(clang-tidy --verify-config);
+          cmake_version=$(cmake --version);
           if [[ -f 'compile_commands.json' ]]; then
              compile_json='compile_commands.json';
           elif [[ -f 'build/compile_commands.json' ]]; then
@@ -1018,9 +1018,9 @@ runs:
           else
              compile_json='build/compile_commands.json';
           fi;
-          clang_checks="$(clang-tidy --list-checks)";
-          gcc_version="$(gcc --version)";
-          gpp_version="$(g++ --version)";
+          clang_checks=$(clang-tidy --list-checks);
+          gcc_version=$(gcc --version);
+          gpp_version=$(g++ --version);
           cmake_list='CMakeLists.txt';
           clang_file='parameter-file';
           clang_tidy='.clang-tidy';
@@ -1244,12 +1244,12 @@ runs:
             fi;
             if [[ -e "${codechecker}" ]] && [[ -e "${clangtidy}" ]]; then
               echo -e "\n${codechecker} and ${clangtidy} files were found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clang-tidy --output ./reports | process_input;
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy --output ./reports | process_input;
               ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
               CodeChecker parse --print-steps ./reports | process_input;
             elif [[ -e "${codechecker}" ]]; then
               echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clang-tidy --output ./reports | process_input;
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy --output ./reports | process_input;
               ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
               CodeChecker parse --print-steps ./reports | process_input;
             else
@@ -1343,13 +1343,13 @@ runs:
           [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
           if [[ -e "${codechecker}" ]] && [[ -e "${clangtidy}" ]]; then
             echo -e "\n${codechecker} and ${clangtidy} files were found continuing...\n" | process_input;
-            CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clang-tidy --output ./reports | process_input;
+            CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clangsa clang-tidy --output ./reports | process_input;
             ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
             CodeChecker parse --print-steps ./reports | process_input;
           elif [[ -e "${codechecker}" ]]; then
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
             CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --analyzers clang-tidy --output ./reports | process_input;
-            ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clang-tidy --apply ./reports | process_input;
+            ${{ inputs.repair }} && CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --analyzers clangsa clang-tidy --apply ./reports | process_input;
             CodeChecker parse --print-steps ./reports | process_input;
           else
             echo -e "\n${codechecker} and ${clangtidy} files were not found continuing without...\n" | process_input;
