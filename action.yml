@@ -966,6 +966,7 @@ runs:
         start_time="${SECONDS}";
         export WITH_TIDY=1
         export LC_ALL=C
+        export PYTHONUNBUFFERED=1
         export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
