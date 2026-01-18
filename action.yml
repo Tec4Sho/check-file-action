@@ -975,7 +975,7 @@ runs:
         project_log="${repository}_project.log";
         clang_sources='check-file-sources.txt';
         codechecker='codechecker.yaml';
-        clangtidy='.clang-tidy';
+        clangtidy='clang-tidy.yaml';
         count1='count1.txt';
         count2='count2.txt';
         count3='count3.txt';
@@ -1288,7 +1288,7 @@ runs:
         export WITH_TIDY=1
         export LC_ALL=C
         codechecker='codechecker.yaml';
-        clangtidy='.clang-tidy';
+        clangtidy='clang-tidy.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${repository}_project.log";
