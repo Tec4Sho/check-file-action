@@ -53,6 +53,8 @@ endif()
 
 file(GLOB_RECURSE PROJECT_SRC_FILES "*.c")
 
+list(SORT PROJECT_SRC_FILES)
+
 add_executable("${PROJECT_NAME}" "${PROJECT_SRC_FILES}") # Creates an executable target named "MyProject" from source files
 
 if(DEFINED PROJECT_SRC_FILES)
