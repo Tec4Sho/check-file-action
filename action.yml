@@ -1524,20 +1524,20 @@ runs:
           echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
         fi;
         if [[ -s "${project_log}" ]]; then
-          set -e
+          set +e
           echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################" | process_input;
-          deheader_duplicates=$(grep -sFc 'duplicates' "${project_log}" || true);
-          deheader_inclusion=$(grep -sFc 'inclusion' "${project_log}" || true);
-          deheader_removed=$(grep -sFc 'remove' "${project_log} || true);
-          codechecker_success=$(grep -sFc 'successfully' "${project_log} || true);
-          codechecker_errors=$(grep -sFc 'Error while processing' "${project_log} || true);
-          clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" 2>/dev/null | grep -s -v -c '[\[\]]' || true);
-          clang_files_missing=$(grep -sFc 'file not found' "${project_log}" || true);
-          clang_files_list=$( { grep -sF 'file not found' "${project_log}" || true; } | awk '{print $3}' | awk '!seen[$0]++');
-          clang_warnings=$( { grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" || true; } | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
-          clang_errors=$( { grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" || true; } | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
-          clang_fixits=$(grep -siEc 'fixit|fix-its' "${project_log}" || true);
-          clang_notes=$(grep -siFc 'note:' "${project_log}" || true);
+          deheader_duplicates=$(grep -sFc 'duplicates' "${project_log}");
+          deheader_inclusion=$(grep -sFc 'inclusion' "${project_log}");
+          deheader_removed=$(grep -sFc 'remove' "${project_log});
+          codechecker_success=$(grep -sFc 'successfully' "${project_log});
+          codechecker_errors=$(grep -sFc 'Error while processing' "${project_log});
+          clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" 2>/dev/null | grep -s -v -c '[\[\]]');
+          clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
+          clang_files_list=$(grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
+          clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
+          clang_errors=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
+          clang_fixits=$(grep -siEc 'fixit|fix-its' "${project_log}");
+          clang_notes=$(grep -siFc 'note:' "${project_log}");
           located_count=0
           missing_count=0
           file_count=0
