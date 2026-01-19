@@ -1006,7 +1006,7 @@ runs:
           file_type="${{ inputs.filetype }}";
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
-        if [[ "${filetype}" == [c]* ]] || [[ "${filetype}" == [h]* ]] || [[ "${filetype}" == [t]* ]]; then
+        if [[ "${file_type}" == [c]* ]] || [[ "${file_type}" == [h]* ]] || [[ "${file_type}" == [t]* ]]; then
           clang_tidy_version=$(clang-tidy --version);
           clang_version=$(clang --version);
           verify_config=$(clang-tidy --verify-config);
