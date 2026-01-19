@@ -1006,13 +1006,14 @@ runs:
           file_type="${{ inputs.filetype }}";
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
-        if [[ -d "${{ env.base }}" ]]; then
+        if [[ ${filetype} ]]; then
           clang_tidy_version=$(clang-tidy --version);
           clang_version=$(clang --version);
           verify_config=$(clang-tidy --verify-config);
           cmake_version=$(cmake --version);
           if [[ -f 'compile_commands.json' ]]; then
              compile_json='compile_commands.json';
+             mkdir build && cp -vf ${compile_json} build/
           elif [[ -f 'build/compile_commands.json' ]]; then
              compile_json='build/compile_commands.json';
           else
@@ -1170,7 +1171,7 @@ runs:
           fi;
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-            "${{ env.run_clang_tidy }}" -p "${compile_json}" -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" | process_input;
+            "${{ env.run_clang_tidy }}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" | process_input;
             [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && clang-format -style=LLVM -dump-config > .clang-format | process_input;
             [[ $(whereis clang-apply-replacements) ]] && { time clang-apply-replacements build/fixes --format --style='.clang-format' --ignore-insert-conflict --remove-change-desc-files; } 2>&1 | process_input;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
@@ -1220,7 +1221,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILES\n####################\n' | process_input;
-            find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 100 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p "${compile_json}" -j "$(nproc --all)" --color always --tqdm || true' bash | process_input;
+            find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print0 | sort -nz | cut -d' ' -f 2- 2>/dev/null | xargs -0 -r -n 100 -P "$(nproc --all)" bash -c 'clangd-tidy "$@" -p build -j "$(nproc --all)" --color always --tqdm || true' bash | process_input;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
