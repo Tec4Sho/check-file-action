@@ -1129,7 +1129,7 @@ runs:
               echo -e "${file#./}";
             done;
           }
-          mkdir -p build/fixes
+          mkdir -p build/bin
           echo 'build_error=false' >> "${GITHUB_ENV}";
           echo 'github_source_files=false' >> "${GITHUB_ENV}";
           echo 'github_include_dirs=false' >> "${GITHUB_ENV}";
@@ -1174,9 +1174,15 @@ runs:
           fi;
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-            "${{ env.run_clang_tidy }}" -p build -config-file "${clang_tidy}" -fix -export-fixes build/fixes -j "$(nproc --all)" 2>&1 | process_input || true;
-            [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && clang-format -style=LLVM -dump-config > .clang-format 2>&1 | process_input || true;
-            [[ $(whereis clang-apply-replacements) ]] && clang-apply-replacements build/fixes --format --style='.clang-format' --ignore-insert-conflict --remove-change-desc-files 2>&1 | process_input || true;
+            [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && echo -e '[check-file] creating new ,clang-format file as none was found\n' | process_input && clang-format -style=LLVM -dump-config > .clang-format 2>&1 | process_input || true;
+            "${{ env.run_clang_tidy }}" -j $(nproc --all) \
+               -p build \
+               -config-file "${clang_tidy}" \
+               -export-fixes build/fixes.yaml \
+               -fix \
+               -format \
+               -style ",clang-format" \
+               2>&1 | process_input || true
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
