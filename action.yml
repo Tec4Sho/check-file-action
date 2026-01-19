@@ -607,7 +607,7 @@ runs:
       shell: bash
       continue-on-error: false
 
-    - name: Cmake Source Files Fixer
+    - name: Source Includes Fixer A
       if: inputs.source == '1' || inputs.source == '2'
       run: |
         echo '';
@@ -630,6 +630,7 @@ runs:
         count4=0
         count5=0
         checked=false
+        source_include=false
         includes_found=false
         include1='include-file1.txt';
         include2='include-file2.txt';
@@ -663,7 +664,7 @@ runs:
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
         [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
-        if [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.source == '1' }} && [[ "${include_files1}" ]]; then
+        if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '1' }} && [[ "${include_files1}" ]]; then
           declare -A processed
           declare -A missing
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m verbose \033[0m]" | process_input;
@@ -747,12 +748,13 @@ runs:
             echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${count5}\033[0m\n[Hint] Many source files may call these \033[31mmissing include files.\nYou may need to remove the missing include file objectives or added the file before compiling!!!" | process_input;
           fi;
           unset processed;
+          unset missing;
           [[ -s "${include_list}" ]] && mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
           seconds=$((SECONDS - start_time));
           m=$((seconds / 60));
           s=$((seconds % 60));
           printf "Project Auto Include Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
-        elif [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.source == '2' }} && [[ "${include_files2}" ]]; then
+        elif [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '2' }} && [[ "${include_files2}" ]]; then
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[33m medium \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           declare -A processed
@@ -792,7 +794,7 @@ runs:
                    header=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
                 fi;
                 includes_missing=false
-                if [[ "${header}" ]]; then
+                if [[ -n "${header}" ]]; then
                   while IFS= read -r includes; do
                     count2=$((include_count++));
                     count3=$((include_total++));
@@ -811,6 +813,7 @@ runs:
             fi;
             if [[ "${includes_found}" == 'true' ]]; then
               echo -e "\n${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ✅ ]" | process_input;
+              source_include=true
             elif [[ "${includes_missing}" == 'true' ]]; then
               echo -e "\n\033[32mCheck-File discovered missing include objective after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ❌ ]" | process_input;
             elif [[ -z "${include_source}" ]]; then
@@ -840,7 +843,7 @@ runs:
           s=$((seconds % 60));
           printf "Project Auto Include Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
         fi;
-        if [[ "${includes_found}" == 'true' ]]; then
+        if [[ "${source_include}" == 'true' ]]; then
           echo "include_count=${count4}" >> "${GITHUB_ENV}";
         else
           echo 'include_count=0' >> "${GITHUB_ENV}";
@@ -856,7 +859,7 @@ runs:
       shell: bash
       continue-on-error: true  
 
-    - name: Cmake Source Files Fixer B
+    - name: Source Includes Fixer B
       if: inputs.source == '3' || inputs.source == '4'
       run: |
         echo '';
@@ -879,6 +882,7 @@ runs:
         count4=0
         count5=0
         checked=false
+        source_include=false
         includes_found=false
         include1='include-file1.txt';
         include2='include-file2.txt';
@@ -912,7 +916,7 @@ runs:
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
         [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
-        if [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.source == '3' }} && [[ "${include_files3}" ]]; then
+        if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '3' }} && [[ "${include_files3}" ]]; then
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[35m low \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           declare -A processed
@@ -939,24 +943,27 @@ runs:
                 while IFS= read -r includes; do
                   count2=$((include_count++));
                   echo "${includes%/*}" >> "${include1}";
-                done <<< ${header};
+                done <<< "${header[@]}";
+                includes_found=true
               elif [[ -n "${processed[$include]}" ]]; then
+                includes_found=false
                 echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
               else
+                includes_found=false
                 processed["$include"]=1
                 count5=$((include_missing++));
                 echo -e "\n::notice::\033[31mSource file #include \033[0m( ${include} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
               fi;
-              includes_found=true
             fi;
-          done <<< ${include_files3[@]};
+          done <<< "${include_files3[@]}";
           if [[ -s "${include1}" ]]; then
             awk '!seen[$0]++' "${include1}" > "${include_list}";
           fi;
           if [[ -s "${include_list}" ]]; then
             count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
           fi;
-          if [[ "${includes_found}" ]]; then
+          if [[ "${includes_found}" == 'true' ]]; then
+            source_include=true
             echo 'check_build=true' >> "${GITHUB_ENV}";
             echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories added after duplicate cleaning!!!\033[0m\nSet option (\033[1m cache: true \033[0m) to use this list for source include checks without manually downloading an adding the file to your repo\n With cache you should set (\033[1m source: 0 \033[0m)running sources again each check!" | process_input;
           else
@@ -1020,7 +1027,7 @@ runs:
           s=$((seconds % 60));
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
         fi;
-        if [[ "${includes_found}" == 'true' ]]; then
+        if [[ "${source_include}" == 'true' ]]; then
           echo "include_count=${count4}" >> "${GITHUB_ENV}";
         else
           echo 'include_count=0' >> "${GITHUB_ENV}";
