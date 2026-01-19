@@ -1258,7 +1258,7 @@ runs:
           fi;
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-            [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && echo -e '[check-file] creating new ,clang-format file as none was found\n' | process_input && clang-format -style=LLVM -dump-config > .clang-format 2>&1 | process_input || true;
+            [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && echo -e '[check-file] creating new ,clang-format file as none was found\n' | process_input && clang-format -style=LLVM -dump-config > .clang-format || true;
             "${{ env.run_clang_tidy }}" -j $(nproc --all) \
                -p build \
                -config-file "${clang_tidy}" \
@@ -1480,10 +1480,10 @@ runs:
           if ${{ inputs.upload }}; then
             echo 'build_files=1' >> "${GITHUB_ENV}";     
           fi;
-        elif ${{ env.build_files == '1' }} &&  && ${{ inputs.build == '2' }}; then
+        elif ${{ env.build_files == '1' }} && ${{ inputs.build == '2' }}; then
           echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################" | process_input;
         fi;
-        if ${{ env.build_files == '1' }} &&  && ${{ inputs.build == '3' }} && ${{ env.build_error == 'false' }}; then
+        if ${{ env.build_files == '1' }} && ${{ inputs.build == '3' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tDeheader analyze sources includes on build...(dry-run -3)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
           deheader -v -r -m "make -n -j$(nproc --all)" | process_input || true;
