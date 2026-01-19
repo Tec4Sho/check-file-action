@@ -667,6 +667,7 @@ runs:
         [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
         if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '1' }} && [[ "${include_files1}" ]]; then
           declare -A processed
+          declare -A missing
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m verbose \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
@@ -687,7 +688,7 @@ runs:
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tinclude file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
-                  if [[ "${include}" == *.[h]* || "${include}" == *.[c]* ]]; then
+                  if [[ "${include}" == *.[h]* || "${include}" == *.[c]* ]] && [[ ! "${processed[$include]}" ]]; then
                     processed["$include"]=1
                     path1="${include##+(*./)}";
                     path2="${path1##[:]*}";
@@ -714,11 +715,11 @@ runs:
                         echo -e "\n\033[33mSource file include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${includes}" | process_input;
                       done <<< ${header};
                       includes_found=true
-                    elif [[ -n "${processed[$include]}" ]]; then
+                    elif [[ -n "${missing[$include]}" ]]; then
                       echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;        
                     else
                       includes_found=false
-                      processed["${include}"]=1
+                      missing["${include}"]=1
                       count5=$((include_missing++));
                       echo -e "\n::notice::\033[31mSource file include \033[0m( ${file4##+(*./)} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                     fi;
