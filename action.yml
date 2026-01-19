@@ -678,7 +678,7 @@ runs:
             echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             if ${{ inputs.include }}; then
               includes_found=false
-              include_source=$(rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[>"]' "${file}" 2>/dev/null | awk '{print $2}' | tr -d '<">' | sort -u);
+              include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[>"]' "${file}" 2>/dev/null || true; } | awk '{print $2}' | tr -d '<">' | sort -u);
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tinclude file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
@@ -1182,7 +1182,7 @@ runs:
                -export-fixes build/fixes.yaml \
                -fix \
                -format \
-               -style ",clang-format" \
+               -style 'file' \
                2>&1 | process_input || true
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
