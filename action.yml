@@ -1284,7 +1284,7 @@ runs:
             echo ' ' >> "${clang_file}";
             files_list=false
             if [[ "$(clang_includes)" ]] && [[ "$(source_files)" ]] ; then
-              echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################" | process_input;
+              echo -e "\n####################\n\t${file_type} file(s) & include objectives found continuing...\n####################" | process_input;
               clang_includes >> "${clang_file}" && source_files >> "${clang_file}" && files_list=true
             elif [[ "$(source_files)" ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################" | process_input;
@@ -1295,9 +1295,9 @@ runs:
             echo -e "\n####################\n\t${clang_file} found continuing...\n####################" | process_input;
             echo -e '\n####################\nCLANG-TIDY CONFIG CHECKED\n####################\n' | process_input;
             if [[ "${files_list}" ]]; then
-              cp -vf "${clang_file}" 'build/check-source-files.txt' 2>/dev/null;
+              cp -vf "${clang_file}" 'build/parameter-source.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-              clang-tidy @parameter-file 2>&1 | process_input || true;
+              clang-tidy @parameter-file | process_input;
               if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
                 echo -e "\n::notice::Errors found checking project files" | process_input;
                 check_build=true
@@ -1390,11 +1390,12 @@ runs:
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${repository}_project.log";
+        build_fixes='build/fixes.yaml';
         check_build=false
         file_type='c';
-        github=${GITHUB_WORKSPACE};
         update=true
         fixed=false
+        github=${GITHUB_WORKSPACE};
         count=1
         process_input() {
           while IFS= read -r output; do
@@ -1524,18 +1525,18 @@ runs:
         fi;
         if [[ -s "${project_log}" ]]; then
           echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################" | process_input;
-          deheader_duplicates=$(LC_ALL=C grep -sFc 'duplicates' "${project_log}");
-          deheader_inclusion=$(LC_ALL=C grep -sFc 'inclusion' "${project_log}");
-          deheader_removed=$(LC_ALL=C grep -sFc 'remove' "${project_log}");
-          codechecker_success=$(LC_ALL=C grep -sFc 'successfully' "${project_log}");
-          codechecker_errors=$(LC_ALL=C grep -sFc 'Error while processing' "${project_log}");
-          clang_replacements=$(find -path '*/fixes/*' -type f -name "*.yaml" -print | xargs -r -P "$(nproc --all)" -n 500 grep -F 'Replacements:' | grep -v -c '[\[\]]');
-          clang_files_missing=$(LC_ALL=C grep -sFc 'file not found' "${project_log}");
-          clang_files_list=$(LC_ALL=C grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
-          clang_warnings=$(LC_ALL=C grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
-          clang_errors=$(LC_ALL=C grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
-          clang_fixits=$(LC_ALL=C grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
-          clang_notes=$(LC_ALL=C grep -sEc 'note:|Note:|NOTE:' "${project_log}");
+          deheader_duplicates=$(grep -sFc 'duplicates' "${project_log}");
+          deheader_inclusion=$(grep -sFc 'inclusion' "${project_log}");
+          deheader_removed=$(grep -sFc 'remove' "${project_log}");
+          codechecker_success=$(grep -sFc 'successfully' "${project_log}");
+          codechecker_errors=$(grep -sFc 'Error while processing' "${project_log}");
+          clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" 2>/dev/null | grep -s -v -c '[\[\]]');
+          clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
+          clang_files_list=$(grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
+          clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
+          clang_errors=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
+          clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
+          clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}");
           located_count=0
           missing_count=0
           file_count=0
@@ -1555,7 +1556,7 @@ runs:
           if [[ "${clang_notes:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::⚠️ check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are fix suggestions for files that should be addressed before compiling.\n####################" | process_input;
           fi;
-          if [[ "${clang_replacements:-0}" > '0' ]]; then
+          if [[ -f "${build_fixes}" ]] && [[ "${clang_replacements:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::✅ check-file applied ${clang_replacements} clang replacement fixes for ${file_type} file(s) checked. [Hints] Clang export fixes are stored in build/fixes for download. Try using different (analyzer: 1, 2, or 4) for more possible error fixes.\n####################" | process_input;
           fi;
           if [[ "${deheader_removed:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
