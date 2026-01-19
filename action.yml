@@ -933,7 +933,7 @@ runs:
               echo -e "\n::notice::\033[34m⚠️ Total include source file errors during scan\033[0m\033[1m ${clang_file_errors}\033[0m\n[Hint] Many source files may report these \033[31mfatal file errors.\033[0m\n\033[1mCheck-file notice file issues that needs repair before a build!!!\033[0m" | process_input;
             fi;
             if [[ "${clang_files_missing}" > '0' ]]; then
-              echo -e "\n::notice::\033[34m⚠️ Total include source file missing calls during scan\033[0m\033[1m ${clang_files_missing}\033[0m\n[Hint] Many source files may call these \033[31mmissing include files.\033[0m\nYou may need to remove the missing include file objectives or added the files before compiling!!!" | process_input;" | process_input;
+              echo -e "\n::notice::\033[34m⚠️ Total include source file missing calls during scan\033[0m\033[1m ${clang_files_missing}\033[0m\n[Hint] Many source files may call these \033[31mmissing include files.\033[0m\nYou may need to remove the missing include file objectives or added the files before compiling!!!" | process_input;
               echo -e "\n::notice::\033[31m⚠️ Total include source files actually missing after scan\033[0m\033[1m ${clang_missing_count:-0}\033[0m\n";
             fi;
             includes_found=true
@@ -949,11 +949,11 @@ runs:
           echo 'include_count=0' >> "${GITHUB_ENV}";
         fi;
         if ${{ inputs.number > '0' }}; then
-          echo "include_source=false" >> "${GITHUB_ENV}";
+          echo 'include_source=false' >> "${GITHUB_ENV}";
         elif [[ "${count4}" > '2000' ]]; then
-          echo "include_source=true" >> "${GITHUB_ENV}";
+          echo 'include_source=true' >> "${GITHUB_ENV}";
         else
-          echo "include_source=false" >> "${GITHUB_ENV}";
+          echo 'include_source=false' >> "${GITHUB_ENV}";
         fi;
         echo '';
       shell: bash
@@ -1006,7 +1006,7 @@ runs:
           file_type="${{ inputs.filetype }}";
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
-        if [[ ${filetype} ]]; then
+        if [[ "${filetype}" == [c]* ]] || [[ "${filetype}" == [h]* ]] || [[ "${filetype}" == [t]* ]]; then
           clang_tidy_version=$(clang-tidy --version);
           clang_version=$(clang --version);
           verify_config=$(clang-tidy --verify-config);
