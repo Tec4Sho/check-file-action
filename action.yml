@@ -663,7 +663,7 @@ runs:
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
         [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
-        if ${{ inputs.filetype == [c]* }} && ${{ inputs.source == '1' }} && [[ "${include_files1}" ]]; then
+        if [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.source == '1' }} && [[ "${include_files1}" ]]; then
           declare -A processed
           declare -A missing
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m verbose \033[0m]" | process_input;
@@ -722,9 +722,11 @@ runs:
                 done <<< "${include_source[@]}";
               fi;
               if [[ "${includes_found}" ]]; then
-                echo -e "\n${count2}\033[32m include objectives successfully added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
+                echo -e "\n${count2}\033[32m include file objectives confirmed added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
+              elif [[ -z "${include_source}" ]]; then
+                echo -e "\n\033[33mNo include file objectives confirmed after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
               else
-                echo -e "\n${count5}\033[33m include objectives confirmed missing after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
+                echo -e "\n${count5}\033[33m include file objectives confirmed missing after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ❌ ]" | process_input;
               fi;  
             fi;
           done <<< "${include_files1[@]}";
@@ -750,7 +752,7 @@ runs:
           m=$((seconds / 60));
           s=$((seconds % 60));
           printf "Project Auto Include Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
-        elif ${{ inputs.filetype == [c]* }} && ${{ inputs.source == '2' }} && [[ "${include_files2}" ]]; then
+        elif [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.source == '2' }} && [[ "${include_files2}" ]]; then
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[33m medium \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           declare -A processed
@@ -796,7 +798,7 @@ runs:
                     count3=$((include_total++));
                     echo "${includes%/*}" >> "${include1}";
                     echo -e "\n\033[33mSource file include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${includes}" | process_input;
-                  done <<< ${header};
+                  done <<< "${header[@]}";
                 elif [[ -n "${processed[$include_source]}" ]]; then
                   echo -e "\n\033[33mSource file #include \033[0m( ${include_source} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;        
                 else
@@ -811,7 +813,7 @@ runs:
               echo -e "\n${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ✅ ]" | process_input;
             elif [[ "${includes_missing}" == 'true' ]]; then
               echo -e "\n\033[32mCheck-File discovered missing include objective after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ❌ ]" | process_input;
-            else
+            elif [[ -z "${include_source}" ]]; then
               echo -e "\n\033[32mCheck-File discovered no include objective after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ 🚫 ]" | process_input;
             fi;
           done <<< "${include_files2[@]}";
@@ -854,7 +856,7 @@ runs:
       shell: bash
       continue-on-error: true  
 
-    - name: Cmake Source Files Fixer
+    - name: Cmake Source Files Fixer B
       if: inputs.source == '3' || inputs.source == '4'
       run: |
         echo '';
@@ -910,7 +912,7 @@ runs:
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
         [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
-        if ${{ inputs.filetype == [c]* }} && ${{ inputs.source == '3' }} && [[ "${include_files3}" ]]; then
+        if [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.source == '3' }} && [[ "${include_files3}" ]]; then
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[35m low \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           declare -A processed
