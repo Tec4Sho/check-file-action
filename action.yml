@@ -678,13 +678,7 @@ runs:
             echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             if ${{ inputs.include }}; then
               includes_found=false
-              include_source=$(awk '/^[[:space:]]*#[[:space:]]*include[[:space:]]+[< ]/ {
-                split($0, parts, /[<> ]/);
-                filename = parts[2];
-                if (filename != "" && !seen[filename]++) {
-                  print filename;
-                }
-              }' "${file}");
+              include_source=$(rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[>"]' "${file}" 2>/dev/null | awk '{print $2}' | tr -d '<">' | sort -u);
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tinclude file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
