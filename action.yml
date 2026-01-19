@@ -688,7 +688,7 @@ runs:
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tinclude file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
-                  if [[ "${include}" == *.[h]* || "${include}" == *.[c]* ]] && [[ ! "${processed[$include]}" ]]; then
+                  if [[ "${include}" == *.[h]* ]] || [[ "${include}" == *.[c]* ]] && [[ ! "${processed[$include]}" ]]; then
                     processed["$include"]=1
                     path1="${include##+(*./)}";
                     path2="${path1##[:]*}";
@@ -724,7 +724,7 @@ runs:
                       echo -e "\n::notice::\033[31mSource file include \033[0m( ${file4##+(*./)} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                     fi;
                   fi;
-                done <<< ${include_source[@]};
+                done <<< "${include_source[@]"};
               fi;
               if [[ "${includes_found}" ]]; then
                 echo -e "\n${count2}\033[32m include objectives successfully added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
@@ -732,7 +732,7 @@ runs:
                 echo -e "\n${count5}\033[33m include objectives confirmed missing after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
               fi;  
             fi;
-          done <<< ${include_files1[@]};
+          done <<< "${include_files1[@]}";
           if [[ -s "${include1}" ]]; then
             awk '!seen[$0]++' "${include1}" > "${include_list}";
           fi;
