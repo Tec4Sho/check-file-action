@@ -1536,15 +1536,15 @@ runs:
           clang_files_list=$( { grep -sF 'file not found' "${project_log}" || true; } | awk '{print $3}' | awk '!seen[$0]++');
           clang_warnings=$( { grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" || true; } | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
           clang_errors=$( { grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" || true; } | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
-          clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}" || true);
-          clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}" || true);
+          clang_fixits=$(grep -siEc 'fixit|fix-its' "${project_log}" || true);
+          clang_notes=$(grep -siFc 'note:' "${project_log}" || true);
           located_count=0
           missing_count=0
           file_count=0
           if [[ "${clang_warnings:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible errors.\n####################" | process_input;
           fi;
-          if [[ "${codechecker_success:-0}" > '0' ]] && (${{ inputs.analyzer > '0' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
+          if [[ "${codechecker_success:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
             echo -e "\n####################\n::notice::✅ check-file checked ${codechecker_success} ${file_type} file(s) successfully without issues. [Hints] No check require for those files.\n####################" | process_input;
           fi;
           if [[ "${clang_errors:-0}" > '0' ]]; then
