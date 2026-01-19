@@ -757,11 +757,12 @@ runs:
         elif [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '2' }} && [[ "${include_files2}" ]]; then
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[33m medium \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
+          echo > "${name_count_file}";
           declare -A processed
           while IFS= read -r file; do         
             name="${file%%:*}";
             name_count="${name##*/}";
-            if [[ $(LC_ALL=C grep "${name_count}" "${name_count_file}") ]]; then
+            if [[ $(LC_ALL=C grep -s "${name_count}" "${name_count_file}") ]]; then
               echo -e "\nAnalyzing Source File: ${name##*/}" | process_input;
             else
               count1=$((file_count++));
@@ -829,7 +830,7 @@ runs:
           echo -e "\n::notice::\033[32mTotal source files checked during scan\033[0m\033[1m ${count1}\033[0m" | process_input;
           if [[ "${includes_found}" ]]; then
             echo 'check_build=true' >> "${GITHUB_ENV}";
-            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories added after duplicate cleaning!!!\033[0m\nSet option (\033[1m cache: true \033[0m) to use this list for source include checks without manually downloading an adding the file to your repo\n With cache you should set (\033[1m source: 0 \033[0m)running sources again each check!" | process_input;
+            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories added after duplicate cleaning!!!\033[0m\nSet option (\033[1m cache: true \033[0m) to use this list for source include checks without manually downloading an adding the file to your repository\nWith caching you should then set (\033[1m source: 0 \033[0m) before checking sources again!" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
           fi;
@@ -1115,9 +1116,9 @@ runs:
           clangd_tidy='/home/runner/.local/bin/clangd-tidy';
           clang_includes='check-file-includes.txt';
           if ${{ env.dirname != '' }}; then
-            echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
+            echo -e "####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           else
-            echo -e "\n####################\nWorkspace Folder: ${repository}\n####################" | process_input;
+            echo -e "####################\nWorkspace Folder: ${repository}\n####################" | process_input;
           fi;
           echo -e "\n####################\nProject Build:\033[32m ${{ github.repository }}\033[0m\n####################" | process_input;
           echo -e "\n####################\nCompiler: ${gcc_version}\n####################" | process_input;
@@ -1377,9 +1378,8 @@ runs:
     - name: Build Project
       if: inputs.project == 'true'
       run: |
-        echo '';
-        start_time="${{ env.seconds }}";
         export WITH_TIDY=1
+        start_time="${{ env.seconds }}";
         export LC_ALL=C
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -1524,19 +1524,20 @@ runs:
           echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
         fi;
         if [[ -s "${project_log}" ]]; then
+          set -e
           echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################" | process_input;
-          deheader_duplicates=$(grep -sFc 'duplicates' "${project_log}");
-          deheader_inclusion=$(grep -sFc 'inclusion' "${project_log}");
-          deheader_removed=$(grep -sFc 'remove' "${project_log}");
-          codechecker_success=$(grep -sFc 'successfully' "${project_log}");
-          codechecker_errors=$(grep -sFc 'Error while processing' "${project_log}");
-          clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" 2>/dev/null | grep -s -v -c '[\[\]]');
-          clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
-          clang_files_list=$(grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
-          clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
-          clang_errors=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
-          clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}");
-          clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}");
+          deheader_duplicates=$(grep -sFc 'duplicates' "${project_log}" || false);
+          deheader_inclusion=$(grep -sFc 'inclusion' "${project_log}" || false);
+          deheader_removed=$(grep -sFc 'remove' "${project_log} || false);
+          codechecker_success=$(grep -sFc 'successfully' "${project_log} || false);
+          codechecker_errors=$(grep -sFc 'Error while processing' "${project_log} || false);
+          clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" 2>/dev/null | grep -s -v -c '[\[\]]' || false);
+          clang_files_missing=$(grep -sFc 'file not found' "${project_log}" || false);
+          clang_files_list=$( { grep -sF 'file not found' "${project_log}" || false; } | awk '{print $3}' | awk '!seen[$0]++');
+          clang_warnings=$( { grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" || false; } | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
+          clang_errors=$( { grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" || false; } | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
+          clang_fixits=$(grep -sEc 'fixit|fix-its|Fixit|Fix-Its|FIXIT|FIX-ITS' "${project_log}" || false);
+          clang_notes=$(grep -sEc 'note:|Note:|NOTE:' "${project_log}" || false);
           located_count=0
           missing_count=0
           file_count=0
