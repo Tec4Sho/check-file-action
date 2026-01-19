@@ -701,22 +701,25 @@ runs:
                     else
                       header=$(fdfind -c auto -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
                     fi;
-                    if [[ "${header}" ]]; then
+                    if [[ -n "${header}" ]]; then
                       while IFS= read -r includes; do
                         count2=$((include_count++));
                         count3=$((include_total++));
                         echo "${includes%/*}" >> "${include1}";
-                        echo -e "\n\033[33mSource file include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${includes}" | process_input;
-                      done <<< ${header};
+                        echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${includes}" | process_input;
+                      done <<< "${header[@]}";
                       includes_found=true
                     elif [[ -n "${missing[$include]}" ]]; then
-                      echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;        
+                      echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
+                      includes_found=false      
                     else
                       includes_found=false
                       missing["${include}"]=1
                       count5=$((include_missing++));
-                      echo -e "\n::notice::\033[31mSource file include \033[0m( ${file4##+(*./)} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
+                      echo -e "\n::notice::\033[31mSource file #include \033[0m( ${file4##+(*./)} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                     fi;
+                  elif [[ -n "${processed[$include]}" ]]; then
+                    echo -e "\n\033[34mSource file #include \033[0m( ${include} )\033[34m already added to includes list!\033[0m  [\033[1m skipped \033[0m]" | process_input;  
                   fi;
                 done <<< "${include_source[@]}";
               fi;
