@@ -1053,8 +1053,6 @@ runs:
         start_time="${SECONDS}";
         export WITH_TIDY=1
         export LC_ALL=C
-        export PYTHONUNBUFFERED=1
-        export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export ALLOW_MISSING_DEPENDENCIES=true
@@ -1325,7 +1323,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILES\n####################\n' | process_input;
-            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -X clangd-tidy -p build -j "$(nproc --all)" --color always --tqdm 2>&1 | process_input || true;
+            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x clangd-tidy -p build -j "$(nproc --all)" --color always --tqdm 2>&1 | process_input || true;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
