@@ -1285,14 +1285,13 @@ runs:
             echo -e "\n####################\n\t::error:: run-clang-tidy missing in repo Exiting...\n####################\n" | process_input;
           fi;
           if [[ -f "${clang_file}" ]] && ${{ env.analyzer == '2' }} && [[ -e "${compile_json}" ]]; then
-            echo ' ' >> "${clang_file}";
             files_list=false
             if [[ "$(clang_includes)" ]] && [[ "$(source_files)" ]] ; then
               echo -e "\n####################\n\t${file_type} file(s) & include objectives found continuing...\n####################" | process_input;
-              clang_includes >> "${clang_file}" && source_files >> "${clang_file}" && files_list=true
+              clang_includes >> "${clang_file}" && echo '--' >> "${clang_file}" && source_files >> "${clang_file}" && files_list=true
             elif [[ "$(source_files)" ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################" | process_input;
-              source_files >> "${clang_file}" && files_list=true
+              echo '--' >> "${clang_file}" && source_files >> "${clang_file}" && files_list=true
             else	
               echo -e "\n::error::No ${file_type} files found searching repository\nExiting...\n" | process_input;
             fi;
