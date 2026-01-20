@@ -1063,6 +1063,7 @@ runs:
         project_log="${repository}_project.log";
         clang_sources='check-file-sources.txt';
         codechecker='codechecker.yaml';
+        user_compile_json=false
         count1='count1.txt';
         count2='count2.txt';
         count3='count3.txt';
@@ -1102,6 +1103,7 @@ runs:
           verify_config=$(clang-tidy --verify-config);
           cmake_version=$(cmake --version);
           if [[ -f 'compile_commands.json' ]]; then
+             user_compile_json=true
              compile_json='compile_commands.json';
              mkdir build && cp -vf ${compile_json} build/
           elif [[ -f 'build/compile_commands.json' ]]; then
@@ -1256,8 +1258,10 @@ runs:
               fi;
             fi;
           fi;
-          if [[ -e 'compile_commands.json' ]]; then
-            echo -e '\n####################\n\tcompile_commands.json file symlinked continuing...\n####################' | process_input;
+          if [[ "${user_compile_json}" == 'true' ]]; then
+            echo -e "\n####################\n\t${compile_json} was found successfully...\n####################" | process_input;
+          elif [[ -e "${compile_json}" ]]; then
+            echo -e "\n####################\n\t${compile_json} was created successfully...\n####################" | process_input;
           fi;
           set +e
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e "${compile_json}" ]]; then
@@ -1286,7 +1290,7 @@ runs:
           fi;
           if [[ -f "${clang_file}" ]] && ${{ env.analyzer == '2' }} && [[ -e "${compile_json}" ]]; then
             files_list=false
-            echo '--' >> "${clang_file}"
+            echo -e '--\n' >> "${clang_file}"
             if [[ "$(clang_includes)" ]] && [[ "$(source_files)" ]] ; then
               echo -e "\n####################\n\t${file_type} file(s) & include objectives found continuing...\n####################" | process_input;
               clang_includes >> "${clang_file}" && source_files >> "${clang_file}" && files_list=true
@@ -1301,7 +1305,7 @@ runs:
             if [[ "${files_list}" ]]; then
               cp -vf "${clang_file}" 'build/parameter-source.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-              clang-tidy @parameter-file | process_input;
+              clang-tidy @parameter-file 2>&1 | process_input;
               if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
                 echo -e "\n::notice::Errors found checking project files" | process_input;
                 check_build=true
@@ -1547,7 +1551,7 @@ runs:
           if [[ -n "${clang_warnings}" ]] && [[ "${clang_warnings:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using ( warnings-as-errors ) for possible errors.\n####################" | process_input;
           fi;
-          if [[ -n "${codechecker_success}" ]] && [[ "${codechecker_success:-0}" > '0' ]] && ${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}; then
+          if [[ -n "${codechecker_success}" ]] && [[ "${codechecker_success:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
             echo -e "\n####################\n::notice::✅ check-file checked ${codechecker_success} ${file_type} file(s) successfully without issues. [Hints] No check require for those files.\n####################" | process_input;
           fi;
           if [[ -n "${clang_errors}" ]] && [[ "${clang_errors:-0}" > '0' ]]; then
@@ -1561,15 +1565,15 @@ runs:
             echo -e "\n####################\n::notice::⚠️ check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are fix suggestions for files that should be addressed before compiling.\n####################" | process_input;
           fi;
           if [[ -f "${build_fixes}" ]] && [[ "${clang_replacements:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::✅ check-file applied ${clang_replacements} clang replacement fixes for ${file_type} file(s) checked. [Hints] Clang export fixes are stored in build/fixes for download. Try using different (analyzer: 1, 2, or 4) for more possible error fixes.\n####################" | process_input;
+            echo -e "\n####################\n::notice::✅ check-file applied ${clang_replacements} clang replacement fixes for ${file_type} file(s) checked. [Hints] Clang export fixes are stored in build/fixes.yaml for download. Try using different (analyzer: 1, 2, or 4) for more possible error fixes.\n####################" | process_input;
           fi;
           if [[ -n "${deheader_removed}" ]] && [[ "${deheader_removed:-0}" > '0' ]] && ${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}; then
             echo -e "\n####################\n::notice::✅ check-file removed ${deheader_removed} extra inclusions in ${file_type} file(s) checked. [Hints] Try manually removing any extra includes in files before compiling.\n####################" | process_input;
             fixed=true
           fi;
-          if [[ -n "${deheader_duplicates}" ]] && [[ "${deheader_duplicates:-0}" > '0' ]] && ${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}; then
+          if [[ -n "${deheader_duplicates}" ]] && [[ "${deheader_duplicates:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::🚫 check-file found ${deheader_duplicates} duplicates or colliding inclusions in ${file_type} file(s) checked. [Hints] Try using (analyzer: 1, 2, or 4) for possible error fixes.\n####################" | process_input;
-          elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && ${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}; then
+          elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::🚫 check-file found ${deheader_inclusion} extra inclusions in ${file_type} file(s) checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
           if [[ -n "${clang_files_missing}" ]] && [[ "${clang_files_missing:-0}" > '0' ]]; then
