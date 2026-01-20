@@ -250,10 +250,10 @@ runs:
         linux_verison=$(lsb_release -r | awk '{print $2}');
         if ${{ inputs.project }}; then
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
-            echo -e "Current CMake version (${cmake_version}) is older than ${required_version}. Updating..."
-            sudo apt-get remove --purge -yq cmake >/dev/null;
-            sudo apt-get install -yq ca-certificates gpg wget >/dev/null;
-            [[ $(which make) ]] && echo -e "####################\nmake dependencies installed\n####################"\n || sudo apt-get install -yq make >/dev/null;
+            echo -e "Current CMake version (${cmake_version}) is older than ${required_version}. Updating...";
+            sudo apt-get remove --purge -yq cmake 2>&1 >/dev/null | sed '/Running/,/host./d'
+            sudo apt-get install -yq ca-certificates gpg wget 2>&1 >/dev/null | sed '/Running/,/host./d'
+            [[ $(which make) ]] && echo -e "####################\nmake dependencies installed\n####################\n" || sudo apt-get install -yq make >/dev/null;
             sudo bash -c "$(sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null)";
             if [[ "${linux_verison}" == "${linux_distro1}" ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
