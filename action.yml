@@ -1306,7 +1306,7 @@ runs:
             if [[ "${files_list}" ]]; then
               cp -vf "${clang_file}" 'build/parameter-source.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-              clang-tidy-18 @parameter-file 2>&1 | process_input;
+              clang-tidy @parameter-file -p build -fix 2>&1 | process_input;
               if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
                 echo -e "\n::notice::Errors found checking project files" | process_input;
                 check_build=true
@@ -1531,7 +1531,7 @@ runs:
         elif ${{ env.build_files == '1' }} && ${{ inputs.build == '4' }}; then
           echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
         fi;
-        if [[ -s "${project_log}" ]] && [[ "${check_build}" == 'true' ]]; then
+        if [[ -s "${project_log}" ]] && (${{ env.check_build == 'true' }} || [[ "${check_build}" == 'true' ]]); then
           set +e
           echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################" | process_input;
           deheader_duplicates=$(grep -sFc 'duplicates' "${project_log}");
@@ -1540,15 +1540,20 @@ runs:
           codechecker_success=$(grep -sFc 'successfully' "${project_log}");
           codechecker_errors=$(grep -sFc 'Error while processing' "${project_log}");
           clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" | grep -vc '[\[\]]');
+          clang_information=$(grep -siFc 'information:' "${project_log}");
           clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
           clang_files_list=$(grep -sF 'file not found' "${project_log}" | awk '{print $3}' | awk '!seen[$0]++');
           clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
           clang_errors=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
-          clang_fixits=$(grep -siEc 'fixit|fix-its' "${project_log}");
+          clang_fixit1=$(grep -siEc 'fixit|fix-its' "${project_log}");
+          clang_fixit2=$(grep -siF 'clang-tidy applied' "${project_log}");
           clang_notes=$(grep -siFc 'note:' "${project_log}");
           located_count=0
           missing_count=0
           file_count=0
+          if [[ -n "${clang_information}" ]] && [[ "${clang_information:-0}" > '0' ]] && ${{ inputs.analyzer == '3' }}; then
+            echo -e "\n####################\n::notice::⚠️ check-file added ${clang_information}️ information notes on ${file_type} file(s) checked. [Hints] Information addresses key issues that may have error fixes available.\n####################" | process_input;
+          fi;
           if [[ -n "${clang_warnings}" ]] && [[ "${clang_warnings:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using ( warnings-as-errors ) for possible errors.\n####################" | process_input;
           fi;
@@ -1558,8 +1563,12 @@ runs:
           if [[ -n "${clang_errors}" ]] && [[ "${clang_errors:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using different (analyzer: 1, 2, or 4) for possible error fixes.\n####################" | process_input;
           fi;
-          if [[ -n "${clang_fixits}" ]] && [[ "${clang_fixits:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
-            echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository.\n####################" | process_input;
+          if [[ -n "${clang_fixit1}" ]] && [[ "${clang_fixit1:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
+            echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixit1} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating your remote repository with the fixes.\n####################" | process_input;
+            fixed=true
+          fi;
+          if [[ -n "${clang_fixit2}" ]] && [[ "${clang_fixit2:-0}" > '0' ]] && ${{ inputs.analyzer > '1' }}; then
+            echo -e "\n####################\n::notice::✅ ${clang_fixit2} To ${file_type} file(s) checked. [Hints] Try using (update: true) for updating your remote repository with any fixed files.\n####################" | process_input;
             fixed=true
           fi;
           if [[ -n "${clang_notes}" ]] && [[ "${clang_notes:-0}" > '0' ]]; then
