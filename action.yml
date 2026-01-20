@@ -1207,14 +1207,14 @@ runs:
             fi;
           }
           clang_includes() {
-            find "${{ env.base }}" -not \( -path '*/CMakeFiles' -prune -o -path '*/build' -prune -o -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            find -not \( -path '*/CMakeFiles' -prune -o -path '*/build' -prune -o -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               if [[ -d "${include}" ]]; then
                 echo -e "-I${include#./}";
               fi;
             done;
           }
           source_files() {
-            find "${{ env.base }}" -not \( -path '*/CMakeFiles' -prune -o -path '*/build' -prune -o -path '*/.git' -prune -o -path '*/.github' -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
+            find -not \( -path '*/CMakeFiles' -prune -o -path '*/build' -prune -o -path '*/.git' -prune -o -path '*/.github' -prune \) -type f -name "*.${file_type}" -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r file; do
               echo -e "${file#./}";
             done;
           }
@@ -1290,10 +1290,9 @@ runs:
           fi;
           if [[ -f "${clang_file}" ]] && ${{ env.analyzer == '2' }} && [[ -e "${compile_json}" ]]; then
             files_list=false
-            echo -e '--\n' >> "${clang_file}"
             if [[ "$(clang_includes)" ]] && [[ "$(source_files)" ]] ; then
               echo -e "\n####################\n\t${file_type} file(s) & include objectives found continuing...\n####################" | process_input;
-              clang_includes >> "${clang_file}" && source_files >> "${clang_file}" && files_list=true
+              source_files >> "${clang_file}" && echo '--' >> "${clang_file}" && clang_includes >> "${clang_file}" && files_list=true
             elif [[ "$(source_files)" ]]; then
               echo -e "\n####################\n\t${file_type} file(s) found continuing...\n####################" | process_input;
               source_files >> "${clang_file}" && files_list=true
