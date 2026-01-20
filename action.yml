@@ -1634,13 +1634,9 @@ runs:
           else
             echo "includes=false" >> "${GITHUB_ENV}";
           fi;
-          if [[ "${check_build}" ]]; then
-            echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
-          else
-            echo -e '\n####################\n\tProject Not Checked Exiting...\n####################\n' | process_input;
-          fi;
+          echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
         else
-          echo -e '::error::Missing/Bad source directory' | process_input;
+          echo -e '\n####################\n\tProject Not Checked Exiting...\n####################\n' | process_input;
         fi;
         seconds="$((SECONDS + start_time))";
         m=$((seconds / 60));
