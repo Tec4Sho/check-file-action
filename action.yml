@@ -300,7 +300,7 @@ runs:
           sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
-        if [[ ! $(which fdfind) ]] && ${{ inputs.source > '0' }}; then
+        if [[ ! $(which fdfind) ]] && (${{ inputs.project }} || ${{ inputs.source > '0' }}); then
           sudo apt-get -yq install fd-find 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nfd dependencies install\n####################" || echo -e '::error::No fdfind installed for file searches';
           [[ ! $(which fdfind) ]] && echo -e '::error::[No fdfind found]\n';
         fi;
@@ -1111,6 +1111,11 @@ runs:
           else
              compile_json='build/compile_commands.json';
           fi;
+          if ${{ inputs.absolute }}; then
+            abs='-a';
+          else
+            abs='';
+          fi;
           clang_checks=$(clang-tidy --list-checks);
           gcc_version=$(gcc --version);
           gpp_version=$(g++ --version);
@@ -1320,7 +1325,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILES\n####################\n' | process_input;
-            find "${{ env.base }}" -not \( -path "*/CMakeFiles" -prune -o -path "*/build" -prune -o -path "*/.git" -prune -o -path "*/.github" -prune \) -type f -name "*.${file_type}" -print | sort -u | clangd-tidy -p build -j "$(nproc --all)" --color always --tqdm 2>&1 | process_input || true
+            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -X clangd-tidy -p build -j "$(nproc --all)" --color always --tqdm 2>&1 | process_input || true;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
