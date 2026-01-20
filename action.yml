@@ -1541,19 +1541,7 @@ runs:
           located_count=0
           missing_count=0
           file_count=0
-          if [[ "${clang_warnings:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} file(s) checked. [Hints] Try using (warnings-as-errors) for possible errors.\n####################" | process_input;
-          fi;
-          if [[ "${codechecker_success:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
-            echo -e "\n####################\n::notice::✅ check-file checked ${codechecker_success} ${file_type} file(s) successfully without issues. [Hints] No check require for those files.\n####################" | process_input;
-          fi;
-          if [[ "${clang_errors:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} file(s) checked. [Hints] Try using different (analyzer: 1, 2, or 4) for possible error fixes.\n####################" | process_input;
-          fi;
-          if [[ "${clang_fixits:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
-            echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixits} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating remote repository.\n####################" | process_input;
-            fixed=true
-          fi;
+          
           if [[ "${clang_notes:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::⚠️ check-file added ${clang_notes} notes on ${file_type} file(s) checked. [Hints] Notes are fix suggestions for files that should be addressed before compiling.\n####################" | process_input;
           fi;
