@@ -1306,7 +1306,7 @@ runs:
             if [[ "${files_list}" ]]; then
               cp -vf "${clang_file}" 'build/parameter-source.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-              clang-tidy @parameter-file -p build -fix 2>&1 | process_input;
+              clang-tidy @parameter-file 2>&1 | process_input;
               if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
                 echo -e "\n::notice::Errors found checking project files" | process_input;
                 check_build=true
@@ -1567,7 +1567,7 @@ runs:
             echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixit1} fix-its to ${file_type} file(s) checked. [Hints] Try using (update: true) for updating your remote repository with the fixes.\n####################" | process_input;
             fixed=true
           fi;
-          if [[ -n "${clang_fixit2}" ]] && [[ "${clang_fixit2:-0}" > '0' ]] && ${{ inputs.analyzer > '1' }}; then
+          if [[ -n "${clang_fixit2}" ]] && [[ "${clang_fixit2:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
             echo -e "\n####################\n::notice::✅ ${clang_fixit2} To ${file_type} file(s) checked. [Hints] Try using (update: true) for updating your remote repository with any fixed files.\n####################" | process_input;
             fixed=true
           fi;
