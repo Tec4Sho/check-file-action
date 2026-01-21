@@ -1365,10 +1365,10 @@ runs:
               CodeChecker parse ./reports --print-steps 2>&1 | process_input || true;
             elif [[ -e "${codechecker}" ]]; then
               echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker check --config "${codechecker}" --jobs "$(nproc --all)" --logfile "${compile_json}" --print-steps 2>&1 | process_input || true;
+              CodeChecker check --config "${codechecker}" --jobs "$(nproc --all)" --logfile "${compile_json}" 2>&1 | process_input || echo -e "\ncheck-file exit-code ($?)\n";
             else
               echo -e "\nRepair mode off and ${codechecker} file was not found continuing...\n" | process_input;
-              CodeChecker check --logfile "${compile_json}" --print-steps 2>&1 | process_input || true;
+              CodeChecker check --logfile "${compile_json}" 2>&1 | process_input || echo -e "\ncheck-file exit-code ($?)\n";
             fi;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
