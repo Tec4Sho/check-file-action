@@ -1056,6 +1056,7 @@ runs:
       if: inputs.project == 'true'
       run: |
         echo '';
+        set +e
         start_time="${SECONDS}";
         export WITH_TIDY=1
         export LC_ALL=C
@@ -1393,9 +1394,10 @@ runs:
     - name: Build Project
       if: inputs.project == 'true'
       run: |
-        export WITH_TIDY=1
+        echo '';
+        set +e
         start_time="${{ env.seconds }}";
-        export LC_ALL=C
+        export WITH_TIDY=1
         export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export ALLOW_MISSING_DEPENDENCIES=true
@@ -1431,6 +1433,11 @@ runs:
           compile_json='build/compile_commands.json';
         else
           compile_json='build/compile_commands.json';
+        fi;
+        if ${{ inputs.absolute }}; then
+          abs='-a';
+        else
+          abs='';
         fi;
         if ${{ env.check_build == 'false' }}; then
           echo 'check_build=false' >> "${GITHUB_ENV}";
@@ -1480,7 +1487,7 @@ runs:
           sudo bash -c 'source ~/.bashrc';
           export TERM=dumb
           if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
-            sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
+            sudo bash -c 'source /home/runner/codechecker/venv/bin/activate';
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
@@ -1541,7 +1548,6 @@ runs:
           echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
         fi;
         if [[ -s "${project_log}" ]] && (${{ env.check_build == 'true' }} || [[ "${check_build}" == 'true' ]]); then
-          set +e
           echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################" | process_input;
           deheader_duplicates=$(grep -sFc 'duplicates' "${project_log}");
           deheader_inclusion=$(grep -sFc 'inclusion' "${project_log}");
@@ -1599,43 +1605,46 @@ runs:
             echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files in ${file_type} file(s) checked. [Hints] Files may be there yet not included and many duplicate files.\n####################" | process_input;
             echo -e "\n####################\nMISSING FILES:\n####################\n\n${clang_files_list}" | process_input;
             echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES IN: ${{ env.base }}\n####################\n" | process_input;
+            declare -A missing
+            found=false
             while IFS= read -r missing_file; do
+              file_count=$((file_count + 1));
               echo "Locating missing ${missing_file} file ...." | process_input;
               path1="${missing_file//\'/}";
-              path2="${path1%/*}";
-              path3="${path2#../}";
-              path="${path3#..}";
+              path2="${path1##[:]*}";
+              path3="${path2%'\n'}";
+              path4="${path3%\\}";
+              clean_path="${path4##+(*./)}";
               file1="${missing_file//\'/}";
-              file2="${file1##*/}";
-              file3="${file2#../}";
-              file="${file3#..}";
-              if [[ "${path}" == "${file}" ]]; then
-                locate=$(find "${{ env.base }}" -type f -name "${file}" -print);
-                if [[ -f "${locate}" ]] || [[ -n "${locate}" ]]; then
-                  located_count=$((located_count + 1));
-                  echo "Location found @: ${locate}  [ ✅ ]" | process_input;
-                  echo "${locate%/*}" >> 'check-file-includes.txt';
-                else
-                  missing_count=$((missing_count + 1));
-                  echo "Cannot locate missing file ${file}  [ ❌ ]" | process_input;
-                fi;
-              elif [[ "${path}" != "${file}" ]]; then
-                locate=$(find "${{ env.base }}" -regextype posix-extended -regex ".*/${path}/${file}" -print);
-                if [[ -f "${locate}" ]] || [[ -n "${locate}" ]]; then
-                  located_count=$((located_count + 1));
-                  echo "Location found @: ${locate}  [ ✅ ]" | process_input;
-                  echo "${locate%/*}" >> 'check-file-includes.txt'
-                else
-                  missing_count=$((missing_count + 1));
-                  echo "Cannot locate missing file ${path}/${file}  [ ❌ ]" | process_input;
-                fi;
+              file2="${file1##[:]*}";
+              file3="${file2%'\n'}";
+              file4="${file3%\\}";
+              clean_file="${clean_file##*/}";
+              shopt -s extglob
+              if [[ ${missing_file} == *"/"* ]]; then          
+                locate=$(fdfind -p -c auto "${abs}" -t f -g "**/${clean_path##+(*./)}" "${{ env.base }}");
               else
-                missing_count=$((missing_count + 1));
-                echo "Location unknown for ${missing_file} file  [ ❌ ]" | process_input;
+                locate=$(fdfind -p -c auto "${abs}" -t f "${clean_file##+(*./)}" "${{ env.base }}");
               fi;
-              file_count=$((file_count + 1));
+              if [[ "${locate}" ]]; then            
+                while IFS= read -r includes; do
+                  located_count=$((located_count + 1));
+                  echo -e "\n\033[32mSource Location:\033[0m ${includes}  [ ✅ ]" | process_input;
+                  echo "${includes%/*}" >> 'check-file-includes.txt';
+                done <<< "${locate[@]}";
+                includes_found=true
+              elif [[ -n "${missing[$missing_file]}" ]]; then
+                includes_found=false
+                echo -e "\n\033[33mSource file #include \033[0m( ${missing_file} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
+              else
+                includes_found=false
+                missing["$missing_file"]=1
+                missing_count=$((missing_count + 1));
+                echo -e "\n\033[31mCannot locate missing file\033[0m ${missing_file}  [ ❌ ]" | process_input;
+              fi;
+              shopt -u extglob             
             done <<< "${clang_files_list}";
-            found=false
+            unset missing;
             if [[ -s 'check-file-includes.txt' ]]; then
               awk '!/\.h$|\.c$/ { sub(/\/$/, ""); print }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
               awk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::✅ check-file located ${located_count} files. ${missing_count} missing out of ${file_count} total!!!\n\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
@@ -1671,7 +1680,8 @@ runs:
     - name: Check & Repair (Clang-tools)
       if: inputs.filename != ''
       run: |
-        export LC_ALL=C
+        echo '';
+        set +e
         SAVEIFS=${IFS}
         include_count=1
         include_total=1
@@ -1923,7 +1933,7 @@ runs:
     - name: Check Shell Files
       if: inputs.filename != '' && env.file_found == '0' 
       run: |
-        export LC_ALL=C
+        echo '';
         set +e
         fixed=false
         shellcheck_count=1
@@ -1942,7 +1952,7 @@ runs:
               echo -e "${output}" >/dev/null;
             fi;
           done;
-        } 2>&1;
+        }
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
             files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
@@ -2048,7 +2058,7 @@ runs:
     - name: Check Makefile Files
       if: inputs.filename != '' && env.file_found == '0'
       run: |
-        export LC_ALL=C
+        echo '';
         set +e
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
@@ -2123,7 +2133,7 @@ runs:
     - name: Check All Files
       if: inputs.filename != '' && env.file_found == '0' 
       run: |
-        export LC_ALL=C
+        echo '';
         set +e
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
@@ -2168,7 +2178,7 @@ runs:
     - name: Word text Match
       if: inputs.pattern != ''
       run: |
-        export LC_ALL=C
+        echo '';
         set +e
         file_count=1
         if ${{ inputs.database }}; then
