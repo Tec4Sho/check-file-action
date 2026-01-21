@@ -51,7 +51,15 @@ else()
   message(STATUS "Project Source: $ENV{github_source_dirs}")
 endif()
 
-file(GLOB_RECURSE PROJECT_SRC_FILES "*.c")
+if($ENV{github_absolute_path})
+  message(STATUS "Project Paths: Absolute Mode")
+  file(GLOB_RECURSE PROJECT_SRC_FILES "*.c")
+else()
+  message(STATUS "Project Paths: Relative Mode")
+  file(GLOB_RECURSE PROJECT_SRC_FILES RELATIVE "*.c")
+endif()
+
+
 
 list(SORT PROJECT_SRC_FILES)
 
@@ -98,7 +106,7 @@ elseif(DEFINED PROJECT_INCLUDE_DIRS)
   target_include_directories("${PROJECT_NAME}" SYSTEM INTERFACE "/home/runner/.local/lib/python*/site-packages/clang_tidy/data/lib/clang/*/include")
   target_include_directories("${PROJECT_NAME}" SYSTEM PUBLIC "/usr/include/*")
   message(STATUS "Project Includes: cmake added include directories. clang analyzing multiple includes [check 2]")
-elseif(DEFINED $ENV{github_include_dirs})
+elseif($ENV{github_include_dirs})
   target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/linux")
   target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/*/")
   target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")

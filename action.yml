@@ -293,8 +293,12 @@ runs:
           [[ ! $(which cmake) ]] && exit 1
         fi;
         if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic 2>/dev/null) ]]; then
-          sudo apt-get -yq install linux-headers-generic linux-modules- 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\n$(apt list linux-headers-generic 2>/dev/null) - $(uname -r) dependencies installed\n####################" || echo -e "::error::No linux-headers-generic $(uname -r) installed for project build"; 
-          [[ ! $(apt list linux-headers-generic 2>/dev/null) ]] && exit 1
+          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\n$(apt list linux-headers-generic 2>/dev/null) dependencies installed\n####################";
+          [[ ! $(apt list linux-headers-generic 2>/dev/null) ]] && echo -e "::error::No linux-headers-generic installed for project build";
+        fi;
+        if ${{ inputs.project }} && [[ ! $(apt list linux-modules-$(uname -r) 2>/dev/null) ]]; then
+          sudo apt-get -yq install linux-modules-$(uname -r) 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\n$(apt list linux-modules-$(uname -r) 2>/dev/null) dependencies installed\n####################";
+          [[ ! $(apt list linux-modules-$(uname -r) 2>/dev/null) ]] && echo -e "::error::No linux-modules-$(uname -r) installed for project build"; 
         fi;
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
@@ -318,8 +322,7 @@ runs:
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
           sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
           [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)" && echo '';
-          #[[ $(which clang-tidy-18) ]] && sudo rm -vf "$(which clang-tidy-18)";
-          sudo apt-get -yq install clang-tools clang-tidy clangd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
+          sudo apt-get -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ "${file_type}" =~ ^(c|cc|cpp|c++|h|hh|hpp|t|tpp)$ ]]) && [[ ! $(which clang-tidy) ]]; then
@@ -340,7 +343,8 @@ runs:
           echo "run_clang_tidy=${{ github.action_path }}/scripts/tools/run-clang-tidy.py" >> "${GITHUB_ENV}";
         fi;
         if ${{ inputs.project }} && ${{ inputs.analyzer == '3' }} && [[ ! $(which clangd-tidy) ]]; then
-          python3 -m pip install clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies installed\n####################" || echo -e '::error::No clangd-tidy installed for project checks';
+          python3 -m pip install --upgrade clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies installed\n####################" || echo -e '::error::No clangd-tidy installed for project checks';
+          sudo apt-get -yq install clangd 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\nclangd pip dependencies installed\n####################" || echo -e '::error::No clangd pip installed for project checks';
           if [[ $(which clangd-tidy) ]]; then
             echo -e "\nclangd-tidy path: $(which clangd-tidy)\n";
           else
@@ -349,7 +353,8 @@ runs:
         fi;
         if (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}) && [[ ! $(which CodeChecker) ]]; then
           sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
-          python3 -m pip install codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies installed\n####################" || echo -e '::error::No codechecker installed for project checks';
+          python3 -m pip install --upgrade codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies installed\n####################" || echo -e '::error::No codechecker installed for project checks';
+          python3 -m pip install --upgrade tu_collector && echo -e "\n####################\ncodechecker dependencies installed\n####################" || echo -e '::warning::tu_collector not updated for project checks';
           sudo mkdir -p "/home/runner/codechecker/venv/include"
           sudo mkdir -p "/home/runner/codechecker/venv/bin"
           sudo chown -R "${USER}:${USER}" /home/runner/codechecker/
@@ -439,7 +444,6 @@ runs:
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project == 'true'
       run: |
         echo '';
-        set -o pipefail
         repair_file='check-file-repaired.txt';
         repo=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         echo 'database=database' >> "${GITHUB_ENV}";
@@ -480,6 +484,7 @@ runs:
           text "${text1c}";
           echo -e '\nAbsolute Path Mode';
           echo "base=${GITHUB_WORKSPACE}" >> "${GITHUB_ENV}";
+          echo 'github_absolute_path=true' >> "${GITHUB_ENV}";
           base="${GITHUB_WORKSPACE}";
         else
           text "${text2a}";
@@ -487,6 +492,7 @@ runs:
           text "${text2c}";
           echo -e "\nRelative Path Mode";
           echo 'base=.' >> "${GITHUB_ENV}";
+          echo 'github_absolute_path=false' >> "${GITHUB_ENV}";
           base='.'
         fi;
         if (${{ inputs.stored }} || ${{ env.update }}) && [[ -f "${repair_file}" ]]; then
@@ -1340,6 +1346,7 @@ runs:
           if [[ $(which CodeChecker) ]] && ${{ env.analyzer == '4' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\n\tCODECHECKER ANALYZING FILES...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
+            export TERM=dumb
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
               sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
             else
@@ -1439,6 +1446,7 @@ runs:
         if ${{ env.build_files == '1' }} && ${{ inputs.build == '1' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc';
+          export TERM=dumb
           if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
             sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
           else
@@ -1470,6 +1478,7 @@ runs:
         if ${{ env.build_files == '1' }} && ${{ inputs.build == '2' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tCodeChecker building compile_commands.json from project sources...(json-run -2)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc';
+          export TERM=dumb
           if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
             sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
           else
