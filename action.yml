@@ -281,22 +281,23 @@ runs:
         file_type="${file_name##*.}";
         github=${GITHUB_WORKSPACE};
         if ${{ inputs.project }} && [[ "${cmake_version}" < "${required_version}" ]]; then
-          echo -e "CMake version $cmake_version upgrading to latest python cmake\n"
+          python3 -m pip install --upgrade pip && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
+          echo -e "CMake version $cmake_version upgrading to latest python cmake\n";
           sudo rm -vf "$(which cmake)";
-          sudo mkdir -p '/usr/local/bin'
+          sudo mkdir -p '/usr/local/bin';
           echo "/usr/local/bin" >> "${GITHUB_PATH}";
           python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
-          sudo cp -vpf "${HOME}/.local/bin/cmake" '/usr/local/bin/'
+          sudo cp -vpf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
         fi;
         if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
           sudo apt-get -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
           [[ ! $(which cmake) ]] && exit 1
         fi;
-        if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic 2>/dev/null) ]]; then
+        if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic) ]]; then
           sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\n$(apt list linux-headers-generic 2>/dev/null) dependencies installed\n####################";
           [[ ! $(apt list linux-headers-generic 2>/dev/null) ]] && echo -e "::error::No linux-headers-generic installed for project build";
         fi;
-        if ${{ inputs.project }} && [[ ! $(apt list linux-modules-$(uname -r) 2>/dev/null) ]]; then
+        if ${{ inputs.project }} && [[ ! $(apt list linux-modules-$(uname -r)) ]]; then
           sudo apt-get -yq install linux-modules-$(uname -r) 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\n$(apt list linux-modules-$(uname -r) 2>/dev/null) dependencies installed\n####################";
           [[ ! $(apt list linux-modules-$(uname -r) 2>/dev/null) ]] && echo -e "::error::No linux-modules-$(uname -r) installed for project build"; 
         fi;
@@ -321,7 +322,7 @@ runs:
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 21 >/dev/null 2>&1)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
           sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
-          [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)" && echo '';
+          [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)";
           sudo apt-get -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
@@ -354,13 +355,12 @@ runs:
         if (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}) && [[ ! $(which CodeChecker) ]]; then
           sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
           python3 -m pip install --upgrade codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies installed\n####################" || echo -e '::error::No codechecker installed for project checks';
-          python3 -m pip install --upgrade tu_collector && echo -e "\n####################\ncodechecker dependencies installed\n####################" || echo -e '::warning::tu_collector not updated for project checks';
-          sudo mkdir -p "/home/runner/codechecker/venv/include"
-          sudo mkdir -p "/home/runner/codechecker/venv/bin"
+          sudo mkdir -p "/home/runner/codechecker/venv/include";
+          sudo mkdir -p "/home/runner/codechecker/venv/bin";
           sudo chown -R "${USER}:${USER}" /home/runner/codechecker/
-          cd "/home/runner/codechecker/venv"
+          cd "/home/runner/codechecker/venv";
           python3 -m venv .
-          cd "${github}"
+          cd "${github}";
           if [[ $(which CodeChecker) ]]; then
             echo -e "\nCodeChecker path: $(which CodeChecker)";
           else
