@@ -253,7 +253,7 @@ runs:
             echo -e "Current CMake version (${cmake_version}) is older than ${required_version}. Updating...";
             sudo apt-get remove --purge -yq cmake 2>&1 >/dev/null | sed '/Running/,/host./d'
             sudo apt-get install -yq ca-certificates gpg wget 2>&1 >/dev/null | sed '/Running/,/host./d'
-            [[ $(which make) ]] && echo -e "####################\nmake dependencies installed\n####################\n" || sudo apt-get install -yq make >/dev/null;
+            [[ ! $(which make) ]] && sudo apt-get install -yq make >/dev/null && echo -e "####################\nmake dependencies already installed\n####################\n";
             sudo bash -c "$(sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null)";
             if [[ "${linux_verison}" == "${linux_distro1}" ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
@@ -280,13 +280,17 @@ runs:
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         github=${GITHUB_WORKSPACE};
+        if [[ ! $(which python3) ]]; then
+          sudo apt-get -yq install python3 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
+          [[ ! $(which python3) ]] && exit 1
+        fi;
         if ${{ inputs.project }} && [[ "${cmake_version}" < "${required_version}" ]]; then
-          python3 -m pip install --upgrade pip && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
+          python3 -m pip install --upgrade pip >/dev/null && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
           echo -e "CMake version $cmake_version upgrading to latest python cmake\n";
           sudo rm -vf "$(which cmake)";
           sudo mkdir -p '/usr/local/bin';
           echo "/usr/local/bin" >> "${GITHUB_PATH}";
-          python -m pip install cmake --upgrade >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
+          python3 -m pip install --upgrade cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -vpf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
         fi;
         if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
@@ -312,10 +316,6 @@ runs:
         if [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && ${{ inputs.repair }} && ${{ inputs.filename != '' }}; then
           sudo apt-get -yq install gcc g++ 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
-        fi;
-        if ${{ inputs.project }} && ${{ inputs.analyzer == '2' }} && [[ ! $(which python3) ]]; then
-          sudo apt-get -yq install python3 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
-          [[ ! $(which python3) ]] && exit 1
         fi;
         if ${{ inputs.project }} && [[ ! $(llvm-config --version 2>/dev/null) ]]; then
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
@@ -353,7 +353,7 @@ runs:
           fi;
         fi;
         if (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}) && [[ ! $(which CodeChecker) ]]; then
-          sudo apt-get -yq install python3-pip python3-venv make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
+          sudo apt-get -yq install python3-pip python3-venv 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
           python3 -m pip install --upgrade codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies installed\n####################" || echo -e '::error::No codechecker installed for project checks';
           sudo mkdir -p "/home/runner/codechecker/venv/include";
           sudo mkdir -p "/home/runner/codechecker/venv/bin";
@@ -375,7 +375,7 @@ runs:
           sudo apt-get -yq install build-essential device-tree-compiler 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nbuild-essential dependencies installed\n####################" || echo -e '::error::No build-essential installed for project build';
         fi;
         if ${{ inputs.project }} && ${{ inputs.analyzer == 3 }} && [[ ! $(which tqdm) ]]; then
-          python -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
+          python3 -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
         fi;
         if (${{ inputs.pattern != '' }} || ${{ inputs.database }} || ${{ inputs.source > '0' }}) && [[ ! $(which rg) ]]; then
@@ -1365,10 +1365,10 @@ runs:
               CodeChecker parse ./reports --print-steps 2>&1 | process_input || true;
             elif [[ -e "${codechecker}" ]]; then
               echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker check --config "${codechecker}" --jobs "$(nproc --all)" --logfile "${compile_json}" 2>&1 | process_input || echo -e "\ncheck-file exit-code ($?)\n";
+              CodeChecker check --config "${codechecker}" --jobs "$(nproc --all)" --logfile "${compile_json}" 2>&1 | process_input || echo -e "\ncheck-file exit-code ($?)";
             else
               echo -e "\nRepair mode off and ${codechecker} file was not found continuing...\n" | process_input;
-              CodeChecker check --logfile "${compile_json}" 2>&1 | process_input || echo -e "\ncheck-file exit-code ($?)\n";
+              CodeChecker check --logfile "${compile_json}" 2>&1 | process_input || echo -e "\ncheck-file exit-code ($?)";
             fi;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
