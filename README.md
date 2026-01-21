@@ -1,3 +1,4 @@
+**Currently being remastered and upgraded please stay tuned. Many great new features added.**
 
 # Check-File-Action v1.1.0
 
