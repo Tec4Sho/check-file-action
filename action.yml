@@ -1274,9 +1274,7 @@ runs:
               fi;
             fi;
           fi;
-          if ${{ steps.restore.outputs.cache-hit == 'true' }}; then
-            echo -e "\n####################\n\t${compile_json} was restored successfully...\n####################" | process_input;
-          elif [[ "${user_compile_json}" == 'true' ]]; then
+          if [[ "${user_compile_json}" == 'true' ]]; then
             echo -e "\n####################\n\t${compile_json} was found successfully...\n####################" | process_input;
           elif [[ -e "${compile_json}" ]]; then
             echo -e "\n####################\n\t${compile_json} was created successfully...\n####################" | process_input;
@@ -1288,14 +1286,9 @@ runs:
             if [[ "$?" > '0' ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
-              echo -e "\n::notice::Errors found checking project files" | process_input;
-              check_build=true
-              echo 'check_build=true' >> "${GITHUB_ENV}";
-              echo 'build_error=true' >> "${GITHUB_ENV}";
+              echo -e "\n::notice::Errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
             elif [[ -s "${project_log}" ]]; then
-              echo -e "\n::notice::No errors found checking project files" | process_input;
-              check_build=true
-              echo 'check_build=true' >> "${GITHUB_ENV}";
+              echo -e "\n::notice::No errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
             fi;
           elif [[ ! "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e "${compile_json}" ]]; then
             echo -e "\n####################\n\t::error:: run-clang-tidy missing in repo Exiting...\n####################\n" | process_input;
@@ -1320,14 +1313,9 @@ runs:
               if [[ "$?" > '0' ]]; then
                 echo 'check_build=false' >> "${GITHUB_ENV}";
               elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
-                echo -e "\n::notice::Errors found checking project files" | process_input;
-                check_build=true
-                echo 'check_build=true' >> "${GITHUB_ENV}";
-                echo 'build_error=true' >> "${GITHUB_ENV}";
+                echo -e "\n::notice::Errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
               elif [[ -s "${project_log}" ]]; then
-                echo -e "\n::notice::No errors found checking project files" | process_input;
-                check_build=true
-                echo 'check_build=true' >> "${GITHUB_ENV}";
+                echo -e "\n::notice::No errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
               fi;
             fi;
           elif [[ ! -e "${clang_file}" ]] && ${{ env.analyzer == '2' }} && [[ -e "${compile_json}" ]]; then
@@ -1339,14 +1327,9 @@ runs:
             if [[ "$?" > '0' ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
-              echo -e "\n::notice::Errors found checking project files" | process_input;
-              check_build=true
-              echo 'check_build=true' >> "${GITHUB_ENV}";
-              echo 'build_error=true' >> "${GITHUB_ENV}";
+              echo -e "\n::notice::Errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
             elif [[ -s "${project_log}" ]]; then
-              echo -e "\n::notice::No errors found checking project files" | process_input;
-              check_build=true
-              echo 'check_build=true' >> "${GITHUB_ENV}";
+              echo -e "\n::notice::No errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
             fi;
           elif [[ ! -e "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e "${compile_json}" ]]; then
             echo -e "\n####################\n\t::error::${clangd_tidy##/*} file missing in repo Exiting...\n####################\n" | process_input;
@@ -1381,14 +1364,9 @@ runs:
             if [[ "$?" > '0' ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
-              echo -e "\n::notice::Errors found checking project files" | process_input;
-              check_build=true
-              echo 'check_build=true' >> "${GITHUB_ENV}";
-              echo 'build_error=true' >> "${GITHUB_ENV}";
+              echo -e "\n::notice::Errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
             elif [[ -s "${project_log}" ]]; then
-              echo -e "\n::notice::No errors found checking project files" | process_input;
-              check_build=true
-              echo 'check_build=true' >> "${GITHUB_ENV}";
+              echo -e "\n::notice::No errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
             fi;
           elif [[ ! $(which CodeChecker) ]] && ${{ env.analyzer == '4' }} && [[ -e 'compile_commands.json' ]]; then
             echo -e "\n####################\n\t::error::CodeChecker not installed Exiting...\n####################\n" | process_input;
@@ -1472,19 +1450,17 @@ runs:
           [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
           if [[ -e "${codechecker}" ]]; then
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            CodeChecker check -b "make -j$(nproc --all)" --config "${codechecker}" --jobs "$(nproc --all)" --print-steps 2>&1 | process_input || true;
+            CodeChecker check -b "make -j$(nproc --all)" --config "${codechecker}" --jobs "$(nproc --all)" --print-steps 2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)";
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            CodeChecker check -b "make" --jobs "$(nproc --all)" --print-steps 2>&1 | process_input || true;
+            CodeChecker check -b "make" --jobs "$(nproc --all)" --print-steps 2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)";
           fi;
-          if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-            echo -e "\n::notice::Errors found checking building files" | process_input;
-            check_build=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
+          if [[ "$?" > '0' ]]; then
+            echo 'check_build=false' >> "${GITHUB_ENV}";
+          elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+            echo -e "\n::notice::Errors found building project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
           elif [[ -s "${project_log}" ]]; then
-            echo -e "\n::notice::No errors found building project files" | process_input;
-            check_build=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
+            echo -e "\n::notice::No errors found building project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
           fi;
           if ${{ inputs.upload }}; then
             echo 'build_files=1' >> "${GITHUB_ENV}";
@@ -1502,15 +1478,13 @@ runs:
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
           [[ -e "${compile_json}" ]] && rm -vf "${compile_json}" | process_input;
-          CodeChecker log --build "make -j$(nproc --all)" --output "${compile_json}" 2>&1 | process_input || true;
-          if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
-            echo -e "\n::notice::Errors found building project files" | process_input;
-            check_build=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
+          CodeChecker log --build "make -j$(nproc --all)" --output "${compile_json}" 2>&1 | process_input || echo -e "\n::notice::CodeChecker log exit-code ($?)";
+          if [[ "$?" > '0' ]]; then
+            echo 'check_build=false' >> "${GITHUB_ENV}";
+          elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+            echo -e "\n::notice::Errors found building commands JSON file" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
           elif [[ -s "${project_log}" ]]; then
-            echo -e "\n::notice::No errors found building commands JSON file" | process_input;
-            check_build=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
+            echo -e "\n::notice::No errors found building commands JSON file" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
           fi;
           if ${{ inputs.upload }}; then
             echo 'build_files=1' >> "${GITHUB_ENV}";     
@@ -1521,15 +1495,13 @@ runs:
         if ${{ env.build_files == '1' }} && ${{ inputs.build == '3' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tDeheader analyze sources includes on build...(dry-run -3)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
-          deheader -v -r -m "make -n -j$(nproc --all)" | process_input || true;
-          if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
-            echo -e "\n::notice::duplicate includes found building project files" | process_input;
-            check_build=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
+          deheader -v -r -m "make -n -j$(nproc --all)" | process_input || echo -e "\n::notice::deheader check exit-code ($?)";
+          if [[ "$?" > '0' ]]; then
+            echo 'check_build=false' >> "${GITHUB_ENV}";
+          elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
+            echo -e "\n::notice::duplicate includes found building project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
           elif [[ -s "${project_log}" ]]; then
-            echo -e "\n::notice::No duplicate includes found checking project files" | process_input;
-            check_build=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
+            echo -e "\n::notice::No duplicate includes found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
           fi;
           if ${{ inputs.upload }}; then
             echo 'build_files=1' >> "${GITHUB_ENV}";
@@ -1541,15 +1513,13 @@ runs:
           echo -e '\n####################\n\tDeheader analyze & repair sources includes on build...(test-run -4)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
           [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
-          deheader -v -r -m "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" | process_input || true;
-          if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
-            echo -e "\n::notice::duplicate includes found building project files" | process_input;
-            check_build=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
+          deheader -v -r -m "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" | process_input || echo -e "\n::notice::deheader build exit-code ($?)";
+          if [[ "$?" > '0' ]]; then
+            echo 'check_build=false' >> "${GITHUB_ENV}";
+          elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
+            echo -e "\n::notice::duplicate includes found building project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
           elif [[ -s "${project_log}" ]]; then
-            echo -e "\n::notice::No duplicate includes found checking project files" | process_input;
-            check_build=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
+            echo -e "\n::notice::No duplicate includes found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
           fi;
           if ${{ inputs.upload }}; then
             echo 'build_files=1' >> "${GITHUB_ENV}";
