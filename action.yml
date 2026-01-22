@@ -1284,14 +1284,7 @@ runs:
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
             [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && echo -e '[check-file] creating new ,clang-format file as none was found\n' | process_input && clang-format -style=LLVM -dump-config > .clang-format || true;
-            "${{ env.run_clang_tidy }}" -j $(nproc --all) \
-               -p build \
-               -config-file "${clang_tidy}" \
-               -export-fixes build/fixes.yaml \
-               -fix \
-               -format \
-               -style 'file' \
-               2>&1 | process_input || echo -e "\n::notice::run-clang-tidy exit-code ($?)";
+            "${{ env.run_clang_tidy }}" -j $(nproc --all) -p build -config-file "${clang_tidy}" -export-fixes build/fixes.yaml -fix -format -style 'file' 2>&1 | process_input || echo -e "\n::notice::run-clang-tidy exit-code ($?)";
             if [[ "$?" > '0' ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
