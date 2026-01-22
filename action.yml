@@ -1355,21 +1355,21 @@ runs:
             fi;
             if ${{ inputs.repair }} && [[ -e "${codechecker}" ]]; then
               echo -e "\nRepair mode ${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" -Qunused-arguments --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --start-no-unused-arguments -c --end-no-unused-arguments --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input || echo -e "\nCodeChecker fixit exit-code ($?)";
               CodeChecker parse ./reports 2>&1 | process_input || true;
             elif ${{ inputs.repair }}; then
               echo -e "\nRepair mode continuing without config file continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" -Qunused-arguments --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
+              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --start-no-unused-arguments -c --end-no-unused-arguments --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input || echo -e "\nCodeChecker fixit exit-code ($?)";
               CodeChecker parse --print-steps ./reports 2>&1 | process_input || true;
             elif [[ -e "${codechecker}" ]]; then
               echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" -Qunused-arguments --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --start-no-unused-arguments -c --end-no-unused-arguments --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
               CodeChecker parse ./reports 2>&1 | process_input || true;
             else
               echo -e "\nRepair mode off and ${codechecker} file was not found continuing...\n" | process_input;
-              CodeChecker check --logfile "${compile_json}" -Qunused-arguments --print-steps 2>&1 | process_input || echo -e "\nCodeChecker check exit-code ($?)";
+              CodeChecker check --logfile "${compile_json}" --start-no-unused-arguments -c --end-no-unused-arguments --print-steps 2>&1 | process_input || echo -e "\nCodeChecker check exit-code ($?)";
             fi;
             if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
