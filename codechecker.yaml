@@ -1,8 +1,7 @@
 analyze:
   - --analyzers=clangsa
   - --disable-all
-  - --enable=core.DivideZero
-  - --enable=core.CallAndMessage
+  - --enable=sensitive
   - --no-missing-checker-error
   - --report-hash=diagnostic-message
   - --verbose=info

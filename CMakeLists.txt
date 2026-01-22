@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.30.0) # Specifies the minimum required CMake version
 
-# ... many examples of user defined project settings ... #
+# ... many examples of user defined project settings for C/C++ ... #
 
 if(DEFINED GITHUB_PROJECT_NAME)
   set(PROJECT_NAME "${GITHUB_PROJECT_NAME}")
@@ -98,14 +98,6 @@ if(EXISTS "${CHECK_FILE_SOURCES}" AND INCLUDE_SRC)
     target_include_directories("${PROJECT_NAME}" PRIVATE "${INCLUDE_PATH}")
   endforeach()
   message(STATUS "Project Includes: cmake added include directories. clang analyzing multiple includes [check 1]")
-elseif(DEFINED PROJECT_INCLUDE_DIRS)
-  target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/*")
-  foreach(PROJECT_INCLUDE_DIR ${PROJECT_INCLUDE_DIRS})
-    target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_INCLUDE_DIR}")
-  endforeach()
-  target_include_directories("${PROJECT_NAME}" SYSTEM INTERFACE "/home/runner/.local/lib/python*/site-packages/clang_tidy/data/lib/clang/*/include")
-  target_include_directories("${PROJECT_NAME}" SYSTEM PUBLIC "/usr/include/*")
-  message(STATUS "Project Includes: cmake added include directories. clang analyzing multiple includes [check 2]")
 elseif($ENV{github_include_dirs})
   target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/linux")
   target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/*/")
@@ -113,6 +105,14 @@ elseif($ENV{github_include_dirs})
   target_include_directories("${PROJECT_NAME}" PRIVATE ENV${github_include_dirs})
   target_include_directories("${PROJECT_NAME}" SYSTEM PRIVATE "/usr/include")
   target_include_directories("${PROJECT_NAME}" SYSTEM PRIVATE "/home/runner/.local/lib/python*/site-packages/clang_tidy/data/lib/clang/*/include")
+  message(STATUS "Project Includes: cmake added include directories. clang analyzing multiple includes [check 2]")
+elseif(DEFINED PROJECT_INCLUDE_DIRS)
+  target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/*")
+  foreach(PROJECT_INCLUDE_DIR ${PROJECT_INCLUDE_DIRS})
+    target_include_directories("${PROJECT_NAME}" PRIVATE "${PROJECT_INCLUDE_DIR}")
+  endforeach()
+  target_include_directories("${PROJECT_NAME}" SYSTEM INTERFACE "/home/runner/.local/lib/python*/site-packages/clang_tidy/data/lib/clang/*/include")
+  target_include_directories("${PROJECT_NAME}" SYSTEM PUBLIC "/usr/include/*")
   message(STATUS "Project Includes: cmake added include directories. clang analyzing multiple includes [check 3]")
 elseif(DEFINED ALL_HEADERS) # Extract the unique directory paths from the list of header files
   set(PROJECT_INCLUDE_DIRS "")
@@ -125,13 +125,18 @@ elseif(DEFINED ALL_HEADERS) # Extract the unique directory paths from the list o
   target_include_directories("${PROJECT_NAME}" SYSTEM PUBLIC "/usr/include")
   message(STATUS "Project Includes: cmake added include directories. clang analyzing all headers [check 4]")
 else()
-  target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/linux")
-  target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/*/")
-  target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  # Find all subdirectories that contain at least one header file
+  file(GLOB_RECURSE include_files LIST_DIRECTORIES true "include/*.h")
+  set(include_dirs "")
+  foreach(file_path ${include_files})
+    get_filename_component(dir_path ${file_path} DIRECTORY)
+    list(APPEND include_dirs ${dir_path})
+  endforeach()
+  list(REMOVE_DUPLICATES include_dirs)
+  target_include_directories("${PROJECT_NAME}" PRIVATE "${include_dirs}")
   target_include_directories("${PROJECT_NAME}" SYSTEM PUBLIC "/usr/include")
   message(STATUS "Project Includes: cmake added include directories. clang analyzing include directory [check 5]")
 endif()
-
 
 # .set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
 

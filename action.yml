@@ -1158,8 +1158,10 @@ runs:
           echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################" | process_input;
           echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################" | process_input;
           if ${{ inputs.content }} && ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
-            codechecker_analyzers=$(CodeChecker checkers --analyzers clangsa | awk '/Status: enabled/{print prev}{prev=$0}' | awk '{printf "    %s\n", $0}');
-            echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled checks:\n${codechecker_analyzers}" | process_input;
+            codechecker_analyzer1=$(CodeChecker checkers --analyzers clangsa | awk '/Status: enabled/{print prev}{prev=$0}' | awk '{printf "    %s\n", $0}');
+            [[ -n "${codechecker_analyzer1}" ]] && echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled analyzer checks:\n${codechecker_analyzer1}" | process_input;
+            codechecker_analyzer2=$(CodeChecker checkers --profile sensitive --details | awk '/Status: enabled/{print prev}{prev=$0}' | awk '{printf "    %s\n", $0}');
+            [[ -n "${codechecker_analyzer2}" ]] && echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled profile checks:\n${codechecker_analyzer2}" | process_input;
           fi;
           ${{ inputs.content }} && echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
           echo -e "\n####################\nChecking Repository:\033[32m ${{ env.base }}\033[0m\n####################" | process_input;
@@ -1289,7 +1291,7 @@ runs:
                -fix \
                -format \
                -style 'file' \
-               2>&1 | process_input || echo -e "\nrun-clang-tidy exit-code ($?)";
+               2>&1 | process_input || echo -e "\n::notice::run-clang-tidy exit-code ($?)";
             if [[ "$?" > '0' ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
@@ -1321,7 +1323,7 @@ runs:
             if [[ "${files_list}" ]]; then
               cp -vf "${clang_file}" 'build/parameter-source.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-              clang-tidy @parameter-file 2>&1 | process_input || echo -e "\nclang-tidy exit-code ($?)";
+              clang-tidy @parameter-file 2>&1 | process_input || echo -e "\n::notice::clang-tidy exit-code ($?)";
               if [[ "$?" > '0' ]]; then
                 echo 'check_build=false' >> "${GITHUB_ENV}";
               elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
@@ -1340,7 +1342,7 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILES\n####################\n' | process_input;
-            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x clangd-tidy -p build -j "$(nproc --all)" --color always --tqdm 2>&1 | process_input || echo -e "\nclangd-tidy exit-code ($?)";
+            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x clangd-tidy -p build -j "$(nproc --all)" --color always --tqdm 2>&1 | process_input || echo -e "\n::notice::clangd-tidy exit-code ($?)";
             if [[ "$?" > '0' ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
@@ -1367,21 +1369,21 @@ runs:
             fi;
             if ${{ inputs.repair }} && [[ -e "${codechecker}" ]]; then
               echo -e "\nRepair mode ${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
-              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input || echo -e "\nCodeChecker fixit exit-code ($?)";
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\n::notice::CodeChecker analyzer exit-code ($?)";
+              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input || echo -e "\n::notice::CodeChecker fixit exit-code ($?)";
               CodeChecker parse ./reports 2>&1 | process_input || true;
             elif ${{ inputs.repair }}; then
               echo -e "\nRepair mode continuing without config file continuing...\n" | process_input;
               CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
-              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input || echo -e "\nCodeChecker fixit exit-code ($?)";
+              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input || echo -e "\n::notice::CodeChecker fixit exit-code ($?)";
               CodeChecker parse --print-steps ./reports 2>&1 | process_input || true;
             elif [[ -e "${codechecker}" ]]; then
               echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\n::notice::CodeChecker analyzer exit-code ($?)";
               CodeChecker parse ./reports 2>&1 | process_input || true;
             else
               echo -e "\nRepair mode off and ${codechecker} file was not found continuing...\n" | process_input;
-              CodeChecker check --logfile "${compile_json}" --print-steps 2>&1 | process_input || echo -e "\nCodeChecker check exit-code ($?)";
+              CodeChecker check --logfile "${compile_json}" --print-steps 2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)";
             fi;
             if [[ "$?" > '0' ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
