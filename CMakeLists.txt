@@ -138,7 +138,7 @@ endif()
 # .set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -Werror -pedantic")
 
 if($ENV{github_build_project})
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -std=c90")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wno-error=unused-command-line-argument -std=c90")
   target_sources("${PROJECT_NAME}" PUBLIC "${PROJECT_SRC_FILES}") 
   message(STATUS "CMAKE_C_FLAGS; ${CMAKE_C_FLAGS}")
 else()

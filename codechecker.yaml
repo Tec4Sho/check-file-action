@@ -1,24 +1,21 @@
-# codechecker.yaml
-analyzer:
-  # Enable/disable checkers.
-  - --disable=all
+analyze:
+  - --analyzers=clangsa
+  - --disable-all
   - --enable=core.DivideZero
   - --enable=core.CallAndMessage
-  # Analyzer configurations.
-  - --analyzer-config=clangsa:unroll-loops=true
-  - --analyzer-config=clang-tidy:take-config-from-directory=true # Corrected location
-  - --analyzer-config=clang-tidy:cc-verbatim-args-file=clang-tidy.yaml
-  # Optional options.
-  - --keep-gcc-include-fixed
   - --no-missing-checker-error
-  - --report-hash=context-free-v2
+  - --report-hash=diagnostic-message
   - --verbose=info
   - --clean
+
 parse:
   - --trim-path-prefix=$HOME/workspace
+  - --print-steps
+
 server:
   - --workspace=$HOME/workspace
   - --port=9090
+
 store:
   - --name=run_name
   - --tag=my_tag
