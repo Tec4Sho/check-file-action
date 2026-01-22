@@ -238,8 +238,11 @@ runs:
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
       run: |
         echo '';
+        echo 'export ALLOW_MISSING_DEPENDENCIES=true' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export LLVM_ENABLE_THREADS=ON' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export WITH_TIDY=1' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
         sudo add-apt-repository universe >/dev/null;
@@ -1040,7 +1043,18 @@ runs:
           s=$((seconds % 60));
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
         fi;
-        
+        if [[ "${source_include}" == 'true' ]]; then
+          echo "include_count=${count4}" >> "${GITHUB_ENV}";
+        else
+          echo 'include_count=0' >> "${GITHUB_ENV}";
+        fi;
+        if ${{ inputs.number > '0' }}; then
+          echo 'include_source=false' >> "${GITHUB_ENV}";
+        elif [[ "${count4}" > '2000' ]]; then
+          echo 'include_source=true' >> "${GITHUB_ENV}";
+        else
+          echo 'include_source=false' >> "${GITHUB_ENV}";
+        fi;
         echo '';
       shell: bash
       continue-on-error: true
@@ -1051,12 +1065,7 @@ runs:
         echo '';
         set +e
         start_time="${SECONDS}";
-        export WITH_TIDY=1
-        export LC_ALL=C
-        export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
-        export ALLOW_MISSING_DEPENDENCIES=true
-        export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${repository}_project.log";
         clang_sources='check-file-sources.txt';
@@ -1327,6 +1336,7 @@ runs:
             echo -e '\n####################\n\tCODECHECKER ANALYZING FILES...\n####################\n' | process_input;
             sudo bash -c 'source ~/.bashrc';
             export TERM=dumb
+            export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
             if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
               sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
             else
@@ -1374,11 +1384,7 @@ runs:
         echo '';
         set +e
         start_time="${{ env.seconds }}";
-        export WITH_TIDY=1
-        export LLVM_ENABLE_THREADS=ON
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
-        export ALLOW_MISSING_DEPENDENCIES=true
-        export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
         export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
