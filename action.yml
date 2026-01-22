@@ -1040,18 +1040,7 @@ runs:
           s=$((seconds % 60));
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
         fi;
-        if [[ "${source_include}" == 'true' ]]; then
-          echo "include_count=${count4}" >> "${GITHUB_ENV}";
-        else
-          echo 'include_count=0' >> "${GITHUB_ENV}";
-        fi;
-        if ${{ inputs.number > '0' }}; then
-          echo 'include_source=false' >> "${GITHUB_ENV}";
-        elif [[ "${count4}" > '2000' ]]; then
-          echo 'include_source=true' >> "${GITHUB_ENV}";
-        else
-          echo 'include_source=false' >> "${GITHUB_ENV}";
-        fi;
+        
         echo '';
       shell: bash
       continue-on-error: true
