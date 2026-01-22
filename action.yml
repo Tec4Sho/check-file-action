@@ -289,21 +289,21 @@ runs:
         if ${{ inputs.project }} && [[ "${cmake_version}" < "${required_version}" ]]; then
           python3 -m pip install --upgrade pip >/dev/null && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
           echo -e "CMake version $cmake_version upgrading to latest python cmake\n";
-          sudo rm -vf "$(which cmake)";
+          sudo rm -f "$(which cmake)";
           sudo mkdir -p '/usr/local/bin';
           echo "/usr/local/bin" >> "${GITHUB_PATH}";
           python3 -m pip install --upgrade cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
-          sudo cp -vpf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
+          sudo cp -pf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
         fi;
         if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
           sudo apt-get -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
           [[ ! $(which cmake) ]] && exit 1
         fi;
-        if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic) ]]; then
+        if ${{ inputs.project }} && [[ ! $(apt-get list linux-headers-generic 2>/dev/null) ]]; then
           sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\n$(apt list linux-headers-generic 2>/dev/null) dependencies installed\n####################";
           [[ ! $(apt list linux-headers-generic 2>/dev/null) ]] && echo -e "::error::No linux-headers-generic installed for project build";
         fi;
-        if ${{ inputs.project }} && [[ ! $(apt list linux-modules-$(uname -r)) ]]; then
+        if ${{ inputs.project }} && [[ ! $(apt-get list linux-modules-$(uname -r) 2>/dev/null) ]]; then
           sudo apt-get -yq install linux-modules-$(uname -r) 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\n$(apt list linux-modules-$(uname -r) 2>/dev/null) dependencies installed\n####################";
           [[ ! $(apt list linux-modules-$(uname -r) 2>/dev/null) ]] && echo -e "::error::No linux-modules-$(uname -r) installed for project build"; 
         fi;
@@ -575,23 +575,23 @@ runs:
           done < <(file_count);
           echo "${type_count}";
         }     
-        if ${{ inputs.project }} && [[ "$(directory)" ]]; then
+        if ${{ inputs.content }} && [[ "$(directory)" ]]; then
           echo -e "\n#####################\nProject Source Directories:\n#####################\n\n$(directory)";
         fi;
-        if ${{ inputs.project }} && [[ "$(file_count)" ]]; then
+        if ${{ inputs.content }} && [[ "$(file_count)" ]]; then
           echo -e "\n#####################\nProject File Types:\n#####################\n\n$(file_count)";
         fi;
-        if [[ "$(file_types)" ]]; then
+        if ${{ inputs.content }} && [[ "$(file_types)" ]]; then
           echo -e "\n#####################\nDifferent File Types: \033[1m$(file_types)\033[0m\n#####################";
         fi;
-        if [[ "${include_dirs}" ]]; then
+        if ${{ inputs.content }} && [[ "${include_dirs}" ]]; then
           echo -e "\n#####################\nTotal Include Directories: \033[1m${include_dirs}\033[0m\n#####################";
         fi;
-        if [[ "${total_files:-0}" > '0' ]] && ${{ inputs.filetype != '' }}; then
+        if ${{ inputs.content }} && [[ "${total_files:-0}" > '0' ]] && ${{ inputs.filetype != '' }}; then
           echo -e "\nThe total percentage of ${{ inputs.filetype }} files is: \033[1m${percentage0:-0}%\033[0m";
           echo -e "\nThe total percentage of header files is: \033[1m${percentage2:-0}%\033[0m";
           echo -e "\n#####################\nRepository: \033[1m${repo}\033[0m\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
-        elif [[ "${total_files:-0}" > '0' ]]; then
+        elif ${{ inputs.content }} && [[ "${total_files:-0}" > '0' ]]; then
           echo -e "\nThe total percentage of c/c++ files is: \033[1m${percentage1:-0}%\033[0m";
           echo -e "\nThe total percentage of header files is: \033[1m${percentage2:-0}%\033[0m";
           echo -e "\n#####################\nRepository: \033[1m${repo}\033[0m\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
@@ -603,6 +603,8 @@ runs:
         text "${text10c}\n" 2>/dev/null;
         if ${{ inputs.build > '0' }}; then
           echo 'github_build_project=true' >> "${GITHUB_ENV}";
+        else
+          echo 'github_build_project=false' >> "${GITHUB_ENV}";
         fi;
         echo "github_repository=${repo}" >> "${GITHUB_ENV}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
@@ -1155,11 +1157,11 @@ runs:
           fi;
           echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################" | process_input;
           echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################" | process_input;
-          if ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
+          if ${{ inputs.content }} && ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
             codechecker_analyzers=$(CodeChecker checkers --analyzers clangsa | awk '/Status: enabled/{print prev}{prev=$0}' | awk '{printf "    %s\n", $0}');
             echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled checks:\n${codechecker_analyzers}" | process_input;
           fi;
-          echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
+          ${{ inputs.content }} && echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
           echo -e "\n####################\nChecking Repository:\033[32m ${{ env.base }}\033[0m\n####################" | process_input;
           echo -e "\n####################\nChecking for ${file_type} files\n####################" | process_input;
           source_dirs() {
@@ -1287,8 +1289,10 @@ runs:
                -fix \
                -format \
                -style 'file' \
-               2>&1 | process_input || true
-            if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
+               2>&1 | process_input || echo -e "\nrun-clang-tidy exit-code ($?)";
+            if [[ "$?" > '0' ]]; then
+              echo 'check_build=false' >> "${GITHUB_ENV}";
+            elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -1317,8 +1321,10 @@ runs:
             if [[ "${files_list}" ]]; then
               cp -vf "${clang_file}" 'build/parameter-source.txt' 2>/dev/null;
               echo -e '\n####################\nCLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-              clang-tidy @parameter-file 2>&1 | process_input;
-              if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
+              clang-tidy @parameter-file 2>&1 | process_input || echo -e "\nclang-tidy exit-code ($?)";
+              if [[ "$?" > '0' ]]; then
+                echo 'check_build=false' >> "${GITHUB_ENV}";
+              elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
                 echo -e "\n::notice::Errors found checking project files" | process_input;
                 check_build=true
                 echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -1334,8 +1340,10 @@ runs:
           fi;
           if [[ -f "${clangd_tidy}" ]] && ${{ env.analyzer == '3' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nCLANGD-TIDY ANALYZING FILES\n####################\n' | process_input;
-            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x clangd-tidy -p build -j "$(nproc --all)" --color always --tqdm 2>&1 | process_input || true;
-            if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE ' error:| Error:|Error while processing| ERROR:' "${project_log}") ]]; then
+            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x clangd-tidy -p build -j "$(nproc --all)" --color always --tqdm 2>&1 | process_input || echo -e "\nclangd-tidy exit-code ($?)";
+            if [[ "$?" > '0' ]]; then
+              echo 'check_build=false' >> "${GITHUB_ENV}";
+            elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -1359,23 +1367,25 @@ runs:
             fi;
             if ${{ inputs.repair }} && [[ -e "${codechecker}" ]]; then
               echo -e "\nRepair mode ${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --start-no-unused-arguments -c --end-no-unused-arguments --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input || echo -e "\nCodeChecker fixit exit-code ($?)";
               CodeChecker parse ./reports 2>&1 | process_input || true;
             elif ${{ inputs.repair }}; then
               echo -e "\nRepair mode continuing without config file continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --start-no-unused-arguments -c --end-no-unused-arguments --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
+              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input || echo -e "\nCodeChecker fixit exit-code ($?)";
               CodeChecker parse --print-steps ./reports 2>&1 | process_input || true;
             elif [[ -e "${codechecker}" ]]; then
               echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --start-no-unused-arguments -c --end-no-unused-arguments --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
+              CodeChecker analyze "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)";
               CodeChecker parse ./reports 2>&1 | process_input || true;
             else
               echo -e "\nRepair mode off and ${codechecker} file was not found continuing...\n" | process_input;
-              CodeChecker check --logfile "${compile_json}" --start-no-unused-arguments -c --end-no-unused-arguments --print-steps 2>&1 | process_input || echo -e "\nCodeChecker check exit-code ($?)";
+              CodeChecker check --logfile "${compile_json}" --print-steps 2>&1 | process_input || echo -e "\nCodeChecker check exit-code ($?)";
             fi;
-            if [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+            if [[ "$?" > '0' ]]; then
+              echo 'check_build=false' >> "${GITHUB_ENV}";
+            elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input;
               check_build=true
               echo 'check_build=true' >> "${GITHUB_ENV}";
@@ -1661,7 +1671,7 @@ runs:
           [[ -f ${count1} ]] && rm "${count1}";
           [[ -f ${count2} ]] && rm "${count2}";
           [[ -f ${count3} ]] && rm "${count3}";
-          echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
+          ${{ inputs.content }} && echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
