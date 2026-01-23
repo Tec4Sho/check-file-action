@@ -1347,12 +1347,12 @@ runs:
             [[ ! -s 'skip.txt' ]] && echo -e '# Skip all system includes\n-*/usr/include/*\n-*/usr/local/include/*\n-*/site-packages/*' > 'skip.txt';
             if ${{ inputs.repair }}; then
               echo -e "\nRepair mode continuing without config file continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --ignore 'skip.txt' --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)" | process_input;
+              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)" | process_input;
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input || echo -e "\nCodeChecker fixit exit-code ($?)" | process_input;
               CodeChecker parse ./reports 2>&1 | process_input || echo -e "\nCodeChecker parse exit-code ($?)" | process_input;
             else
               [[ -e "${codechecker}" ]] && echo -e "\n${codechecker} file was found continuing...\n" | process_input || echo -e "\n::warning::${codechecker} file was not found continuing...\n" | process_input;
-              CodeChecker check --logfile "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" --ignore 'skip.txt' 2>&1 | process_input || echo -e "\nCodeChecker check exit-code ($?)" | process_input;
+              CodeChecker check --logfile "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" 2>&1 | process_input || echo -e "\nCodeChecker check exit-code ($?)" | process_input;
             fi;
             if [[ -s "${project_log}" ]] && [[ $(grep -siF 'process ended' "${project_log}") ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
