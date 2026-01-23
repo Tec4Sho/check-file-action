@@ -1520,14 +1520,14 @@ runs:
           deheader_duplicates=$(grep -sFc 'duplicates' "${project_log}");
           deheader_inclusion=$(grep -sFc 'inclusion' "${project_log}");
           deheader_removed=$(grep -sFc 'remove' "${project_log}");
-          codechecker_defects=$(grep -sEo 'Found [1-9] defect(s) in|Found 1 defect(s) in' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
-          codechecker_no_defects=$(grep -sFo 'Found no defects in' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
+          codechecker_defects=$(grep -so 'Found [1-9] defect' "${project_log}" | cut -d ' ' -f2 | awk '{sum += $1} END {print sum}');
+          codechecker_no_defects=$(grep -sFoc 'Found no defects' "${project_log}");
           codechecker_success=$(grep -sFc 'successfully' "${project_log}");
           codechecker_errors=$(grep -sFc 'Error while processing' "${project_log}");
           clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" | grep -vc '[\[\]]');
           clang_information=$(grep -siFc 'information:' "${project_log}");
           clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
-          clang_files_list=$(grep -sEo '^#include[[:space:]]+[<"].*[>"]' "${project_log}" | awk '{print $2}' | tr -d '<">' | sort -u);
+          clang_files_list=$(grep -sEo '#include[[:space:]]+[<"].*[>"]' "${project_log}" | awk '{print $2}' | tr -d '<">' | sort -u);
           clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
           clang_errors=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
           clang_fixit1=$(grep -siEc 'fixit|fix-its' "${project_log}");
@@ -1578,7 +1578,7 @@ runs:
             echo -e "\n####################\n::notice::🚫 check-file found ${deheader_inclusion} extra inclusions in ${file_type} file(s) checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
           if [[ -n "${clang_files_missing}" ]] && [[ "${clang_files_missing:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} missing include files being called in ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files.\n####################" | process_input;
+            echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
             echo -e "\n####################\nMISSING FILES LIST:\n####################\n\n${clang_files_list}" | process_input;
             echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES IN: ${{ env.base }}\n####################\n" | process_input;
             declare -A missing
