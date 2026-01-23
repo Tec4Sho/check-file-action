@@ -440,6 +440,11 @@ runs:
         if [[ -d "${HOME}/codechecker/build/CodeChecker/bin" ]]; then
           echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
         fi;
+        if ${{ inputs.build > '0' }}; then
+          echo 'github_build_project=true' >> "${GITHUB_ENV}";
+        else
+          echo 'github_build_project=false' >> "${GITHUB_ENV}";
+        fi;
         sudo apt-get --fix-broken install -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         echo '';
       shell: bash
@@ -577,38 +582,35 @@ runs:
             type_count=$(expr ${type_count} + 1);
           done < <(file_count);
           echo "${type_count}";
-        }     
-        if ${{ inputs.content }} && [[ "$(directory)" ]]; then
-          echo -e "\n#####################\nProject Source Directories:\n#####################\n\n$(directory)";
-        fi;
-        if ${{ inputs.content }} && [[ "$(file_count)" ]]; then
-          echo -e "\n#####################\nProject File Types:\n#####################\n\n$(file_count)";
-        fi;
-        if ${{ inputs.content }} && [[ "$(file_types)" ]]; then
-          echo -e "\n#####################\nDifferent File Types: \033[1m$(file_types)\033[0m\n#####################";
-        fi;
-        if ${{ inputs.content }} && [[ "${include_dirs}" ]]; then
-          echo -e "\n#####################\nTotal Include Directories: \033[1m${include_dirs}\033[0m\n#####################";
-        fi;
-        if ${{ inputs.content }} && [[ "${total_files:-0}" > '0' ]] && ${{ inputs.filetype != '' }}; then
-          echo -e "\nThe total percentage of ${{ inputs.filetype }} files is: \033[1m${percentage0:-0}%\033[0m";
-          echo -e "\nThe total percentage of header files is: \033[1m${percentage2:-0}%\033[0m";
-          echo -e "\n#####################\nRepository: \033[1m${repo}\033[0m\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
-        elif ${{ inputs.content }} && [[ "${total_files:-0}" > '0' ]]; then
-          echo -e "\nThe total percentage of c/c++ files is: \033[1m${percentage1:-0}%\033[0m";
-          echo -e "\nThe total percentage of header files is: \033[1m${percentage2:-0}%\033[0m";
-          echo -e "\n#####################\nRepository: \033[1m${repo}\033[0m\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
-        else
-          echo -e "\n#####################\n::error::Repository: ${repo} files missing? Exiting....\n#####################\n";
+        }
+        if ${{ inputs.content }}; then
+          if [[ "$(directory)" ]]; then
+            echo -e "\n#####################\nProject Source Directories:\n#####################\n\n$(directory)";
+          fi;
+          if [[ "$(file_count)" ]]; then
+            echo -e "\n#####################\nProject File Types:\n#####################\n\n$(file_count)";
+          fi;
+          if [[ "$(file_types)" ]]; then
+            echo -e "\n#####################\nDifferent File Types: \033[1m$(file_types)\033[0m\n#####################";
+          fi;
+          if [[ "${include_dirs}" ]]; then
+            echo -e "\n#####################\nTotal Include Directories: \033[1m${include_dirs}\033[0m\n#####################";
+          fi;
+          if [[ "${total_files:-0}" > '0' ]] && ${{ inputs.filetype != '' }}; then
+            echo -e "\nThe total percentage of ${{ inputs.filetype }} files is: \033[1m${percentage0:-0}%\033[0m";
+            echo -e "\nThe total percentage of header files is: \033[1m${percentage2:-0}%\033[0m";
+            echo -e "\n#####################\nRepository: \033[1m${repo}\033[0m\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
+          elif [[ "${total_files:-0}" > '0' ]]; then
+            echo -e "\nThe total percentage of c/c++ files is: \033[1m${percentage1:-0}%\033[0m";
+            echo -e "\nThe total percentage of header files is: \033[1m${percentage2:-0}%\033[0m";
+            echo -e "\n#####################\nRepository: \033[1m${repo}\033[0m\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
+          else
+            echo -e "\n#####################\n::error::Repository: ${repo} files missing? Exiting....\n#####################\n";
+          fi;
         fi;
         text "\n${text10a}" 2>/dev/null;
         text "${text10b}" 2>/dev/null;
         text "${text10c}\n" 2>/dev/null;
-        if ${{ inputs.build > '0' }}; then
-          echo 'github_build_project=true' >> "${GITHUB_ENV}";
-        else
-          echo 'github_build_project=false' >> "${GITHUB_ENV}";
-        fi;
         echo "github_repository=${repo}" >> "${GITHUB_ENV}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
@@ -1158,7 +1160,8 @@ runs:
           if ${{ inputs.content }} && ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
             codechecker_analyzer1=$(CodeChecker checkers --analyzers clangsa | awk '/Status: enabled/{print prev}{prev=$0}' | awk '{printf "    %s\n", $0}');
             [[ -n "${codechecker_analyzer1}" ]] && echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled analyzer checks:\n${codechecker_analyzer1}" | process_input;
-            
+            codechecker_analyzer2=$(CodeChecker checkers --profile sensitive --details | awk '/Status: enabled/{print prev}{prev=$0}' | awk '{printf "    %s\n", $0}');
+            [[ -n "${codechecker_analyzer2}" ]] && echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled profile checks:\n${codechecker_analyzer2}" | process_input;
           fi;
           ${{ inputs.content }} && echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
           echo -e "\n####################\nChecking Repository:\033[32m ${{ env.base }}\033[0m\n####################" | process_input;
