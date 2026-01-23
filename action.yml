@@ -2251,7 +2251,7 @@ runs:
           ansi2txt "${filename1}" > "${filename1}.tmp";
           mv -vf "${filename1}.tmp" "${filename1}";
           if (( filesize1 > min_size_bytes )); then
-            split -d -b 10M "${filename1}" 'part_'
+            split -d -C 10M "${filename1}" 'part_'
             echo "file1_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
@@ -2260,7 +2260,7 @@ runs:
           ansi2txt "${filename2}" > "${filename2}.tmp";
           mv -vf "${filename2}.tmp" "${filename2}";
           if (( filesize2 > min_size_bytes )); then
-            split -d -b 10M "${filename2}" 'part_'
+            split -d -C 10M "${filename2}" 'part_'
             echo "file2_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
