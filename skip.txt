@@ -1,0 +1,3 @@
+# Skip all system includes
+- */usr/include/*
+- */usr/local/include/*
