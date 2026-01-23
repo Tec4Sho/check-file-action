@@ -1354,7 +1354,7 @@ runs:
               CodeChecker analyze "${compile_json}" "${config}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\n::notice::CodeChecker analyzer exit-code ($?)";
               CodeChecker parse --print-steps ./reports 2>&1 | process_input || echo -e "\n::notice::CodeChecker parse exit-code ($?)";
             fi;
-            if [[ "$?" > '0' ]]; then
+            if [[ "$?" -gt 0 ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]] && [[ $(LC_ALL=C grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
