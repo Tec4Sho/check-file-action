@@ -1,4 +1,4 @@
 # Skip all system includes
-- */usr/include/*
-- */usr/local/include/*
-- */site-packages/*
+-*/usr/include/*
+-*/usr/local/include/*
+-*/site-packages/*

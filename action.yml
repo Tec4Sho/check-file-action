@@ -1344,7 +1344,7 @@ runs:
             else
               echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
             fi;
-            [[ ! -s 'skip.txt' ]] && echo -e '# Skip all system includes\n- */usr/include/*\n- */usr/local/include/*\n- */site-packages/*' > 'skip.txt';
+            [[ ! -s 'skip.txt' ]] && echo -e '# Skip all system includes\n-*/usr/include/*\n-*/usr/local/include/*\n-*/site-packages/*' > 'skip.txt';
             if ${{ inputs.repair }}; then
               echo -e "\nRepair mode continuing without config file continuing...\n" | process_input;
               CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --ignore 'skip.txt' --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)" | process_input;
