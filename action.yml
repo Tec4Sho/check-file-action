@@ -1349,9 +1349,9 @@ runs:
               CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input || echo -e "\n::notice::CodeChecker fixit exit-code ($?)";
               CodeChecker parse ./reports 2>&1 | process_input || echo -e "\n::notice::CodeChecker parse exit-code ($?)";
             else
-              [[ -e "${codechecker}" ]] && config="--config ${codechecker} ";
+              [[ -e "${codechecker}" ]] && config="--config ${codechecker}";
               echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" "${config}"--jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\n::notice::CodeChecker analyzer exit-code ($?)";
+              CodeChecker analyze "${compile_json}" "${config}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\n::notice::CodeChecker analyzer exit-code ($?)";
               CodeChecker parse --print-steps ./reports 2>&1 | process_input || echo -e "\n::notice::CodeChecker parse exit-code ($?)";
             fi;
             if [[ "$?" > '0' ]]; then
