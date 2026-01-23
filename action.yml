@@ -1645,6 +1645,7 @@ runs:
           else
             echo "includes=false" >> "${GITHUB_ENV}";
           fi;
+          [[ -f "/tmp/*/metadata.json" ]] && echo -e"\nCodeChecker Analyzer list: $(cp -vf "/tmp/*/metadata.json" build/)";
           echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
         else
           echo -e '\n####################\n\tProject Not Checked Exiting...\n####################\n' | process_input;
