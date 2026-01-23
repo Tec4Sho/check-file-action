@@ -1158,8 +1158,7 @@ runs:
           if ${{ inputs.content }} && ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
             codechecker_analyzer1=$(CodeChecker checkers --analyzers clangsa | awk '/Status: enabled/{print prev}{prev=$0}' | awk '{printf "    %s\n", $0}');
             [[ -n "${codechecker_analyzer1}" ]] && echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled analyzer checks:\n${codechecker_analyzer1}" | process_input;
-            codechecker_analyzer2=$(CodeChecker checkers --profile sensitive --details | awk '/Status: enabled/{print prev}{prev=$0}' | awk '{printf "    %s\n", $0}');
-            [[ -n "${codechecker_analyzer2}" ]] && echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled profile checks:\n${codechecker_analyzer2}" | process_input;
+            
           fi;
           ${{ inputs.content }} && echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
           echo -e "\n####################\nChecking Repository:\033[32m ${{ env.base }}\033[0m\n####################" | process_input;
