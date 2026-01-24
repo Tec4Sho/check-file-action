@@ -41,6 +41,10 @@ find_package(Git REQUIRED)
 
 # .set(CMAKE_MESSAGE_LOG_LEVEL WARNING)
 
+if(MINGW)
+  SET(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -O coff -DwxUSE_DPI_AWARE_MANIFEST=2 -I \"${CMAKE_CURRENT_SOURCE_DIR}/include\" -i <SOURCE> -o <OBJECT>")
+endif(MINGW)
+
 set(LLVM_ENABLE_PROJECTS "clang;clang-tools-extra")
 
 # .add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}")
@@ -61,7 +65,11 @@ endif()
 
 list(SORT PROJECT_SRC_FILES)
 
-add_executable("${PROJECT_NAME}" "${PROJECT_SRC_FILES}") # Creates an executable target named "MyProject" from source files
+list(LENGTH PROJECT_SRC_FILES SOURCE_COUNT)
+
+message(STATUS "Source file count: ${SOURCE_COUNT}")
+
+add_executable("${PROJECT_NAME}") # Creates an executable target named "MyProject" from source files
 
 if(DEFINED PROJECT_SRC_FILES)
   message(STATUS "Project Files: cmake added source files")
@@ -91,9 +99,10 @@ file(GLOB_RECURSE include_files LIST_DIRECTORIES true "include/*.h")
 set(CHECK_FILE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/check-file-sources.txt")
 
 # Add the system, project include directory to your target. Comment to disable an add your custom target_include_directories
-set(PROJECT_AUTO_INCLUDE "true")
+# .set(PROJECT_AUTO_INCLUDE "true")
 
 if(DEFINED PROJECT_AUTO_INCLUDE)
+  target_sources("${PROJECT_NAME}" PRIVATE "${PROJECT_SRC_FILES}")
   if(EXISTS "${CHECK_FILE_SOURCES}" AND INCLUDE_SRC)
     target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/*")
     file(STRINGS "${CHECK_FILE_SOURCES}" FILE_PATHS)
@@ -140,15 +149,27 @@ if(DEFINED PROJECT_AUTO_INCLUDE)
   endif()
 else()
 # Add your custom includes here after commenting # set(PROJECT_AUTO_INCLUDE "true") above
-  target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/drivers")
-  set(include_dirs "")
-  foreach(file_path ${include_files})
-    get_filename_component(dir_path ${file_path} DIRECTORY)
-    list(APPEND include_dirs ${dir_path})
+  set(FILE_COUNT 0)
+  foreach(FILE ${PROJECT_SRC_FILES})
+    math(EXPR FILE_COUNT "${FILE_COUNT} + 1")
+    set(FILE_CONTENTS "")
+    file(READ "${FILE}" FILE_CONTENTS)
+    string(REGEX MATCHALL "#include[ \t]+[<\"]([^>\"]+)[>\"]" MATCHES "${FILE_CONTENTS}")
+    set(HEADER_LIST "")
+    foreach(MATCH ${MATCHES})
+      string(REGEX REPLACE "#include[ \t]+[<\"]([^>\"]+)[>\"]" "\\1" HEADER_NAME "${MATCH}")
+      list(APPEND HEADER_LIST "${HEADER_NAME}")
+    endforeach()
+    list(REMOVE_DUPLICATES HEADER_LIST)
+    foreach(file_path ${HEADER_LIST})
+      file(GLOB_RECURSE PROJECT_INCLUDES RELATIVE LIST_DIRECTORIES true "${file_path}")
+      list(APPEND include_dirs ${PROJECT_INCLUDES})
+    endforeach()
+    list(REMOVE_DUPLICATES include_dirs)
+    target_sources("${PROJECT_NAME}" PRIVATE "${FILE}")
+    target_include_directories("${PROJECT_NAME}" PRIVATE "${include_dirs}")
+    message(STATUS "Source File: ${FILE_COUNT}") 
   endforeach()
-  list(REMOVE_DUPLICATES include_dirs)
-  target_include_directories("${PROJECT_NAME}" PRIVATE "${include_dirs}")
-  target_include_directories("${PROJECT_NAME}" SYSTEM PUBLIC "/usr/include")
   message(STATUS "Project Includes: cmake added user defined include directories. clang analyzing includes added [check 6 custom]")
 endif()
 
@@ -158,11 +179,10 @@ endif()
 
 if($ENV{github_build_project})
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
-  target_sources("${PROJECT_NAME}" PUBLIC "${PROJECT_SRC_FILES}")
   message(STATUS "Project Build: clang tools analyze test build")
   message(STATUS "CMAKE_C_FLAGS; ${CMAKE_C_FLAGS}")
 else()
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -ferror-limit=0 -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
   message(STATUS "Project Build: clang tools analyze only")
   message(STATUS "CMAKE_C_FLAGS; ${CMAKE_C_FLAGS}")
 endif()
@@ -295,4 +315,3 @@ output_src_files()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "")
-
