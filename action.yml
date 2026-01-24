@@ -1062,7 +1062,7 @@ runs:
       shell: bash
       continue-on-error: true
 
-    - name: Check Project
+    - name: Project Compile Commands Json
       if: inputs.project == 'true'
       run: |
         echo '';
@@ -1281,6 +1281,86 @@ runs:
           elif [[ -e "${compile_json}" ]]; then
             echo -e "\n####################\n\t${compile_json} was created successfully...\n####################" | process_input;
           fi;
+        fi;
+        echo '';
+        seconds="$((SECONDS - start_time))";
+        echo "seconds=${seconds}" >> "${GITHUB_ENV}";
+      shell: bash
+      continue-on-error: true
+
+    - name: Project Analyze
+      if: inputs.project == 'true' && inputs.analyzer > '0'
+      run: |        
+        echo '';
+        set +e
+        start_time="${{ env.seconds }}";
+        export CMAKE_EXPORT_COMPILE_COMMANDS=ON
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        project_log="${repository}_project.log";
+        clang_sources='check-file-sources.txt';
+        codechecker='codechecker.yaml';
+        user_compile_json=false
+        count1='count1.txt';
+        count2='count2.txt';
+        count3='count3.txt';
+        check_build=false
+        include_source=false
+        file_type='c';
+        github=${GITHUB_WORKSPACE};
+        update=true
+        fixed=false; config='';
+        process_input() {
+          while IFS= read -r output; do
+            if ${{ inputs.output == '1' }}; then
+              echo -e "${output}" | tee -a "${project_log}";
+            elif ${{ inputs.output == '2' }}; then
+              echo -e "${output}" >> "${project_log}";
+            elif ${{ inputs.output == '3' }}; then
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
+            fi;
+          done;
+        }
+        if ${{ env.check_build == 'false' }}; then
+          echo 'check_build=false' >> "${GITHUB_ENV}";
+        fi;
+        if ${{ inputs.update == 'false' }}; then
+          echo 'update=false' >> "${GITHUB_ENV}";
+          update=false
+        fi;
+        if ${{ inputs.filetype != '' }}; then
+          file_type="${{ inputs.filetype }}";
+        fi;
+        echo "filetype=${file_type}" >> "${GITHUB_ENV}";
+        if [[ "${file_type}" == [cth]* ]]; then
+          clang_tidy_version=$(clang-tidy --version);
+          clang_version=$(clang --version);
+          verify_config=$(clang-tidy --verify-config);
+          cmake_version=$(cmake --version);
+          if [[ -f 'compile_commands.json' ]]; then
+             user_compile_json=true
+             compile_json='compile_commands.json';
+             mkdir build && cp -vf ${compile_json} build/
+          elif [[ -f 'build/compile_commands.json' ]]; then
+             compile_json='build/compile_commands.json';
+          else
+             compile_json='build/compile_commands.json';
+          fi;
+          if ${{ inputs.absolute }}; then
+            abs='-a';
+          else
+            abs='';
+          fi;
+          clang_checks=$(clang-tidy --list-checks);
+          gcc_version=$(gcc --version);
+          gpp_version=$(g++ --version);
+          cmake_list='CMakeLists.txt';
+          clang_file='parameter-file';
+          clang_tidy='.clang-tidy';
+          clangd_tidy='/home/runner/.local/bin/clangd-tidy';
+          clang_includes='check-file-includes.txt';
+          [[ ! -f "${cmake_list}" ]] && cmake_list="${{ github.action_path }}/${cmake_list}"; 
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
             [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && echo -e '[check-file] creating new ,clang-format file as none was found\n' | process_input && clang-format -style=LLVM -dump-config > .clang-format || echo -e "\n::notice::clang-format exit-code ($?)" | process_input;
@@ -1368,13 +1448,13 @@ runs:
           [[ -f 'compile_flags.txt' ]] && mv -f 'compile_flags.txt' 'build/';
         fi;
         echo '';
-        seconds="$((SECONDS - start_time))";
+        seconds="$((SECONDS + start_time))";
         echo "seconds=${seconds}" >> "${GITHUB_ENV}";
       shell: bash
       continue-on-error: true
       
     - name: Build Project
-      if: inputs.project == 'true'
+      if: inputs.project == 'true' && inputs.build > '0'
       run: |
         echo -n '';
         set +e
@@ -1520,8 +1600,63 @@ runs:
         elif ${{ env.build_files == '1' }} && ${{ inputs.build == '4' }}; then
           echo -e "\n####################\n\t::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
         fi;
+        echo '';
+        seconds="$((SECONDS + start_time))";
+        echo "seconds=${seconds}" >> "${GITHUB_ENV}";
+      shell: bash
+      continue-on-error: true
+
+    - name: Build Project
+      if: inputs.project == 'true'
+      run: |
+        echo -n '';
+        set +e
+        start_time="${{ env.seconds }}";
+        codechecker='codechecker.yaml';
+        compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        project_log="${github}/${repository}_project.log";
+        build_fixes='build/fixes.yaml';
+        check_build=false
+        file_type='c';
+        update=true
+        fixed=false
+        github=${GITHUB_WORKSPACE};
+        count=1
+        if ${{ inputs.repository == 'false' }} && [[ -d "${{ env.dirname }}" ]]; then
+          cd "${{ env.dirname }}";
+        fi;
+        process_input() {
+          while IFS= read -r output; do
+            if ${{ inputs.output == '1' }}; then
+              echo -e "${output}" | tee -a "${project_log}";
+            elif ${{ inputs.output == '2' }}; then
+              echo -e "${output}" >> "${project_log}";
+            elif ${{ inputs.output == '3' }}; then
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
+            fi;
+          done;
+        }
+        if ${{ inputs.absolute }}; then
+          abs='-a';
+        else
+          abs='';
+        fi;
+        if ${{ env.check_build == 'false' }}; then
+          echo 'check_build=false' >> "${GITHUB_ENV}";
+        fi;
+        if ${{ inputs.update == 'false' }}; then
+          echo 'update=false' >> "${GITHUB_ENV}";
+          update=false
+        fi;
+        if ${{ inputs.filetype != 'none' }}; then
+          file_type="${{ inputs.filetype }}";
+        fi;
+        echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -s "${project_log}" ]] && (${{ env.check_build == 'true' }} || [[ "${check_build}" == 'true' ]]); then
-          echo -e "\n####################\n\t${project_log##*/} file found continuing...\n####################" | process_input;
+          echo -e "\n####################\n\t${project_log##*/} file found checking stats...\n####################" | process_input;
           deheader_duplicates=$(grep -sFc 'duplicates' "${project_log}");
           deheader_inclusion=$(grep -sFc 'inclusion' "${project_log}");
           deheader_removed=$(grep -sFc 'remove' "${project_log}");
@@ -1657,7 +1792,7 @@ runs:
         seconds="$((SECONDS + start_time))";
         m=$((seconds / 60));
         s=$((seconds % 60));
-        printf "Project Runtime: %d minutes and %d seconds\n" "$m" "$s";
+        printf "Project Process Runtime: %d minutes and %d seconds\n" "$m" "$s";
       shell: bash
       continue-on-error: true
 
