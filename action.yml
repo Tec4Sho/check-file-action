@@ -320,7 +320,7 @@ runs:
           [[ ! $(which git) ]] && exit 1
         fi;
         if [[ ! $(which fdfind) ]] && (${{ inputs.project }} || ${{ inputs.source > '0' }}); then
-          sudo apt-get -yq install fd-find 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nfd dependencies install\n####################" || echo -e '::error::No fdfind installed for file searches';
+          sudo apt-get -yq install fd-find 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nfd dependencies installed\n####################" || echo -e '::error::No fdfind installed for file searches';
           [[ ! $(which fdfind) ]] && echo -e '::error::[No fdfind found]\n';
         fi;
         if [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && ${{ inputs.repair }} && ${{ inputs.filename != '' }}; then
@@ -1181,7 +1181,7 @@ runs:
                   fi;
                   echo -e "" >> "${include1}";
                 done <<< "${include_source[@]}";
-                unset processed;
+                processed=();
               fi;
               if [[ "${includes_found}" ]]; then
                 echo -e "\n${count2}\033[32m include file objectives confirmed added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
