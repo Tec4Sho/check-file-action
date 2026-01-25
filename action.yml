@@ -1071,7 +1071,8 @@ runs:
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export CMAKE_BUILD_PARALLEL_LEVEL=4
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-        project_log="${repository}_project.log";
+        github=${GITHUB_WORKSPACE};
+        project_log="${github}/${repository}_project.log";
         clang_sources='check-file-sources.txt';
         codechecker='codechecker.yaml';
         user_compile_json=false
@@ -1081,7 +1082,6 @@ runs:
         check_build=false
         include_source=false
         file_type='c';
-        github=${GITHUB_WORKSPACE};
         update=true
         fixed=false;
         if ${{ inputs.repository == 'false' }} && [[ -d "${{ env.dirname }}" ]]; then
@@ -1300,7 +1300,8 @@ runs:
         start_time="${{ env.seconds }}";
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-        project_log="${repository}_project.log";
+        github=${GITHUB_WORKSPACE};
+        project_log="${github}/${repository}_project.log";
         clang_sources='check-file-sources.txt';
         codechecker='codechecker.yaml';
         user_compile_json=false
@@ -1310,7 +1311,6 @@ runs:
         check_build=false
         include_source=false
         file_type='c';
-        github=${GITHUB_WORKSPACE};
         update=true
         fixed=false;
         if ${{ inputs.repository == 'false' }} && [[ -d "${{ env.dirname }}" ]]; then
@@ -1472,13 +1472,13 @@ runs:
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        github=${GITHUB_WORKSPACE};
         project_log="${github}/${repository}_project.log";
         build_fixes='build/fixes.yaml';
         check_build=false
         file_type='c';
         update=true
         fixed=false
-        github=${GITHUB_WORKSPACE};
         count=1
         if ${{ inputs.repository == 'false' }} && [[ -d "${{ env.dirname }}" ]]; then
           cd "${{ env.dirname }}";
@@ -1623,13 +1623,13 @@ runs:
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        github=${GITHUB_WORKSPACE};
         project_log="${github}/${repository}_project.log";
         build_fixes='build/fixes.yaml';
         check_build=false
         file_type='c';
         update=true
         fixed=false
-        github=${GITHUB_WORKSPACE};
         count=1
         if ${{ inputs.repository == 'false' }} && [[ -d "${{ env.dirname }}" ]]; then
           cd "${{ env.dirname }}";
