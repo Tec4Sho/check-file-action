@@ -1161,11 +1161,12 @@ runs:
                       while IFS= read -r includes; do
                         count2=$((include_count++));
                         count3=$((include_total++));
-                        if [[ ! "${processed[$includes]}" ]]; then
-                          processed["$includes"]=1
-                          echo -en "${includes%/*};" >> "${include1}";
-                        elif [[ -n "${processed[$includes]}" ]]; then
-                          echo -e "\n\033[34mSource file #include \033[0m( ${includes##*/} )\033[34m already added to includes list!\033[0m  [\033[1m skipped \033[0m]" | process_input;  
+                        filepath="${includes%/*}";
+                        if [[ -n "${processed[$filepath]}" ]]; then
+                          echo -e "\n\033[34mSource file #include \033[0m( ${includes##*/} )\033[34m directory paths already added to includes list!\033[0m  [\033[1m skipped \033[0m]" | process_input;  
+                        else
+                          processed["$filepath"]=1
+                          echo -en "${filepath};" >> "${include1}";
                         fi;
                       done <<< "${header[@]}";
                       includes_found=true
