@@ -292,7 +292,7 @@ runs:
         fi;
         if ${{ inputs.project }} && [[ "${cmake_version}" < "${required_version}" ]]; then
           python3 -m pip install --upgrade pip >/dev/null && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
-          echo -e "CMake version $cmake_version upgrading to latest python cmake\n";
+          echo -e "\nCMake version $cmake_version upgrading to latest python cmake";
           sudo rm -f "$(which cmake)";
           sudo mkdir -p '/usr/local/bin';
           echo "/usr/local/bin" >> "${GITHUB_PATH}";
@@ -301,19 +301,19 @@ runs:
         fi;
         if ${{ inputs.project }}; then
           go build ${{ github.action_path }}/scripts/cmakebar.go && echo -e "####################\ncmakebar dependencies installed\n####################" || echo -e '::error::No cmakebar installed for project checks';
-          [[ -e "${{ github.action_path }}/scripts/cmakebar" ]] && sudo cp -vf "${{ github.action_path }}/scripts/cmakebar" '/usr/local/bin/'
+          [[ -e "cmakebar" ]] && sudo cp -vf 'cmakebar' '/usr/local/bin/'
         fi;
         if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
           sudo apt-get -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
           [[ ! $(which cmake) ]] && exit 1
         fi;
-        if ${{ inputs.project }} && [[ ! $(apt-get list linux-headers-generic >/dev/null) ]]; then
+        if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic >/dev/null) ]]; then
           sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-headers-generic 2>/dev/null)\n####################";
           [[ ! $(apt list linux-headers-generic 2>/dev/null) ]] && echo -e "::warning::No linux-headers-generic installed for project build";
         fi;
-        if ${{ inputs.project }} && [[ ! $(apt-get list linux-modules-$(uname -r) >/dev/null) ]]; then
+        if ${{ inputs.project }} && [[ ! $(apt list linux-modules-$(uname -r) >/dev/null) ]]; then
           sudo apt-get -yq install linux-modules-$(uname -r) 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-modules-$(uname -r) 2>/dev/null)\n####################";
-          [[ ! $(apt list linux-modules-$(uname -r) 2>/dev/null) ]] && echo -e "::warning::No linux-modules-$(uname -r) installed for project build"; 
+          [[ ! $(apt linux-modules-$(uname -r) 2>/dev/null) ]] && echo -e "::warning::No linux-modules-$(uname -r) installed for project build"; 
         fi;
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
@@ -1055,6 +1055,176 @@ runs:
         else
           echo 'include_count=0' >> "${GITHUB_ENV}";
         fi;
+        if ${{ inputs.number > '0' }}; then
+          echo 'include_source=false' >> "${GITHUB_ENV}";
+        elif [[ "${count4}" > '2000' ]]; then
+          echo 'include_source=true' >> "${GITHUB_ENV}";
+        else
+          echo 'include_source=false' >> "${GITHUB_ENV}";
+        fi;
+        echo '';
+      shell: bash
+      continue-on-error: true
+
+    - name: Source Includes Fixer A
+      if: inputs.source == '5'
+      run: |
+        echo '';
+        set +e
+        start_time="${SECONDS}";
+        file_name="${{ inputs.filename }}";
+        file_type="${file_name##*.}";
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        project_log="${repository}_project.log";
+        export LC_ALL=C
+        export LS_COLORS
+        SAVEIFS="${IFS}";
+        include_missing=1
+        include_count=1
+        include_total=1
+        include_dirs=1
+        file_count=1
+        count1=0
+        count2=0
+        count3=0
+        count4=0
+        count5=0
+        checked=false
+        source_include=false
+        includes_found=false
+        include1='include-file1.txt';
+        include2='include-file2.txt';
+        include3='include-file3.txt';
+        include_list='check-file-sources.txt';
+        name_count_file='name-count-file.txt';
+        include_count_file='include-count-file.txt';
+        github="${GITHUB_WORKSPACE}";
+        process_input() {
+          while IFS= read -r output; do
+            if ${{ inputs.output == '1' }}; then
+              echo -e "${output}" | tee -a "${project_log}";
+            elif ${{ inputs.output == '2' }}; then
+              echo -e "${output}" >> "${project_log}";
+            elif ${{ inputs.output == '3' }}; then
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
+            fi;
+          done;
+        }
+        if ${{ inputs.absolute }}; then
+          abs='-a';
+        else
+          abs='';
+        fi;
+        echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
+        include_files1=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
+        [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
+        [[ -f "${include1}" ]] && rm -f "include-file*.txt";
+        [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
+        [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
+        if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '1' }} && [[ "${include_files1}" ]]; then
+          declare -A processed
+          declare -A missing
+          echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m verbose \033[0m]" | process_input;
+          echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
+          while IFS= read -r file; do
+            include_count=0
+            count1=$((file_count++));
+            echo -e "\n####################\n\t\033[33mSOURCE FILE\033[0m ( ${count1} )\n####################" | process_input;
+            echo -e "\nSource File Location: ${file}" | process_input;
+            echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
+            echo -en "${file};" >> "${include1}";
+            if ${{ inputs.include }}; then
+              includes_found=false
+              include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[>"]' "${file}" 2>/dev/null || true; } | awk '{print $2}' | tr -d '<">' | sort -u);
+              if [[ "${include_source}" ]]; then
+                echo -e "\n\tinclude file objectives: \033[1mLocated\033[0m [ ✅ ]" | process_input;
+                while IFS= read -r include; do
+                  if [[ "${include}" == *.[ch]* ]]; then
+                    path1="${include##+(*./)}";
+                    path2="${path1##[:]*}";
+                    path3="${path2%'\n'}";
+                    path4="${path3%\\}";
+                    clean_path="${path4%/*}";
+                    file1="${include##+(*./)}";
+                    file2="${file1##[:]*}";
+                    file3="${file2%'\n'}";
+                    file4="${file3%\\}";
+                    clean_file="${file4##*/}";
+                    if [[ ${include} == *"/"* ]]; then
+                      shopt -s extglob
+                      header=$(fdfind -c auto -a -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
+                      shopt -u extglob
+                    else
+                      header=$(fdfind -c auto -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                    fi;
+                    if [[ -n "${header}" ]]; then
+                      while IFS= read -r includes; do
+                        count2=$((include_count++));
+                        count3=$((include_total++));
+                        checkfile="${includes%/*}";
+                        if [[ ! "${processed[$checkfile]}" ]]; then
+                          processed["$checkfile"]=1
+                          echo -en "${checkfile};" >> "${include1}";
+                        elif [[ -n "${processed[$checkfile]}" ]]; then
+                          echo -e "\n\033[34mSource file #include \033[0m( ${includes##*/} )\033[34m already added to includes list!\033[0m  [\033[1m skipped \033[0m]" | process_input;  
+                        fi;
+                        # echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${includes}" | process_input;
+                      done <<< "${header[@]}";
+                      includes_found=true
+                    elif [[ -n "${missing[$include]}" ]]; then
+                      echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
+                      includes_found=false      
+                    else
+                      includes_found=false
+                      missing["${include}"]=1
+                      count5=$((include_missing++));
+                      echo -e "\n::notice::\033[31mSource file #include \033[0m( ${file4##+(*./)} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
+                    fi;
+                  fi;
+                  echo -e "" >> "${include1}";
+                done <<< "${include_source[@]}";
+              fi;
+              if [[ "${includes_found}" ]]; then
+                echo -e "\n${count2}\033[32m include file objectives confirmed added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
+              elif [[ -z "${include_source}" ]]; then
+                echo -e "\n\033[33mNo include file objectives confirmed after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
+              else
+                echo -e "\n${count5}\033[33m include file objectives confirmed missing after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ❌ ]" | process_input;
+              fi;  
+            fi;
+          done <<< "${include_files1[@]}";
+          if [[ -s "${include1}" ]]; then
+            awk '!seen[$0]++' "${include1}" > "${include_list}";
+          fi;
+          if [[ -s "${include_list}" ]]; then
+            count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
+          fi;
+          echo -e "\n::notice::\033[32mTotal source file checked during scan\033[0m\033[1m ${count1}\033[0m" | process_input;
+          if [[ "${includes_found}" ]]; then
+            echo 'check_build=true' >> "${GITHUB_ENV}";
+            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories added after duplicate cleaning!!!\033[0m\nSet option (\033[1m cache: true \033[0m) to use this list for source include checks without manually downloading an adding the file to your repo\n With cache you should set (\033[1m source: 0 \033[0m)running sources again each check!" | process_input;
+          else
+            echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
+          fi;
+          if [[ "${count5}" > '0' ]]; then
+            echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${count5}\033[0m\n[Hint] Many source files may call these \033[31mmissing include files.\nYou may need to remove the missing include file objectives or added the file before compiling!!!" | process_input;
+          fi;
+          unset processed;
+          unset missing;
+          [[ -s "${include_list}" ]] && mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
+          seconds=$((SECONDS - start_time));
+          m=$((seconds / 60));
+          s=$((seconds % 60));
+          printf "Project Auto Include Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
+        fi;
+        if [[ "${source_include}" == 'true' ]]; then
+          echo "include_count=${count4}" >> "${GITHUB_ENV}";
+        else
+          echo 'include_count=0' >> "${GITHUB_ENV}";
+        fi;
+        echo 'sources=true' >> "${GITHUB_ENV}";
         if ${{ inputs.number > '0' }}; then
           echo 'include_source=false' >> "${GITHUB_ENV}";
         elif [[ "${count4}" > '2000' ]]; then
