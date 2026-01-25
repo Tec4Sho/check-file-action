@@ -97,6 +97,7 @@ inputs:
     - 2 # Locate all includes in sources and display more content found about files.
     - 3 # Locate all includes in sources and display less content found about files.
     - 4 # Locate all includes in sources and create object dependencies displaying content found about files.
+    - 5 # Create file to fix all source files and includes for compile commands json content.
   number:
     description: 'Number of files to check before stopping action'
     type: number
