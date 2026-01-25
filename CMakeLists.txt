@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.30.0) # Specifies the minimum required CMake version
 
+set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "" FORCE)
+
 # ... many examples of user defined project settings for C/C++ ... #
 
 if(DEFINED GITHUB_PROJECT_NAME)
@@ -184,9 +186,13 @@ if($ENV{github_build_project})
   message(STATUS "Project Build: clang tools analyze test build")
   message(STATUS "CMAKE_C_FLAGS; ${CMAKE_C_FLAGS}")
 else()
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1 -ferror-limit=0 -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
+  add_compile_options(
+    "-Wall" "-Wpedantic" "-Wextra" "-fexceptions" "-std=c90"
+    "$<$<CONFIG:DEBUG>:-O0;-ferror-limit=0;-Wno-error=unused-command-line-argument;-Qunused-arguments>"
+  )
+  set(C_FLAGS "${C_FLAGS} -O1 -ferror-limit=0 -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
   message(STATUS "Project Build: clang tools analyze only")
-  message(STATUS "CMAKE_C_FLAGS; ${CMAKE_C_FLAGS}")
+  message(STATUS "C_FLAGS; ${C_FLAGS}")
 endif()
 
 # .set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")

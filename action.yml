@@ -1069,6 +1069,7 @@ runs:
         set +e
         start_time="${SECONDS}";
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
+        export CMAKE_BUILD_PARALLEL_LEVEL=4
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${repository}_project.log";
         clang_sources='check-file-sources.txt';
@@ -1269,9 +1270,9 @@ runs:
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             if ([[ "$(source_dirs)" ]] || [[ "$(cmake_includes)" ]]) && [[ ! -f "${compile_json}" ]]; then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
-              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build -j "$(nproc --all)" | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DCMAKE_BUILD_PARALLEL_LEVEL=4 -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             elif [[ ! -f "${compile_json}" ]]; then
-              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build -j "$(nproc --all)"| process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DCMAKE_BUILD_PARALLEL_LEVEL=4 -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             fi;
             if [[ "${PIPESTATUS[0]}" == '0' ]]; then
               if ${{ inputs.upload }}; then
@@ -1466,6 +1467,7 @@ runs:
         set +e
         start_time="${{ env.seconds }}";
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
+        export CMAKE_BUILD_PARALLEL_LEVEL=4
         export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
