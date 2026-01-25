@@ -304,7 +304,7 @@ runs:
           python3 -m pip install --upgrade cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -pf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
         fi;
-        if ${{ inputs.project }}; then
+        if ${{ inputs.project }} && ${{ inputs.source == '5' }}; then
           go build ${{ github.action_path }}/scripts/cmakebar.go && echo -e "####################\ncmakebar dependencies installed\n####################" || echo -e '::error::No cmakebar installed for project checks';
           [[ -e "cmakebar" ]] && sudo cp -f 'cmakebar' '/usr/local/bin/'
         fi;
@@ -1135,7 +1135,7 @@ runs:
             echo -en "${file};" >> "${include1}";
             if ${{ inputs.include }}; then
               includes_found=false
-              include_source=$(rg --no-filename --no-line-number -o '^#include\s+[<"]([^>"]+)[>"]' -r '$1' "$file" 2>/dev/null | sort -u || true)
+              include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[>"]' "${file}" 2>/dev/null || true; } | awk '{print $2}' | tr -d '<">' | sort -u);
               if [[ -n "${include_source}" ]]; then
                 echo -e "\n\tinclude file objectives: \033[1mLocated\033[0m [ ✅ ]" | process_input;
                 while IFS= read -r include; do
@@ -1440,11 +1440,14 @@ runs:
           fi;
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            if ([[ "$(source_dirs)" ]] || [[ "$(cmake_includes)" ]]) && [[ ! -f "${compile_json}" ]]; then
+            if ([[ "$(source_dirs)" ]] || [[ "$(cmake_includes)" ]]) && [[ ! -f "${compile_json}" ]] && ${{ env.sources }}; then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
-              cmake -S . -DCMAKE_BUILD_PARALLEL_LEVEL=4 -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input | cmakebar --replay || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input | cmakebar --replay || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+            elif ([[ "$(source_dirs)" ]] || [[ "$(cmake_includes)" ]]) && [[ ! -f "${compile_json}" ]]; then
+              echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
+              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             elif [[ ! -f "${compile_json}" ]]; then
-              cmake -S . -DCMAKE_BUILD_PARALLEL_LEVEL=4 -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input | cmakebar --replay || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             fi;
             if [[ "${PIPESTATUS[0]}" == '0' ]]; then
               if ${{ inputs.upload }}; then
