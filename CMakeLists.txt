@@ -92,6 +92,8 @@ else()
   set(INCLUDE_SRC "false")
 endif()
 
+string(ASCII 13 CR)
+
 # Automatically find all header files recursively
 file(GLOB_RECURSE ALL_HEADERS CONFIGURE_DEPENDS "*.h")
 
