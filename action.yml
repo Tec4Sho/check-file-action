@@ -309,10 +309,7 @@ runs:
           [[ ! $(which cmake) ]] && exit 1
         fi;
         if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic >/dev/null 2>&1) ]]; then
-          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-headers-generic >/dev/null)\n####################" || echo -e "::warning::No linux-headers-generic installed for project build";
-        fi;
-        if ${{ inputs.project }} && [[ ! $(apt list linux-modules-generic >/dev/null 2>&1) ]]; then
-          sudo apt-get -yq install linux-modules-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-modules-generic 2>/dev/null)\n####################" || echo -e "::warning::No linux-modules-generic installed for project build"; 
+          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-headers-generic 2>/dev/null)\n####################" || echo -e "::warning::No linux-headers-generic installed for project build";
         fi;
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
@@ -616,6 +613,7 @@ runs:
         text "${text10b}" 2>/dev/null;
         text "${text10c}\n" 2>/dev/null;
         echo "github_repository=${repo}" >> "${GITHUB_ENV}";
+        echo 'sources=false' >> "${GITHUB_ENV}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
         echo 'file_error=0' >> "${GITHUB_ENV}";
@@ -1065,7 +1063,7 @@ runs:
       shell: bash
       continue-on-error: true
 
-    - name: Source Includes Fixer A
+    - name: Source File Includes Fix
       if: inputs.source == '5'
       run: |
         echo '';
@@ -1122,7 +1120,7 @@ runs:
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
         [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
-        if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '1' }} && [[ "${include_files1}" ]]; then
+        if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '5' }} && [[ "${include_files1}" ]]; then
           declare -A processed
           declare -A missing
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m verbose \033[0m]" | process_input;
@@ -1184,6 +1182,7 @@ runs:
                   fi;
                   echo -e "" >> "${include1}";
                 done <<< "${include_source[@]}";
+                unset processed;
               fi;
               if [[ "${includes_found}" ]]; then
                 echo -e "\n${count2}\033[32m include file objectives confirmed added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
@@ -1203,6 +1202,7 @@ runs:
           echo -e "\n::notice::\033[32mTotal source file checked during scan\033[0m\033[1m ${count1}\033[0m" | process_input;
           if [[ "${includes_found}" ]]; then
             echo 'check_build=true' >> "${GITHUB_ENV}";
+            [[ -s "${include_list}" ]] && echo 'sources=true' >> "${GITHUB_ENV}";
             echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories added after duplicate cleaning!!!\033[0m\nSet option (\033[1m cache: true \033[0m) to use this list for source include checks without manually downloading an adding the file to your repo\n With cache you should set (\033[1m source: 0 \033[0m)running sources again each check!" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
@@ -1223,7 +1223,6 @@ runs:
         else
           echo 'include_count=0' >> "${GITHUB_ENV}";
         fi;
-        echo 'sources=true' >> "${GITHUB_ENV}";
         if ${{ inputs.number > '0' }}; then
           echo 'include_source=false' >> "${GITHUB_ENV}";
         elif [[ "${count4}" > '2000' ]]; then
