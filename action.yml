@@ -1134,7 +1134,7 @@ runs:
             echo -en "${file};" >> "${include1}";
             if ${{ inputs.include }}; then
               includes_found=false
-              include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[>"]' "${file}" 2>/dev/null || true; } | awk '{print $2}' | tr -d '<">' | sort -u);
+              include_source=$(rg -l '#include' "${file}" | rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[>"]' | awk '{print $2}' | tr -d '<">' | sort -u);
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tinclude file objectives: \033[1mLocated\033[0m [ ✅ ]" | process_input;
                 while IFS= read -r include; do
