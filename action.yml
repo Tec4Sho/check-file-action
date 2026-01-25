@@ -301,19 +301,17 @@ runs:
         fi;
         if ${{ inputs.project }}; then
           go build ${{ github.action_path }}/scripts/cmakebar.go && echo -e "####################\ncmakebar dependencies installed\n####################" || echo -e '::error::No cmakebar installed for project checks';
-          [[ -e "cmakebar" ]] && sudo cp -vf 'cmakebar' '/usr/local/bin/'
+          [[ -e "cmakebar" ]] && sudo cp -f 'cmakebar' '/usr/local/bin/'
         fi;
         if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
           sudo apt-get -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
           [[ ! $(which cmake) ]] && exit 1
         fi;
-        if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic >/dev/null) ]]; then
-          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-headers-generic 2>/dev/null)\n####################";
-          [[ ! $(apt list linux-headers-generic 2>/dev/null) ]] && echo -e "::warning::No linux-headers-generic installed for project build";
+        if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic >/dev/null 2>&1) ]]; then
+          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-headers-generic >/dev/null)\n####################" || echo -e "::warning::No linux-headers-generic installed for project build";
         fi;
-        if ${{ inputs.project }} && [[ ! $(apt list linux-modules-$(uname -r) >/dev/null) ]]; then
-          sudo apt-get -yq install linux-modules-$(uname -r) 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-modules-$(uname -r) 2>/dev/null)\n####################";
-          [[ ! $(apt linux-modules-$(uname -r) 2>/dev/null) ]] && echo -e "::warning::No linux-modules-$(uname -r) installed for project build"; 
+        if ${{ inputs.project }} && [[ ! $(apt list linux-modules-generic >/dev/null 2>&1) ]]; then
+          sudo apt-get -yq install linux-modules-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-modules-generic 2>/dev/null)\n####################" || echo -e "::warning::No linux-modules-generic installed for project build"; 
         fi;
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
