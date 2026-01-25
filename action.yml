@@ -299,6 +299,10 @@ runs:
           python3 -m pip install --upgrade cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -pf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
         fi;
+        if ${{ inputs.project }}; then
+          go build ${{ github.action_path }}/scripts/cmakebar.go && echo -e "####################\ncmakebar dependencies installed\n####################" || echo -e '::error::No cmakebar installed for project checks';
+          [[ -e "${{ github.action_path }}/scripts/cmakebar" ]] && sudo cp -vf "${{ github.action_path }}/scripts/cmakebar" '/usr/local/bin/'
+        fi;
         if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
           sudo apt-get -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
           [[ ! $(which cmake) ]] && exit 1
@@ -1270,9 +1274,9 @@ runs:
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             if ([[ "$(source_dirs)" ]] || [[ "$(cmake_includes)" ]]) && [[ ! -f "${compile_json}" ]]; then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
-              cmake -S . -DCMAKE_BUILD_PARALLEL_LEVEL=4 -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DCMAKE_BUILD_PARALLEL_LEVEL=4 -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input | cmakebar --replay || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             elif [[ ! -f "${compile_json}" ]]; then
-              cmake -S . -DCMAKE_BUILD_PARALLEL_LEVEL=4 -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DCMAKE_BUILD_PARALLEL_LEVEL=4 -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input | cmakebar --replay || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             fi;
             if [[ "${PIPESTATUS[0]}" == '0' ]]; then
               if ${{ inputs.upload }}; then
