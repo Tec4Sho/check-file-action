@@ -246,7 +246,7 @@ runs:
         echo 'export LLVM_ENABLE_THREADS=ON' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export WITH_TIDY=1' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
-        echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
+        sudo apt-get clean
         sudo add-apt-repository universe >/dev/null;
         sudo apt-get update -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{print $3}');
@@ -291,6 +291,10 @@ runs:
           sudo apt-get -yq install python3 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
+        if ${{ inputs.project }} && [[ ! $(which update-ca-certificates) ]]; then
+          sudo apt-get -yq install ca-certificates 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
+        fi;
+        echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
         if ${{ inputs.project }} && [[ "${cmake_version}" < "${required_version}" ]]; then
           python3 -m pip install --upgrade pip >/dev/null && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
           echo -e "\nCMake version $cmake_version upgrading to latest python cmake";
@@ -390,9 +394,6 @@ runs:
         fi;
         if ${{ inputs.report }} && [[ ! $(which ansi2txt) ]]; then
           sudo apt-get -yq install ansi2txt 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text2}" || echo -e '::error::No ansi2txt installed for cleaning log report';
-        fi;
-        if ${{ inputs.project }} && [[ ! $(which update-ca-certificates) ]]; then
-          sudo apt-get -yq install ca-certificates 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ ! $(which cppcheck) ]]; then
           sudo apt-get -yq install cppcheck 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
