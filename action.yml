@@ -1159,12 +1159,12 @@ runs:
                     fi;
                     if [[ -n "${header}" ]]; then
                       while IFS= read -r includes; do
-                        count2=$((include_count++));
                         count3=$((include_total++));
                         filepath="${includes%/*}";
                         if [[ -n "${processed[$filepath]}" ]]; then
                           echo -e "\n\033[34mSource file #include \033[0m( ${includes##*/} )\033[34m directory paths already added to includes list!\033[0m  [\033[1m skipped \033[0m]" | process_input;  
                         else
+                          count2=$((include_count++));
                           processed["$filepath"]=1
                           echo -en "${filepath};" >> "${include1}";
                         fi;
@@ -1184,9 +1184,9 @@ runs:
                 done <<< "${include_source[@]}";
                 processed=();
               fi;
-              if [[ "${includes_found}" ]]; then
-                echo -e "\n${count2}\033[32m include file objectives confirmed added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
-              elif [[ "${include_source}" == 'true' ]]; then
+              if [[ "${includes_found}" == 'true' ]]; then
+                echo -e "\n${count3}\033[32m include file objectives confirmed ${count2} paths added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
+              elif [[ ! -n "${include_source}" ]]; then
                 echo -e "\n\033[33mNo include file objectives confirmed after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
               else
                 echo -e "\n${count5}\033[33m include file objectives confirmed missing after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ❌ ]" | process_input;
@@ -1194,7 +1194,7 @@ runs:
             fi;
           done <<< "${include_files1[@]}";
           if [[ -s "${include1}" ]]; then
-            awk '!seen[$0]++' "${include1}" > "${include_list}";
+            sed -E 's|.*/([^;]*);.*|\\1&|' "${include1}" | sort -t'&' -k1,1 | sed -E 's|[^&]*&||' > "${include_list}";
           fi;
           if [[ -s "${include_list}" ]]; then
             count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
