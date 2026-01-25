@@ -1161,14 +1161,12 @@ runs:
                       while IFS= read -r includes; do
                         count2=$((include_count++));
                         count3=$((include_total++));
-                        checkfile="${includes%/*}";
-                        if [[ ! "${processed[$checkfile]}" ]]; then
-                          processed["$checkfile"]=1
-                          echo -en "${checkfile};" >> "${include1}";
-                        elif [[ -n "${processed[$checkfile]}" ]]; then
+                        if [[ ! "${processed[$includes]}" ]]; then
+                          processed["$includes"]=1
+                          echo -en "${includes%/*};" >> "${include1}";
+                        elif [[ -n "${processed[$includes]}" ]]; then
                           echo -e "\n\033[34mSource file #include \033[0m( ${includes##*/} )\033[34m already added to includes list!\033[0m  [\033[1m skipped \033[0m]" | process_input;  
                         fi;
-                        # echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${includes}" | process_input;
                       done <<< "${header[@]}";
                       includes_found=true
                     elif [[ -n "${missing[$include]}" ]]; then
@@ -1187,7 +1185,7 @@ runs:
               fi;
               if [[ "${includes_found}" ]]; then
                 echo -e "\n${count2}\033[32m include file objectives confirmed added after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ✅ ]" | process_input;
-              elif [[ -z "${include_source}" ]]; then
+              elif [[ "${include_source}" == 'true' ]]; then
                 echo -e "\n\033[33mNo include file objectives confirmed after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ 🚫 ]" | process_input;
               else
                 echo -e "\n${count5}\033[33m include file objectives confirmed missing after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ❌ ]" | process_input;
