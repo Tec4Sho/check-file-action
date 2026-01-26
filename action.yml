@@ -689,7 +689,7 @@ runs:
           echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m verbose \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
-            include_count=0
+            include_count=1
             count1=$((file_count++));
             echo -e "\n####################\n\t\033[33mSOURCE FILE\033[0m ( ${count1} )\n####################" | process_input;
             echo -e "\nSource File Location: ${file}" | process_input;
@@ -1088,6 +1088,10 @@ runs:
         count4=0
         count5=0
         checked=false
+        added_total=0
+        count_total=0
+        include_added_total=1
+        include_count_total=1
         source_include=false
         includes_found=false
         include1='include-file1.txt';
@@ -1116,18 +1120,19 @@ runs:
           abs='';
         fi;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files1=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
+        include_files=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
         [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
-        if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '5' }} && [[ "${include_files1}" ]]; then
+        if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '5' }} && [[ "${include_files}" ]]; then
           declare -A processed
           declare -A missing
-          echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m verbose \033[0m]" | process_input;
+          echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m medium \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
-            include_count=0
+            include_count=1
+            include_total=1
             count1=$((file_count++));
             echo -e "\n####################\n\t\033[33mSOURCE FILE\033[0m ( ${count1} )\n####################" | process_input;
             echo -e "\nSource File Location: ${file}" | process_input;
@@ -1140,6 +1145,7 @@ runs:
                 echo -e "\n\tinclude file objectives: \033[1mLocated\033[0m [ ✅ ]" | process_input;
                 while IFS= read -r include; do
                   if [[ "${include}" == *.[ch]* ]]; then
+                    shopt -s extglob
                     path1="${include##+(*./)}";
                     path2="${path1##[:]*}";
                     path3="${path2%'\n'}";
@@ -1151,22 +1157,22 @@ runs:
                     file4="${file3%\\}";
                     clean_file="${file4##*/}";
                     if [[ ${include} == *"/"* ]]; then
-                      shopt -s extglob
                       header=$(fdfind -c auto -a -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
-                      shopt -u extglob
                     else
                       header=$(fdfind -c auto -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
                     fi;
                     if [[ -n "${header}" ]]; then
                       while IFS= read -r includes; do
                         count3=$((include_total++));
+                        count_total=$((include_count_total++));
                         filepath="${includes%/*}";
                         if [[ -n "${processed[$filepath]}" ]]; then
                           echo -e "\n\033[34mSource file #include \033[0m( ${includes##*/} )\033[34m directory paths already added to includes list!\033[0m  [\033[1m skipped \033[0m]" | process_input;  
                         else
                           count2=$((include_count++));
+                          added_total=$((include_added_total++));
                           processed["$filepath"]=1
-                          echo -en "${filepath};" >> "${include1}";
+                          echo -en "${filepath};" | tee -a "${include1}";
                         fi;
                       done <<< "${header[@]}";
                       includes_found=true
@@ -1180,6 +1186,7 @@ runs:
                       echo -e "\n::notice::\033[31mSource file #include \033[0m( ${file4##+(*./)} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
                     fi;
                   fi;
+                  shopt -u extglob
                   echo -e "" >> "${include1}";
                 done <<< "${include_source[@]}";
                 processed=();
@@ -1192,18 +1199,15 @@ runs:
                 echo -e "\n${count5}\033[33m include file objectives confirmed missing after scanning file: \033[0m\033[1m${file##*/}\033[0m  [ ❌ ]" | process_input;
               fi;  
             fi;
-          done <<< "${include_files1[@]}";
+          done <<< "${include_files[@]}";
           if [[ -s "${include1}" ]]; then
             sed -E 's|.*/([^;]*);.*|\\1&|' "${include1}" | sort -t'&' -k1,1 | sed -E 's|[^&]*&||' > "${include_list}";
-          fi;
-          if [[ -s "${include_list}" ]]; then
-            count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
           fi;
           echo -e "\n::notice::\033[32mTotal source file checked during scan\033[0m\033[1m ${count1}\033[0m" | process_input;
           if [[ "${includes_found}" ]]; then
             echo 'check_build=true' >> "${GITHUB_ENV}";
             [[ -s "${include_list}" ]] && echo 'sources=true' >> "${GITHUB_ENV}";
-            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories added after duplicate cleaning!!!\033[0m\nSet option (\033[1m cache: true \033[0m) to use this list for source include checks without manually downloading an adding the file to your repo\n With cache you should set (\033[1m source: 0 \033[0m)running sources again each check!" | process_input;
+            echo -e "\n::notice::\033[34mTotal include source files discovered during scan\033[0m\033[1m ${count_total}\033[0m\n[Hint] \033[1m${added_total}\033[0m included directories added after duplicate cleaning!!!\033[0m\nSet option (\033[1m cache: true \033[0m) to use this list for source include checks without manually downloading an adding the file to your repo\n With cache you should set (\033[1m source: 0 \033[0m)running sources again each check!" | process_input;
           else
             echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
           fi;
