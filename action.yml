@@ -714,10 +714,10 @@ runs:
                     clean_file="${file4##*/}";
                     if [[ ${include} == *"/"* ]]; then
                       shopt -s extglob
-                      header=$(fdfind -c auto -a -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
+                      header=$(fdfind -c auto "${abs}" -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
                       shopt -u extglob
                     else
-                      header=$(fdfind -c auto -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                      header=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
                     fi;
                     if [[ -n "${header}" ]]; then
                       while IFS= read -r includes; do
@@ -1157,9 +1157,9 @@ runs:
                     file4="${file3%\\}";
                     clean_file="${file4##*/}";
                     if [[ ${include} == *"/"* ]]; then
-                      header=$(fdfind -c auto -a -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
+                      header=$(fdfind -c auto "${abs}" -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
                     else
-                      header=$(fdfind -c auto -a -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                      header=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
                     fi;
                     if [[ -n "${header}" ]]; then
                       while IFS= read -r includes; do
@@ -1172,9 +1172,9 @@ runs:
                           count2=$((include_count++));
                           added_total=$((include_added_total++));
                           processed["$filepath"]=1
-                          echo -en "${filepath};" | tee -a "${include1}";
+                          echo -en "${filepath};" >> "${include1}";
                         fi;
-                      done <<< "${header[@]}";
+                      done <<< ${header[@]};
                       includes_found=true
                     elif [[ -n "${missing[$include]}" ]]; then
                       echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
