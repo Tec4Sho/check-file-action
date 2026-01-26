@@ -453,7 +453,7 @@ runs:
       continue-on-error: false
       
     - name: Set Directory Base
-      if: inputs.pattern != '' || inputs.filename != '' || inputs.project == 'true'
+      if: inputs.pattern != '' || inputs.filename != '' || inputs.project == 'true' || inputs.source > '0'
       run: |
         echo '';
         repair_file='check-file-repaired.txt';
@@ -614,6 +614,7 @@ runs:
         text "${text10b}" 2>/dev/null;
         text "${text10c}\n" 2>/dev/null;
         echo "github_repository=${repo}" >> "${GITHUB_ENV}";
+        echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
         echo 'sources=false' >> "${GITHUB_ENV}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
@@ -1006,14 +1007,14 @@ runs:
             echo -e '\n[\033[1mgcc mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              gcc -MM -MG "${file}" | process_input;
+              gcc -MM -MG -MP "${file}" | process_input;
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mg++ mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              g++ -MM -MG "${file}" | process_input;
+              g++ -MM -MG -MP "${file}" | process_input;
             done <<< "${include_files4[@]}";
             echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
@@ -1133,18 +1134,18 @@ runs:
             while IFS= read -r file; do
               count1=$((file_count++));
               gcc -MM -MG "${file}" | process_input;
-            done <<< "${include_files4[@]}";
+            done <<< "${include_files[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mg++ mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
               g++ -MM -MG "${file}" | process_input;
-            done <<< "${include_files4[@]}";
+            done <<< "${include_files[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
           if [[ -s "${project_log}" ]]; then
-            gawk '{ for (i=1; i<=NF; i++) { if ($i ~ /\.c$/ || $i ~ /\.h$/) { print $i } } }' "${project_log}" | sed 's/\/[^/]*\.h$//' | gawk "/\.${{ inputs.filetype }}$/ { delete seen; print; next } !seen[$0]++" > "${include_list}";
+            gawk '{ for (i=1; i<=NF; i++) { if (i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print i } } }' "{project_log}" | sed -E 's/\.(h|hh|hpp|h\+\+)$//' | gawk "/\.${{ inputs.filetype }}$/ { delete seen; print; next } !seen[$0]++" > "${include_list}";
             if [[ -s "${include_list}" ]]; then
               count4=$(gawk 'NF > 0 { count++ } END { print count }' "${include_list}");
               mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
@@ -1152,7 +1153,7 @@ runs:
             clang_files_missing=$(LC_ALL=C grep -sFc 'No such file or directory' "${project_log}");
             clang_missing_count=$(LC_ALL=C grep -sF 'No such file or directory' "${project_log}" | awk '{print $4}' | tr -d ': ' | sort -u | wc -l);
             clang_file_errors=$(LC_ALL=C grep -sFc 'error:' "${project_log}");
-            echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m ${{ inputs.filetype }} files and include directories added,\n[Hint] You can cache or download this file & add to repo to auto create custom \033[31mcompile command json file\033[0m." | process_input;
+            echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m ${{ inputs.filetype }} files plus their include directories added,\n[Hint] You can cache or download this file & add to repo to auto create custom \033[31mcompile command json file\033[0m." | process_input;
             if [[ "${clang_file_errors}" > '0' ]]; then
               echo -e "\n::notice::\033[34m⚠️ Total include source file errors during scan\033[0m\033[1m ${clang_file_errors}\033[0m\n[Hint] Many source files may report these \033[31mfatal file errors.\033[0m\n\033[1mCheck-file notice file issues that needs repair before a build!!!\033[0m" | process_input;
             fi;
@@ -1308,7 +1309,7 @@ runs:
               file_count=${{ inputs.number }};
               echo "include_source=false" >> "${GITHUB_ENV}";
               include_source=false
-            elif ${{ env.include_count > '2000' }}; then
+            elif ${{ env.include_count > '1000' }}; then
               file_count=${{ env.include_count }};
               echo "include_source=true" >> "${GITHUB_ENV}";
               include_source=true
@@ -1318,7 +1319,7 @@ runs:
               include_source=false
             fi;            
             if [[ -s "${clang_sources}" ]] && ${{ inputs.include }}; then
-              if [[ "${file_count}" < '2000' ]]; then
+              if [[ "${file_count}" < '1000' ]]; then
                 while IFS= read -r include; do
                   include_source_count=$((include_source_count + 1));      
                   echo "${include_source_count}" > "${count3}";
@@ -1378,8 +1379,13 @@ runs:
             else
               echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n####################" | process_input;
             fi;
-          elif ${{ env.include_count > '2000' }}; then
-              echo -e "\n####################\n\tcheck-file added \033[1m${{ env.include_count }}\033[0m source include directories [source:\033[32m auto mode\033[0m]\n\tcmake max additional header objectives updated successfully!\n####################" | process_input;
+          elif ${{ env.include_count > '1000' }} && ${{ env.sources }}; then
+            echo -e "\n####################\n\tcheck-file added \033[1m${{ env.include_count }}\033[0m source files & their include directories [source:\033[32m auto mode\033[0m]\n\tcmake source & header objectives updated successfully!\n####################" | process_input;
+          elif ${{ env.include_count > '1000' }}; then
+            echo -e "\n####################\n\tcheck-file added \033[1m${{ env.include_count }}\033[0m source include directories [source:\033[32m auto mode\033[0m]\n\tcmake max additional header objectives updated successfully!\n####################" | process_input;
+          elif [[ -e 'check-file-compile.txt' ]]; then
+            total_count=$(gawk 'NF > 0 { count++ } END { print count }' 'check-file-compile.txt');
+            echo -e "\n####################\n\tcheck-file added \033[1m${total_count}\033[0m source files & their include directories [source:\033[32m auto mode\033[0m]\n\tcmake source files & header objectives updated successfully!\n####################" | process_input;
           fi;
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input;
@@ -1389,14 +1395,14 @@ runs:
           fi;
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            if ([[ "$(source_dirs)" ]] || [[ "$(cmake_includes)" ]]) && [[ ! -f "${compile_json}" ]] && ${{ env.sources }}; then
+            if [[ "$(source_dirs)" ]] && [[ ! -f "${compile_json}" ]] && (${{ env.sources }} || [[ -e 'check-file-compile.txt' ]]); then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
-              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input | cmakebar --replay || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input | cmakebar --replay || echo "::error::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             elif ([[ "$(source_dirs)" ]] || [[ "$(cmake_includes)" ]]) && [[ ! -f "${compile_json}" ]]; then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
-              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::error::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             elif [[ ! -f "${compile_json}" ]]; then
-              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::warning::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::error::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
             fi;
             if [[ "${PIPESTATUS[0]}" == '0' ]]; then
               if ${{ inputs.upload }}; then
