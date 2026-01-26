@@ -1006,14 +1006,14 @@ runs:
             echo -e '\n[\033[1mgcc mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              gcc -MM -MP "${file}" 2>&1 | process_input
+              gcc -v -M -MG -MP -I "/usr/src/{headers}" -I './include/linux' -I './include' "${file}" 2>&1 | process_input
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mg++ mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              g++ -MM -MP "${file}" 2>&1 | process_input
+              g++ -M -MG -MP -I "/usr/src/{headers}" -I './include/linux' -I './include' "${file}" 2>&1 | process_input
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
