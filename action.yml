@@ -1153,7 +1153,7 @@ runs:
             clang_files_missing=$(LC_ALL=C grep -sFc 'No such file or directory' "${project_log}");
             clang_missing_count=$(LC_ALL=C grep -sF 'No such file or directory' "${project_log}" | awk '{print $4}' | tr -d ': ' | sort -u | wc -l);
             clang_file_errors=$(LC_ALL=C grep -sFc 'error:' "${project_log}");
-            echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m ${{ inputs,filetype }} files and include directories added,\n[Hint] You can cache or download this file & add to repo to auto create custom \033[31mcompile command json file\033[0m." | process_input;
+            echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m ${{ inputs.filetype }} files and include directories added,\n[Hint] You can cache or download this file & add to repo to auto create custom \033[31mcompile command json file\033[0m." | process_input;
             if [[ "${clang_file_errors}" > '0' ]]; then
               echo -e "\n::notice::\033[34m⚠️ Total include source file errors during scan\033[0m\033[1m ${clang_file_errors}\033[0m\n[Hint] Many source files may report these \033[31mfatal file errors.\033[0m\n\033[1mCheck-file notice file issues that needs repair before a build!!!\033[0m" | process_input;
             fi;
