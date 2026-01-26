@@ -294,7 +294,7 @@ runs:
         if ${{ inputs.project }} && [[ ! $(which update-ca-certificates) ]]; then
           sudo apt-get -yq install ca-certificates 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
-        echo -e "\n$(which gawk)";
+        [[ ! $(which gawk) ]] && echo -e "\n::error::No gawk installed in linux exiting";
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
         if ${{ inputs.project }} && [[ "${cmake_version}" < "${required_version}" ]]; then
           python3 -m pip install --upgrade pip >/dev/null && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
@@ -302,7 +302,7 @@ runs:
           sudo rm -f "$(which cmake)";
           sudo mkdir -p '/usr/local/bin';
           echo "/usr/local/bin" >> "${GITHUB_PATH}";
-          python3 -m pip install --upgrade cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################\n" || echo -e '::error::No cmake pip installed for project checks';
+          python3 -m pip install --upgrade cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -pf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
         fi;
         if ${{ inputs.project }} && ${{ inputs.source == '5' }}; then
@@ -333,7 +333,6 @@ runs:
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 21 >/dev/null 2>&1)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
           sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
-          [[ $(which clang-tidy) ]] && sudo rm -vf "$(which clang-tidy)";
           sudo apt-get -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
@@ -345,13 +344,13 @@ runs:
         fi;
         if ${{ inputs.analyzer == '1' }} && ${{ inputs.project }} && [[ $(which run-clang-tidy) ]]; then
           echo -e "\n[clang-tools] $(whereis -b run-clang-tidy)";
-          [[ $(whereis clang-format) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-format)";
-          [[ $(whereis clang-apply-replacements) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-apply-replacements)";
+          [[ $(whereis clang-format) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-format)" || echo -e '::error::No clang-format pip installed for project checks';
+          [[ $(whereis clang-apply-replacements) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-apply-replacements)" || echo -e '::error::No clang-apply-replacements pip installed for project checks';
           echo 'run_clang_tidy=run-clang-tidy' >> "${GITHUB_ENV}";
         elif ${{ inputs.analyzer == '1' }} && ${{ inputs.project }}; then
-          echo -e "\n[clang-tools] run-clang-tidy: /scripts/tools/run-clang-tidy.py";
-          [[ $(whereis clang-format) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-format)";
-          [[ $(whereis clang-apply-replacements) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-apply-replacements)";
+          echo -e "\n[clang-tools] run-clang-tidy: /scripts/tools/run-clang-tidy.py" || echo -e '::error::No run-clang-tidy.py pip installed for project checks';
+          [[ $(whereis clang-format) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-format)" || echo -e '::error::No clang-format pip installed for project checks';
+          [[ $(whereis clang-apply-replacements) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-apply-replacements)" || echo -e '::error::No clang-apply-replacements pip installed for project checks';
           echo "run_clang_tidy=${{ github.action_path }}/scripts/tools/run-clang-tidy.py" >> "${GITHUB_ENV}";
         fi;
         if ${{ inputs.project }} && ${{ inputs.analyzer == '3' }} && [[ ! $(which clangd-tidy) ]]; then
