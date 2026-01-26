@@ -332,7 +332,7 @@ runs:
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 21 >/dev/null 2>&1)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
-          sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################\n" || echo -e '::error::No llvm tools installed for project build';
+          sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################" || echo -e '::error::No llvm tools installed for project build';
           sudo apt-get -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
@@ -1028,6 +1028,7 @@ runs:
             fi;
             [[ -s 'output.txt' ]] && cat 'output.txt' | sort -u > "${include_list}" && rm output.txt input_file.txt output_file.txt 2>/dev/null;
             if [[ -s "${include_list}" ]]; then
+              source_include=true
               count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
               mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
             fi;
@@ -1089,10 +1090,6 @@ runs:
         count4=0
         count5=0
         checked=false
-        added_total=0
-        count_total=0
-        include_added_total=1
-        include_count_total=1
         source_include=false
         includes_found=false
         include1='include-file1.txt';
@@ -1115,17 +1112,10 @@ runs:
             fi;
           done;
         }
-        if ${{ inputs.absolute }}; then
-          abs='-a';
-        else
-          abs='';
-        fi;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         include_files=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
-        [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
-        [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
         if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '5' }} && [[ "${include_files}" ]]; then
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
@@ -1145,15 +1135,19 @@ runs:
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
           if [[ -s "${project_log}" ]]; then
-            gawk '{ for (i=1; i<=NF; i++) { if (i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print i } } }' "{project_log}" | sed -E 's/\.(h|hh|hpp|h\+\+)$//' | gawk "/\.${{ inputs.filetype }}$/ { delete seen; print; next } !seen[$0]++" > "${include_list}";
+            gawk '{ for (i=1; i<=NF; i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)$/) { print $i } } }' "${project_log}" | sed  -E 's/\.(h|hh|hpp|h\+\+)$//' | gawk -v ext="${{ inputs.filetype }}" '$0 ~ "." ext "$" { delete seen; print; next } !seen[$0]++' > "${include_list}" || echo "::warning::File ${include_list##*/} was not created!!!" | process_input;
             if [[ -s "${include_list}" ]]; then
-              count4=$(gawk 'NF > 0 { count++ } END { print count }' "${include_list}");
+              source_include=true
+              count2=$(gawk 'NF > 0 { count++ } END { print count }' "${include_list}");
               mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
+            else
+              count2=0
+              echo -e "\n::warning::\033[31m⚠️ Sources & includes file not created after scanning!!!\033[0m\033[1m ${clang_missing_count:-0}\033[0m\n";
             fi;
             clang_files_missing=$(LC_ALL=C grep -sFc 'No such file or directory' "${project_log}");
             clang_missing_count=$(LC_ALL=C grep -sF 'No such file or directory' "${project_log}" | awk '{print $4}' | tr -d ': ' | sort -u | wc -l);
             clang_file_errors=$(LC_ALL=C grep -sFc 'error:' "${project_log}");
-            echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m ${{ inputs.filetype }} files plus their include directories added,\n[Hint] You can cache or download this file & add to repo to auto create custom \033[31mcompile command json file\033[0m." | process_input;
+            echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count2}\033[0m ${{ inputs.filetype }} files and their include directories added in total,\n[Hint] You can cache or download this file & add to repo to auto create custom \033[31mcompile command json file\033[0m." | process_input;
             if [[ "${clang_file_errors}" > '0' ]]; then
               echo -e "\n::notice::\033[34m⚠️ Total include source file errors during scan\033[0m\033[1m ${clang_file_errors}\033[0m\n[Hint] Many source files may report these \033[31mfatal file errors.\033[0m\n\033[1mCheck-file notice file issues that needs repair before a build!!!\033[0m" | process_input;
             fi;
@@ -1169,16 +1163,18 @@ runs:
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
         fi;
         if [[ "${source_include}" == 'true' ]]; then
-          echo "include_count=${count4}" >> "${GITHUB_ENV}";
-        else
-          echo 'include_count=0' >> "${GITHUB_ENV}";
-        fi;
-        if ${{ inputs.number > '0' }}; then
-          echo 'include_source=false' >> "${GITHUB_ENV}";
-        elif [[ "${count4}" > '0' ]]; then
+          echo "include_count=${count2}" >> "${GITHUB_ENV}";
           echo 'sources=true' >> "${GITHUB_ENV}";
         else
-          echo 'source=false' >> "${GITHUB_ENV}";
+          echo 'include_count=0' >> "${GITHUB_ENV}";
+          echo 'sources=false' >> "${GITHUB_ENV}";
+        fi;
+        if ${{ inputs.number > '0' }}; then
+          echo 'sources=false' >> "${GITHUB_ENV}";
+        elif [[ "${count2}" > '0' ]]; then
+          echo 'sources=true' >> "${GITHUB_ENV}";
+        else
+          echo 'sources=false' >> "${GITHUB_ENV}";
         fi;
         echo '';
       shell: bash
