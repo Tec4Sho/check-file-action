@@ -62,7 +62,7 @@ if($ENV{github_absolute_path})
   file(GLOB_RECURSE PROJECT_SRC_FILES "*.$ENV{filetype}")
 else()
   message(STATUS "Project Paths: Relative Mode")
-  file(GLOB_RECURSE PROJECT_SRC_FILES RELATIVE "*.$ENV{filetype}")
+  file(GLOB_RECURSE PROJECT_SRC_FILES RELATIVE "*.c")
 endif()
 
 list(SORT PROJECT_SRC_FILES)

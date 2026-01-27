@@ -555,6 +555,9 @@ runs:
         else
           echo "analyzer=${{ inputs.analyzer }}" >> "${GITHUB_ENV}";
         fi;
+        if ${{ inputs.recovery == 'false' }} && ${{ inputs.dirname != '' }}; then
+          cd "${{ inputs.dirname }}";
+        fi;
         src=$(ls);
         type_count=0
         total_files=$(find -type f | grep -v '\.git/.' | wc -l);
@@ -1930,7 +1933,7 @@ runs:
       continue-on-error: true
 
     - name: Check & Repair (Clang-tools)
-      if: inputs.filename != ''
+      if: inputs.filename != '' && inputs.build == '0'
       run: |
         echo '';
         set +e
@@ -2183,7 +2186,7 @@ runs:
       continue-on-error: true
 
     - name: Check Shell Files
-      if: inputs.filename != '' && env.file_found == '0' 
+      if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0'
       run: |
         echo '';
         set +e
@@ -2308,7 +2311,7 @@ runs:
       continue-on-error: true
 
     - name: Check Makefile Files
-      if: inputs.filename != '' && env.file_found == '0'
+      if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0'
       run: |
         echo '';
         set +e
@@ -2383,7 +2386,7 @@ runs:
       continue-on-error: true
 
     - name: Check All Files
-      if: inputs.filename != '' && env.file_found == '0' 
+      if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0'
       run: |
         echo '';
         set +e
@@ -2434,15 +2437,15 @@ runs:
         set +e
         file_count=1
         if ${{ inputs.database }}; then
-          matched1=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
-          content1=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
-          matched2=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
-          content2=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
+          matched1=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
+          content1=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
+          matched2=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
+          content2=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
         else
-          matched1=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
-          content1=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
-          matched2=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
-          content2=$(time -p sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
+          matched1=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
+          content1=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
+          matched2=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
+          content2=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
         fi;
         echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
         echo -e "\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n";
@@ -2499,11 +2502,12 @@ runs:
       continue-on-error: true
 
     - name: Directory Contains
-      if: inputs.filename != '' && inputs.content == 'true'
+      if: inputs.filename != '' && inputs.content == 'true' && inputs.build == '0'
       run: |
-        echo ''
-        check_file=$(dirname $(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}"));
-        if [[ ${{ env.file_found }} != 0  ]]; then
+        echo '';
+        set +e
+        if ${{ env.file_found == '1' }}; then
+          check_file=$(dirname $(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}"));
           echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }} file(s)\n####################\n";
           ls -Shap "${check_file}";
         fi;
