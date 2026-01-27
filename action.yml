@@ -299,7 +299,7 @@ runs:
         if ${{ inputs.project }} && [[ ! $(which update-ca-certificates) ]]; then
           sudo apt-get -yq install ca-certificates 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
-        [[ ! $(which gawk) ]] sudo apt-get -yq install gawk 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngawk dependencies installed\n####################" || echo -e "\n::error::No gawk installed in linux exiting";
+        [[ ! $(which gawk) ]] && sudo apt-get -yq install gawk 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngawk dependencies installed\n####################" || echo -e "\n::error::No gawk installed in linux exiting";
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
         if ${{ inputs.project }} && [[ "${cmake_version}" < "${required_version}" ]]; then
           python3 -m pip install --upgrade pip >/dev/null && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
