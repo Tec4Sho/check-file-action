@@ -1123,14 +1123,14 @@ runs:
             echo -e '\n[\033[1mgcc mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              gcc -M -MG "$(find -type d -name 'linux' -printf '-I%p ')" "${file}" | process_input;
+              gcc -MM -MG "$(find -type d -maxdepth 4 \( -name 'asm' -o -name 'mach' -o -name 'linux' -o -name 'mt-plat' -o -name 'include' \) -printf '-I%p ')" "${file}" | process_input;
             done <<< "${include_files[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mg++ mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              g++ -M -MG $(find "${{ env.base }}" -type d \( -name 'asm' -o -name 'linux' -o -name 'include' \) -printf '-I%p ') "${file}" | process_input;
+              g++ -MM -MG $(find "${{ env.base }}" -type d \( -name 'asm' -o -name 'linux' -o -name 'include' \) -printf '-I%p ') "${file}" | process_input;
             done <<< "${include_files[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
