@@ -1120,6 +1120,7 @@ runs:
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
+            export C_INCLUDE_PATH="$(find \( -name 'asm' -o -name 'include' -o -name 'linux' -o -name 'mt-plat' \) -maxdepth 4 -type d -printf '%p:')${C_INCLUDE_PATH}";
             echo -e '\n[\033[1mgcc mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
@@ -1127,6 +1128,7 @@ runs:
             done <<< "${include_files[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
+            export CPLUS_INCLUDE_PATH=$(find \( -name 'asm' -o -name 'include' -o -name 'linux' -o -name 'mt-plat' \) -maxdepth 4 -type d -printf '%p:');${CPLUS_INCLUDE_PATH}
             echo -e '\n[\033[1mg++ mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
@@ -1394,13 +1396,13 @@ runs:
             if [[ "$(source_dirs)" ]] && [[ ! -f "${compile_json}" ]] && (${{ env.sources }} || [[ -e 'check-file-compile.txt' ]]); then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
               echo -e '\nsource true\n';
-              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | cmakebar --replay | process_input || echo "::error::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
             elif ([[ "$(source_dirs)" ]] || [[ "$(cmake_includes)" ]]) && [[ ! -f "${compile_json}" ]]; then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
               echo -e '\nsource false\n';
-              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::error::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
             elif [[ ! -f "${compile_json}" ]]; then
-              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::error::( $? ) cmake missing or malformed CMakeList.txt (?)" | process_input;
+              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
             fi;
             if [[ "${PIPESTATUS[0]}" == '0' ]]; then
               if ${{ inputs.upload }}; then
