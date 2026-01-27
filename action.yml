@@ -240,6 +240,7 @@ runs:
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
       run: |
         echo '';
+        set -o pipefail
         echo 'export ALLOW_MISSING_DEPENDENCIES=true' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
@@ -249,6 +250,10 @@ runs:
         sudo apt-get clean
         sudo add-apt-repository universe >/dev/null;
         sudo apt-get update -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
+        if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
+          sudo apt-get -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
+          [[ ! $(which cmake) ]] && exit 1
+        fi;
         cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{print $3}');
         required_version="4.2.1";
         linux_distro1="24.04";
@@ -294,7 +299,7 @@ runs:
         if ${{ inputs.project }} && [[ ! $(which update-ca-certificates) ]]; then
           sudo apt-get -yq install ca-certificates 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
-        [[ ! $(which gawk) ]] && echo -e "\n::error::No gawk installed in linux exiting";
+        [[ ! $(which gawk) ]] sudo apt-get -yq install gawk 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngawk dependencies installed\n####################" || echo -e "\n::error::No gawk installed in linux exiting";
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
         if ${{ inputs.project }} && [[ "${cmake_version}" < "${required_version}" ]]; then
           python3 -m pip install --upgrade pip >/dev/null && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
@@ -308,10 +313,6 @@ runs:
         if ${{ inputs.project }} && ${{ inputs.source == '5' }}; then
           go build ${{ github.action_path }}/scripts/cmakebar.go && echo -e "\n####################\ncmakebar dependencies installed\n####################" || echo -e '::error::No cmakebar installed for project checks';
           [[ -e "cmakebar" ]] && sudo cp -f 'cmakebar' '/usr/local/bin/'
-        fi;
-        if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
-          sudo apt-get -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
-          [[ ! $(which cmake) ]] && exit 1
         fi;
         if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic >/dev/null 2>&1) ]]; then
           sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-headers-generic 2>/dev/null)\n####################" || echo -e "::warning::No linux-headers-generic installed for project build";
