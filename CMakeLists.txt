@@ -131,10 +131,12 @@ if(EXISTS "${CHECK_FILE_COMPILE}" AND IS_READABLE "${CHECK_FILE_COMPILE}")
         message(STATUS "Processing ${file}: ${FILE_COUNT}/${SOURCE_COUNT}")
         message(STATUS "Target Name: ${PROJECT_NAME}_${FILE_COUNT}")
         message(STATUS "Source File: ${FULL_PATH}")
-        add_executable("${PROJECT_NAME}_${FILE_COUNT}")
-        target_sources("${PROJECT_NAME}_${FILE_COUNT}" PRIVATE "${FULL_PATH}")
-        set_target_properties("${PROJECT_NAME}_${FILE_COUNT}" PROPERTIES LINKER_LANGUAGE C)
-        set_target_properties("${PROJECT_NAME}_${FILE_COUNT}" PROPERTIES C_STANDARD 90)
+        add_library("${PROJECT_NAME}_${FILE_COUNT}" OBJECT "${FULL_PATH}")
+        set_target_properties("${PROJECT_NAME}_${FILE_COUNT}" PROPERTIES 
+          C_STANDARD 90
+          C_STANDARD_REQUIRED ON
+          EXCLUDE_FROM_ALL TRUE
+        )
       else()
         message(CHECK_FAIL "Path does not exist: ${FULL_PATH}")
       endif()
