@@ -899,6 +899,7 @@ runs:
         export LC_ALL=C
         export LS_COLORS
         SAVEIFS="${IFS}";
+        CPATH="${CPATH}:";
         include_missing=1
         include_count=1
         include_total=1
@@ -1010,7 +1011,7 @@ runs:
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
-            ${{ inputs.include }} && export C_INCLUDE_PATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
+            ${{ inputs.include }} && export CPATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
             echo -e '\n[\033[1mgcc mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
@@ -1018,7 +1019,7 @@ runs:
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
-            ${{ inputs.include }} && export CPLUS_INCLUDE_PATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
+            ${{ inputs.include }} && export CPATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
             echo -e '\n[\033[1mg++ mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
@@ -1097,8 +1098,7 @@ runs:
         checked=false
         source_include=false
         includes_found=false
-        C_INCLUDE_PATH="${C_INCLUDE_PATH}:";
-        CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH}:";
+        CPATH="${CPATH}:";
         include_list='check-file-compile.txt';
         github="${GITHUB_WORKSPACE}";
         process_input() {
@@ -1114,7 +1114,7 @@ runs:
             fi;
           done;
         }
-        echo -e "####################\n\t\033[34m C_INCLUDE_PATH: ${C_INCLUDE_PATH}\033[0m\n####################\n" | process_input;
+        echo -e "####################\n\t\033[34m C_INCLUDE_PATH: ${CPATH}\033[0m\n####################\n" | process_input;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         include_files=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
@@ -1123,7 +1123,7 @@ runs:
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
-            ${{ inputs.include }} && export C_INCLUDE_PATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
+            ${{ inputs.include }} && export CPATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
             echo -e '\n[\033[1mGCC Mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
@@ -1131,7 +1131,7 @@ runs:
             done <<< "${include_files[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
-            ${{ inputs.include }} && export CPLUS_INCLUDE_PATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
+            ${{ inputs.include }} && export CPATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
             echo -e '\n[\033[1mG++ Mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
