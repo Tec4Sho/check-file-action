@@ -132,9 +132,11 @@ if(EXISTS "${CHECK_FILE_COMPILE}" AND IS_READABLE "${CHECK_FILE_COMPILE}")
         message(STATUS "Source File: ${FULL_PATH}")
         message(STATUS "Target Name: ${PROJECT_NAME}_${FILE_COUNT}")
         add_executable("${PROJECT_NAME}_${FILE_COUNT}" PRIVATE "${FULL_PATH}")
+        set_target_properties("${PROJECT_NAME}_${FILE_COUNT}" PROPERTIES LINKER_LANGUAGE C)
+        set_target_properties("${PROJECT_NAME}_${FILE_COUNT}" PROPERTIES C_STANDARD 90)
       else()
         message(CHECK_FAIL "Path does not exist: ${FULL_PATH}")
-      endif()
+      endif() 
     endforeach()    
     message(CHECK_PASS "Source Files & Include Directories: ${FILE_COUNT}/${SOURCE_COUNT} - Done")
   else()
@@ -199,6 +201,8 @@ elseif(DEFINED PROJECT_AUTO_INCLUDE)
     target_include_directories("${PROJECT_NAME}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/*/")
     message(STATUS "Project Includes: cmake added include directories. clang analyzing sources [check 7 default]")
   endif()
+  set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
+  set_target_properties("${PROJECT_NAME}" PROPERTIES C_STANDARD 90) 
 else()
 # Add your custom includes here after commenting # set(PROJECT_AUTO_INCLUDE "true") above
   add_executable("${PROJECT_NAME}") # Creates an executable target named "MyProject" from source files
@@ -207,10 +211,10 @@ else()
     math(EXPR FILE_COUNT "${FILE_COUNT} + 1")
     set(FILE_CONTENTS "")
     file(READ "${FILE}" FILE_CONTENTS)
-    string(REGEX MATCHALL "#include[ \t]+[<\"]([^>\"]+)[>\"]" MATCHES "${FILE_CONTENTS}")
+    string(REGEX MATCHALL "#include[ \t]+["]([^"]+)["]" MATCHES "${FILE_CONTENTS}")
     set(HEADER_LIST "")
     foreach(MATCH ${MATCHES})
-      string(REGEX REPLACE "#include[ \t]+[<\"]([^>\"]+)[>\"]" "\\1" HEADER_NAME "${MATCH}")
+      string(REGEX REPLACE "#include[ \t]+["]([^"]+)["]" "\\1" HEADER_NAME "${MATCH}")
       list(APPEND HEADER_LIST "${HEADER_NAME}")
     endforeach()
     list(REMOVE_DUPLICATES HEADER_LIST)
@@ -332,17 +336,13 @@ set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON) # Useful/Needed for large list of
 
 # .message(WARNING ${output}) # This will print all -I dirs like: /usr/local/include/
 
-set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
-
-set_target_properties("${PROJECT_NAME}" PROPERTIES C_STANDARD 90) 
-
 execute_process(
-    COMMAND "${CMAKE_COMMAND}" -E create_symlink
-        "${CMAKE_BINARY_DIR}/compile_commands.json"
-        "${CMAKE_SOURCE_DIR}/compile_commands.json"
+  COMMAND "${CMAKE_COMMAND}" -E create_symlink
+  "${CMAKE_BINARY_DIR}/compile_commands.json"
+  "${CMAKE_SOURCE_DIR}/compile_commands.json"
 )
 
-function(output_src_includes)
+  function(output_src_includes)
     set(src_dir_str "")
     if(DEFINED PROJECT_INCLUDE_DIRS)
       foreach(DIR "${PROJECT_INCLUDE_DIRS}")
@@ -350,11 +350,11 @@ function(output_src_includes)
       endforeach()
       set(src_dir "${CMAKE_BINARY_DIR}/cmake-include-dirs.txt")
       file(WRITE "${src_dir}" "${src_dir_str}")
-      message(STATUS "${PROJECT_NAME} header file directories written to: ${src_dir}")
+      message(STATUS "Project include directories written to: ${src_dir}")
     endif()
-endfunction()
+  endfunction()
 
-function(output_src_files)
+  function(output_src_files)
     set(src_files_str "")
     if(DEFINED PROJECT_SRC_FILES)
       foreach(FILE "${PROJECT_SRC_FILES}")
@@ -362,9 +362,9 @@ function(output_src_files)
       endforeach()
       set(src_file "${CMAKE_BINARY_DIR}/cmake-source-files.txt")
       file(WRITE "${src_file}" "${src_files_str}")
-      message(STATUS "${PROJECT_NAME} source files written to: ${src_file}")
+      message(STATUS "Project source files written to: ${src_file}")
     endif()
-endfunction()
+  endfunction()
 
 output_src_includes()
 
