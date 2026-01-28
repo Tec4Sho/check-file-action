@@ -312,7 +312,7 @@ runs:
           python3 -m pip install --upgrade cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -pf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
         fi;
-        if ${{ inputs.project }} && ${{ inputs.source == '5' }}; then
+        if ${{ inputs.project }} && (${{ inputs.source == '5' }} || [[ -e 'check-file-compile.txt' ]]); then
           go build ${{ github.action_path }}/scripts/cmakebar.go && echo -e "\n####################\ncmakebar dependencies installed\n####################" || echo -e '::error::No cmakebar installed for project checks';
           [[ -e "cmakebar" ]] && sudo cp -f 'cmakebar' '/usr/local/bin/'
         fi;
@@ -1396,13 +1396,14 @@ runs:
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             if ${{ inputs.content == 'false' }} && [[ "$(source_dirs)" ]] && [[ ! -f "${compile_json}" ]] && (${{ env.sources }} || [[ -e 'check-file-compile.txt' ]]); then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
-              echo -e '\nsource true\n';
-              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build 2>&1 | cmakebar --replay | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
+              echo -e 'Cmake Sources: mode 1\n';
+              cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build 2>&1 | cmakebar --replay --est true | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
             elif ([[ "$(source_dirs)" ]] || [[ "$(cmake_includes)" ]]) && [[ ! -f "${compile_json}" ]]; then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
-              echo -e '\nsource false\n';
+              echo -e 'Cmake Sources: mode 2\n';
               cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build 2>&1 | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
             elif [[ ! -f "${compile_json}" ]]; then
+              echo -e 'Cmake Sources: mode 3\n';
               cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build 2>&1 | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
             fi;
             if [[ "${PIPESTATUS[0]}" == '0' ]]; then
