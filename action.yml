@@ -1010,6 +1010,7 @@ runs:
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
+            ${{ inputs.include }} && export C_INCLUDE_PATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
             echo -e '\n[\033[1mgcc mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
@@ -1017,6 +1018,7 @@ runs:
             done <<< "${include_files4[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
+            ${{ inputs.include }} && export CPLUS_INCLUDE_PATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
             echo -e '\n[\033[1mg++ mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
@@ -1601,6 +1603,10 @@ runs:
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export CMAKE_BUILD_PARALLEL_LEVEL=4
         export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
+        C_INCLUDE_PATH="${C_INCLUDE_PATH}:";
+        CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH}:";
+        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
+        ${{ inputs.include }} && export C_INCLUDE_PATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
