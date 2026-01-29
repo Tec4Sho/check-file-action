@@ -1096,8 +1096,8 @@ runs:
         checked=false
         source_include=false
         includes_found=false
-        export C_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:arch/*/include/uapi/:${C_INCLUDE_PATH}";
-        export CPLUS_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:arch/*/include/uapi/:${CPLUS_INCLUDE_PATH}";
+        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:arch/*/include/uapi/:${C_INCLUDE_PATH}";
+        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:arch/*/include/uapi/:${CPLUS_INCLUDE_PATH}";
         include_list='check-file-compile.txt';
         github="${GITHUB_WORKSPACE}";
         process_input() {
@@ -1113,6 +1113,11 @@ runs:
             fi;
           done;
         }
+        if ${{ inputs.include }}; then
+          m='-M -MG';
+        else
+          m='-MM';
+        fi; 
         echo -e "####################\n\t\033[34m C INCLUDE PATHS: ${C_INCLUDE_PATH}\033[0m\n####################\n" | process_input;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         include_files=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
@@ -1125,19 +1130,19 @@ runs:
             echo -e '\n[\033[1mGCC Mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              gcc -M -MG "${file}" 2>&1 | process_input;
+              gcc $m "${file}" 2>&1 | process_input;
             done <<< "${include_files[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mG++ Mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              g++ -M -MG "${file}" 2>&1 | process_input;
+              g++ $m "${file}" 2>&1 | process_input;
             done <<< "${include_files[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
           if [[ -s "${project_log}" ]]; then
-            gawk '{ for (i=1; i<=NF; i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)$/) { print $i } } }' "${project_log}" | gawk '{ for (i = 1; i <= NF; i++) print $i }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | gawk -v ext="${{ inputs.filetype }}" '$0 ~ "." ext "$" { delete seen; print; next } !seen[$0]++' | grep -vE '/\.\..*\.c$' | gawk '/\.c$/ { if (seen[$0]++) next } 1' > "${include_list}" || echo "::warning::File ${include_list##*/} was not created!!!" | process_input;
+            gawk '{ for (i=1; i<=NF; i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)$/) { print $i } } }' "${project_log}" | gawk '{ for (i = 1; i <= NF; i++) print $i }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "/\.\..*\.${{ inputs.filetype }}$" | gawk "/\.${{ inputs.filetype }}$/ { if (seen[$0]++) next } 1" | gawk -v ext="${{ inputs.filetype }}" '$0 ~ "." ext "$" { delete seen; print; next } !seen[$0]++' > "${include_list}" || echo "::warning::File ${include_list##*/} was not created!!!" | process_input;
             if [[ -s "${include_list}" ]]; then
               source_include=true
               count2=$(gawk 'NF > 0 { count++ } END { print count }' "${include_list}");
