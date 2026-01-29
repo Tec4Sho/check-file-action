@@ -1142,7 +1142,7 @@ runs:
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
           if [[ -s "${project_log}" ]]; then
-            gawk '{ for (i=1; i<=NF; i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)$/) { print $i } } }' "${project_log}" | gawk '{ for (i = 1; i <= NF; i++) print $i }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "/\.\..*\.${{ inputs.filetype }}$" | gawk "/\.${{ inputs.filetype }}$/ { if (seen[$0]++) next } 1" | gawk -v ext="${{ inputs.filetype }}" '$0 ~ "." ext "$" { delete seen; print; next } !seen[$0]++' > "${include_list}" || echo "::warning::File ${include_list##*/} was not created!!!" | process_input;
+            gawk '{ for (i=1; i<=NF; i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)$/) { print $i } } }' "${project_log}" | gawk '{ for (i = 1; i <= NF; i++) print $i }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE '/\.\..*\.c$' | gawk '/\.c$/ { if (seen[$0]++) next } 1' | gawk -v ext="${{ inputs.filetype }}" '$0 ~ "." ext "$" { delete seen; print; next } !seen[$0]++' > "${include_list}" || echo "::warning::File ${include_list##*/} was not created!!!" | process_input;
             if [[ -s "${include_list}" ]]; then
               source_include=true
               count2=$(gawk 'NF > 0 { count++ } END { print count }' "${include_list}");
