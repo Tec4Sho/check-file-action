@@ -141,7 +141,7 @@ if(EXISTS "${CHECK_FILE_COMPILE}" AND IS_READABLE "${CHECK_FILE_COMPILE}")
           EXCLUDE_FROM_ALL TRUE
         )
       else()
-        message(CHECK_FAIL "Path does not exist: ${FULL_PATH}")
+        message(STATUS "Path does not exist: ${FULL_PATH}")
       endif()
     endforeach()    
     message(CHECK_PASS "Source Files & Include Directories: ${FILE_COUNT}/${SOURCE_COUNT} - Done")
