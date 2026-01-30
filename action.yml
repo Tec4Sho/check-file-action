@@ -93,11 +93,11 @@ inputs:
     default: 2
     type: choice
     options:
-    - 1 # Locate all includes in sources and display all content found about files.
-    - 2 # Locate all includes in sources and display more content found about files.
-    - 3 # Locate all includes in sources and display less content found about files.
-    - 4 # Locate all includes in sources and create object dependencies displaying content found about files.
-    - 5 # Create file to fix all source files and includes for compile commands json content.
+    - 0 # Disabled
+    - 1 # Locate user includes in sources and display file info.
+    - 2 # Locate system includes in sources and display file info.
+    - 3 # Locate user includes in sources and display file info.
+    - 4 # Locate system includes in sources and display file info.
   number:
     description: 'Number of files to check before stopping action'
     type: number
@@ -312,7 +312,7 @@ runs:
           python3 -m pip install --upgrade cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -pf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
         fi;
-        if ${{ inputs.project }} && (${{ inputs.source == '5' }} || [[ -e 'check-file-compile.txt' ]]); then
+        if ${{ inputs.project }} && (${{ inputs.source == '4' }} || [[ -e 'check-file-compile.txt' ]]); then
           go build ${{ github.action_path }}/scripts/cmakebar.go && echo -e "\n####################\ncmakebar dependencies installed\n####################" || echo -e '::error::No cmakebar installed for project checks';
           [[ -e "cmakebar" ]] && sudo cp -f 'cmakebar' '/usr/local/bin/'
         fi;
@@ -684,8 +684,8 @@ runs:
           abs='';
         fi;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files1=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
-        include_files2=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r rg --sort=path --trim -H -o '^#include[[:space:]]+["].*["]' | tr -d '<">' | awk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
+        include_files1=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | gawk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
+        include_files2=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r rg --sort=path --trim -H -o '^#include[[:space:]]+[<].*[>]' | tr -d '<>' | gawk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
@@ -703,12 +703,13 @@ runs:
             echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             if ${{ inputs.include }}; then
               includes_found=false
-              include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+["].*["]' "${file}" 2>/dev/null || true; } | awk '{print $2}' | tr -d '<">' | sort -u);
+              include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+["].*["]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);
               if [[ "${include_source}" ]]; then
-                echo -e "\n\tinclude file objectives:\n\n${include_source}" | process_input;
+                echo -e "\n\tuser include file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
                   if [[ "${include}" == *.[ch]* ]] && [[ ! "${processed[$include]}" ]]; then
                     processed["$include"]=1
+                    shopt -s extglob
                     path1="${include##+(*./)}";
                     path2="${path1##[:]*}";
                     path3="${path2%'\n'}";
@@ -720,12 +721,11 @@ runs:
                     file4="${file3%\\}";
                     clean_file="${file4##*/}";
                     if [[ ${include} == *"/"* ]]; then
-                      shopt -s extglob
-                      header=$(fdfind -c auto "${abs}" -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
-                      shopt -u extglob
+                      header=$(fdfind -c auto "${abs}" -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");  
                     else
-                      header=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                      header=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "${{ env.base }}" --base-directory "${file%/*}");
                     fi;
+                    shopt -u extglob
                     if [[ -n "${header}" ]]; then
                       while IFS= read -r includes; do
                         count2=$((include_count++));
@@ -803,6 +803,7 @@ runs:
               includes_found=true
               echo -e "\n\tinclude source: ${include_source}" | process_input;
               if [[ "${include_source}" == *.[h]* ]]; then
+                shopt -s extglob
                 path1="${include_source##+(*./)}";
                 path2="${path1##[:]*}";
                 path3="${path2%'\n'}";
@@ -814,12 +815,11 @@ runs:
                 file4="${file3%\\}";
                 clean_file="${file4##*/}";
                 if [[ ${include_source} == *"/"* ]]; then
-                  shopt -s extglob
-                  header=$(fdfind -c auto "${abs}" -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
-                  shopt -u extglob
-                 else
-                   header=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                  header=$(fdfind -c auto "${abs}" -p -t f -g "**/${path4##+(*./)}" "/" -xdev --prune 'home' --prune 'proc' --prune 'sys' --prune 'dev' --base-directory usr/);
+                else
+                  header=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "/" -xdev --prune 'home' --prune 'proc' --prune 'sys' --prune 'dev' --base-directory usr/);
                 fi;
+                shopt -u extglob
                 includes_missing=false
                 if [[ -n "${header}" ]]; then
                   while IFS= read -r includes; do
@@ -894,12 +894,12 @@ runs:
         start_time="${SECONDS}";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
+        filetype="${{ inputs.filetype }}";
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         project_log="${repository}_project.log";
         export LC_ALL=C
         export LS_COLORS
         SAVEIFS="${IFS}";
-        CPATH="${CPATH}:";
         include_missing=1
         include_count=1
         include_total=1
@@ -907,18 +907,12 @@ runs:
         file_count=1
         count1=0
         count2=0
-        count3=0
-        count4=0
-        count5=0
         checked=false
         source_include=false
         includes_found=false
-        include1='include-file1.txt';
-        include2='include-file2.txt';
-        include3='include-file3.txt';
-        include_list='check-file-sources.txt';
-        name_count_file='name-count-file.txt';
-        include_count_file='include-count-file.txt';
+        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}";
+        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
+        include_list='check-file-compile.txt';
         github="${GITHUB_WORKSPACE}";
         process_input() {
           while IFS= read -r output; do
@@ -933,86 +927,17 @@ runs:
             fi;
           done;
         }
-        if ${{ inputs.absolute }}; then
-          abs='-a';
-        else
-          abs='';
-        fi;
         if ${{ inputs.include }}; then
           m='-M -MG';
         else
           m='-MM';
-        fi;
+        fi; 
+        ${{ inputs.include }} && echo -e "####################\n\t\033[34m C INCLUDE PATHS: ${C_INCLUDE_PATH}\033[0m\n####################\n" | process_input;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files3=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | LC_ALL=C xargs -r rg --sort=path --trim -o '^#include[[:space:]]+["].*["]' | awk '{print $2}' | tr -d '<">' | sort -u);
-        include_files4=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
+        include_files=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
-        [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
-        [[ -f "${include_count_file}" ]] && rm -f "${include_count_file}";
         if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '3' }} && [[ "${include_files3}" ]]; then
-          echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[35m low \033[0m]" | process_input;
-          echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
-          declare -A processed
-          while IFS= read -r include; do
-            if [[ "${include}" == *.[h]* ]]; then
-              path1="${include##+(*./)}";
-              path2="${path1##[:]*}";
-              path3="${path2%'\n'}";
-              path4="${path3%\\}";
-              clean_path="${path4%/*}";
-              file1="${include##+(*./)}";
-              file2="${file1##[:]*}";
-              file3="${file2%'\n'}";
-              file4="${file3%\\}";
-              clean_file="${file4##*/}";
-              if [[ ${include} == *"/"* ]]; then
-                shopt -s extglob
-                header=$(fdfind -p -c auto "${abs}" -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
-                shopt -u extglob
-              else
-                header=$(fdfind -p -c auto "${abs}" -t f "${clean_file##+(*./)}" "${{ env.base }}");
-              fi;
-              if [[ "${header}" ]]; then            
-                while IFS= read -r includes; do
-                  count2=$((include_count++));
-                  echo "${includes%/*}" >> "${include1}";
-                done <<< "${header[@]}";
-                includes_found=true
-              elif [[ -n "${processed[$include]}" ]]; then
-                includes_found=false
-                echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
-              else
-                includes_found=false
-                processed["$include"]=1
-                count5=$((include_missing++));
-                echo -e "\n::notice::\033[31mSource file #include \033[0m( ${include} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
-              fi;
-            fi;
-          done <<< "${include_files3[@]}";
-          if [[ -s "${include1}" ]]; then
-            awk '!seen[$0]++' "${include1}" > "${include_list}";
-          fi;
-          if [[ -s "${include_list}" ]]; then
-            count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
-          fi;
-          if [[ "${includes_found}" == 'true' ]]; then
-            source_include=true
-            echo 'check_build=true' >> "${GITHUB_ENV}";
-            echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories added after duplicate cleaning!!!\033[0m\nSet option (\033[1m cache: true \033[0m) to use this list for source include checks without manually downloading an adding the file to your repo\n With cache you should set (\033[1m source: 0 \033[0m)running sources again each check!" | process_input;
-          else
-            echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
-          fi;
-          if [[ "${count5}" > '0' ]]; then
-            echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${count5}\033[0m\n[Hint] Many source files may call these \033[31mmissing include files.\nYou may need to remove the missing include file objectives or added the file before compiling!!!" | process_input;
-          fi;
-          unset processed;
-          [[ -s "${include_list}" ]] && mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
-          seconds=$((SECONDS - start_time));
-          m=$((seconds / 60));
-          s=$((seconds % 60));
-          printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
-        elif [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '4' }} && [[ "${include_files4}" ]]; then
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
@@ -1061,84 +986,13 @@ runs:
           m=$((seconds / 60));
           s=$((seconds % 60));
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
-        fi;
-        if [[ "${source_include}" == 'true' ]]; then
-          echo "include_count=${count4}" >> "${GITHUB_ENV}";
-        else
-          echo 'include_count=0' >> "${GITHUB_ENV}";
-        fi;
-        if ${{ inputs.number > '0' }}; then
-          echo 'include_source=false' >> "${GITHUB_ENV}";
-        elif [[ "${count4}" > '2000' ]]; then
-          echo 'include_source=true' >> "${GITHUB_ENV}";
-        else
-          echo 'include_source=false' >> "${GITHUB_ENV}";
-        fi;
-        echo '';
-      shell: bash
-      continue-on-error: true
-
-    - name: Source File Includes Fix
-      if: inputs.source == '5'
-      run: |
-        echo '';
-        set +e
-        start_time="${SECONDS}";
-        file_name="${{ inputs.filename }}";
-        file_type="${file_name##*.}";
-        filetype="${{ inputs.filetype }}";
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-        project_log="${repository}_project.log";
-        export LC_ALL=C
-        export LS_COLORS
-        SAVEIFS="${IFS}";
-        include_missing=1
-        include_count=1
-        include_total=1
-        include_dirs=1
-        file_count=1
-        count1=0
-        count2=0
-        checked=false
-        source_include=false
-        includes_found=false
-        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}";
-        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:arch/*/include/uapi/:${CPLUS_INCLUDE_PATH}";
-        include_list='check-file-compile.txt';
-        github="${GITHUB_WORKSPACE}";
-        process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${project_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${project_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
-        }
-        if ${{ inputs.include }}; then
-          m='-M -MG';
-        else
-          m='-MM';
-        fi; 
-        ${{ inputs.include }} && echo -e "####################\n\t\033[34m C INCLUDE PATHS: ${C_INCLUDE_PATH}\033[0m\n####################\n" | process_input;
-        echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
-        [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
-        [[ -f "${include1}" ]] && rm -f "include-file*.txt";
-        if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '5' }} && [[ "${include_files}" ]]; then
+        elif [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '4' }} && [[ "${include_files4}" ]]; then
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             echo -e '\n[\033[1mGCC Mode\033[0m]\n';
-            while IFS= read -r file; do
-              count1=$((file_count++));
-              gcc $m "${file}" | process_input;
-            done <<< "${include_files[@]}";
-          echo 'check_build=true' >> "${GITHUB_ENV}";
+            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -X gcc $m "${file}" | process_input;
+            echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mG++ Mode\033[0m]\n';
             while IFS= read -r file; do
@@ -1332,7 +1186,7 @@ runs:
                 while IFS= read -r include; do
                   include_source_count=$((include_source_count + 1));      
                   echo "${include_source_count}" > "${count3}";
-                  echo -e "-I${include}" >> 'compile_flags.txt';
+                  echo -e "-isystem${include}" >> 'compile_flags.txt';
                   echo -n "${include#./};";
                   if [[ "${include_source_count}" -eq "${file_count}" ]]; then
                     break;
@@ -1340,12 +1194,12 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(find "${{ env.base }}" -not \( -path '*/CMakeFiles' -prune -o -path '*/build' -prune -o -path '*/.github' -prune -o -path '*/.git' -prune \) -type d \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(find "${{ env.base }}" -not \( -path '/home' -prune -o -path '/proc' -prune -o -path '/sys' -prune -o -path '/dev' -prune -o -path '/mnt' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   include_count=$((include_count + 1));
                   echo "${include_count}" > "${count1}";
-                  echo -e "-I${dir}" >> 'compile_flags.txt';
+                  echo -e "-isystem${dir}" >> 'compile_flags.txt';
                   echo -n "${dir};";
                 fi;
               done <<< "${header_source}";
@@ -1353,7 +1207,7 @@ runs:
                 while IFS= read -r include; do
                   include_count_extra=$((include_count_extra + 1));
                   echo "${include_count_extra}" > "${count2}";
-                  echo -e "-I${include}" >> 'compile_flags.txt';
+                  echo -e "-isystem${include}" >> 'compile_flags.txt';
                   echo -n "${include#./};";
                 done < "${clang_includes}";
               fi;
@@ -1362,7 +1216,7 @@ runs:
           clang_includes() {
             find "${{ env.base }}" -not \( -path '*/CMakeFiles' -prune -o -path '*/build' -prune -o -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               if [[ -d "${include}" ]]; then
-                echo -e "--extra-arg=-I${include#./}";
+                echo -e "--extra-arg=-isystem${include#./}";
               fi;
             done;
           }
@@ -1406,14 +1260,14 @@ runs:
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
             if ${{ inputs.content == 'false' }} && [[ "$(source_dirs)" ]] && [[ ! -f "${compile_json}" ]] && (${{ env.sources }} || [[ -e 'check-file-compile.txt' ]]); then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
-              echo -e 'Cmake Sources: mode 1\n';
+              echo -e 'Cmake Sources: mode [1]\n';
               cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build 2>&1 | cmakebar --replay --est true | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
             elif ([[ "$(source_dirs)" ]] || [[ "$(cmake_includes)" ]]) && [[ ! -f "${compile_json}" ]]; then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
-              echo -e 'Cmake Sources: mode 2\n';
+              echo -e 'Cmake Sources: mode [2]\n';
               cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build 2>&1 | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
             elif [[ ! -f "${compile_json}" ]]; then
-              echo -e 'Cmake Sources: mode 3\n';
+              echo -e 'Cmake Sources: mode [3]\n';
               cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build 2>&1 | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
             fi;
             if [[ "${PIPESTATUS[0]}" == '0' ]]; then
@@ -1830,6 +1684,7 @@ runs:
           located_count=0
           missing_count=0
           file_count=0
+          filetype="${{ inputs.filetype }}";
           if [[ -n "${clang_information}" ]] && [[ "${clang_information:-0}" > '0' ]] && ${{ inputs.analyzer == '3' }}; then
             echo -e "\n####################\n::notice::⚠️ check-file added ${clang_information}️ information notes on ${file_type} file(s) checked. [Hints] Information addresses key issues that may have error fixes available.\n####################" | process_input;
           fi;
@@ -1873,7 +1728,7 @@ runs:
           fi;
           if [[ -n "${clang_files_missing}" ]] && [[ "${clang_files_missing:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
-            echo -e "\n####################\nMISSING FILES LIST:\n####################\n\n${clang_files_list}" | process_input;
+            echo -e "\n####################\nMISSING FILES LIST:\n####################\n\n${clang_files_list1}" | process_input;
             echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES IN: ${{ env.base }}\n####################\n" | process_input;
             declare -A missing
             found=false
@@ -1897,6 +1752,7 @@ runs:
                 else
                   locate=$(fdfind -p -c auto "${abs}" -t f "${clean_file##+(*./)}" "${{ env.base }}");
                 fi;
+                shopt -u extglob
                 if [[ "${locate}" ]]; then            
                   while IFS= read -r includes; do
                     located_count=$((located_count + 1));
@@ -1913,13 +1769,54 @@ runs:
                   missing_count=$((missing_count + 1));
                   echo -e "\n\033[31mCannot locate missing file\033[0m ${missing_file}  [ ❌ ]" | process_input;
                 fi;
+              fi;             
+            done <<< "${clang_files_list1}";
+            missing=()
+            echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input;
+            echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES IN: /usr/* \n####################\n" | process_input;
+            while IFS= read -r missing_file; do
+              if [[ "${missing_file}" == *.[h]* ]] || [[ "${missing_file}" == *.[c]* ]]; then
+                file_count=$((file_count + 1));
+                echo "Locating missing ${missing_file} file ...." | process_input;
+                path1="${missing_file//\'/}";
+                path2="${path1##[:]*}";
+                path3="${path2%'\n'}";
+                path4="${path3%\\}";
+                clean_path="${path4##+(*./)}";
+                file1="${missing_file//\'/}";
+                file2="${file1##[:]*}";
+                file3="${file2%'\n'}";
+                file4="${file3%\\}";
+                clean_file="${clean_file##*/}";
+                shopt -s extglob
+                if [[ ${missing_file} == *"/"* ]]; then
+                  locate=$(fdfind -c auto "${abs}" -p -t f -g "**/${path4##+(*./)}" "/" -xdev --prune 'home' --prune 'proc' --prune 'sys' --prune 'dev' --base-directory usr/);
+                else
+                  locate=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "/" -xdev --prune 'home' --prune 'proc' --prune 'sys' --prune 'dev' --base-directory usr/);
+                fi;
                 shopt -u extglob
+                if [[ "${locate}" ]]; then            
+                  while IFS= read -r includes; do
+                    located_count=$((located_count + 1));
+                    echo -e "\n\033[32mSource Location:\033[0m ${includes}  [ ✅ ]" | process_input;
+                    echo "${includes%/*}" >> 'check-file-includes.txt';
+                  done <<< "${locate[@]}";
+                  includes_found=true
+                elif [[ -n "${missing[$missing_file]}" ]]; then
+                  includes_found=false
+                  echo -e "\n\033[33mSource file #include \033[0m( ${missing_file} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
+                else
+                  includes_found=false
+                  missing["$missing_file"]=1
+                  missing_count=$((missing_count + 1));
+                  echo -e "\n\033[31mCannot locate missing file\033[0m ${missing_file}  [ ❌ ]" | process_input;
+                fi;
               fi;             
             done <<< "${clang_files_list}";
             unset missing;
             if [[ -s 'check-file-includes.txt' ]]; then
-              awk '!/\.h$|\.c$/ { sub(/\/$/, ""); print }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
-              awk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::✅ check-file located ${located_count} files. ${missing_count} missing out of ${file_count} total!!!\n\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
+              gawk -v ext="${filetype}" '$0 ~ "\\."ext"$" || $0 ~ "\\.(h|hh|hpp|hxx|h\\+\\+)$" { sub(/\/$/, ""); print; }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
+              gawk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::✅ check-file located ${located_count} files. ${missing_count} missing out of ${file_count} total!!!\n\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
             fi;
           fi;
           if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
