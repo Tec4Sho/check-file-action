@@ -1214,7 +1214,7 @@ runs:
             fi;
           }
           clang_includes() {
-            find "${{ env.base }}" -not \( -path '*/CMakeFiles' -prune -o -path '*/build' -prune -o -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            find "${{ env.base }}" -not \( -path '/home' -prune -o -path '/proc' -prune -o -path '/sys' -prune -o -path '/dev' -prune -o -path '/mnt' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               if [[ -d "${include}" ]]; then
                 echo -e "--extra-arg=-isystem${include#./}";
               fi;
@@ -1235,7 +1235,7 @@ runs:
           fi;
           if [[ "$(cmake_includes)" ]]; then
             echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
-           if [[ -f "${count3}" ]]; then
+            if [[ -f "${count3}" ]]; then
               echo -e "\n####################\n\tcheck-file added \033[1m$(cat ${count3})\033[0m source include directories [source:\033[32m auto mode\033[0m]\n\tcmake additional header objectives updated successfully!\n####################" | process_input;
             elif [[ -f "${count2}" ]]; then
               echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n\tcheck-file updated $(cat ${count2}) additional header directories\n####################" | process_input;
@@ -1465,10 +1465,8 @@ runs:
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export CMAKE_BUILD_PARALLEL_LEVEL=4
         export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
-        C_INCLUDE_PATH="${C_INCLUDE_PATH}:";
-        CPLUS_INCLUDE_PATH="${CPLUS_INCLUDE_PATH}:";
-        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
-        ${{ inputs.include }} && export C_INCLUDE_PATH+="$(find "${{ env.base }}" \( -name 'acpi' -o -name 'api' -o -name 'asm' -o -name 'core' -o -name 'drivers' -o -name 'fs' -o -name 'generated' -o -name 'gpu' -o -name 'include' -o -name 'linux' -o -name 'mtk' -o -name 'mt-plat' -o -name 'subcmd' -o -name 'subdev' -o -name 'sysdep' -o -name 'util' \) -maxdepth 2 -type d -printf '%p:')";
+        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}";
+        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
@@ -1508,6 +1506,7 @@ runs:
         else
           abs='';
         fi;
+        envsetup=$(fdfind -c auto "${abs}" -p -t f 'envsetup.sh' -xdev --base-directory "${github}" --search-path 'build');
         if ${{ env.check_build == 'false' }}; then
           echo 'check_build=false' >> "${GITHUB_ENV}";
         fi;
@@ -1528,7 +1527,7 @@ runs:
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
+          [[ -e "${envsetup}" ]] && source "${envsetup}";
           if [[ -e "${codechecker}" ]]; then
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
             CodeChecker check -b "make -j$(nproc --all)" --config "${codechecker}" --jobs "$(nproc --all)" --print-steps 2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
@@ -1558,7 +1557,6 @@ runs:
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          [[ -e "${compile_json}" ]] && rm -vf "${compile_json}" | process_input;
           CodeChecker log --build "make -j$(nproc --all)" --output "${compile_json}" 2>&1 | process_input || echo -e "\n::notice::CodeChecker log exit-code ($?)" | process_input;
           if [[ "${PIPESTATUS[0]}" == '0' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
@@ -1593,7 +1591,7 @@ runs:
         if ${{ env.build_files == '1' }} && ${{ inputs.build == '4' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tDeheader analyze & repair sources includes on build...(test-run -4)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
-          [[ -e 'build/envsetup.sh' ]] && source build/envsetup.sh
+          [[ -e "${envsetup}" ]] && source "${envsetup}";
           deheader -v -r -m "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" 2>&1 | process_input || echo -e "\n::notice::deheader build exit-code ($?)" | process_input;
           if [[ "${PIPESTATUS[0]}" == '0' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
@@ -1675,7 +1673,8 @@ runs:
           clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" | grep -vc '[\[\]]');
           clang_information=$(grep -siFc 'information:' "${project_log}");
           clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
-          clang_files_list=$(grep -sEo '#include[[:space:]]+[<"].*[>"]' "${project_log}" | awk '{print $2}' | tr -d '<">' | sort -u);
+          clang_files_list1=$(grep -sEo '#include[[:space:]]+["].*["]' "${project_log}" | awk '{print $2}' | tr -d '"' | sort -u);
+          clang_files_list2=$(grep -sEo '#include[[:space:]]+[<].*[>]' "${project_log}" | awk '{print $2}' | tr -d '<>' | sort -u);
           clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
           clang_errors=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{sum += $1} END {print sum}');
           clang_fixit1=$(grep -siEc 'fixit|fix-its' "${project_log}");
@@ -1771,7 +1770,7 @@ runs:
                 fi;
               fi;             
             done <<< "${clang_files_list1}";
-            missing=()
+            missing=();
             echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input;
             echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES IN: /usr/* \n####################\n" | process_input;
             while IFS= read -r missing_file; do
@@ -1812,7 +1811,7 @@ runs:
                   echo -e "\n\033[31mCannot locate missing file\033[0m ${missing_file}  [ ❌ ]" | process_input;
                 fi;
               fi;             
-            done <<< "${clang_files_list}";
+            done <<< "${clang_files_list2}";
             unset missing;
             if [[ -s 'check-file-includes.txt' ]]; then
               gawk -v ext="${filetype}" '$0 ~ "\\."ext"$" || $0 ~ "\\.(h|hh|hpp|hxx|h\\+\\+)$" { sub(/\/$/, ""); print; }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
