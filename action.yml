@@ -1194,7 +1194,7 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(find "${{ env.base }}" -not \( -path '/home' -prune -o -path '/proc' -prune -o -path '/sys' -prune -o -path '/dev' -prune -o -path '/mnt' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(find '/usr' -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r dir; do
                 if [[ -d "${dir}" ]]; then
                   include_count=$((include_count + 1));
@@ -1214,7 +1214,7 @@ runs:
             fi;
           }
           clang_includes() {
-            find "${{ env.base }}" -not \( -path '/home' -prune -o -path '/proc' -prune -o -path '/sys' -prune -o -path '/dev' -prune -o -path '/mnt' -prune \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            find '/usr' -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               if [[ -d "${include}" ]]; then
                 echo -e "--extra-arg=-isystem${include#./}";
               fi;
@@ -1344,7 +1344,7 @@ runs:
           if [[ -f 'compile_commands.json' ]]; then
              user_compile_json=true
              compile_json='compile_commands.json';
-             mkdir build && cp -vf ${compile_json} build/
+             cp -vf ${compile_json} build/
           elif [[ -f 'build/compile_commands.json' ]]; then
              compile_json='build/compile_commands.json';
           else
@@ -1366,7 +1366,7 @@ runs:
           [[ ! -f "${cmake_list}" ]] && cmake_list="${{ github.action_path }}/${cmake_list}"; 
           if [[ "${{ env.run_clang_tidy }}" ]] && ${{ env.analyzer == '1' }} && [[ -e "${compile_json}" ]]; then
             echo -e '\n####################\nRUN-CLANG-TIDY ANALYZING FILES\n####################\n' | process_input;
-            [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && echo -e '[check-file] creating new ,clang-format file as none was found\n' | process_input && clang-format -style=LLVM -dump-config > .clang-format || echo -e "\n::notice::clang-format exit-code ($?)" | process_input;
+            [[ $(whereis clang-format) ]] && [[ ! -f '.clang-format' ]] && echo -e '[check-file] creating new ,clang-format file as none was found\n' | process_input && clang-format -style=LLVM -dump-config > .clang-format 2>&1 | process_input;
             "${{ env.run_clang_tidy }}" -j $(nproc --all) -p build -config-file "${clang_tidy}" -export-fixes build/fixes.yaml -fix -format -style 'file' 2>&1 | process_input || echo -e "\n::notice::run-clang-tidy exit-code ($?)" | process_input;
             if [[ "${PIPESTATUS[0]}" == '0' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
