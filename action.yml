@@ -684,8 +684,8 @@ runs:
           abs='';
         fi;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files1=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | gawk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
-        include_files2=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | xargs -r rg --sort=path --trim -H -o '^#include[[:space:]]+[<].*[>]' | tr -d '<>' | gawk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
+        include_files1=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" | gawk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
+        include_files2=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" | xargs -r rg --sort=path --trim -H -o '^#include[[:space:]]+[<].*[>]' | tr -d '<>' | gawk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
@@ -934,7 +934,7 @@ runs:
         fi; 
         ${{ inputs.include }} && echo -e "####################\n\t\033[34m C INCLUDE PATHS: ${C_INCLUDE_PATH}\033[0m\n####################\n" | process_input;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
+        include_files=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '3' }} && [[ "${include_files3}" ]]; then
@@ -991,7 +991,7 @@ runs:
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             echo -e '\n[\033[1mGCC Mode\033[0m]\n';
-            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -X gcc $m "${file}" | process_input;
+            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" -X gcc $m "${file}" | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mG++ Mode\033[0m]\n';
@@ -1506,7 +1506,7 @@ runs:
         else
           abs='';
         fi;
-        envsetup=$(fdfind -c auto "${abs}" -p -t f 'envsetup.sh' -xdev --base-directory "${github}" --search-path 'build');
+        envsetup=$(fdfind -c auto "${abs}" -p -t f 'envsetup.sh' -xdev --base-directory "${github} -1");
         if ${{ env.check_build == 'false' }}; then
           echo 'check_build=false' >> "${GITHUB_ENV}";
         fi;
