@@ -374,7 +374,7 @@ runs:
           cd "/home/runner/codechecker/venv";
           python3 -m venv .
           cd "${github}";
-          if [[ $(which CodeChecker) ]]; then
+          if [[ ! $(which CodeChecker) ]]; then
             exit 1
           fi;
         fi;
