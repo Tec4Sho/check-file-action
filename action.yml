@@ -1541,11 +1541,22 @@ runs:
               --config "${codechecker}" \
               --jobs "$(nproc --all)" \
               --print-steps \
-              -b "bash -c 'source ${envsetup} && lunch ${makefile} && make clean && make ${filename} -j$(nproc --all) -k'" \
+              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k'" \
+              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+          elif [[ "${envsetup}" ]]; then
+            echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
+            CodeChecker check \
+              --jobs "$(nproc --all)" \
+              --print-steps \
+              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k'" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            CodeChecker check -b "source ${envsetup} && lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" --jobs "$(nproc --all)" --print-steps 2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+            CodeChecker check \
+              --jobs "$(nproc --all)" \
+              --print-steps \
+              -b "make clean && make ${{ inputs.makefile }} -j$(nproc --all) -k" \
+              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           fi;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
@@ -1603,7 +1614,7 @@ runs:
         if ${{ env.build_files == '1' }} && ${{ inputs.build == '4' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tDeheader analyze & repair sources includes on build...(test-run -4)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
-          [[ "${envsetup}" ]] && source "${envsetup}" && echo -e "Sources: ${envsetup}\n";
+          [[ "${envsetup}" ]] && bash -c 'source "${envsetup}"' && echo -e "Sources: ${envsetup}\n";
           deheader -v -r -m "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" 2>&1 | process_input || echo -e "\n::notice::deheader build exit-code ($?)" | process_input;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
