@@ -724,9 +724,9 @@ runs:
                     file4="${file3%\\}";
                     clean_file="${file4##*/}";
                     if [[ ${include} == *"/"* ]]; then
-                      header=$(fdfind -c auto "${abs}" -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}");  
+                      header=$(fdfind -c auto "${abs}" -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}" --search-path "${file%/*}");  
                     else
-                      header=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "${{ env.base }}" --base-directory "${file%/*}");
+                      header=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "${file%/*}");
                     fi;
                     shopt -u extglob
                     if [[ -n "${header}" ]]; then
