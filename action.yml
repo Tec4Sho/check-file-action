@@ -818,9 +818,9 @@ runs:
                 file4="${file3%\\}";
                 clean_file="${file4##*/}";
                 if [[ ${include_source} == *"/"* ]]; then
-                  header=$(fdfind -c auto "${abs}" -xdev -p -t f -g "**/${path4##+(*./)}" "/usr");
+                  header=$(fdfind -c auto "${abs}" -xdev -p -t f -g "**/${path4##+(*./)}" "/usr/src");
                 else
-                  header=$(fdfind -c auto "${abs}" -xdev -p -t f "${clean_file##+(*./)}" "/usr");
+                  header=$(fdfind -c auto "${abs}" -xdev -p -t f "${clean_file##+(*./)}" "/usr/src");
                 fi;
                 shopt -u extglob
                 includes_missing=false
@@ -913,8 +913,8 @@ runs:
         checked=false
         source_include=false
         includes_found=false
-        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/include:/usr/local/include:";
-        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
+        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/local:/usr/src:${C_INCLUDE_PATH}";
+        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/local:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         include_list='check-file-compile.txt';
         github="${GITHUB_WORKSPACE}";
         process_input() {
@@ -1197,14 +1197,12 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(find '/usr' -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
-              while IFS= read -r dir; do
-                if [[ -d "${dir}" ]]; then
-                  include_count=$((include_count + 1));
-                  echo "${include_count}" > "${count1}";
-                  echo -e "-isystem${dir}" >> 'compile_flags.txt';
-                  echo -n "${dir};";
-                fi;
+              header_source=$(find '/usr' \( -path '*/src/*' -o -path '*/local/*' \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+              while IFS= read -r include; do
+                include_count=$((include_count + 1));
+                echo "${include_count}" > "${count1}";
+                echo -e "-isystem${include}" >> 'compile_flags.txt';
+                echo -n "${include};";
               done <<< "${header_source}";
               if [[ -s "${clang_includes}" ]] && ${{ inputs.include }}; then
                 while IFS= read -r include; do
@@ -1217,10 +1215,8 @@ runs:
             fi;
           }
           clang_includes() {
-            find '/usr' -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
-              if [[ -d "${include}" ]]; then
-                echo -e "--extra-arg=-isystem${include#./}";
-              fi;
+            find '/usr' \( -path '*/src/*' -o -path '*/local/*' \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+              echo -e "--extra-arg=-isystem${include#./}";
             done;
           }
           source_files() {
@@ -1473,8 +1469,8 @@ runs:
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export CMAKE_BUILD_PARALLEL_LEVEL=4
         export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
-        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}";
-        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/include:/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
+        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}";
+        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
