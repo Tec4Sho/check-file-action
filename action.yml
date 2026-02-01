@@ -913,8 +913,8 @@ runs:
         checked=false
         source_include=false
         includes_found=false
-        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/local:/usr/src:${C_INCLUDE_PATH}";
-        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/local:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
+        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/local/include:/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}";
+        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         include_list='check-file-compile.txt';
         github="${GITHUB_WORKSPACE}";
         process_input() {
@@ -998,17 +998,15 @@ runs:
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mG++ Mode\033[0m]\n';
-            while IFS= read -r file; do
-              count1=$((file_count++));
-              g++ $m "${file}" | process_input;
-            done <<< "${include_files[@]}";
-          echo 'check_build=true' >> "${GITHUB_ENV}";
+            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" -X g++ $m "${file}" | process_input;
+            echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
           if [[ -s "${project_log}" ]]; then
             gawk '{ for (i=1;i<=NF;i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print $i; } } }' "${project_log}" | gawk '{ for (i=1;i<=NF;i++) print $i; }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "\.\..*\.${filetype}$" | gawk -v ext="${filetype}" '$0 ~ "."ext"$" { if (seen[$0]++) next; print; next; } { print; }' | gawk -v ext="${filetype}" '$0 ~ "\\."ext { delete seen; print; next; } !seen[$0]++' > "${include_list}" || echo "::warning::File ${include_list##*/} was not created!!!" | process_input;
             if [[ -s "${include_list}" ]]; then
               source_include=true
-              count2=$(gawk 'NF > 0 { count++ } END { print count }' "${include_list}");
+              count1=$(gawk -v ext="${{ inputs.filetype }}" '$0 ~ "\\."ext"$" && NF > 0 { count++ } END { print count + 0 }' "${include_list}")
+              count2=$(gawk 'NF > 0 { count++ } END { print count + 0 }' "${include_list}")
               mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
             else
               count2=0
@@ -1631,24 +1629,22 @@ runs:
       shell: bash
       continue-on-error: true
 
-    - name: Build Project
+    - name: Project Finalized
       if: inputs.project == 'true'
       run: |
         echo -n '';
         set +e
         start_time="${{ env.seconds }}";
-        codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         github=${GITHUB_WORKSPACE};
         project_log="${github}/${repository}_project.log";
-        build_fixes='build/fixes.yaml';
         check_build=false
         file_type='c';
         update=true
         fixed=false
         count=1
-        if ${{ inputs.repository == 'false' }} && [[ -d "${{ env.dirname }}" ]]; then
+        if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}";
         fi;
         process_input() {
@@ -1670,7 +1666,7 @@ runs:
           abs='';
         fi;
         if ${{ env.check_build == 'false' }}; then
-          echo 'check_build=false' >> "${GITHUB_ENV}";
+          check_build=false';
         fi;
         if ${{ inputs.update == 'false' }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
@@ -1746,8 +1742,8 @@ runs:
           fi;
           if [[ -n "${clang_files_missing}" ]] && [[ "${clang_files_missing:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
-            echo -e "\n####################\nMISSING FILES LIST:\n####################\n\n${clang_files_list1}" | process_input;
-            echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES IN: ${{ env.base }}\n####################\n" | process_input;
+            echo -e "\n####################\nMISSING USER FILES LIST:\n####################\n\n${clang_files_list1}" | process_input;
+            echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: ${{ env.base }}\n####################\n" | process_input;
             declare -A missing
             found=false
             while IFS= read -r missing_file; do
@@ -1766,9 +1762,9 @@ runs:
                 clean_file="${clean_file##*/}";
                 shopt -s extglob
                 if [[ ${missing_file} == *"/"* ]]; then          
-                  locate=$(fdfind -p -c auto "${abs}" -t f -g "**/${clean_path##+(*./)}" "${{ env.base }}");
+                  locate=$(fdfind -p -c auto "${abs}" -t f -g --search-path "${{ env.dirname }}" --search-path "${{ env.base }}" "**/${clean_path##+(*./)}");
                 else
-                  locate=$(fdfind -p -c auto "${abs}" -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                  locate=$(fdfind -p -c auto "${abs}" -t f --search-path "${{ env.dirname }}" --search-path "${{ env.base }}" "${clean_file##+(*./)}");
                 fi;
                 shopt -u extglob
                 if [[ "${locate}" ]]; then            
@@ -1791,7 +1787,7 @@ runs:
             done <<< "${clang_files_list1}";
             missing=();
             echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input;
-            echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILES IN: /usr/* \n####################\n" | process_input;
+            echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: /usr/src/linux-headers-$(uname -r)/include\n####################\n" | process_input;
             while IFS= read -r missing_file; do
               if [[ "${missing_file}" == *.[h]* ]] || [[ "${missing_file}" == *.[c]* ]]; then
                 file_count=$((file_count + 1));
@@ -1808,9 +1804,9 @@ runs:
                 clean_file="${clean_file##*/}";
                 shopt -s extglob
                 if [[ ${missing_file} == *"/"* ]]; then
-                  locate=$(fdfind -c auto "${abs}" -xdev -p -t f -g "**/${path4##+(*./)}" '/usr');
+                  locate=$(fdfind -c auto "${abs}" -xdev -p -t f -g --search-path "/usr/local/include" --search-path "/usr/src/linux-headers-$(uname -r)/include" "**/${clean_path##+(*./)}");
                 else
-                  locate=$(fdfind -c auto "${abs}" -xdev -p -t f "${clean_file##+(*./)}" '/usr');
+                  locate=$(fdfind -c auto "${abs}" -xdev -p -t f --search-path "/usr/local/include" --search-path "/usr/src/linux-headers-$(uname -r)/include" "${clean_file##+(*./)}");
                 fi;
                 shopt -u extglob
                 if [[ "${locate}" ]]; then            
