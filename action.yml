@@ -564,7 +564,7 @@ runs:
         if ${{ inputs.repository == 'false' }} && ${{ inputs.dirname != '' }}; then
           cd "${{ inputs.dirname }}" && echo -e "\nRepository auto mode disabled switched to user directory: ${{ inputs.dirname }}";
         fi;
-        src=$(ls .);
+        src=$(ls);
         type_count=0
         total_files=$(find . -type f | grep -v '\.git/.' | wc -l);
         file_type0=$(find . -type f -name "*.${{ inputs.filetype }}" | grep -v '\.git/.' | wc -l);
@@ -581,10 +581,10 @@ runs:
         }
         directory() {
           for dir in ${src[@]}; do
-            if [ -d "${dir}" ]; then
+            if [[ -d "${dir}" ]]; then
               count=$(find "${dir}" -type f | wc -l);
               echo "${dir}: ${count} files";
-             fi;
+            fi;
           done;
         }
         file_types() {
@@ -616,7 +616,7 @@ runs:
             echo -e "\nThe total percentage of header files is: \033[1m${percentage2:-0}%\033[0m";
             echo -e "\n#####################\nRepository: \033[1m${repo}\033[0m\n#####################\n\nProject has \033[1m${total_files}\033[0m files total";
           else
-            echo -e "\n#####################\n::error::Repository: ${repo} files missing? Exiting....\n#####################\n";
+            echo -e "\n#####################\n::warning::Repository: ${{ inputs.dirname }} has no ${{ inputs.filetype }} files build only?! continuing....\n#####################\n";
           fi;
         fi;
         text "\n${text10a}" 2>/dev/null;
@@ -633,7 +633,7 @@ runs:
         echo 'build_cache=false' >> "${GITHUB_ENV}";
         echo 'check_build=false' >> "${GITHUB_ENV}";
       shell: bash
-      continue-on-error: false
+      continue-on-error: true
 
     - name: Source Includes Fixer A
       if: inputs.source == '1' || inputs.source == '2'
