@@ -480,7 +480,7 @@ runs:
         text5c="####################";
         text6="::error::Database not found exiting";
         text7a="####################";
-        text7b="Searching directories for ${{ inputs.filename }}) file(s)";
+        text7b="Searching directories for ${{ inputs.filename }} file(s)";
         text7c="####################";
         text8a="####################";
         text8b="Searching ${{ inputs.filetype }} files for ${{ inputs.pattern }} match(s)";
@@ -539,7 +539,7 @@ runs:
             text "${text5c}";
           fi;
         fi;
-        if ${{ inputs.filename != '' }}; then
+        if ${{ inputs.filename != '' }} && ${{ inputs.build == '0' }}; then
           text "\n${text7a}";
           text "${text7b}";
           text "${text7c}";
@@ -562,9 +562,9 @@ runs:
           echo "analyzer=${{ inputs.analyzer }}" >> "${GITHUB_ENV}";
         fi;
         if ${{ inputs.repository == 'false' }} && ${{ inputs.dirname != '' }}; then
-          cd "${{ inputs.dirname }}" && echo -e "\nRepository auto mode disabled switched to user directory: ${{ inputs.dirname }}";
+          echo -e "\nRepository auto clone disabled checking all project files in: ${GITHUB_WORKSPACE}";
         fi;
-        src=$(ls);
+        source_dirs=$(ls);
         type_count=0
         total_files=$(find . -type f | grep -v '\.git/.' | wc -l);
         file_type0=$(find . -type f -name "*.${{ inputs.filetype }}" | grep -v '\.git/.' | wc -l);
@@ -576,11 +576,11 @@ runs:
         include_dirs=$(find -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | wc -l);
         file_count() {
           find . -type f | grep -iEo '\_[[:alnum:]]+$|\-[[:alnum:]]+$|\.[[:alnum:]]+$|[[:alnum:]]+$' | tr -d '_\-\.' | sort | uniq -c | sed 's/^ *//' | while IFS= read -r file; do
-            echo "${file} files"
+            echo "${file} files";
           done;
         }
         directory() {
-          for dir in ${src[@]}; do
+          for dir in ${source_dirs[@]}; do
             if [[ -d "${dir}" ]]; then
               count=$(find "${dir}" -type f | wc -l);
               echo "${dir}: ${count} files";
@@ -1070,7 +1070,7 @@ runs:
         file_type='c';
         update=true
         fixed=false;
-        if ${{ inputs.repository == 'false' }} && [[ -d "${{ env.dirname }}" ]]; then
+        if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}";
         fi;
         process_input() {
