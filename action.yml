@@ -913,8 +913,6 @@ runs:
         checked=false
         source_include=false
         includes_found=false
-        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/local/include:/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}";
-        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         include_list='check-file-compile.txt';
         github="${GITHUB_WORKSPACE}";
         process_input() {
@@ -935,7 +933,6 @@ runs:
         else
           m='-MM';
         fi; 
-        ${{ inputs.include }} && echo -e "####################\n\t\033[34m C INCLUDE PATHS: ${C_INCLUDE_PATH}\033[0m\n####################\n" | process_input;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         include_files=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
@@ -990,6 +987,9 @@ runs:
           s=$((seconds % 60));
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
         elif [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '4' }} && [[ "${include_files}" ]]; then
+          ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}";
+          ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
+          ${{ inputs.include }} && echo -e "####################\n\t\033[34m EXTRA INCLUDE PATHS: ${C_INCLUDE_PATH}\033[0m\n####################\n" | process_input;
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
