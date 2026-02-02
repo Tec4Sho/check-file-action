@@ -1535,21 +1535,21 @@ runs:
               --config "${codechecker}" \
               --jobs "$(nproc --all)" \
               --print-steps \
-              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k'" \
+              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ inputs.filename }} -j$(nproc --all) -k'" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             CodeChecker check \
               --jobs "$(nproc --all)" \
               --print-steps \
-              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k'" \
+              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ inputs.filename }} -j$(nproc --all) -k'" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             CodeChecker check \
               --jobs "$(nproc --all)" \
               --print-steps \
-              -b "make clean && make ${{ inputs.makefile }} -j$(nproc --all) -k" \
+              -b "make ${{ inputs.makefile }} -j$(nproc --all) -k" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           fi;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
@@ -1665,8 +1665,8 @@ runs:
         else
           abs='';
         fi;
-        if ${{ env.check_build == 'false' }}; then
-          check_build=false';
+        if ${{ env.check_build == 'true' }}; then
+          check_build=true
         fi;
         if ${{ inputs.update == 'false' }}; then
           echo 'update=false' >> "${GITHUB_ENV}";
@@ -1676,7 +1676,7 @@ runs:
           file_type="${{ inputs.filetype }}";
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
-        if [[ -s "${project_log}" ]] && (${{ env.check_build == 'true' }} || [[ "${check_build}" == 'true' ]]); then
+        if [[ -s "${project_log}" ]] && [[ "${check_build}" == 'true' ]]; then
           echo -e "\n####################\n\t${project_log##*/} file found checking stats...\n####################" | process_input;
           deheader_duplicates=$(grep -sFc 'duplicates' "${project_log}");
           deheader_inclusion=$(grep -sFc 'inclusion' "${project_log}");
