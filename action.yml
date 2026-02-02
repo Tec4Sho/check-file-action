@@ -1501,13 +1501,10 @@ runs:
         elif [[ -f 'build/compile_commands.json' ]]; then
           compile_json='build/compile_commands.json';
         else
-          compile_json='build/compile_commands.json';
+          codechecker=$(fdfind -c auto -a -p -t f -1 'codechecker.yaml' "${github}");
+          compile_json=$(fdfind -c auto -a -p -t f -1 'compile_commands.json' "${github}");
         fi;
-        if ${{ inputs.absolute }}; then
-          envsetup=$(fdfind -c auto -a -p -t f -1 'envsetup.sh' "${github}");
-        else
-          envsetup=$(fdfind -c auto -p -t f -1 'envsetup.sh' "${github}");
-        fi;
+        envsetup=$(fdfind -c auto -p -t f -1 'envsetup.sh' "${github}");
         if ${{ env.check_build == 'false' }}; then
           echo 'check_build=false' >> "${GITHUB_ENV}";
         fi;
