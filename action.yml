@@ -993,11 +993,11 @@ runs:
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             echo -e '\n[\033[1mGCC Mode\033[0m]\n';
-            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" -X gcc "${M}" "${I}" | process_input;
+            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" -X gcc ${M} ${I} | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mG++ Mode\033[0m]\n';
-            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" -X g++ "${M}" "${I}" | process_input;
+            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" -X g++ ${M} ${I} | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
           if [[ -s "${project_log}" ]]; then
@@ -1202,7 +1202,7 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(fdfind -p "${abs}" -t d 'include' '/usr' --search-path '*/src/linux-headers-$(uname -r)/*' --search-path '*/local/*' -j "$(nproc --all)" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(fdfind -p "${abs}" -t d 'include' --search-path "/usr/src/linux-headers-$(uname -r)/" --search-path '/usr/local/' -j "$(nproc --all)" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1220,7 +1220,7 @@ runs:
             fi;
           }
           clang_includes() {
-            fdfind -p "${abs}" -t d 'include' '/usr' --search-path '*/src/linux-headers-$(uname -r)/*' --search-path '*/local/*' -j "$(nproc --all)" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            fdfind -p "${abs}" -t d 'include' --search-path "/usr/src/linux-headers-$(uname -r)/" --search-path '/usr/local/' -j "$(nproc --all)" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               echo -e "--extra-arg=-isystem${include#./}";
             done;
           }
@@ -1230,7 +1230,7 @@ runs:
             done;
           }
           mkdir -p build/bin
-          [[ ! -f "${cmake_list}" ]] && cmake_list="${{ github.action_path }}/${cmake_list}";
+          [[ ! -f "${cmake_list}" ]] && cmake_list="${{ github.action_path }}/${cmake_list}" && cp $cmake_list .;
           echo 'build_error=false' >> "${GITHUB_ENV}";
           echo 'github_source_files=false' >> "${GITHUB_ENV}";
           echo 'github_include_dirs=false' >> "${GITHUB_ENV}";
