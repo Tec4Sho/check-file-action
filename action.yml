@@ -1074,7 +1074,7 @@ runs:
         fixed=false;
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}";
-          cmakelist=$(find "${{ env.base }}" -type f -name 'CMakeLists.txt' -quiet);
+          cmakelist=$(find "${github}" -type f -name 'CMakeLists.txt' -print -quiet);
           [[ ! -f 'CMakeLists.txt' ]] && cp -v "${cmakelist}" . 2>/dev/null;
           echo '';
         fi;
@@ -1205,7 +1205,7 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(fdfind -p "${abs}" -j "$(nproc --all)" -t d 'include' --search-path "/usr/src/linux-headers-$(uname -r)/include" | awk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(fdfind -p "${abs}" -j "$(nproc --all)" -t d 'include' "/usr/src/linux-headers-$(uname -r)" | awk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1223,7 +1223,7 @@ runs:
             fi;
           }
           clang_includes() {
-            fdfind -p "${abs}" -j "$(nproc --all)" -t d 'include' --search-path "/usr/src/linux-headers-$(uname -r)/include" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            fdfind -p "${abs}" -j "$(nproc --all)" -t d 'include' "/usr/src/linux-headers-$(uname -r)" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               echo -e "--extra-arg=-isystem${include#./}";
             done;
           }
