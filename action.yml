@@ -1000,20 +1000,23 @@ runs:
             fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" -X g++ ${M} ${I} | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
+          clang_files_missing=$(LC_ALL=C grep -sFc 'No such file' "${project_log}");
+          clang_missing_count=$(LC_ALL=C grep -sF 'No such file' "${project_log}" | awk '{print $4}' | tr -d ': ' | sort -u | wc -l);
+          clang_file_errors=$(LC_ALL=C grep -sFc 'error:' "${project_log}");
           if [[ -s "${project_log}" ]]; then
             gawk '{ for (i=1;i<=NF;i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print $i; } } }' "${project_log}" | gawk '{ for (i=1;i<=NF;i++) print $i; }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "\.\..*\.${filetype}$" | gawk -v ext="${filetype}" '$0 ~ "."ext"$" { if (seen[$0]++) next; print; next; } { print; }' | gawk -v ext="${filetype}" '$0 ~ "\\."ext { delete seen; print; next; } !seen[$0]++' > "${include_list}" || echo "::warning::File ${include_list##*/} was not created!!!" | process_input;
             if [[ -s "${include_list}" ]]; then
               source_include=true
               count1=$(gawk -v ext="${{ inputs.filetype }}" '$0 ~ "\\."ext"$" && NF > 0 { count++; } END { print count + 0; }' "${include_list}")
               count2=$(gawk 'NF > 0 { count++; } END { print count + 0; }' "${include_list}")
+              [[ "${clang_missing_count}" == '0' ]] && clang_missing_count=$(grep -oE '\b[^/[:space:]][^[:space:]]*' part_10 | grep -Fv '.o:' | sort -u | wc -l);
+              [[ "${clang_missing_count}" > '0' ]] && grep -oE '\b[^/[:space:]][^[:space:]]*' part_10 | grep -Fv '.o:' | sort -u > missing-file-list.txt;
               mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
+              [[ -s 'missing-file-list.txt' ]] && cp -vf missing-file-list.txt build/
             else
               count2=0
               echo -e "\n::warning::\033[31m⚠️ Sources & includes file not created after scanning!!!\033[0m\033[1m ${clang_missing_count:-0}\033[0m\n";
-            fi;
-            clang_files_missing=$(LC_ALL=C grep -sFc 'No such file or directory' "${project_log}");
-            clang_missing_count=$(LC_ALL=C grep -sF 'No such file or directory' "${project_log}" | awk '{print $4}' | tr -d ': ' | sort -u | wc -l);
-            clang_file_errors=$(LC_ALL=C grep -sFc 'error:' "${project_log}");
+            fi;           
             echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count2}\033[0m ${{ inputs.filetype }} files and their include directories added in total,\n[Hint] You can cache or download this file & add to repo to auto create custom \033[31mcompile command json file\033[0m." | process_input;
             if [[ "${clang_file_errors}" > '0' ]]; then
               echo -e "\n::notice::\033[34m⚠️ Total include source file errors during scan\033[0m\033[1m ${clang_file_errors}\033[0m\n[Hint] Many source files may report these \033[31mfatal file errors.\033[0m\n\033[1mCheck-file notice file issues that needs repair before a build!!!\033[0m" | process_input;
