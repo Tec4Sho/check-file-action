@@ -929,9 +929,9 @@ runs:
           done;
         }
         if ${{ inputs.include }}; then
-          m='-M -MG';
+          M='-M -MG';
         else
-          m='-MM';
+          M='-MM';
         fi; 
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         include_files=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
@@ -944,14 +944,14 @@ runs:
             echo -e '\n[\033[1mGCC Mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              gcc $m "${file}" 2>&1 | process_input;
+              gcc $M "${file}" 2>&1 | process_input;
             done <<< "${include_files[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mG++ Mode\033[0m]\n';
             while IFS= read -r file; do
               count1=$((file_count++));
-              g++ $m "${file}" 2>&1 | process_input;
+              g++ $M "${file}" 2>&1 | process_input;
             done <<< "${include_files[@]}";
           echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
@@ -987,17 +987,17 @@ runs:
           s=$((seconds % 60));
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
         elif [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '4' }} && [[ "${include_files}" ]]; then
-          ${{ inputs.include }} && export I="-isystem /usr/src/linux-headers-$(uname -r)/include";
+          ${{ inputs.include }} && export I="-isystem /usr/src/linux-headers-$(uname -r)/include" || export I="-isystem /usr/include";
           ${{ inputs.include }} && echo -e "####################\n\t\033[34m EXTRA INCLUDE PATHS: ${I}\033[0m\n####################\n" | process_input;
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             echo -e '\n[\033[1mGCC Mode\033[0m]\n';
-            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" -X gcc ${M} ${I} "${file}" | process_input;
+            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" -X gcc "${M}" "${I}" | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mG++ Mode\033[0m]\n';
-            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" -X g++ ${M} ${I} "${file}" | process_input;
+            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" -X g++ "${M}" "${I}" | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
           if [[ -s "${project_log}" ]]; then
