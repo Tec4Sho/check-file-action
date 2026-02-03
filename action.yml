@@ -1220,7 +1220,7 @@ runs:
             fi;
           }
           clang_includes() {
-            fdfind -p "${abs}" -t d 'include' --search-path "/usr/src/linux-headers-$(uname -r)/" --search-path '/usr/local/' -j "$(nproc --all)" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            fdfind -p "${abs}" -j "$(nproc --all)" -t d 'include' --search-path "/usr/src/linux-headers-$(uname -r)/include" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               echo -e "--extra-arg=-isystem${include#./}";
             done;
           }
@@ -1267,7 +1267,11 @@ runs:
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
               echo -e 'Cmake Sources: mode [1]\n';
               cmake -S . -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build 2>&1 | cmakebar --replay --est true | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
-            elif ([[ "$(source_dirs)" ]] || [[ "$(cmake_includes)" ]]) && [[ ! -f "${compile_json}" ]]; then
+            elif [[ "$(source_dirs)" ]] && [[ ! -f "${compile_json}" ]] && (${{ env.sources }} || [[ -e 'check-file-compile.txt' ]]); then
+              echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
+              echo -e 'Cmake Sources: mode [1]\n';
+              cmake -S . -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build 2>&1 | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
+            elif [[ "$(source_dirs)" ]] && [[ "$(cmake_includes)" ]] && [[ ! -f "${compile_json}" ]]; then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
               echo -e 'Cmake Sources: mode [2]\n';
               cmake -S . -DPROJECT_INCLUDE_SRC="${include_source}" -DPROJECT_INCLUDE_DIRS="$(cmake_includes)" -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build 2>&1 | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
