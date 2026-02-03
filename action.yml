@@ -1071,6 +1071,9 @@ runs:
         fixed=false;
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}";
+          cmakelist=$(find "${{ env.base }}" -type f -name 'CMakeLists.txt' -quiet);
+          [[ ! -f 'CMakeLists.txt' ]] && cp -v "${cmakelist}" . 2>/dev/null;
+          echo '';
         fi;
         process_input() {
           while IFS= read -r output; do
@@ -1149,9 +1152,9 @@ runs:
           echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################" | process_input;
           echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################" | process_input;
           if ${{ inputs.content }} && ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
-            codechecker_analyzer1=$(CodeChecker checkers --analyzers clangsa | awk '/Status: enabled/{print prev}{prev=$0}' | awk '{printf "    %s\n", $0}');
+            codechecker_analyzer1=$(CodeChecker checkers --analyzers clangsa | gawk '/Status: enabled/{ print prev; }{ prev=$0; }' | gawk '{ printf "    %s\n", $0; }');
             [[ -n "${codechecker_analyzer1}" ]] && echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled analyzer checks:\n${codechecker_analyzer1}" | process_input;
-            codechecker_analyzer2=$(CodeChecker checkers --profile sensitive | awk '/Status: enabled/{print prev}{prev=$0}' | awk '{printf "    %s\n", $0}');
+            codechecker_analyzer2=$(CodeChecker checkers --profile sensitive | gawk '/Status: enabled/{ print prev; }{ prev=$0; }' | gawk '{ printf "    %s\n", $0; }');
             [[ -n "${codechecker_analyzer2}" ]] && echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled profile checks:\n${codechecker_analyzer2}" | process_input;
           fi;
           ${{ inputs.content }} && echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
