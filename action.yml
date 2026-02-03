@@ -1157,6 +1157,11 @@ runs:
           ${{ inputs.content }} && echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
           echo -e "\n####################\nChecking Repository:\033[32m ${{ env.base }}\033[0m\n####################" | process_input;
           echo -e "\n####################\nChecking for ${file_type} files\n####################" | process_input;
+          if ${{ inputs.absolute }}; then
+            abs='-a';
+          else
+            abs='';
+          fi;
           source_dirs() {
             find -not \( -path '*/.github' -prune -o -path '*/.git' -prune \) -type d -maxdepth 1 -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r dir; do
               if [[ "${dir}" != '.' ]]; then
@@ -1194,7 +1199,7 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(find '/usr' \( -path '*/src/*' -o -path '*/local/*' \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(fdfind -p "${abs}" -t d 'include' '/usr' --search-path '*/src/linux-headers-$(uname -r)/*' --search-path '*/local/*' -j "$(nproc --all)" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1212,7 +1217,7 @@ runs:
             fi;
           }
           clang_includes() {
-            find '/usr' \( -path '*/src/*' -o -path '*/local/*' \) -type d -name 'include' -print | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            fdfind -p "${abs}" -t d 'include' '/usr' --search-path '*/src/linux-headers-$(uname -r)/*' --search-path '*/local/*' -j "$(nproc --all)" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               echo -e "--extra-arg=-isystem${include#./}";
             done;
           }
@@ -1636,6 +1641,7 @@ runs:
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         github=${GITHUB_WORKSPACE};
         project_log="${github}/${repository}_project.log";
+        source_include_list='check-file-compile.txt';
         check_build=false
         file_type='c';
         update=true
@@ -1826,6 +1832,8 @@ runs:
               gawk -v ext="${filetype}" '$0 ~ "\\."ext"$" || $0 ~ "\\.(h|hh|hpp|hxx|h\\+\\+)$" { sub(/\/$/, ""); print; }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
               gawk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::✅ check-file located ${located_count} files. ${missing_count} missing out of ${file_count} total!!!\n\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
             fi;
+            gawk '{ for (i=1;i<=NF;i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print $i; } } }' "${project_log}" | gawk '{ for (i=1;i<=NF;i++) print $i; }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "\.\..*\.${filetype}$" | gawk -v ext="${filetype}" '$0 ~ "."ext"$" { if (seen[$0]++) next; print; next; } { print; }' | gawk -v ext="${filetype}" '$0 ~ "\\."ext { delete seen; print; next; } !seen[$0]++' > "${source_include_list}" || echo "::notice::File ${source_include_list##*/} was not created!!!" | process_input;
+            [[ -f "${source_include_list}" ]] && cp "${source_include_list}" 'build/' && echo -e "\n\033[32mCopied ${} to build for uploading if needed.\033[0m ✅" | process_input;
           fi;
           if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
