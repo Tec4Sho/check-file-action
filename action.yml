@@ -1202,7 +1202,7 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(fdfind -p "${abs}" -t d 'include' --search-path "/usr/src/linux-headers-$(uname -r)/" --search-path '/usr/local/' -j "$(nproc --all)" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(fdfind -p "${abs}" -j "$(nproc --all)" -t d 'include' --search-path "/usr/src/linux-headers-$(uname -r)/include" | awk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
