@@ -96,8 +96,7 @@ inputs:
     - 0 # Disabled
     - 1 # Locate user includes in sources and display file info.
     - 2 # Locate system includes in sources and display file info.
-    - 3 # Locate user includes in sources and display file info.
-    - 4 # Locate system includes in sources and display file info.
+    - 3 # Locate user & system includes in sources and display file info fast.
   number:
     description: 'Number of files to check before stopping action'
     type: number
@@ -929,80 +928,31 @@ runs:
           done;
         }
         if ${{ inputs.include }}; then
-          M='-O1 -M -MG -ansi -fdiagnostics-show-location=once -fsyntax-only -E';
+          M='-O1 -ansi -fdiagnostics-show-location=once -fsyntax-only -M -MG -E';
         else
-          M='-O3 -MM -ansi -fdiagnostics-show-location=every-line -Wall -fsyntax-only -E';
+          M='-O3 -ansi -fdiagnostics-show-location=every-line -Wall -fsyntax-only -MM -E';
         fi;
         if ${{ inputs.absolute }}; then
           abs='--absolute-path';
         else
           abs='--relative-path';
         fi;
-        echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
+        echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE ULTRA\033[0m\n####################" | process_input;
         include_files=$(fdfind -j "$(nproc --all)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         ${{ inputs.content }} && export I="-isystem/usr/src/linux-headers-$(uname -r)/include" || export I="-isystem/usr/local/include";
         ${{ inputs.include }} && echo -e "####################\n\t\033[34m EXTRA INCLUDE PATHS: ${I}\033[0m\n####################\n" | process_input;
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
-        [[ -f "${include1}" ]] && rm -f "include-file*.txt";
+        [[ -f "${include1}" ]] && rm -f "include-file*.txt";        
         if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '3' }} && [[ "${include_files}" ]]; then
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
-            echo -e '\n[\033[1mGCC Mode 1\033[0m]\n';
-            while IFS= read -r file; do
-              count1=$((file_count++));
-              gcc ${M} ${I} "${file}" 2>&1 | process_input;
-            done <<< "${include_files[@]}";
-          echo 'check_build=true' >> "${GITHUB_ENV}";
-          elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
-            echo -e '\n[\033[1mG++ Mode 1\033[0m]\n';
-            while IFS= read -r file; do
-              count1=$((file_count++));
-              g++ ${M} ${I} "${file}" 2>&1 | process_input;
-            done <<< "${include_files[@]}";
-          echo 'check_build=true' >> "${GITHUB_ENV}";
-          fi;
-          if [[ -s "${project_log}" ]]; then
-            LC_ALL=C grep -E '^[^/].*\.(h|hpp)$' "${project_log}" | grep -v '.o:' | awk '{print $1}' > 'input_file.txt' && sed -E 's|/[^/]*$||' 'input_file.txt' > 'output_file.txt';
-            if [[ -s 'output_file.txt' ]]; then
-              while IFS= read -r path; do
-                count4=$((include_dirs++));
-                echo "${path%/..}" >> 'output.txt';
-              done < 'output_file.txt';
-            fi;
-            [[ -s 'output.txt' ]] && cat 'output.txt' | sort -u > "${include_list}" && rm output.txt input_file.txt output_file.txt 2>/dev/null;
-            if [[ -s "${include_list}" ]]; then
-              source_include=true
-              count4=$(awk 'NF > 0 { count++ } END { print count }' "${include_list}");
-              mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
-            fi;
-            clang_files_missing=$(LC_ALL=C grep -sFc 'No such file or directory' "${project_log}");
-            clang_missing_count=$(LC_ALL=C grep -sF 'No such file or directory' "${project_log}" | awk '{print $4}' | tr -d ': ' | sort -u | wc -l);
-            clang_file_errors=$(LC_ALL=C grep -sFc 'error:' "${project_log}");
-            echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count4}\033[0m include directories added,\n[Hint] You can \033[31mlimit\033[0m include directories added using (\033[1m number: # \033[0m) option.\nDefault limit is set at \033[31m500\033[0m" | process_input;
-            if [[ "${clang_file_errors}" > '0' ]]; then
-              echo -e "\n::notice::\033[34m⚠️ Total include source file errors during scan\033[0m\033[1m ${clang_file_errors}\033[0m\n[Hint] Many source files may report these \033[31mfatal file errors.\033[0m\n\033[1mCheck-file notice file issues that needs repair before a build!!!\033[0m" | process_input;
-            fi;
-            if [[ "${clang_files_missing}" > '0' ]]; then
-              echo -e "\n::notice::\033[34m⚠️ Total include source file missing calls during scan\033[0m\033[1m ${clang_files_missing}\033[0m\n[Hint] Many source files may call these \033[31mmissing include files.\033[0m\nYou may need to remove the missing include file objectives or added the files before compiling!!!" | process_input;
-              echo -e "\n::notice::\033[31m⚠️ Total include source files actually missing after scan\033[0m\033[1m ${clang_missing_count:-0}\033[0m\n";
-            fi;
-            includes_found=true
-          fi;
-          seconds=$((SECONDS - start_time));
-          m=$((seconds / 60));
-          s=$((seconds % 60));
-          printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
-        elif [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '4' }} && [[ "${include_files}" ]]; then
-          echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
-          echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
-          if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             echo -e '\n[\033[1mGCC Mode 2\033[0m]\n';
-            fdfind -j "$(nproc --all)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -X gcc ${M} ${I} | process_input;
+            fdfind -j "$(nproc)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x gcc {} ${M} ${I} | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mG++ Mode 2\033[0m]\n';
-            fdfind -j "$(nproc --all)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -X g++ ${M} ${I} | process_input;
+            fdfind -j "$(nproc)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x g++ {} ${M} ${I} | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
           clang_files_missing=$(LC_ALL=C grep -sFc 'No such file' "${project_log}");
