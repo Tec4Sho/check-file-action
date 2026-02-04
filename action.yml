@@ -998,7 +998,7 @@ runs:
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             echo -e '\n[\033[1mGCC Mode\033[0m]\n';
-            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" -X gcc ${M} ${I} | process_input;
+            fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -X gcc ${M} ${I} | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mG++ Mode\033[0m]\n';
@@ -1012,6 +1012,7 @@ runs:
             gawk '{ for (i=1;i<=NF;i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print $i; } } }' "${project_log}" | gawk '{ for (i=1;i<=NF;i++) print $i; }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "\.\..*\.${filetype}$" | gawk -v ext="${filetype}" '$0 ~ "."ext"$" { if (seen[$0]++) next; print; next; } { print; }' | gawk -v ext="${filetype}" '$0 ~ "\\."ext { delete seen; print; next; } !seen[$0]++' > "${include_list}" || echo "::warning::File ${include_list##*/} was not created!!!" | process_input;
             if [[ -s "${include_list}" ]]; then
               source_include=true
+              count0=$(egrep -c '^[a-zA-Z0-9]+\.o:' "${project_log}")
               count1=$(gawk -v ext="${{ inputs.filetype }}" '$0 ~ "\\."ext"$" && NF > 0 { count++; } END { print count + 0; }' "${include_list}")
               count2=$(gawk 'NF > 0 { count++; } END { print count + 0; }' "${include_list}")
               [[ "${clang_missing_count}" == '0' ]] && clang_missing_count=$(grep -oE '\b[^/[:space:]][^[:space:]]*' part_10 | grep -Fv '.o:' | sort -u | wc -l);
@@ -1022,7 +1023,7 @@ runs:
               count2=0
               echo -e "\n::warning::\033[31m⚠️ Sources & includes file not created after scanning!!!\033[0m\033[1m ${clang_missing_count:-0}\033[0m\n";
             fi;           
-            echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count2}\033[0m ${{ inputs.filetype }} files and their include directories added in total,\n[Hint] You can cache or download this file & add to repo to auto create custom \033[31mcompile command json file\033[0m." | process_input;
+            echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count0}\033[0m. Their were \033[1m${count1}\033[0m source files with include objectives\n\033[1m${count2}\033[0m ${{ inputs.filetype }} files and their include directories added in total,\n[Hint] You can cache or download this file add it to your repository which auto creates a custom \033[31mcompile command json file when found!!!\033[0m." | process_input;
             if [[ "${clang_file_errors}" > '0' ]]; then
               echo -e "\n::notice::\033[34m⚠️ Total include source file errors during scan\033[0m\033[1m ${clang_file_errors}\033[0m\n[Hint] Many source files may report these \033[31mfatal file errors.\033[0m\n\033[1mCheck-file notice file issues that needs repair before a build!!!\033[0m" | process_input;
             fi;
