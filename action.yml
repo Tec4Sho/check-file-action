@@ -929,9 +929,9 @@ runs:
           done;
         }
         if ${{ inputs.include }}; then
-          M='-M -MG';
+          M='-01 -M -MG -fdiagnostics-show-location=once -E';
         else
-          M='-MM';
+          M='-03 -MM -fdiagnostics-show-location=every-line -Wall -E';
         fi;
         if ${{ inputs.absolute }}; then
           abs='--absolute-path';
@@ -992,7 +992,7 @@ runs:
           s=$((seconds % 60));
           printf "Project Auto Include Runtime:\033[1m %d minutes and %d seconds\033[0m\n" "$m" "$s" | process_input;
         elif [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '4' }} && [[ "${include_files}" ]]; then
-          ${{ inputs.include }} && export I="-isystem /usr/src/linux-headers-$(uname -r)/include" || export I="-isystem /usr/include";
+          ${{ inputs.include }} && export I="-isystem/usr/src/linux-headers-$(uname -r)/include" || export I="-isystem/usr/local/include";
           ${{ inputs.include }} && echo -e "####################\n\t\033[34m EXTRA INCLUDE PATHS: ${I}\033[0m\n####################\n" | process_input;
           echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
