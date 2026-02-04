@@ -1626,8 +1626,8 @@ runs:
         if ${{ env.build_files == '1' }} && ${{ inputs.build == '4' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tDeheader analyze & repair sources includes on build...(test-run -4)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
-          [[ "${envsetup}" ]] && bash -c 'source "${envsetup}"' && echo -e "Sources: ${envsetup}\n";
-          deheader -v -r -m "lunch ${{ inputs.makefile }} && make clean && make ${{ inputs.filename }} -j$(nproc --all) -k" 2>&1 | process_input || echo -e "\n::notice::deheader build exit-code ($?)" | process_input;
+          [[ "${envsetup}" ]] && echo -e "Sources: ${envsetup}\n";
+          deheader -v -r -m "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ inputs.filename }} -j$(nproc --all) -k'" 2>&1 | process_input || echo -e "\n::notice::deheader build exit-code ($?)" | process_input;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
           elif [[ -s "${project_log}" ]] && [[ $(grep -sE ' duplicates|inclusion' "${project_log}") ]]; then
