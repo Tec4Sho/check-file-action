@@ -682,9 +682,9 @@ runs:
           done;
         }
         if ${{ inputs.absolute }}; then
-          abs='-a';
+          abs='--absolute-path';
         else
-          abs='';
+          abs='--relative-path';
         fi;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         include_files1=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" | gawk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
@@ -932,7 +932,12 @@ runs:
           M='-M -MG';
         else
           M='-MM';
-        fi; 
+        fi;
+        if ${{ inputs.absolute }}; then
+          abs='--absolute-path';
+        else
+          abs='--relative-path';
+        fi;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
         include_files=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
@@ -1076,6 +1081,7 @@ runs:
           cd "${{ env.dirname }}";
           cmakelist=$(find "${github}" -type f -name 'CMakeLists.txt' -print -quiet);
           [[ ! -f 'CMakeLists.txt' ]] && cp -v "${cmakelist}" . 2>/dev/null;
+          [[ ! -f 'CMakeLists.txt' ]] && cp -v "${{ github.action_path }}/CMakeLists.txt" . 2>/dev/null;
           echo '';
         fi;
         process_input() {
@@ -1108,18 +1114,18 @@ runs:
           verify_config=$(clang-tidy --verify-config);
           cmake_version=$(cmake --version);
           if [[ -f 'compile_commands.json' ]]; then
-             user_compile_json=true
-             compile_json='compile_commands.json';
-             mkdir build && cp -vf ${compile_json} build/
+            user_compile_json=true
+            compile_json='compile_commands.json';
+            mkdir build && cp -vf ${compile_json} build/
           elif [[ -f 'build/compile_commands.json' ]]; then
-             compile_json='build/compile_commands.json';
+            compile_json='build/compile_commands.json';
           else
-             compile_json='build/compile_commands.json';
+            compile_json='build/compile_commands.json';
           fi;
           if ${{ inputs.absolute }}; then
-            abs='-a';
+            abs='--absolute-path';
           else
-            abs='';
+            abs='--relative-path';
           fi;
           clang_checks=$(clang-tidy --list-checks);
           gcc_version=$(gcc --version);
@@ -1129,7 +1135,6 @@ runs:
           clang_tidy='.clang-tidy';
           clangd_tidy='/home/runner/.local/bin/clangd-tidy';
           clang_includes='check-file-includes.txt';
-          [[ ! -f "${cmake_list}" ]] && cmake_list="${{ github.action_path }}/${cmake_list}";
           if ${{ env.dirname != '' }}; then
             echo -e "####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           else
@@ -1205,7 +1210,7 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(fdfind -p "${abs}" -j "$(nproc --all)" -t d 'include' "/usr/src/linux-headers-$(uname -r)" | awk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(fdfind -p "${abs}" -t d 'include' "/usr/src/linux-headers-$(uname -r)/" | awk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1223,7 +1228,7 @@ runs:
             fi;
           }
           clang_includes() {
-            fdfind -p "${abs}" -j "$(nproc --all)" -t d 'include' "/usr/src/linux-headers-$(uname -r)" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            fdfind -p "${abs}" -t d 'include' "/usr/src/linux-headers-$(uname -r)/" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               echo -e "--extra-arg=-isystem${include#./}";
             done;
           }
@@ -1355,18 +1360,18 @@ runs:
           verify_config=$(clang-tidy --verify-config);
           cmake_version=$(cmake --version);
           if [[ -f 'compile_commands.json' ]]; then
-             user_compile_json=true
-             compile_json='compile_commands.json';
-             cp -vf ${compile_json} build/
+            user_compile_json=true
+            compile_json='compile_commands.json';
+            cp -vf ${compile_json} build/
           elif [[ -f 'build/compile_commands.json' ]]; then
-             compile_json='build/compile_commands.json';
+            compile_json='build/compile_commands.json';
           else
-             compile_json='build/compile_commands.json';
+            compile_json='build/compile_commands.json';
           fi;
           if ${{ inputs.absolute }}; then
-            abs='-a';
+            abs='--absolute-path';
           else
-            abs='';
+            abs='--relative-path';
           fi;
           clang_checks=$(clang-tidy --list-checks);
           gcc_version=$(gcc --version);
@@ -1671,9 +1676,9 @@ runs:
           done;
         }
         if ${{ inputs.absolute }}; then
-          abs='-a';
+          abs='--absolute-path';
         else
-          abs='';
+          abs='--relative-path';
         fi;
         if ${{ env.check_build == 'true' }}; then
           check_build=true
