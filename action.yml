@@ -929,9 +929,9 @@ runs:
           done;
         }
         if ${{ inputs.include }}; then
-          M='-O1 -M -MG -fdiagnostics-show-location=once -fsyntax-only -E';
+          M='-O1 -M -MG -ansi -fdiagnostics-show-location=once -fsyntax-only -E';
         else
-          M='-O3 -MM -fdiagnostics-show-location=every-line -Wall -fsyntax-only -E';
+          M='-O3 -MM -ansi -fdiagnostics-show-location=every-line -Wall -fsyntax-only -E';
         fi;
         if ${{ inputs.absolute }}; then
           abs='--absolute-path';
