@@ -321,26 +321,26 @@ runs:
           [[ -e "cmakebar" ]] && sudo cp -f 'cmakebar' '/usr/local/bin/'
         fi;
         if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic >/dev/null 2>&1) ]]; then
-          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\nDependencies $(apt list linux-headers-generic 2>/dev/null)\n####################" || echo -e "::warning::No linux-headers-generic installed for project build";
+          sudo apt-get -yq install linux-headers-generic 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-headers-generic 2>/dev/null)\n####################" || echo -e "::warning::No linux-headers-generic installed for project build";
         fi;
         if [[ ! $(which git) ]]; then
           sudo apt-get -yq install git git-core 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
         if [[ ! $(which fdfind) ]] && (${{ inputs.project }} || ${{ inputs.source > '0' }}); then
-          sudo apt-get -yq install fd-find 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\nfd dependencies installed\n####################" || echo -e '::error::No fdfind installed for file searches';
+          sudo apt-get -yq install fd-find 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nfd dependencies installed\n####################" || echo -e '::error::No fdfind installed for file searches';
           [[ ! $(which fdfind) ]] && echo -e '::error::[No fdfind found]\n';
         fi;
         if [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && ${{ inputs.repair }} && ${{ inputs.filename != '' }}; then
-          sudo apt-get -yq install gcc g++ 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
+          sudo apt-get -yq install gcc g++ 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
         fi;
         if ${{ inputs.project }} && [[ ! $(llvm-config --version 2>/dev/null) ]]; then
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
           sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 21 >/dev/null 2>&1)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
-          sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\nllvm tools dependencies installed\n####################" || echo -e '::error::No llvm tools installed for project build';
-          sudo apt-get -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text5}" || echo -e '::error::No clang-tools installed';
+          sudo apt-get -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################" || echo -e '::error::No llvm tools installed for project build';
+          sudo apt-get -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
           [[ ! $(llvm-config --version 2>/dev/null) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ "${file_type}" == [cth]* ]]) && [[ ! $(which clang-tidy) ]]; then
