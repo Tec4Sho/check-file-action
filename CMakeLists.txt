@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30.0) # Specifies the minimum required CMake version
+cmake_minimum_required(VERSION 4.1.0) # Specifies the minimum required CMake version
 
 set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "" FORCE)
 
