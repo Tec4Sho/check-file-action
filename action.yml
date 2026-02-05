@@ -237,6 +237,8 @@ runs:
     - name: Setup Android SDK
       if: ${{ inputs.build == '1' || inputs.build == '2' }}
       uses: android-actions/setup-android@v3
+      with:
+        log-accepted-android-sdk-licenses: false
       env:
         SKIP_JDK_VERSION_CHECK: true
       continue-on-error: true
@@ -1047,7 +1049,7 @@ runs:
         fixed=false;
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}";
-          cmakelist=$(find "${github}" -type f -name 'CMakeLists.txt' -print -quiet);
+          cmakelist=$(find "${github}" -type f -name 'CMakeLists.txt' -print -quit);
           [[ ! -f 'CMakeLists.txt' ]] && cp -v "${cmakelist}" . 2>/dev/null;
           [[ ! -f 'CMakeLists.txt' ]] && cp -v "${{ github.action_path }}/CMakeLists.txt" . 2>/dev/null;
           echo '';
@@ -1103,6 +1105,7 @@ runs:
           clang_tidy='.clang-tidy';
           clangd_tidy='/home/runner/.local/bin/clangd-tidy';
           clang_includes='check-file-includes.txt';
+          usr="/usr/src/linux-headers-$(uname -r)";
           if ${{ env.dirname != '' }}; then
             echo -e "####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           else
@@ -1178,7 +1181,7 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(fdfind -p "${abs}" -t d 'include' "/usr/src/linux-headers-$(uname -r)/" | awk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(fdfind "${abs}" -td 'include' "${usr}" | awk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1196,7 +1199,7 @@ runs:
             fi;
           }
           clang_includes() {
-            fdfind -p "${abs}" -t d 'include' "/usr/src/linux-headers-$(uname -r)/" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            fdfind "${abs}" -td 'include' "${usr}" | awk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               echo -e "--extra-arg=-isystem${include#./}";
             done;
           }
