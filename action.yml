@@ -1360,7 +1360,7 @@ runs:
             fi;
             if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
-            elif [[ -s "${project_log}" ]] && [[ $(grep -siF 'error:' "${project_log}") ]]; then
+            elif [[ -s "${project_log}" ]] && [[ $(grep -F 'error:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
             elif [[ -s "${project_log}" ]]; then
               echo -e "\n::notice::No errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
@@ -1387,7 +1387,7 @@ runs:
               clang-tidy @parameter-file 2>&1 | process_input || echo -e "\n::notice::clang-tidy exit-code ($?)" | process_input;
               if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
                 echo 'check_build=false' >> "${GITHUB_ENV}";
-              elif [[ -s "${project_log}" ]] && [[ $(grep -siF 'error:' "${project_log}") ]]; then
+              elif [[ -s "${project_log}" ]] && [[ $(grep -F 'error:' "${project_log}") ]]; then
                 echo -e "\n::notice::Errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
               elif [[ -s "${project_log}" ]]; then
                 echo -e "\n::notice::No errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
@@ -1401,7 +1401,7 @@ runs:
             fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -X clangd-tidy -p build -j "$(nproc --all)" --color always --tqdm 2>&1 | process_input || echo -e "\n::notice::clangd-tidy exit-code ($?)" | process_input;
             if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
-            elif [[ -s "${project_log}" ]] && [[ $(grep -siF 'error:' "${project_log}") ]]; then
+            elif [[ -s "${project_log}" ]] && [[ $(grep -F 'error:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
             elif [[ -s "${project_log}" ]]; then
               echo -e "\n::notice::No errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
@@ -1520,14 +1520,14 @@ runs:
               --config "${codechecker}" \
               --jobs "$(nproc)" \
               --print-steps \
-              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ inputs.filename }} -j$(nproc --all) -k'" \
+              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ inputs.filename }} -j$(nproc --all) -v -O2 -k'" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
-              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ inputs.filename }} -j$(nproc) -k'" \
+              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ inputs.filename }} -j$(nproc) -v -O2 -k'" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
@@ -1539,7 +1539,7 @@ runs:
           fi;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
-          elif [[ -s "${project_log}" ]] && [[ $(grep -siF 'error:' "${project_log}") ]]; then
+          elif [[ -s "${project_log}" ]] && [[ $(grep -F 'error:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found building project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
           elif [[ -s "${project_log}" ]]; then
             echo -e "\n::notice::No errors found building project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
@@ -1562,7 +1562,7 @@ runs:
           CodeChecker log --build "make -j$(nproc)" --output "${compile_json}" 2>&1 | process_input || echo -e "\n::notice::CodeChecker log exit-code ($?)" | process_input;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
-          elif [[ -s "${project_log}" ]] && [[ $(grep -siF 'error:' "${project_log}") ]]; then
+          elif [[ -s "${project_log}" ]] && [[ $(grep -F 'error:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found building commands JSON file" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
           elif [[ -s "${project_log}" ]]; then
             echo -e "\n::notice::No errors found building commands JSON file" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
