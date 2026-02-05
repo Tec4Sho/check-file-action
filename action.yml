@@ -226,6 +226,11 @@ runs:
       shell: bash
       continue-on-error: true
 
+    - name: Setup Android SDK
+      if: inputs.build == '1' || inputs.build == '2'
+      uses: android-actions/setup-android@v3
+      continue-on-error: true
+
     - name: Set up Go 1.25.3
       if: inputs.filename != ''
       uses: actions/setup-go@v2
@@ -250,7 +255,7 @@ runs:
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export LLVM_ENABLE_THREADS=ON' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export WITH_TIDY=1' | sudo tee -a ~/.bashrc >/dev/null;
-        echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export LC_ALL=C.UTF-8' | sudo tee -a ~/.bashrc >/dev/null;
         sudo apt-get clean
         sudo add-apt-repository universe >/dev/null;
         sudo apt-get -yq update 2>&1 >/dev/null | sed '/Running/,/host./d';
@@ -915,6 +920,7 @@ runs:
         includes_found=false
         include_list='check-file-compile.txt';
         github="${GITHUB_WORKSPACE}";
+        export LC_ALL=C.UTF-8
         process_input() {
           while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
@@ -956,25 +962,25 @@ runs:
             fdfind -j "$(nproc)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x g++ "{}" ${M} | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
-          clang_files_missing=$(LC_ALL=C grep -sFc 'No such file' "${project_log}");
-          clang_missing_count=$(LC_ALL=C grep -sF 'No such file' "${project_log}" | awk '{print $4}' | tr -d ': ' | sort -u | wc -l);
-          clang_file_errors=$(LC_ALL=C grep -sFc 'error:' "${project_log}");
+          clang_files_missing=$(grep -sFc 'No such file' "${project_log}");
+          clang_missing_count=$(grep -sF 'No such file' "${project_log}" | gawk '{ print $4 }' | tr -d ': ' | sort -u | wc -l);
+          clang_file_errors=$(grep -sFc 'error:' "${project_log}");
           if [[ -s "${project_log}" ]]; then
             gawk '{ for (i=1;i<=NF;i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print $i; } } }' "${project_log}" | gawk '{ for (i=1;i<=NF;i++) print $i; }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "\.\..*\.${filetype}$" | gawk -v ext="${filetype}" '$0 ~ "."ext"$" { if (seen[$0]++) next; print; next; } { print; }' | gawk -v ext="${filetype}" '$0 ~ "\\."ext { delete seen; print; next; } !seen[$0]++' > "${include_list}" || echo "::warning::File ${include_list##*/} was not created!!!" | process_input;
             if [[ -s "${include_list}" ]]; then
               source_include=true
-              count0=$(egrep -c '^[a-zA-Z0-9]+\.o:' "${project_log}")
+              count0=$(grep -E '\.h|\.hh|\.hxx|\.hpp|\.h\+\+' "${project_log}" | sort -u | wc -l)
               count1=$(gawk -v ext="${{ inputs.filetype }}" '$0 ~ "\\."ext"$" && NF > 0 { count++; } END { print count + 0; }' "${include_list}")
               count2=$(gawk 'NF > 0 { count++; } END { print count + 0; }' "${include_list}")
-              [[ "${clang_missing_count}" == '0' ]] && clang_missing_count=$(grep -oE '\b[^/[:space:]][^[:space:]]*' part_10 | grep -Fv '.o:' | sort -u | wc -l);
-              [[ "${clang_missing_count}" > '0' ]] && grep -oE '\b[^/[:space:]][^[:space:]]*' part_10 | grep -Fv '.o:' | sort -u > missing-file-list.txt;
+              [[ "${clang_missing_count}" == '0' ]] && clang_missing_count=$(grep -oE '\b[^/[:space:]][^[:space:]]*' "${project_log}" | grep -Fv '.o:' | sort -u | wc -l);
+              [[ "${clang_missing_count}" > '0' ]] && grep -oE '\b[^/[:space:]][^[:space:]]*' "${project_log}" | grep -Fv '.o:' | sort -u > missing-file-list.txt;
               mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
               [[ -s 'missing-file-list.txt' ]] && cp -vf missing-file-list.txt build/
             else
               count2=0
               echo -e "\n::warning::\033[31m⚠️ Sources & includes file not created after scanning!!!\033[0m\033[1m ${clang_missing_count:-0}\033[0m\n";
             fi;           
-            echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count0}\033[0m object file checks listed.\nFinal results: \033[1m${count2}\033[0m ${{ inputs.filetype }} files and their include directories added in total,\n[Hint] You can cache or download this file add it to your repository which auto creates a custom \033[31mcompile command json file when found!!!\033[0m." | process_input;
+            echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count0}\033[0m unique include files checked. Final results: \033[1m${count2}\033[0m ${{ inputs.filetype }} files and their header directories added in total,\n[Hint] You can cache or download this file add it to your repository which auto creates a custom \033[31mcompile command json file when found!!!\033[0m." | process_input;
             if [[ "${clang_file_errors}" > '0' ]]; then
               echo -e "\n::notice::\033[34m⚠️ Total include source file errors during scan\033[0m\033[1m ${clang_file_errors}\033[0m\n[Hint] Many source files may report the \033[31mfatal file errors.\033[0m\n\033[1mCheck-file notice file issues that needs repair before compiling!!!\033[0m" | process_input;
             fi;
@@ -1344,7 +1350,7 @@ runs:
             fi;
             if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
-            elif [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+            elif [[ -s "${project_log}" ]] && [[ $(grep -siF 'error:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
             elif [[ -s "${project_log}" ]]; then
               echo -e "\n::notice::No errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
@@ -1371,7 +1377,7 @@ runs:
               clang-tidy @parameter-file 2>&1 | process_input || echo -e "\n::notice::clang-tidy exit-code ($?)" | process_input;
               if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
                 echo 'check_build=false' >> "${GITHUB_ENV}";
-              elif [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+              elif [[ -s "${project_log}" ]] && [[ $(grep -siF 'error:' "${project_log}") ]]; then
                 echo -e "\n::notice::Errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
               elif [[ -s "${project_log}" ]]; then
                 echo -e "\n::notice::No errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
@@ -1385,7 +1391,7 @@ runs:
             fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -X clangd-tidy -p build -j "$(nproc --all)" --color always --tqdm 2>&1 | process_input || echo -e "\n::notice::clangd-tidy exit-code ($?)" | process_input;
             if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
-            elif [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+            elif [[ -s "${project_log}" ]] && [[ $(grep -siF 'error:' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
             elif [[ -s "${project_log}" ]]; then
               echo -e "\n::notice::No errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
@@ -1453,7 +1459,7 @@ runs:
         fixed=false
         count=1
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
-          cd "${{ env.dirname }}";
+          cd "${{ env.dirname }}" && echo -e "User Current Directory;  ${{ env.dirname }}\n";
         fi;
         process_input() {
           while IFS= read -r output; do
@@ -1523,7 +1529,7 @@ runs:
           fi;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
-          elif [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+          elif [[ -s "${project_log}" ]] && [[ $(grep -siF 'error:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found building project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
           elif [[ -s "${project_log}" ]]; then
             echo -e "\n::notice::No errors found building project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
@@ -1546,7 +1552,7 @@ runs:
           CodeChecker log --build "make -j$(nproc)" --output "${compile_json}" 2>&1 | process_input || echo -e "\n::notice::CodeChecker log exit-code ($?)" | process_input;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -siF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
-          elif [[ -s "${project_log}" ]] && [[ $(grep -sE 'error:|Error:|Error while processing|ERROR:' "${project_log}") ]]; then
+          elif [[ -s "${project_log}" ]] && [[ $(grep -siF 'error:' "${project_log}") ]]; then
             echo -e "\n::notice::Errors found building commands JSON file" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
           elif [[ -s "${project_log}" ]]; then
             echo -e "\n::notice::No errors found building commands JSON file" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
@@ -1658,7 +1664,9 @@ runs:
           clang_files_list1=$(grep -sEo '#include[[:space:]]+["].*["]' "${project_log}" | awk '{ print $2 }' | tr -d '"' | sort -u);
           clang_files_list2=$(grep -sEo '#include[[:space:]]+[<].*[>]' "${project_log}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
           clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" | cut -d ' ' -f1 | awk '{ sum += $1 } END { print sum; }');
-          clang_errors=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{ sum += $1 } END { print sum; }');
+          clang_error1=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | awk '{ sum += $1 } END { print sum; }');
+          clang_error2=$(grep -siFc 'error:' "${project_log}");
+          clang_failed=$(grep -siFc 'failed:' "${project_log}");
           clang_fixit1=$(grep -siEc 'fixit|fix-its' "${project_log}");
           clang_fixit2=$(grep -siF 'clang-tidy applied' "${project_log}");
           clang_notes=$(grep -siFc 'note:' "${project_log}");
@@ -1681,8 +1689,14 @@ runs:
           if [[ -n "${codechecker_success}" ]] && [[ "${codechecker_success:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
             echo -e "\n####################\n::notice::✅ check-file checked ${codechecker_success} ${file_type} files successfully without issues. [Hints] No check require for those files.\n####################" | process_input;
           fi;
-          if [[ -n "${clang_errors}" ]] && [[ "${clang_errors:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::🚫 check-file found ${clang_errors} errors in ${file_type} files checked. [Hints] Try using different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
+          if [[ -n "${clang_error1}" ]] && [[ "${clang_error1:-0}" > '0' ]]; then
+            echo -e "\n####################\n::notice::🚫 check-file found ${clang_error1} errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
+          fi;
+          if [[ -n "${clang_error2}" ]] && [[ "${clang_error2:-0}" > '0' ]] && ${{ inputs.build > '0' }}; then
+            echo -e "\n####################\n::notice::🚫 check-file found \033[31m${clang_error2}\033[0m errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
+          fi;
+          if [[ -n "${clang_failed}" ]] && [[ "${clang_failed:-0}" > '0' ]]; then
+            echo -e "\n####################\n::notice::⚠️ check-file found ${clang_failed}️ fails in all files checked during build. [Hints] This means your [\033[1mBuild failed\033[0m] from possible errors.\n####################" | process_input;
           fi;
           if [[ -n "${clang_fixit1}" ]] && [[ "${clang_fixit1:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
             echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixit1} fix-its to ${file_type} files checked. [Hints] Try using [update: true] for updating your remote repository with the fixes.\n####################" | process_input;
@@ -1709,8 +1723,7 @@ runs:
           fi;
           if [[ -n "${clang_files_missing}" ]] && [[ "${clang_files_missing:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
-            echo -e "\n####################\nMISSING USER FILES LIST:\n####################\n\n${clang_files_list1}" | process_input;
-            echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: ${{ env.base }}\n####################\n" | process_input;
+            [[ -n "${clang_files_list1}" ]] && echo -e "\n####################\nMISSING USER FILES LIST:\n####################\n\n${clang_files_list1}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: ${{ env.base }}\n####################\n" | process_input;
             declare -A missing
             found=false
             while IFS= read -r missing_file; do
@@ -1753,8 +1766,7 @@ runs:
               fi;             
             done <<< "${clang_files_list1}";
             missing=();
-            echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input;
-            echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: /usr/src/linux-headers-$(uname -r)/include\n####################\n" | process_input;
+            [[ -n "${clang_files_list2}" ]] && echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: /usr/src/linux-headers-$(uname -r)/include\n####################\n" | process_input;
             while IFS= read -r missing_file; do
               if [[ "${missing_file}" == *.[h]* ]] || [[ "${missing_file}" == *.[c]* ]]; then
                 file_count=$((file_count + 1));
