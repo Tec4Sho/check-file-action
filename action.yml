@@ -929,9 +929,10 @@ runs:
           done;
         }
         if ${{ inputs.include }}; then
-          M='-O1 -ansi -fdiagnostics-show-location=once -fsyntax-only -M -MG -E';
+          ${{ inputs.content }} && export I="-isystem/usr/src/linux-headers-$(uname -r)/include" || export I="-isystem/usr/local/include";
+          M="-O1 -ansi -fdiagnostics-show-location=once -fsyntax-only -M -MG -E ${I}";
         else
-          M='-O3 -ansi -fdiagnostics-show-location=every-line -Wall -fsyntax-only -MM -E';
+          M='-O3 -ansi -fdiagnostics-show-location=once -fsyntax-only -MM -E 2>&1';
         fi;
         if ${{ inputs.absolute }}; then
           abs='--absolute-path';
@@ -939,8 +940,7 @@ runs:
           abs='--relative-path';
         fi;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE ULTRA\033[0m\n####################" | process_input;
-        include_files=$(fdfind -j "$(nproc --all)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
-        ${{ inputs.content }} && export I="-isystem/usr/src/linux-headers-$(uname -r)/include" || export I="-isystem/usr/local/include";
+        include_files=$(fdfind -j "$(nproc)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
         ${{ inputs.include }} && echo -e "####################\n\t\033[34m EXTRA INCLUDE PATHS: ${I}\033[0m\n####################\n" | process_input;
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";        
@@ -949,11 +949,11 @@ runs:
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             echo -e '\n[\033[1mGCC Mode 2\033[0m]\n';
-            fdfind -j "$(nproc)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x gcc {} ${M} ${I} | process_input;
+            fdfind -j "$(nproc)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x gcc "{}" ${M} | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mG++ Mode 2\033[0m]\n';
-            fdfind -j "$(nproc)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x g++ {} ${M} ${I} | process_input;
+            fdfind -j "$(nproc)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x g++ "{}" ${M} | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
           clang_files_missing=$(LC_ALL=C grep -sFc 'No such file' "${project_log}");
