@@ -226,9 +226,19 @@ runs:
       shell: bash
       continue-on-error: true
 
+    - name: Install OpenJDK
+      if: ${{ inputs.build == '1' || inputs.build == '2' }}
+      uses: actions/setup-java@v4
+      with:
+        distribution: zulu
+        java-version: 17
+      continue-on-error: true
+
     - name: Setup Android SDK
-      if: inputs.build == '1' || inputs.build == '2'
+      if: ${{ inputs.build == '1' || inputs.build == '2' }}
       uses: android-actions/setup-android@v3
+      env:
+        SKIP_JDK_VERSION_CHECK: true
       continue-on-error: true
 
     - name: Set up Go 1.25.3
