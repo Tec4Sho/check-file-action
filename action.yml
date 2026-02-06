@@ -346,7 +346,7 @@ runs:
           [[ ! $(which git) ]] && exit 1
         fi;
         if ${{ inputs.project }} && ([[ ! $(dpkg -l | grep -i 'clang-tidy') ]] || [[ "${clang_version}" < '22.0.0' ]]); then
-          sudo aptitude -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
+          sudo aptitude -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text5}" || echo -e '::error::No clang-tools installed';
           [[ ! $(dpkg -l | grep -i "clang-tidy") ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ "${file_type}" == [cth]* ]]) && [[ ! $(which clang-tidy) ]]; then
