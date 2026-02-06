@@ -262,12 +262,6 @@ runs:
       run: |
         echo -n '';
         set +e;
-        echo 'export ALLOW_MISSING_DEPENDENCIES=true' | sudo tee -a ~/.bashrc >/dev/null;
-        echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
-        echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
-        echo 'export LLVM_ENABLE_THREADS=ON' | sudo tee -a ~/.bashrc >/dev/null;
-        echo 'export WITH_TIDY=1' | sudo tee -a ~/.bashrc >/dev/null;
-        echo 'export LC_ALL=C.UTF-8' | sudo tee -a ~/.bashrc >/dev/null;
         echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
         sudo apt-get clean
         sudo add-apt-repository universe >/dev/null;
@@ -474,7 +468,13 @@ runs:
         else
           echo 'github_build_project=false' >> "${GITHUB_ENV}";
         fi;
-        sudo apt-get --fix-broken install -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
+        sudo aptitude install -f -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
+        echo 'export ALLOW_MISSING_DEPENDENCIES=true' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export LLVM_ENABLE_THREADS=ON' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export WITH_TIDY=1' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export LC_ALL=C.UTF-8' | sudo tee -a ~/.bashrc >/dev/null;
         echo '';
       shell: bash
       continue-on-error: false
