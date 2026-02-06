@@ -253,15 +253,14 @@ runs:
     - name: Directory /usr/local
       if: inputs.project == 'true'
       run: sudo mkdir -p /usr/local/bin /usr/local/lib
-      bash: shell
+      shell: bash
       continue-on-error: true
 
     - name: Install LLVM and Clang
       if: inputs.project == 'true'
-      uses: KyleMayes/install-llvm-action@v2
+      uses: ZhongRuoyu/setup-llvm@v0
       with:
-        version: ${{ inputs.compiler }}
-        directory: /usr/local
+        llvm-version: ${{ inputs.compiler }}
       continue-on-error: true
 
     - name: Installing Dependencies
