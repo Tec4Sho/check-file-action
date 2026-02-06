@@ -345,17 +345,16 @@ runs:
           [[ ! $(which git) ]] && exit 1
         fi;
         if ${{ inputs.project }} && ([[ ! $(dpkg -l | grep -i "llvm") ]] || [[ "${clang_version}" < '22.0.0' ]]); then
-          sudo apt-get remove llvm-* 2>&1 >/dev/null | sed '/Running/,/host./d';
-          sudo apt-get autoremove 2>&1 >/dev/null | sed '/Running/,/host./d';
-          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
-          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 21 >/dev/null 2>&1)"
+          sudo aptitude -yq remove llvm-18 llvm-19 >/dev/null 2>&1;
+          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)";
+          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 21 >/dev/null 2>&1)";
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
-          sudo aptitude -yq install llvm llvm-dev lldb liblldb-dev clang libclang-dev 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################" || echo -e '::error::No llvm tools installed for project build';
+          sudo aptitude -yq install llvm llvm-dev lldb liblldb-dev libclang-dev 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################" || echo -e '::error::No llvm tools installed for project build';
           sudo aptitude -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
           [[ ! $(dpkg -l | grep -i "llvm") ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ "${file_type}" == [cth]* ]]) && [[ ! $(which clang-tidy) ]]; then
-          python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
+          python3 -m pip install --upgrade clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
           [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
           [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
           [[ ! $(which clang-tidy) ]] && exit 1
