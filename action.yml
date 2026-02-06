@@ -259,7 +259,9 @@ runs:
 
     - name: Directory /usr/local
       if: inputs.project == 'true'
-      run: sudo mkdir -p /usr/local/bin /usr/local/lib
+      run: |
+       sudo mkdir -p /usr/local/bin /usr/local/lib
+       sudo chmod -R 0755 "${{ github.action_path }}/scripts";
       shell: bash
       continue-on-error: true
 
@@ -277,7 +279,7 @@ runs:
       run: |
         import os
         with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
-        print(f"llvm-path={os.getenv('LLVM_PATH')}", file=f)
+          print(f"llvm-path={os.getenv('LLVM_PATH')}", file=f);
       shell: python
       continue-on-error: true
 
@@ -531,7 +533,6 @@ runs:
         text10a="#####################";
         text10b="#\033[1m\033[32m CHECK FILE ACTION \033[0m#";
         text10c="#####################";
-        chmod -R 0755 "${{ github.action_path }}/scripts";
         text() {
           local text="$1";
           echo -e "${text}";
