@@ -250,6 +250,12 @@ runs:
         go-version: '1.25.3'
       continue-on-error: true
 
+    - name: Directory /usr/local
+      if: inputs.project == 'true'
+      run: sudo mkdir -p /usr/local/bin /usr/local/lib
+      bash: shell
+      continue-on-error: true
+
     - name: Install LLVM and Clang
       if: inputs.project == 'true'
       uses: KyleMayes/install-llvm-action@v2
