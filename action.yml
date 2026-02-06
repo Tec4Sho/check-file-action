@@ -72,8 +72,8 @@ inputs:
     type: boolean
     required: false
     default: 'false'
-  compiler:
-    description: 'Clang compiler used for project building only'
+  version:
+    description: 'LLVM Clang compiler used for project building only'
     type: string
     required: false
     default: '21'
@@ -153,6 +153,13 @@ inputs:
     type: boolean
     required: false
     default: 'false'
+  github-token:
+    description: Token to authenticate GitHub API requests
+    default: ${{ github.token }}
+  outputs:
+  llvm-path:
+    description: The absolute path to the LLVM installation
+    value: ${{ steps.output.outputs.llvm-path }}
 
 runs:
   using: composite
@@ -257,10 +264,21 @@ runs:
       continue-on-error: true
 
     - name: Install LLVM and Clang
-      if: inputs.project == 'true'
-      uses: ZhongRuoyu/setup-llvm@v0
-      with:
-        llvm-version: ${{ inputs.compiler }}
+      if: inputs.project == 'true' && runner.os == 'Linux'
+      run: "${{ github.action_path }}/scripts/linux.sh"
+      env:
+        LLVM_VERSION: ${{ inputs.version }}
+        SETUP_LLVM_GITHUB_TOKEN: ${{ inputs.github-token }}
+      shell: sh
+      continue-on-error: true
+
+    - id: output
+      if: inputs.project == 'true' && runner.os == 'Linux'
+      run: |
+        import os
+        with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
+        print(f"llvm-path={os.getenv('LLVM_PATH')}", file=f)
+      shell: python
       continue-on-error: true
 
     - name: Installing Dependencies
