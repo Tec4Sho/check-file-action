@@ -157,9 +157,9 @@ inputs:
     description: Token to authenticate GitHub API requests
     default: ${{ github.token }}
   outputs:
-  llvm-path:
-    description: The absolute path to the LLVM installation
-    value: ${{ steps.output.outputs.llvm-path }}
+    llvm-path:
+      description: The absolute path to the LLVM installation
+      value: ${{ steps.output.outputs.llvm-path }}
 
 runs:
   using: composite
