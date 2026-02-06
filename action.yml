@@ -255,6 +255,7 @@ runs:
       uses: KyleMayes/install-llvm-action@v2
       with:
         version: ${{ inputs.compiler }}
+        directory: /usr/local
       continue-on-error: true
 
     - name: Installing Dependencies
