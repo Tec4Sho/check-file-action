@@ -356,10 +356,10 @@ runs:
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
         fi;
         if ${{ inputs.project }} && ([[ ! $(dpkg -l | grep -i "llvm") ]] || [[ "${clang_version}" < '22.0.0' ]]); then
-          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
-          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 22 >/dev/null 2>&1)"
+          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null)"
+          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 21 >/dev/null)"
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
-          sudo aptitude -yq install libclang-dev liblldb-dev llvm-dev llvm 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################" || echo -e '::error::No llvm tools installed for project build';
+          sudo aptitude -yq install llvm lld libclang-dev liblldb-dev llvm-dev 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################" || echo -e '::error::No llvm tools installed for project build';
           sudo aptitude -yq install clang-tools 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
           [[ ! $(dpkg -l | grep -i "llvm") ]] && exit 1
         fi;
