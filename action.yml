@@ -261,13 +261,14 @@ runs:
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
       run: |
         echo -n '';
-        set -e -o pipefail;
+        set +e;
         echo 'export ALLOW_MISSING_DEPENDENCIES=true' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export LLVM_ENABLE_THREADS=ON' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export WITH_TIDY=1' | sudo tee -a ~/.bashrc >/dev/null;
         echo 'export LC_ALL=C.UTF-8' | sudo tee -a ~/.bashrc >/dev/null;
+        echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
         sudo apt-get clean
         sudo add-apt-repository universe >/dev/null;
         sudo apt-get -yq update 2>&1 >/dev/null | sed '/Running/,/host./d';
@@ -339,7 +340,7 @@ runs:
           [[ -e "cmakebar" ]] && sudo cp -f 'cmakebar' '/usr/local/bin/'
         fi;
         if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic >/dev/null 2>&1) ]]; then
-          sudo aptitude -yq install linux-headers-generic 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-headers-generic)\n####################" || echo -e "::warning::No linux-headers-generic installed for project build";
+          sudo aptitude -yq install linux-headers-generic 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-headers-generic 2>/dev/null)\n####################" || echo -e "::warning::No linux-headers-generic installed for project build";
         fi;
         if [[ ! $(which git) ]]; then
           sudo aptitude -yq install git git-core 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
@@ -353,19 +354,19 @@ runs:
           sudo aptitude -yq install gcc g++ 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
         fi;
-        if ${{ inputs.project }} && [[ ! $(llvm-config --version) ]]; then
-          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)"
-          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 21 >/dev/null 2>&1)"
+        if ${{ inputs.project }} && [[ ! $(which llvm-config) ]]; then
+          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)";
+          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 22 >/dev/null 2>&1)";
           sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
-          sudo aptitude -yq install lld llvm llvm-dev liblldb-dev libclang-dev 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\nllvm tools dependencies installed\n####################" || echo -e '::error::No llvm tools installed for project build';
+          sudo aptitude -yq install libclang-dev liblldb-dev llvm-dev 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################" || echo -e '::error::No llvm tools installed for project build';
           sudo aptitude -yq install clang-tools 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
-          [[ ! $(llvm-config --version) ]] && exit 0
+          [[ ! $(which llvm-config) ]] && exit 1
         fi;
         if (${{ inputs.project }} || [[ "${file_type}" == [cth]* ]]) && [[ ! $(which clang-tidy) ]]; then
           python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
           [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
           [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
-          [[ ! $(which clang-tidy) ]] && exit 2
+          [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if ${{ inputs.analyzer == '1' }} && ${{ inputs.project }} && [[ $(which run-clang-tidy) ]]; then
           echo -e "\n[clang-tools] $(whereis -b run-clang-tidy)";
@@ -453,7 +454,6 @@ runs:
             echo 'export BAT_THEME=ansi' | sudo tee -a ~/.bashrc >/dev/null;
           fi;
         fi;
-        echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
         if [[ -d '/usr/local/bin' ]]; then
           echo '/usr/local/bin' >> "${GITHUB_PATH}";
         fi;
