@@ -277,12 +277,13 @@ runs:
           sudo aptitude -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
           [[ ! $(which cmake) ]] && exit 1
         fi;
-        cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{print $3}');
+        cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{ print $3; }');
+        clang_version=$(clang --version | awk '{ print $4; }');
         required_version="4.2.1";
         linux_distro1="24.04";
         linux_distro2="22.04";
         linux_distro3="20.04";
-        linux_verison=$(lsb_release -r | awk '{print $2}');
+        linux_verison=$(lsb_release -r | awk '{ print $2; }');
         if ${{ inputs.project }}; then
           if [[ "${cmake_version}" < "${required_version}" ]] && ${{ inputs.project }}; then
             echo -e "Current CMake version (${cmake_version}) is older than ${required_version}. Updating....";
@@ -354,8 +355,7 @@ runs:
           sudo aptitude -yq install gcc g++ 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
         fi;
-        if ${{ inputs.project }} && [[ ! $(dpkg -l | grep -i "llvm") ]]; then
-          
+        if ${{ inputs.project }} && ([[ ! $(dpkg -l | grep -i "llvm") ]] || [[ "${clang_version}" < '22.0.0' ]]); then
           sudo aptitude -yq install libclang-dev liblldb-dev llvm-dev 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################" || echo -e '::error::No llvm tools installed for project build';
           sudo aptitude -yq install clang-tools 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
           [[ ! $(dpkg -l | grep -i "llvm") ]] && exit 1
