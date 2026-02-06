@@ -354,14 +354,7 @@ runs:
           sudo aptitude -yq install gcc g++ 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
         fi;
-        if ${{ inputs.project }} && [[ ! $(which llvm-config) ]]; then
-          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add - >/dev/null 2>&1)";
-          sudo bash -c "$(sudo wget -qO - https://apt.llvm.org/llvm.sh | sudo bash -s -- 22 >/dev/null 2>&1)";
-          sudo add-apt-repository "deb http://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs) main" >/dev/null;
-          sudo aptitude -yq install libclang-dev liblldb-dev llvm-dev 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nllvm tools dependencies installed\n####################" || echo -e '::error::No llvm tools installed for project build';
-          sudo aptitude -yq install clang-tools 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text5}" || echo -e '::error::No clang-tools installed';
-          [[ ! $(which llvm-config) ]] && exit 1
-        fi;
+        
         if (${{ inputs.project }} || [[ "${file_type}" == [cth]* ]]) && [[ ! $(which clang-tidy) ]]; then
           python3 -m pip install clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
           [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
