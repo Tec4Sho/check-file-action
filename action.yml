@@ -261,7 +261,7 @@ runs:
       if: inputs.project == 'true'
       uses: KyleMayes/install-llvm-action@v2
       with:
-        version: '22.0'
+        version: '21'
       continue-on-error: true
 
     - name: Installing Dependencies
