@@ -267,11 +267,20 @@ runs:
 
     - name: Install LLVM and Clang
       if: inputs.project == 'true' && runner.os == 'Linux'
-      run: "${{ github.action_path }}/scripts/linux.sh";
+      run: "${{ github.action_path }}/scripts/linux.sh"
       env:
         LLVM_VERSION: ${{ inputs.version }}
         SETUP_LLVM_GITHUB_TOKEN: ${{ inputs.github-token }}
-      shell: bash
+      shell: sh
+      continue-on-error: true
+
+    - id: output
+      if: inputs.project == 'true' && runner.os == 'Linux'
+      run: |
+        import os
+        with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
+          print(f"llvm-path={os.getenv('LLVM_PATH')}", file=f) >/dev/null;
+      shell: python
       continue-on-error: true
 
     - name: Installing Dependencies
