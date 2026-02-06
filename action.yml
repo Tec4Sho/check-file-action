@@ -76,7 +76,7 @@ inputs:
     description: 'Clang compiler used for project building only'
     type: string
     required: false
-    default: 'latest'
+    default: '21'
   content:
     description: 'Search will list dir contents of found filename'
     type: boolean
@@ -252,9 +252,9 @@ runs:
 
     - name: Install LLVM and Clang
       if: inputs.project == 'true'
-      uses: rush-lang/setup-llvm-action@v1
+      uses: KyleMayes/install-llvm-action@v2
       with:
-        llvm-version: ${{ inputs.compiler }}
+        version: ${{ inputs.compiler }}
       continue-on-error: true
 
     - name: Installing Dependencies
