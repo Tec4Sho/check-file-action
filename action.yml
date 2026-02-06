@@ -947,9 +947,9 @@ runs:
         }
         if ${{ inputs.include }}; then
           ${{ inputs.content }} && export I="-isystem/usr/src/linux-headers-$(uname -r)/include" || export I="-isystem/usr/local/include";
-          M="-O1 -ansi -fdiagnostics-show-location=once -fsyntax-only -M -MG -E ${I}";
+          M="-O1 -ansi -fsyntax-only -fdiagnostics-show-location=once -M -MG -E ${I}";
         else
-          M='-O3 -ansi -fdiagnostics-show-location=once -fsyntax-only -MM -E 2>&1';
+          M='-O2 -ansi -fsyntax-only -fdiagnostics-show-location=once -MM -E 2>&1';
         fi;
         if ${{ inputs.absolute }}; then
           abs='--absolute-path';
@@ -966,11 +966,11 @@ runs:
           echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             echo -e '\n[\033[1mGCC Mode 2\033[0m]\n';
-            fdfind -j "$(nproc)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x gcc "{}" ${M} | process_input;
+            fdfind -j "$(nproc)" -p "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -X gcc ${M} | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           elif [[ "${{ inputs.filetype }}" == [c]* ]] && [[ "$(which g++)" ]]; then
             echo -e '\n[\033[1mG++ Mode 2\033[0m]\n';
-            fdfind -j "$(nproc)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -x g++ "{}" ${M} | process_input;
+            fdfind -j "$(nproc)" -p "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -X g++ ${M} | process_input;
             echo 'check_build=true' >> "${GITHUB_ENV}";
           fi;
           clang_files_missing=$(grep -sFc 'No such file' "${project_log}");
@@ -983,8 +983,8 @@ runs:
               count0=$(grep -E '\.h|\.hh|\.hxx|\.hpp|\.h\+\+' "${project_log}" | sort -u | wc -l)
               count1=$(gawk -v ext="${{ inputs.filetype }}" '$0 ~ "\\."ext"$" && NF > 0 { count++; } END { print count + 0; }' "${include_list}")
               count2=$(gawk 'NF > 0 { count++; } END { print count + 0; }' "${include_list}")
-              [[ "${clang_missing_count}" == '0' ]] && clang_missing_count=$(grep -oE '\b[^/[:space:]][^[:space:]]*' "${project_log}" | grep -Fv '.o:' | sort -u | wc -l);
-              [[ "${clang_missing_count}" > '0' ]] && grep -oE '\b[^/[:space:]][^[:space:]]*' "${project_log}" | grep -Fv '.o:' | sort -u > missing-file-list.txt;
+              [[ "${clang_missing_count}" == '0' ]] && clang_missing_count=$(grep -oE '\b[^/[:space:]][^[:space:]]*' "${project_log}" | awk '{ for (i=1;i<=NF;i++) print $i; }' | grep -E '[a-zA-Z0-9_-]+\.(h|hh|hpp|hxx)$' | sort -u | wc -l);
+              [[ "${clang_missing_count}" > '0' ]] && grep -oE '\b[^/[:space:]][^[:space:]]*' "${project_log}" | awk '{ for (i=1;i<=NF;i++) print $i; }' | grep -E '[a-zA-Z0-9_-]+\.(h|hh|hpp|hxx)$' | sort -u > missing-file-list.txt;
               mkdir -p build && echo -e "\nSaving list to build: $(cp -vf ${include_list} build/)" | process_input;
               [[ -s 'missing-file-list.txt' ]] && cp -vf missing-file-list.txt build/
             else
