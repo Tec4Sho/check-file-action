@@ -1893,6 +1893,7 @@ runs:
         else
           compile_json='build/compile_commands.json';
         fi;
+        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
             files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
