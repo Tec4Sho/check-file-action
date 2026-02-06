@@ -76,7 +76,7 @@ inputs:
     description: 'Clang compiler used for project building only'
     type: string
     required: false
-    default: 'clang-latest'
+    default: 'latest'
   content:
     description: 'Search will list dir contents of found filename'
     type: boolean
@@ -250,18 +250,11 @@ runs:
         go-version: '1.25.3'
       continue-on-error: true
 
-    - name: Setup Clang Compiler
-      if: inputs.project == 'true'
-      uses: rlalik/setup-cpp-compiler@master
-      with:
-        compiler: ${{ inputs.compiler }}
-      continue-on-error: true
-
     - name: Install LLVM and Clang
       if: inputs.project == 'true'
-      uses: KyleMayes/install-llvm-action@v2
+      uses: rush-lang/setup-llvm-action@v1
       with:
-        version: '21'
+        llvm-version: ${{ inputs.compiler }}
       continue-on-error: true
 
     - name: Installing Dependencies
