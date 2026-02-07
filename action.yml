@@ -74,9 +74,9 @@ inputs:
     default: 'false'
   version:
     description: 'LLVM Clang compiler used for project building only'
-    type: string
+    type: number
     required: false
-    default: '22'
+    default: '21'
   content:
     description: 'Search will list dir contents of found filename'
     type: boolean
@@ -272,7 +272,7 @@ runs:
       if: inputs.project == 'true' && runner.os == 'Linux'
       run: |
         echo '';
-        sudo -E bash -c "'${{ github.action_path }}/scripts/linux.sh'" >/dev/null 2>&1
+        bash -c "'${{ github.action_path }}/scripts/linux.sh'" >/dev/null 2>&1
       env:
         LLVM_VERSION: ${{ inputs.version }}
         SETUP_LLVM_GITHUB_TOKEN: ${{ inputs.github-token }}
@@ -311,7 +311,7 @@ runs:
         linux_distro3="20.04";
         linux_verison=$(lsb_release -r | awk '{ print $2; }');
         if ${{ inputs.project }}; then
-          if [[ "${cmake_version}" < "${cmake_required_version}" ]] && ${{ inputs.project }}; then
+          if [[ $(printf '%s\n%s' "$cmake_version" "$cmake_required_version" | sort -V | head -n1) == "$cmake_version" ]] && [[ "$cmake_version" != "$cmake_required_version" ] && ${{ inputs.project }}; then
             echo -e "Current CMake version (${cmake_version}) is older than ${cmake_required_version}. Updating....";
             sudo apt-get remove --purge -yq cmake 2>&1 >/dev/null | sed '/Running/,/host./d'
             sudo aptitude install -yq ca-certificates gpg wget 2>&1 >/dev/null | sed '/Running/,/host./d'
@@ -353,7 +353,7 @@ runs:
           sudo aptitude -yq install gawk 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngawk dependencies installed\n####################" || echo -e "\n::error::No gawk installed in linux exiting";
         fi;
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
-        if ${{ inputs.project }} && [[ $(printf '%s\n%s' "$cmake_version" "$cmake_required_version" | sort -x | head -n1) == "$cmake_version" ]] && [[ "$cmake_version" != "$cmake_required_version" ]]; then
+        if ${{ inputs.project }} && [[ $(printf '%s\n%s' "$cmake_version" "$cmake_required_version" | sort -V | head -n1) == "$cmake_version" ]] && [[ "$cmake_version" != "$cmake_required_version" ]]; then
           python3 -m pip install --upgrade pip >/dev/null && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
           echo -e "\nCMake version $cmake_version upgrading to latest python cmake";
           sudo rm -f "$(which cmake)";
@@ -370,7 +370,7 @@ runs:
           sudo aptitude -yq install git git-core 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
-        if (${{ inputs.project }} || [[ "${file_type}" == [cth]* ]]) && ([[ ! $(which clang-tidy) ]] || [[ $(printf '%s\n%s' "$clang_tidy_version" "$clang_tidy_required_version" | sort -x | head -n1) == "$clang_tidy_version" ]] && [[ "$clang_tidy_version" != "$clang_tidy_required_version" ]]); then
+        if (${{ inputs.project }} || [[ "${file_type}" == [cth]* ]]) && ([[ ! $(which clang-tidy) ]] || [[ $(printf '%s\n%s' "$clang_tidy_version" "$clang_tidy_required_version" | sort -V | head -n1) == "$clang_tidy_version" ]] && [[ "$clang_tidy_version" != "$clang_tidy_required_version" ]]); then
           python3 -m pip install --upgrade clang-tools >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check';
           [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
           [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
