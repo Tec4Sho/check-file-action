@@ -265,7 +265,7 @@ runs:
        echo '';
        sudo mkdir -p /usr/local/bin /usr/local/lib
        sudo chmod -R 0755 "${{ github.action_path }}/scripts";
-       sudo apt-get remove -yq clang-tidy clang llvm clang-tidy-1* clang-1* llvm-1* >/dev/null
+       sudo apt-get remove -yq clang-tidy-18 clang-18 llvm-18 >/dev/null
       shell: bash
       continue-on-error: true
 
