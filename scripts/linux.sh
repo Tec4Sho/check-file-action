@@ -29,10 +29,10 @@ install_llvm() {
 
 sanity_check() {
   llvm_version="$(llvm-config --version)";
-  if [[ "$(echo ${llvm_version} | cut -d'.' -f1)" != "$1" ]]; then
+  if [[ "${llvm_version}" != "$1" ]]; then
     echo "Expected LLVM major version $1, got ${llvm_version}" >&2
-    exit 1
-  fi
+    exit
+  fi;
 }
 
 LLVM_VERSION="${LLVM_VERSION:-$(current_llvm_stable)}";
