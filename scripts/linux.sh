@@ -11,6 +11,7 @@ current_llvm_stable() {
 
 install_llvm() {
   llvm_version="$1";
+  version="${llvm_version}";
   tmpdir="$(mktemp -d)";
   cd "${tmpdir}";
   curl -fsSL https://apt.llvm.org/llvm.sh -o llvm.sh
@@ -24,14 +25,14 @@ install_llvm() {
   rm -f -- "${tmpfile}";
   PATH="/usr/lib/llvm-${llvm_version}/bin:${PATH}";
   LLVM_PATH="/usr/lib/llvm-${llvm_version}";
-  export PATH LLVM_PATH
+  export PATH LLVM_PATH version
 }
 
 sanity_check() {
   llvm_version="$(llvm-config --version)";
-  if [[ "${llvm_version}" != "$1" ]]; then
-    echo "Expected LLVM major version $1, got ${llvm_version}" >&2
-    exit
+  if [[ $(echo "${llvm_version}" | cut -d'.' -f1) != "$version" ]]; then
+    echo "Expected LLVM major version ${version}, got ${llvm_version}" >&2
+    exit 0
   fi;
 }
 
