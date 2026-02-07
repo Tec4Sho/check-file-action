@@ -2004,7 +2004,7 @@ runs:
                   fixed=true
                 fi;
               else
-                echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER (${count2})\n####################\n\n" | process_input;
+                echo -e "\n####################\nCPPCHECK FILE(S) ANALYZER (${count1})\n####################\n\n" | process_input;
                 cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport "${file}" 2>&1 | process_input || echo -e "::notice:: ( exit $? ) cppcheck" | process_input;
                 if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file##*/}\n####################" | process_input;
@@ -2069,7 +2069,7 @@ runs:
             fi;
           done;
           echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count1}\n" | process_input;
-          echo -e "Scanning Completed!\nCheck-File Exiting!\n .....\n" | process_input;
+          echo -e "\nScanning Completed!\nCheck-File Exiting!\n .....\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${errors}" ]]; then
             echo "file_error=1" >> "${GITHUB_ENV}";
