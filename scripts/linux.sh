@@ -19,26 +19,26 @@ install_llvm() {
   rm -rf -- "${tmpdir}";
   tmpfile="$(mktemp)";
   echo "/usr/lib/llvm-$llvm_version/bin" >>"$tmpfile";
-  cat "${GITHUB_PATH}" >>"${tmpfile}" >/dev/null;
-  cat "${tmpfile}" > "${GITHUB_PATH}" >/dev/null;
+  cat "${GITHUB_PATH}" >>"${tmpfile}";
+  cat "${tmpfile}" > "${GITHUB_PATH}";
   rm -f -- "${tmpfile}";
-  PATH="/usr/lib/llvm-${llvm_version}/bin:${PATH}"
-  export PATH
-  LLVM_PATH="/usr/lib/llvm-$llvm_version"
+  PATH="/usr/lib/llvm-${llvm_version}/bin:${PATH}";
+  LLVM_PATH="/usr/lib/llvm-${llvm_version}";
+  export PATH LLVM_PATH
 }
 
 sanity_check() {
-  llvm_version="$(llvm-config --version)"
-  if [ "$(echo "${llvm_version}" | cut -d. -f1)" != "$1" ]; then
+  llvm_version="$(llvm-config --version)";
+  if [[ "$(echo ${llvm_version} | cut -d'.' -f1)" != "$1" ]]; then
     echo "Expected LLVM major version $1, got ${llvm_version}" >&2
     exit 1
   fi
 }
 
-LLVM_VERSION="${LLVM_VERSION:-$(current_llvm_stable)}" >/dev/null;
-install_llvm "${LLVM_VERSION}" >/dev/null;
+LLVM_VERSION="${LLVM_VERSION:-$(current_llvm_stable)}";
+install_llvm "${LLVM_VERSION}" >/dev/null 2>&1;
 sanity_check "${LLVM_VERSION}" >/dev/null;
 
-echo -e "\nLLVM ${LLVM_VERSION} has been installed to ${LLVM_PATH}";
-echo "LLVM_PATH=${LLVM_PATH}" >>"${GITHUB_PATH}";
+echo -e "\nLLVM ${LLVM_VERSION} has been installed to ${LLVM_PATH}" 2>&1;
+echo "PATH=${PATH}" >>"${GITHUB_PATH}";
 echo "LLVM_PATH=${LLVM_PATH}" >>"${GITHUB_ENV}";
