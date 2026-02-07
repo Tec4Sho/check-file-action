@@ -273,7 +273,7 @@ runs:
       if: inputs.project == 'true' && runner.os == 'Linux'
       run: |
         echo '';
-        "${{ github.action_path }}/scripts/linux.sh" >/dev/null 2>&1
+        "${{ github.action_path }}/scripts/linux.sh" >/dev/null 
       env:
         LLVM_VERSION: ${{ inputs.version }}
         SETUP_LLVM_GITHUB_TOKEN: ${{ inputs.github-token }}
