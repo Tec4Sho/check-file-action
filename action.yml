@@ -300,7 +300,7 @@ runs:
         sudo add-apt-repository universe >/dev/null;
         sudo apt-get -yq update 2>&1 >/dev/null | sed '/Running/,/host./d';
         sudo apt-get -yq install aptitude 2>&1 >/dev/null | sed '/Running/,/host./d';
-        if ${{ inputs.project }} && [[ ! $(which cmake) ]]; then
+        if ${{ inputs.project == 'true' }} && [[ ! $(which cmake) ]]; then
           sudo aptitude -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
           [[ ! $(which cmake) ]] && exit 1
         fi;
@@ -313,7 +313,7 @@ runs:
         linux_distro2="22.04";
         linux_distro3="20.04";
         linux_verison=$(lsb_release -r | awk '{ print $2; }');
-        if ${{ inputs.project }}; then
+        if ${{ inputs.project == 'true' }}; then
           if [[ $(printf '%s\n%s' "${cmake_version}" "${cmake_required_version}" | sort -V | head -n1) == "${cmake_version}" ]] && [[ "${cmake_version}" != "${cmake_required_version}" ]] && ${{ inputs.project }}; then
             echo -e "Current CMake version (${cmake_version}) is older than ${cmake_required_version}. Updating....";
             sudo apt-get remove --purge -yq cmake 2>&1 >/dev/null | sed '/Running/,/host./d'
@@ -349,14 +349,14 @@ runs:
           sudo aptitude -yq install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
-        if ${{ inputs.project }} && [[ ! $(which update-ca-certificates) ]]; then
+        if ${{ inputs.project == 'true' }} && [[ ! $(which update-ca-certificates) ]]; then
           sudo aptitude -yq install ca-certificates 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
         if [[ ! $(which gawk) ]]; then
           sudo aptitude -yq install gawk 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngawk dependencies installed\n####################" || echo -e "\n::error::No gawk installed in linux exiting";
         fi;
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
-        if ${{ inputs.project }} && [[ $(printf '%s\n%s' "${cmake_version}" "${cmake_required_version}" | sort -V | head -n1) == "${cmake_version}" ]] && [[ "${cmake_version}" != "${cmake_required_version}" ]]; then
+        if ${{ inputs.project == 'true' }} && [[ $(printf '%s\n%s' "${cmake_version}" "${cmake_required_version}" | sort -V | head -n1) == "${cmake_version}" ]] && [[ "${cmake_version}" != "${cmake_required_version}" ]]; then
           python3 -m pip install --upgrade pip >/dev/null && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
           echo -e "\nCMake version $cmake_version upgrading to latest python cmake";
           sudo rm -f "$(which cmake)";
@@ -365,7 +365,7 @@ runs:
           python3 -m pip install --upgrade cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -pf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
         fi;
-        if ${{ inputs.project }} && (${{ inputs.source == '4' }} || [[ -e 'check-file-compile.txt' ]]); then
+        if ${{ inputs.project == 'true' }} && (${{ inputs.source == '4' }} || [[ -e 'check-file-compile.txt' ]]); then
           go build ${{ github.action_path }}/scripts/cmakebar.go && echo -e "\n####################\ncmakebar dependencies installed\n####################" || echo -e '::error::No cmakebar installed for project checks';
           [[ -e "cmakebar" ]] && sudo cp -f 'cmakebar' '/usr/local/bin/'
         fi;
@@ -373,38 +373,38 @@ runs:
           sudo aptitude -yq install git git-core 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
-        if (${{ inputs.project }} || [[ "${file_type}" == [cth]* ]]) && ([[ ! $(which clang-tidy) ]] || [[ $(printf '%s\n%s' "${clang_tidy_version}" "${clang_tidy_required_version}" | sort -V | head -n1) == "${clang_tidy_version}" ]] && [[ "${clang_tidy_version}" != "${clang_tidy_required_version}" ]]); then
+        if (${{ inputs.project == 'true' }} || [[ "${file_type}" == [cth]* ]]) && ([[ ! $(which clang-tidy) ]] || [[ $(printf '%s\n%s' "${clang_tidy_version}" "${clang_tidy_required_version}" | sort -V | head -n1) == "${clang_tidy_version}" ]] && [[ "${clang_tidy_version}" != "${clang_tidy_required_version}" ]]); then
           python3 -m pip install --upgrade clang-tools >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check';
           [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
           [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
-        if ${{ inputs.analyzer == '1' }} && ${{ inputs.project }} && [[ $(which run-clang-tidy) ]]; then
+        if ${{ inputs.analyzer == '1' }} && ${{ inputs.project == 'true' }} && [[ $(which run-clang-tidy) ]]; then
           echo -e "\n[clang-tools] $(whereis -b run-clang-tidy)";
           [[ $(whereis clang-format) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-format)" || echo -e '::error::No clang-format pip installed for project checks';
           [[ $(whereis clang-apply-replacements) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-apply-replacements)" || echo -e '::error::No clang-apply-replacements pip installed for project checks';
           echo 'run_clang_tidy=run-clang-tidy' >> "${GITHUB_ENV}";
-        elif ${{ inputs.analyzer == '1' }} && ${{ inputs.project }}; then
+        elif ${{ inputs.analyzer == '1' }} && ${{ inputs.project == 'true' }}; then
           echo -e "\n[clang-tools] run-clang-tidy: /scripts/tools/run-clang-tidy.py" || echo -e '::error::No run-clang-tidy.py pip installed for project checks';
           [[ $(whereis clang-format) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-format)" || echo -e '::error::No clang-format pip installed for project checks';
           [[ $(whereis clang-apply-replacements) ]] && echo -e "\n[clang-tools]: $(whereis -b clang-apply-replacements)" || echo -e '::error::No clang-apply-replacements pip installed for project checks';
           echo "run_clang_tidy=${{ github.action_path }}/scripts/tools/run-clang-tidy.py" >> "${GITHUB_ENV}";
         fi;
-        if ${{ inputs.project }} && ${{ inputs.analyzer == '3' }} && [[ ! $(which clangd-tidy) ]]; then
+        if ${{ inputs.project == 'true' }} && ${{ inputs.analyzer == '3' }} && [[ ! $(which clangd-tidy) ]]; then
           python3 -m pip install --upgrade clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies installed\n####################" || echo -e '::error::No clangd-tidy installed for project checks';
           sudo aptitude -yq install clangd 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\nclangd pip dependencies installed\n####################" || echo -e '::error::No clangd pip installed for project checks';
           if [[ ! $(which clangd-tidy) ]]; then
             exit 1
           fi;
         fi;
-        if ${{ inputs.project }} && [[ ! $(apt list linux-headers-generic >/dev/null 2>&1) ]]; then
+        if ${{ inputs.project == 'true' }} && [[ ! $(apt list linux-headers-generic >/dev/null 2>&1) ]]; then
           sudo aptitude -yq install linux-headers-generic 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-headers-generic 2>/dev/null)\n####################" || echo -e "::warning::No linux-headers-generic installed for project build";
         fi;
-        if [[ ! $(which fdfind) ]] && (${{ inputs.project }} || ${{ inputs.source > '0' }}); then
+        if [[ ! $(which fdfind) ]] && (${{ inputs.project == 'true' }} || ${{ inputs.source > '0' }}); then
           sudo aptitude -yq install fd-find 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nfd dependencies installed\n####################" || echo -e '::error::No fdfind installed for file searches';
           [[ ! $(which fdfind) ]] && echo -e '::error::No fdfind installed\n';
         fi;
-        if [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && ${{ inputs.repair }} && ${{ inputs.filename != '' }}; then
+        if [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && ${{ inputs.repair == 'true' }} && ${{ inputs.filename != '' }}; then
           sudo aptitude -yq install gcc g++ 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
         fi;
@@ -425,14 +425,14 @@ runs:
             exit 1
           fi;
         fi;
-        if ${{ inputs.project }} && ${{ inputs.build > '2' }} && [[ ! $(which deheader) ]]; then
+        if ${{ inputs.project == 'true' }} && ${{ inputs.build > '2' }} && [[ ! $(which deheader) ]]; then
           sudo aptitude -yq install deheader 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\ndeheader dependencies installed\n####################" || echo -e '::error::No deheader installed for project includes check';
           [[ ! $(which deheader) ]] && exit 1
         fi;
-        if ${{ inputs.project }} && [[ ! $(dpkg -s build-essential 2>/dev/null) ]]; then
+        if ${{ inputs.project == 'true' }} && [[ ! $(dpkg -s build-essential 2>/dev/null) ]]; then
           sudo aptitude -yq install build-essential device-tree-compiler 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nbuild-essential dependencies installed\n####################" || echo -e '::error::No build-essential installed for project build';
         fi;
-        if ${{ inputs.project }} && ${{ inputs.analyzer == 3 }} && [[ ! $(which tqdm) ]]; then
+        if ${{ inputs.project == 'true' }} && ${{ inputs.analyzer == 3 }} && [[ ! $(which tqdm) ]]; then
           python3 -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
         fi;
@@ -440,7 +440,7 @@ runs:
           sudo aptitude -yq install ripgrep 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
-        if ${{ inputs.report }} && [[ ! $(which ansi2txt) ]]; then
+        if ${{ inputs.report == 'true' }} && [[ ! $(which ansi2txt) ]]; then
           sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text2}" || echo -e '::warning::No colorized-logs installed for log report';
           [[ ! $(which ansi2txt) ]] && echo -e '::warning::No ansi2txt installed for cleaning log report';
         fi;
@@ -448,7 +448,7 @@ runs:
           sudo aptitude -yq install cppcheck 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
           [[ ! $(which cppcheck) ]] && exit 1
         fi;
-        if [[ "${file_type}" == [sh] ]] && ${{ inputs.repair }} && [[ ! $(which shellharden) ]]; then
+        if [[ "${file_type}" == [sh] ]] && ${{ inputs.repair == 'true' }} && [[ ! $(which shellharden) ]]; then
           sudo wget -qO 'shellharden.tar.gz' 'https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-gnu.tar.gz' >/dev/null;
           sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e "${text6}" || echo -e '::error::No shellharden installed Exiting';
           [[ ! $(which shellharden) ]] && exit 1
@@ -543,7 +543,7 @@ runs:
           local text="$1";
           echo -e "${text}";
         }
-        if ${{ inputs.absolute }}; then
+        if ${{ inputs.absolute == 'true' }}; then
           text "${text1a}";
           text "${text1b}";
           text "${text1c}";
@@ -560,7 +560,7 @@ runs:
           echo 'github_absolute_path=false' >> "${GITHUB_ENV}";
           base='.'
         fi;
-        if (${{ inputs.stored }} || ${{ env.update }}) && [[ -f "${repair_file}" ]]; then
+        if (${{ inputs.stored == 'true' }} || ${{ env.update == 'true' }}) && [[ -f "${repair_file}" ]]; then
           repaired="${repair_file}";
           if [[ -f ${repaired} ]]; then
             text "\n${text3a}";
@@ -573,7 +573,7 @@ runs:
             date '+%Y%m%d' > "${repaired}" || echo -e "::warning::${repaired} backup file not found";
           fi;
         fi;
-        if ${{ inputs.database }}; then
+        if ${{ inputs.database == 'true' }}; then
           sudo find "${base}" -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -print | sort -t/ -k1.2 > 'database';
           if [[ -s 'database' ]]; then
             text "\n${text5a}";
@@ -641,7 +641,7 @@ runs:
           done < <(file_count);
           echo "${type_count}";
         }
-        if ${{ inputs.content }}; then
+        if ${{ inputs.content == 'true' }}; then
           if [[ "$(directory)" ]]; then
             echo -e "\n#####################\nProject Source Directories:\n#####################\n\n$(directory)";
           fi;
@@ -728,14 +728,14 @@ runs:
             fi;
           done;
         }
-        if ${{ inputs.absolute }}; then
+        if ${{ inputs.absolute == 'true' }}; then
           abs='--absolute-path';
         else
           abs='--relative-path';
         fi;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE\033[0m\n####################" | process_input;
-        include_files1=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" | gawk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
-        include_files2=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc --all)" | xargs -r rg --sort=path --trim -H -o '^#include[[:space:]]+[<].*[>]' | tr -d '<>' | gawk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
+        include_files1=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc)" | gawk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
+        include_files2=$(fdfind -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -j "$(nproc)" | xargs -r rg --sort=path --trim -H -o '^#include[[:space:]]+[<].*[>]' | tr -d '<>' | gawk '{ print $NF, $0 }' | sort -k1,1 -us | cut -d' ' -f2-);
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";
         [[ -f "${name_count_file}" ]] && rm -f "${name_count_file}";
@@ -751,7 +751,7 @@ runs:
             echo -e "\n####################\n\t\033[33mSOURCE FILE\033[0m ( ${count1} )\n####################" | process_input;
             echo -e "\nSource File Location: ${file}" | process_input;
             echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
-            if ${{ inputs.include }}; then
+            if ${{ inputs.include == 'true' }}; then
               includes_found=false
               include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+["].*["]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);
               if [[ "${include_source}" ]]; then
@@ -976,8 +976,8 @@ runs:
             fi;
           done;
         }
-        if ${{ inputs.include }}; then
-          ${{ inputs.content }} && export I="-isystem/usr/src/linux-headers-$(uname -r)/include" || export I="-isystem/usr/local/include";
+        if ${{ inputs.include == 'true' }}; then
+          ${{ inputs.content == 'true' }} && export I="-isystem/usr/src/linux-headers-$(uname -r)/include" || export I="-isystem/usr/local/include";
           M="-O1 -ansi -fsyntax-only -fdiagnostics-show-location=once -M -MG -E ${I}";
         else
           M='-O2 -ansi -fsyntax-only -fdiagnostics-show-location=once -MM -E 2>&1';
@@ -989,7 +989,7 @@ runs:
         fi;
         echo -e "####################\n\t\033[33mPROGRESSIVE SCAN MODE ULTRA\033[0m\n####################" | process_input;
         include_files=$(fdfind -j "$(nproc)" -p -c auto "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" | awk -F'/' '{print $NF, $0}' | sort -k1,1 | cut -d' ' -f2-);
-        ${{ inputs.include }} && echo -e "####################\n\t\033[34m EXTRA INCLUDE PATHS: ${I}\033[0m\n####################\n" | process_input;
+        ${{ inputs.include == 'true' }} && echo -e "####################\n\t\033[34m EXTRA INCLUDE PATHS: ${I}\033[0m\n####################\n" | process_input;
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";        
         if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '3' }} && [[ "${include_files}" ]]; then
@@ -1118,7 +1118,7 @@ runs:
           else
             compile_json='build/compile_commands.json';
           fi;
-          if ${{ inputs.absolute }}; then
+          if ${{ inputs.absolute == 'true' }}; then
             abs='--absolute-path';
           else
             abs='--relative-path';
@@ -1156,16 +1156,16 @@ runs:
           fi;
           echo -e "\n####################\nClang-Tidy: ${clang_tidy_version}\n####################" | process_input;
           echo -e "\n####################\nCLANG TIDY: ${verify_config}\n####################" | process_input;
-          if ${{ inputs.content }} && ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
+          if ${{ inputs.content == 'true' }} && ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.analyzer == '4' }}; then
             codechecker_analyzer1=$(CodeChecker checkers --analyzers clangsa | gawk '/Status: enabled/{ print prev; }{ prev=$0; }' | gawk '{ printf "    %s\n", $0; }');
             [[ -n "${codechecker_analyzer1}" ]] && echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled analyzer checks:\n${codechecker_analyzer1}" | process_input;
             codechecker_analyzer2=$(CodeChecker checkers --profile sensitive | gawk '/Status: enabled/{ print prev; }{ prev=$0; }' | gawk '{ printf "    %s\n", $0; }');
             [[ -n "${codechecker_analyzer2}" ]] && echo -e "\n####################\n\tCODECHECKER OPTIONS\n####################\nEnabled profile checks:\n${codechecker_analyzer2}" | process_input;
           fi;
-          ${{ inputs.content }} && echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
+          ${{ inputs.content == 'true' }} && echo -e "\n####################\n\tCLANG OPTIONS\n####################\n\n${clang_checks}" | process_input;
           echo -e "\n####################\nChecking Repository:\033[32m ${{ env.base }}\033[0m\n####################" | process_input;
           echo -e "\n####################\nChecking for ${file_type} files\n####################" | process_input;
-          if ${{ inputs.absolute }}; then
+          if ${{ inputs.absolute == 'true' }}; then
             abs='-a';
           else
             abs='';
@@ -1484,8 +1484,8 @@ runs:
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
         export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
-        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}";
-        ${{ inputs.include }} && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
+        ${{ inputs.include == 'true' }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}";
+        ${{ inputs.include == 'true' }} && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
@@ -1672,7 +1672,7 @@ runs:
             fi;
           done;
         }
-        if ${{ inputs.absolute }}; then
+        if ${{ inputs.absolute == 'true' }}; then
           abs='--absolute-path';
         else
           abs='--relative-path';
@@ -1859,7 +1859,7 @@ runs:
           [[ -f ${count1} ]] && rm "${count1}";
           [[ -f ${count2} ]] && rm "${count2}";
           [[ -f ${count3} ]] && rm "${count3}";
-          ${{ inputs.content }} && echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
+          ${{ inputs.content == 'true' }} && echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
@@ -1870,9 +1870,9 @@ runs:
             echo "includes=false" >> "${GITHUB_ENV}";
           fi;
           [[ -f "/tmp/*/metadata.json" ]] && echo -e"\nCodeChecker Analyzer list: $(cp -vf "/tmp/*/metadata.json" build/)";
-          echo -e '\n####################\n\tProject Checked Exiting...\n####################\n' | process_input;
+          echo -e '\n####################\n\t\033[32mProject Files Checked Exiting...\033[0m\n####################\n' | process_input;
         else
-          echo -e '\n####################\n\tProject Not Checked Exiting...\n####################\n' | process_input;
+          echo -e '\n####################\n\t\033[33mProject Files Not Checked Exiting...\033[0m\n####################\n' | process_input;
         fi;
         seconds="$((SECONDS + start_time))";
         m=$((seconds / 60));
@@ -1881,7 +1881,7 @@ runs:
       shell: bash
       continue-on-error: true
 
-    - name: Check & Repair (Clang-tools)
+    - name: Check & Repair CC/C++
       if: inputs.filename != '' && inputs.build == '0'
       run: |
         echo '';
@@ -1920,7 +1920,7 @@ runs:
         else
           compile_json='build/compile_commands.json';
         fi;
-        ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
+        ${{ inputs.include == 'true' }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
@@ -1947,20 +1947,18 @@ runs:
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ -n "${files}" ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
-          if [[ -f "${clang_file}" ]] && ${{ inputs.repair }}; then
-            echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input
-          elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair }}; then
+          if [[ -f "${clang_file}" ]] && ${{ inputs.repair == 'true' }}; then
+            echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input;
+          elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair == 'true' }}; then
             echo -e "\n####################\n::error:: .clang-tidy not found exiting...\n####################" | process_input;
-            exit 1
           fi;
-          if [[ -f "${compile_json}" ]] && ! ${{ inputs.include }}; then
-            echo -e '\n####################\n\tcompile_commands.json found continuing...\n####################' | process_input;
-          elif [[ ! -f "${compile_json}" ]] && ! ${{ inputs.include }}; then
-            echo -e "\n####################\n::error:: compile_commands.json not found\nUse inputs.project: true to create it exiting...\n####################" | process_input;
-            exit 1
+          if [[ -f "${compile_json}" ]]; then
+            echo -e '\n####################\n\tA compile_commands.json was found continuing...\n####################' | process_input;
+          elif [[ ! -f "${compile_json}" ]]; then
+            echo -e '\n####################\n\tA compile_commands.json was not found\nSet option ( project: true ) to create one if needed, continuing....\n####################' | process_input;
           fi;
           if [[ -f "${cppchecks}" ]]; then
-             echo -e "\n####################\n\t${cppchecks} found continuing...\n####################" | process_input;
+             echo -e "\n####################\n\t${cppchecks} config file was found continuing...\n####################" | process_input;
              cppchecks=$(cat ${cppchecks} | tr -d ' \n');
           else
              cppchecks=all;
@@ -1974,24 +1972,24 @@ runs:
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n" | process_input;
             echo "${file%/*}";
-            if ${{ inputs.content }}; then
+            if ${{ inputs.content == 'true' }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n" | process_input;
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${file}" | process_input;
             fi;
-            if ${{ inputs.include }}; then
-              if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && ${{ env.update }} && [[ $(LC_ALL=C grep -sF "${search_path}" "${repaired}") ]]; then
+            if ${{ inputs.include == 'true' }}; then
+              if ${{ inputs.repair == 'true' }}; then
+                if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(LC_ALL=C grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping {file%/*}\n####################" | process_input;
-                elif ${{ inputs.stored }} && ${{ env.update }}; then
-                  echo -e "\n\n####################\nGCC/G++ FILES ANALYZER (${count1})\n####################\n\n" | process_input;
+                elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
+                  echo -e "\n\n####################\nGCC/G++ FILES ANALYZER (${count1})\n####################\n" | process_input;
                   if [[ "${file_type}" == [c] ]]; then
-                    gcc -M -MG "${file}" | process_input || echo -e "::notice:: ( exit $? ) gcc" | process_input;
+                    gcc -M -MG "${file}" | process_input || echo -e "::notice gcc:: ( exit $? )" | process_input;
                   elif [[ "${file_type}" == [c]* ]]; then
-                    g++ -M -MG "${file}" | process_input || echo -e "::notice:: ( exit $? ) g++" | process_input;
+                    g++ -M -MG "${file}" | process_input || echo -e "::notice g++:: ( exit $? )" | process_input;
                   fi;
-                  echo -e "\n\n####################\nCLANG-TIDY FIX FILES ANALYZER (${count1})\n####################\n\n" | process_input;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice:: ( exit $? ) clang-tidy" | process_input;
+                  echo -e "\n\n####################\nCLANG-TIDY FIX FILES ANALYZER (${count1})\n####################\n" | process_input;
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice clang-tidy:: ( exit $? )" | process_input;
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file##*/}" | process_input;
                   else
@@ -2000,14 +1998,14 @@ runs:
                   fi;
                   echo "${file} $(date)" >> "${repaired}";
                   fixed=true
-                elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
-                  echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n" | process_input;
+                elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
+                  echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n" | process_input;
                   if [[ "${file_type}" == [c] ]]; then
                     gcc -MM "${file}" | process_input || echo -e "::notice:: ( exit $? ) gcc" | process_input;
                   elif [[ "${file_type}" == [c]* ]]; then
                     g++ -MM "${file}" | process_input || echo -e "::notice:: ( exit $? ) g++" | process_input;
                   fi;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice:: ( exit $? ) clang-tidy" | process_input;
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice clang-tidy:: ( exit $? )" | process_input;
                   if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file##*/}\n####################" | process_input;
                   else
@@ -2017,8 +2015,8 @@ runs:
                   fixed=true
                 fi;
               else
-                echo -e "\n####################\nCPPCHECK FILE(S) ANALYZER (${count1})\n####################\n\n" | process_input;
-                cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport "${file}" 2>&1 | process_input || echo -e "::notice:: ( exit $? ) cppcheck" | process_input;
+                echo -e "\n####################\nCPPCHECK FILE(S) ANALYZER (${count1})\n####################\n" | process_input;
+                cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport "${file}" 2>&1 | process_input || echo -e "::notice cppcheck:: ( exit $? )" | process_input;
                 if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file##*/}\n####################" | process_input;
                 else
@@ -2028,12 +2026,12 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored }} && ${{ env.update }} && [[ $(LC_ALL=C grep -sF "${search_path}" "${repaired}") ]]; then
+                if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(LC_ALL=C grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping ${file%/*}\n####################" | process_input;
-                elif ${{ inputs.stored }} && ${{ env.update }}; then
-                  echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n" | process_input;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice:: ( exit $? ) clang-tidy" | process_input;
+                elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
+                  echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n" | process_input;
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice clang-tidy:: ( exit $? )" | process_input;
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file##*/}\n" | process_input;
                   else
@@ -2043,8 +2041,8 @@ runs:
                   echo "${file} $(date)" >> "${repaired}";
                   fixed=true
                 elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
-                  echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n\n" | process_input;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice:: ( exit $? ) clang-tidy" | process_input;
+                  echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER (${count1})\n####################\n" | process_input;
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice clang-tidy:: ( exit $? )" | process_input;
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file##*/}\n####################" | process_input;
                   else
@@ -2054,8 +2052,8 @@ runs:
                   fixed=true
                 fi;
               else
-                echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n" | process_input;
-                cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress="*" "${file}" 2>&1 | process_input || echo -e "::notice:: ( exit $? ) cppcheck" | process_input;
+                echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n" | process_input;
+                cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress="*" "${file}" 2>&1 | process_input || echo -e "::notice cppcheck:: ( exit $? )" | process_input;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file##*/}\n####################" | process_input;
                 else
@@ -2064,9 +2062,9 @@ runs:
                 fi;
               fi;
             fi;
-            if ${{ inputs.recheck }} && ${{ inputs.repair }}; then
-              echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n\n" | process_input;
-              cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=* --quiet "${file}" 2>&1 | process_input || echo -e "::notice:: ( exit $? ) cppcheck" | process_input;
+            if ${{ inputs.recheck == 'true' }} && ${{ inputs.repair == 'true' }}; then
+              echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE(S) (${count1})\n####################\n" | process_input;
+              cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=* --quiet "${file}" 2>&1 | process_input || echo -e "::notice cppcheck:: ( exit $? )" | process_input;
               if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND ${file##*/}\n####################" | process_input;
               else
@@ -2076,13 +2074,13 @@ runs:
             fi;
             if ${{ inputs.number > 0 }}; then
               if [[ ${{ inputs.number }} -eq ${count1} ]]; then
-                echo -e "\nFile ${count1} checking auto stopped at ${file##*/}\n" | process_input;
+                echo -e "\nFile ${count1} checking auto stopped at ${file##*/}" | process_input;
                 break;
               fi;
             fi;
           done;
-          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count1}\n" | process_input;
-          echo -e "\nScanning Completed!\nCheck-File Exiting!\n .....\n" | process_input;
+          echo -e "\n::notice::Total number of ${{ inputs.filename }} file(s) checked is: ${count1}" | process_input;
+          echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${errors}" ]]; then
             echo "file_error=1" >> "${GITHUB_ENV}";
@@ -2127,29 +2125,29 @@ runs:
         if ${{ inputs.database }}; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
             files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         else
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         fi;
-        if [[ "${file_type}" == [sh] ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
+        if [[ "${file_type}" == [sh] ]] && [[ -n "${files}" ]]; then
+          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             echo -e "\nLocated File(s)\n\n${files}" | process_input;
           fi;
@@ -2157,20 +2155,20 @@ runs:
             search_path="${file}";
             check_date=$(LC_ALL=C grep -Fs "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count3=$((shellcheck_count++));
-            echo -e "\n####################\n\tFILE PATH (${count3})\n####################\n" | process_input;
-            echo "$(dirname ${file})";
-            if ${{ inputs.content }}; then
+            echo -e "\n####################\n\tFILE PATH (${count3})\n####################" | process_input;
+            echo "${file%/*}";
+            if ${{ inputs.content == 'true' }}; then
               echo -e "\n####################\n\tFILE CONTENT\n####################\n" | process_input;
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${file}";
-              echo -e "\n\n";
+              echo -e "\n";
             fi;
-            if ${{ inputs.repair }}; then
-              if ${{ inputs.stored }} && ${{ env.update }} && [[ $(LC_ALL=C grep -sF "${search_path}" "${repaired}") ]]; then
+            if ${{ inputs.repair == 'true' }}; then
+              if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(LC_ALL=C grep -sF "${search_path}" "${repaired}") ]]; then
                 echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n" | process_input;
                 echo -e "\n####################\nRepaired on ${check_date}\nSkipping $(basename ${file})\n####################\n" | process_input;
-              elif ${{ inputs.stored }} && ${{ env.update }}; then
+              elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input;
-                shellharden --syntax-suggest --transform "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
+                shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || echo -e "::notice::shellharden exit ( $? )" | process_input;
                 if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n" | process_input;
                 else
@@ -2179,46 +2177,46 @@ runs:
                 fi;
                 echo "${file} $(date)" >> "${repaired}";
                 fixed=true
-              elif ! ${{ inputs.stored }} || ! ${{ env.update }}; then
-                echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input;
-                shellharden --syntax-suggest --transform "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
+              elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
+                echo -e "\n\n####################\nSHELLHARDEN ANALYZING ${file##/*} FOR ERROR(S) ($count3)\n####################\n" | process_input;
+                shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || echo -e "::notice::shellharden exit ( $? )" | process_input;
                 if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
-                  echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND ${file}\n####################\n" | process_input;
+                  echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND ${file}\n####################" | process_input;
                 else
-                  echo -e "\n####################\nSHELLHARDEN FOUND ERROR(S) TO REPAIR\n####################\n" | process_input;
+                  echo -e "\n####################\nSHELLHARDEN FOUND ERROR(S) TO REPAIR\n####################" | process_input;
                   errors=true
                 fi;
                 fixed=true
               fi;
             fi;
-            if ${{ inputs.recheck }}; then
-              echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input;
-              shellcheck --norc --severity=warning --color=always "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
+            if ${{ inputs.recheck == 'true' }}; then
+              echo -e "\n\n####################\nSHELLCHECK ANALYZING ${file##/*} FOR ERROR(S) ($count3)\n####################\n" | process_input;
+              shellcheck --norc --severity=warning --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck exit ( $? )" | process_input;
               if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
-                echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################\n" | process_input;
+                echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################" | process_input;
               else
-                echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################\n" | process_input;
+                echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################" | process_input;
                 errors=true
               fi;
-            elif ! ${{ inputs.repair }}; then
-              echo -e "\n\n####################\nSHELLCHECK ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input;
-              shellcheck --norc --severity=warning --color=always "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? )" | process_input;
+            elif ${{ inputs.repair == 'false' }}; then
+              echo -e "\n\n####################\nSHELLCHECK ANALYZING ${file##/*} FOR ERROR(S) ($count3)\n####################\n" | process_input;
+              shellcheck --norc --severity=warning --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck exit ( $? )" | process_input;
               if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
-                echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################\n" | process_input;
+                echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################" | process_input;
               else
-                echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################\n" | process_input;
+                echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################" | process_input;
                 errors=true
               fi;
             fi;
             if ${{ inputs.number > 0 }}; then
               if [[ ${{ inputs.number }} -eq ${count1} ]]; then
-                echo -e "\nFile ${count1} checking auto stopped at $(basename ${file})\n" | process_input;
+                echo -e "\nFile ${count1} checking auto stopped at ${file##/*}" | process_input;
                 break;
               fi;
             fi;
           done;
-          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count3}\n" | process_input;
-          echo -e "Scanning Completed!\nCheck-File Exiting!\n .....\n" | process_input;
+          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count3}" | process_input;
+          echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${errors}" ]]; then
             echo "file_error=1" >> "${GITHUB_ENV}";
@@ -2260,56 +2258,56 @@ runs:
             fi;
           done;
         } 2>&1;
-        if ${{ inputs.database }}; then
+        if ${{ inputs.database == 'true' }}; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
             files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         else
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         fi;
         if [[ ${path} ]]; then
-          echo -e "\n####################\ncheckmake.ini found in system continuing ...\n####################\n" | process_input;
+          echo -e "\n####################\ncheckmake.ini found in system continuing ...\n####################" | process_input;
         fi;
         makefile_count=1
-        if [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]] && [[ -n ${files} ]]; then
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
+        if [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]] && [[ -n "${files}" ]]; then
+          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           for file in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n" | process_input;
-            echo "$(dirname ${file})";
-            if ${{ inputs.content }}; then
-              echo -e "\n####################\n\tFILE CONTENT\n####################\n\n" | process_input;
+            echo "${file%/*}";
+            if ${{ inputs.content == 'true' }}; then
+              echo -e "\n####################\n\tFILE CONTENT\n####################\n" | process_input;
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${file}" | process_input;
-              echo -e "\n\n";
+              echo -e "\n";
             fi;
             echo -e "\n####################\nCHECKMAKE ANALYZING $(basename ${file}) FOR ERROR(S) ($count4)\n####################\n" | process_input;
-            checkmake "${file}" 2>/dev/null | process_input || echo -e "::error:: ( $? ) from checkmake" | process_input;
-            if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
-              echo -e "\n####################\nCHECKMAKE NO ERRORS FOUND ${file}\n####################\n" | process_input;
+            checkmake "${file}" 2>&1 | process_input || echo -e "::notice:: checkmake exit ( $? )" | process_input;
+            if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+              echo -e "\n####################\nCHECKMAKE NO ERRORS FOUND ${file}\n####################" | process_input;
             else
-              echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################\n" | process_input;
+              echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################" | process_input;
               errors=true
             fi;
           done;
-          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count4}\n" | process_input;
-          echo -e "Scanning Completed!\nCheck-File Exiting!\n .....\n" | process_input;
+          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count4}" | process_input;
+          echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
           if [[ "${errors}" ]]; then
             echo "file_error=1" >> "${GITHUB_ENV}";
           fi;
@@ -2347,30 +2345,30 @@ runs:
         else
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         fi;
         file_count=1
-        if [[ ${files} ]]; then
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
+        if [[ -n "${files}" ]]; then
+          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################";
           for file in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
-            echo "$(dirname ${file})";
-            if ${{ inputs.content }}; then
-              echo -e "\n####################\n\tFILE CONTENT (${count5})\n####################\n\n";
+            echo "${file%/*}";
+            if ${{ inputs.content == 'true' }}; then
+              echo -e "\n####################\n\tFILE CONTENT (${count5})\n####################\n";
               batcat --theme=ansi --paging=never --show-all --color=always --style=full "${file}";
-              echo -e "\n\n";
+              echo -e "\n";
             fi;
           done;
-          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count5}\n";
-          echo -e "Scanning Completed!\nCheck-File Exiting!\n .....\n";
+          echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count5}";
+          echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n";
           echo "file_found=1" >> "${GITHUB_ENV}";
         else
           echo -e "\n####################\nFINISHED SEARCHING NO ${{ inputs.filename }} FILE FOUND\n####################\n";
@@ -2389,7 +2387,7 @@ runs:
         set +e
         file_count=1
         start_time="${{ env.seconds }}";
-        if ${{ inputs.database }}; then
+        if ${{ inputs.database == 'true' }}; then
           matched1=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
           content1=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
           matched2=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
@@ -2410,7 +2408,7 @@ runs:
               counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
               echo -e "\n${matches}\n";
-              if ${{ inputs.content }}; then
+              if ${{ inputs.content == 'true' }}; then
                 echo '| Runtime |';
                 contents=${content1};
                 for c in ${contents[@]}; do
@@ -2434,7 +2432,7 @@ runs:
             counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
             echo -e "\n${matches}\n";
-            if ${{ inputs.content }}; then
+            if ${{ inputs.content == 'true' }}; then
               echo '| Runtime |';
               content=${content2};
               for c in ${content[@]}; do
@@ -2461,10 +2459,19 @@ runs:
     - name: Directory Contains
       if: inputs.filename != '' && inputs.content == 'true' && inputs.build == '0'
       run: |
-        echo '';
+        echo -n '';
         set +e
         if ${{ env.file_found == '1' }}; then
-          check_file=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}");
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+            check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
+            check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
+          fi;
           echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }} file(s)\n####################\n";
           while IFS= read -r file; do
             echo -e "\nSource File: \033[32m${file}\033[0m\n\033[1mDirectory List:\033[0m";     
@@ -2656,7 +2663,7 @@ runs:
       if: inputs.filename == '' && inputs.pattern == '' && inputs.project == 'false'
       run: |
         echo ''
-        echo -e "\n::error::No input provided to • filename: none • pattern: none • project: false\n\tNothing To Do! ?\n";
+        echo -e "\n::debug::No input provided to • filename: none • pattern: none • project: false\n\tNothing To Do! ?\n";
       shell: bash
       continue-on-error: true
 
