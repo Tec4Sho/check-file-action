@@ -462,10 +462,14 @@ runs:
             [[ ! $(which batcat) ]] && exit 1
             echo -e "\nalias batcat='bat'" | sudo tee -a ~/.bashrc >/dev/null;
             echo 'export BAT_THEME=ansi' | sudo tee -a ~/.bashrc >/dev/null;
+            batcat cache --clear
+            batcat cache --build
           elif [[ ! $(which batcat) ]]; then
             sudo aptitude -yq install bat 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text9}" || echo -e '::error::No batcat installed Exiting';
             [[ ! $(which batcat) ]] && exit 1
             echo 'export BAT_THEME=ansi' | sudo tee -a ~/.bashrc >/dev/null;
+            batcat cache --clear
+            batcat cache --build
           fi;
         fi;
         if [[ -d '/usr/local/bin' ]]; then
@@ -1918,14 +1922,14 @@ runs:
             echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n" | process_input;
           else
             regex="\${{ inputs.filename }}$";
-            files=$(LC_ALL=C grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
+            files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
             echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n" | process_input;
           fi;
         else
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(sudo find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
           else
-            files=$(sudo find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
+            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
           fi;
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ -n "${files}" ]]; then
@@ -1965,7 +1969,7 @@ runs:
             echo "$(dirname ${file})";
             if ${{ inputs.content }}; then
               echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n" | process_input;
-              batcat --theme=ansi --paging=never --show-all --color=always --style=full "{file}";
+              batcat --theme=ansi --paging=never --show-all --color=always --style=full "{file}" | process_input || batcat --diagnostics | process_input;
             fi;
             if ${{ inputs.include }}; then
               if ${{ inputs.repair }}; then
@@ -2408,8 +2412,8 @@ runs:
           check_file=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}");
           echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }} file(s)\n####################\n";
           while IFS= read -r file; do
-            echo -e "\nSource File: ${file}\nDirectory File(s):";     
-            ls -Shap "${file%/*}";
+            echo -e "\nSource File: \033[32m${file}\033[0m\n\t\033[1mDirectory List:\033[0m";     
+            ls -ShApX "${file%/*}" | gawk '{ printf "    %s\n", $0; }';
           done <<< "${check_file}";
         fi;
       shell: bash
