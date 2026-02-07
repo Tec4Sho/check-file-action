@@ -30,7 +30,7 @@ install_llvm() {
 
 sanity_check() {
   llvm_version="$(llvm-config --version)";
-  if [[ $(echo "${llvm_version}" | cut -d'.' -f1) != "$version" ]]; then
+  if [[ "${llvm_version}" != "${version%%.*}" ]]; then
     echo "Expected LLVM major version ${version}, got ${llvm_version}" >&2
     exit 0
   fi;
