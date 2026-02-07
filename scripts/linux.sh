@@ -19,8 +19,8 @@ install_llvm() {
   rm -rf -- "${tmpdir}";
   tmpfile="$(mktemp)";
   echo "/usr/lib/llvm-$llvm_version/bin" >>"$tmpfile";
-  cat "${GITHUB_PATH}" >>"${tmpfile}";
-  cat "${tmpfile}" > "${GITHUB_PATH}";
+  cat "${GITHUB_PATH}" >>"${tmpfile}" >/dev/null;
+  cat "${tmpfile}" > "${GITHUB_PATH}" >/dev/null;
   rm -f -- "${tmpfile}";
   PATH="/usr/lib/llvm-${llvm_version}/bin:${PATH}"
   export PATH
@@ -39,6 +39,6 @@ LLVM_VERSION="${LLVM_VERSION:-$(current_llvm_stable)}" >/dev/null;
 install_llvm "${LLVM_VERSION}" >/dev/null;
 sanity_check "${LLVM_VERSION}" >/dev/null;
 
-echo "LLVM ${LLVM_VERSION} has been installed to ${LLVM_PATH}";
+echo -e "\nLLVM ${LLVM_VERSION} has been installed to ${LLVM_PATH}";
 echo "LLVM_PATH=${LLVM_PATH}" >>"${GITHUB_PATH}";
 echo "LLVM_PATH=${LLVM_PATH}" >>"${GITHUB_ENV}";
