@@ -1955,9 +1955,7 @@ runs:
              mkdir -p "${build_cache}";
           fi;
           if ${{ inputs.content }}; then
-            echo -e "\n# Found File Path(s)\n" | process_input;
-            awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}' "${files}" | process_input;
-            echo -e '\t--------------------\n' | process_input
+            echo -e "\nLocated File Path(s)\n\n${files}" | process_input;
           fi;
           { time for file in ${files[@]}; do
             search_path="${file}";
@@ -1983,7 +1981,7 @@ runs:
                   fi;
                   echo -e "\n\n####################\nCLANG-TIDY FIX FILES ANALYZER (${count1})\n####################\n\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice:: ( exit $? ) clang-tidy" | process_input;
-                  if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n" | process_input;
                   else
                     echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n" | process_input;
@@ -2046,14 +2044,7 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n\n" | process_input;
-                if ${{ inputs.project }} && ${{ inputs.stored }}; then
-                  cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --cppcheck-build-dir="${build_cache}" --project="${compile_json}" "${file}" 2>&1 | process_input || echo -e "::notice:: ( exit $? ) cppcheck" | process_input;
-                  echo 'build_cache=true' >> "${GITHUB_ENV}";
-                elif ${{ inputs.project }}; then
-                  cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingInclude --suppress=missingIncludeSystem --suppress=unmatchedSuppression:"{}" --project="${compile_json}" "${file}" 2>&1 | process_input || echo -e "::notice:: ( exit $? ) cppcheck" | process_input;
-                else
-                  cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress="*" "${file}" 2>&1 | process_input || echo -e "::notice:: ( exit $? ) cppcheck" | process_input;
-                fi;
+                cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress="*" "${file}" 2>&1 | process_input || echo -e "::notice:: ( exit $? ) cppcheck" | process_input;
                 if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file}\n####################\n" | process_input;
                 else
@@ -2128,17 +2119,15 @@ runs:
           fi;
         else
           if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            files=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
           else
-            files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
+            files=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
           fi;
         fi;
         if [[ "${file_type}" == [sh] ]] && [[ -n ${files} ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n" | process_input;
           if ${{ inputs.content }}; then
-            echo -e "\n# Found File Path(s)\n" | process_input;
-            awk 'NR % 10 == 1 {print "---- Lines " NR " to " NR+9 " ----"} {print}'"${files}" | process_input;
-            echo -e '\t--------------------\n' | process_input
+            echo -e "\nLocated File(s)\n\n${files}" | process_input;
           fi;
           { time -p for file in ${files[@]}; do
             search_path="${file}";
@@ -2416,9 +2405,12 @@ runs:
         echo '';
         set +e
         if ${{ env.file_found == '1' }}; then
-          check_file=$(dirname $(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}"));
+          check_file=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}");
           echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }} file(s)\n####################\n";
-          ls -Shap "${check_file}";
+          while IFS= read -r file; do
+            echo -e "\nSource File: ${file}\nDirectory File(s):";     
+            ls -Shap "${file%/*}";
+          done <<< "${check_file}";
         fi;
       shell: bash
       continue-on-error: true
