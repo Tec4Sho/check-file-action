@@ -1922,19 +1922,27 @@ runs:
         fi;
         ${{ inputs.include }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         if ${{ inputs.database }}; then
-          if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n" | process_input;
-          else
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
             files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n" | process_input;
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
         else
-          if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
-          else
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ -n "${files}" ]]; then
@@ -2117,19 +2125,27 @@ runs:
           done;
         }
         if ${{ inputs.database }}; then
-          if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n" | process_input;
-          else
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
-            files=$(LC_ALL=C grep -sE "${regex}" "${{ env.database }}");
-            echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n" | process_input;
+            files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
         else
-          if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
-          else
-            files=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
+            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
         fi;
         if [[ "${file_type}" == [sh] ]] && [[ -n ${files} ]]; then
@@ -2245,19 +2261,27 @@ runs:
           done;
         } 2>&1;
         if ${{ inputs.database }}; then
-          if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n" | process_input;
-          else
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}");
-            echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n" | process_input;
+            files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
         else
-          if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
-          else
-            files=$(sudo find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
+            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
         fi;
         if [[ ${path} ]]; then
@@ -2309,19 +2333,27 @@ runs:
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         if ${{ inputs.database }}; then
-          if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nLiteral String Pattern Matching Active\n####################\n";
-          else
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}");
-            echo -e "\n####################\nExtended Regex Pattern Matching Active\n####################\n";
+            files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
         else
-          if [[ $(echo "${{ inputs.filename }}" | sed 's/[\/\$]//g' | grep -Po "\b\w+\.\w+\b") ]]; then
-            files=$(sudo find / -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print 2>/dev/null);
-          else
-            files=$(sudo find / -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print 2>/dev/null);
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
+            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
         fi;
         file_count=1
@@ -2358,15 +2390,15 @@ runs:
         file_count=1
         start_time="${{ env.seconds }}";
         if ${{ inputs.database }}; then
-          matched1=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
-          content1=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
-          matched2=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
-          content2=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -print | xargs -r -P "$(nproc --all)" sudo rg -j "$(nproc --all)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
+          matched1=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
+          content1=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
+          matched2=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" 2>/dev/null);
+          content2=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" -l --quiet "${{ inputs.pattern }}" 2>/dev/null);
         else
-          matched1=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
-          content1=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
-          matched2=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -exec sudo grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
-          content2=$(time -p find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -exec sudo grep -q "${{ inputs.pattern }}" "{}" \; );
+          matched1=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
+          content1=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*.${type}" -exec grep -q "${{ inputs.pattern }}" "{}" \; );
+          matched2=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; );
+          content2=$(find ${{ env.base }} -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -exec grep -q "${{ inputs.pattern }}" "{}" \; );
         fi;
         echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
         echo -e "\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n";
