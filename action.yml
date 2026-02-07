@@ -36,7 +36,7 @@ inputs:
     description: 'Check only these file extension types when searching for text word matches'
     type: string
     required: false
-    default: 'none'
+    default: 'c'
   database:
     description: 'Use file database over find commands slower performance for searches'
     type: boolean 
@@ -76,7 +76,7 @@ inputs:
     description: 'LLVM Clang compiler used for project building only'
     type: string
     required: false
-    default: '21'
+    default: '22'
   content:
     description: 'Search will list dir contents of found filename'
     type: boolean
@@ -155,6 +155,8 @@ inputs:
     default: 'false'
   github-token:
     description: Token to authenticate GitHub API requests
+    type: string
+    required: false
     default: ${{ github.token }}
 outputs:
   llvm-path:
@@ -173,17 +175,17 @@ runs:
         if [[ -r '/etc/os-release' ]]; then
           . /etc/os-release
           if [[ "${ID}" == 'ubuntu' ]]; then
-            echo "Name: ${NAME}"
-            echo "Version: ${VERSION}"
-            echo "ID: ${ID}"
-            echo "ID Like: ${ID_LIKE}"
-            echo "Pretty Name: ${PRETTY_NAME}"
-            echo "Version ID: ${VERSION_ID}"
+            echo "Name: ${NAME}";
+            echo "Version: ${VERSION}";
+            echo "ID: ${ID}";
+            echo "ID Like: ${ID_LIKE}";
+            echo "Pretty Name: ${PRETTY_NAME}";
+            echo "Version ID: ${VERSION_ID}";
           else
-            echo "Not running an Ubuntu distribution. ID=${ID}, VERSION=${VERSION}"
+            echo "Not running an Ubuntu distribution. ID=${ID}, VERSION=${VERSION}";
           fi;
         else
-          echo "Not running a distribution with /etc/os-release available"
+          echo "Not running a distribution with /etc/os-release available";
         fi;
         echo '';
       shell: bash
@@ -260,6 +262,7 @@ runs:
     - name: Directory /usr/local
       if: inputs.project == 'true'
       run: |
+       echo '';
        sudo mkdir -p /usr/local/bin /usr/local/lib
        sudo chmod -R 0755 "${{ github.action_path }}/scripts";
       shell: bash
@@ -268,11 +271,12 @@ runs:
     - name: Install LLVM and Clang
       if: inputs.project == 'true' && runner.os == 'Linux'
       run: |
-        "${{ github.action_path }}/scripts/linux.sh" >/dev/null 2>&1
+        echo '';
+        sudo bash -c "${{ github.action_path }}/scripts/linux.sh" >/dev/null 2>&1
       env:
         LLVM_VERSION: ${{ inputs.version }}
         SETUP_LLVM_GITHUB_TOKEN: ${{ inputs.github-token }}
-      shell: sh
+      shell: bash
       continue-on-error: true
 
     - id: output
@@ -365,7 +369,7 @@ runs:
           sudo aptitude -yq install git git-core 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
-        if (${{ inputs.project }} || [[ "${file_type}" == [cth]* ]]) && ([[ ! $(which clang-tidy) ]] || [[ "${clang_version}" < '21.1.6' ]] || [[ "${clang_tidy_version}" < '21.1.6' ]]); then
+        if (${{ inputs.project }} || [[ "${file_type}" == [cth]* ]]) && ([[ ! $(which clang-tidy) ]] || [[ "${clang_tidy_version}" < '21.1.5' ]]); then
           python3 -m pip install --upgrade clang-tools >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
           [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
           [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
@@ -1524,7 +1528,7 @@ runs:
           echo 'update=false' >> "${GITHUB_ENV}";
           update=false
         fi;
-        if ${{ inputs.filetype != 'none' }}; then
+        if ${{ inputs.filetype != '' }}; then
           file_type="${{ inputs.filetype }}";
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
