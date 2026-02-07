@@ -268,11 +268,19 @@ runs:
     - name: Install LLVM and Clang
       if: inputs.project == 'true' && runner.os == 'Linux'
       run: |
-        "${{ github.action_path }}/scripts/linux.sh"
+        "${{ github.action_path }}/scripts/linux.sh" >/dev/null
       env:
         LLVM_VERSION: ${{ inputs.version }}
         SETUP_LLVM_GITHUB_TOKEN: ${{ inputs.github-token }}
-      shell: bash
+      shell: sh
+      continue-on-error: true
+
+    - id: output
+      run: |
+        import os
+        with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
+          print(f"llvm-path={os.getenv('LLVM_PATH')}", file=f)
+      shell: python
       continue-on-error: true
 
     - name: Installing Dependencies
@@ -356,11 +364,7 @@ runs:
           sudo aptitude -yq install git git-core 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
-        if ${{ inputs.project }} && ([[ ! $(dpkg -l | grep -i 'clang-tidy') ]] || [[ "${clang_version}" < '22.0.0' ]]); then
-          sudo aptitude -yq install clang-tools clang-tidy 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text5}" || echo -e '::error::No clang-tools installed';
-          [[ ! $(dpkg -l | grep -i "clang-tidy") ]] && exit 1
-        fi;
-        if (${{ inputs.project }} || [[ "${file_type}" == [cth]* ]]) && [[ ! $(which clang-tidy) ]]; then
+        if (${{ inputs.project }} || [[ "${file_type}" == [cth]* ]]) && [[ ! $(which clang-tidy) ]] && [[ "${clang_version}" < '20.0' ]]); then
           python3 -m pip install --upgrade clang-tools >/dev/null && clang-tools --install latest --directory /usr/bin >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check'; # Adjust directory as needed
           [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
           [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
