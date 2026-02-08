@@ -840,7 +840,7 @@ runs:
           while IFS= read -r file; do         
             name="${file%%:*}";
             name_count="${name##*/}";
-            if [[ $(LC_ALL=C grep -s "${name_count}" "${name_count_file}") ]]; then
+            if [[ $(grep -s "${name_count}" "${name_count_file}") ]]; then
               echo -e "\nAnalyzing Source File: ${name##*/}" | process_input;
             else
               count1=$((file_count++));
@@ -2036,7 +2036,7 @@ runs:
                 fi;
               fi;
             else
-              if ${{ inputs.repair }}; then
+              if ${{ inputs.repair == 'true' }}; then
                 if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping ${file%/*}\n####################" | process_input;
@@ -2178,24 +2178,24 @@ runs:
               else
                 batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${file}" | process_input;
               fi;
-              echo -e "\n";
             fi;
             if ${{ inputs.repair == 'true' }}; then
-              if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
-                echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################\n" | process_input;
-                echo -e "\n####################\nRepaired on ${check_date}\nSkipping $(basename ${file})\n####################\n" | process_input;
+              echo -e "\n\n####################\nSHELLCHECK REPAIR ${file##/*} ERROR(S) ($count3)\n####################" | process_input;
+              if ${{ inputs.stored == 'true' }} && ${{ inputs.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
+                echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
+                echo -e "\n####################\nRepaired on ${check_date}\nSkipping ${file##*/}\n####################" | process_input;
               elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
-                echo -e "\n\n####################\nSHELLHARDEN ANALYZING $(basename ${file}) FOR ERROR(S) ($count3)\n####################\n\n" | process_input;
+                echo -e "\n\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERROR(S) ($count3)\n####################\n\n" | process_input;
                 shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || echo -e "::notice::shellharden exit ( $? )" | process_input;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                  echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}\n" | process_input;
+                  echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}" | process_input;
                 else
-                  echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################\n" | process_input;
+                  echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################" | process_input;
                   errors=true
                 fi;
                 echo "${file} $(date)" >> "${repaired}";
                 fixed=true
-              elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
+              elif ${{ inputs.stored == 'false' }} || ${{ inputs.update == 'false' }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING ${file##/*} FOR ERROR(S) ($count3)\n####################\n" | process_input;
                 shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || echo -e "::notice::shellharden exit ( $? )" | process_input;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
@@ -2227,6 +2227,7 @@ runs:
               fi;
             fi;
             if ${{ inputs.number > '0' }}; then
+              echo -e "\n####################\nFILE CHECKED: ${file##*/} / ${count3}\n####################" | process_input;
               if [[ "${{ inputs.number }}" -eq "${count3}" ]]; then
                 echo -e "\nFile ${count1} checking auto stopped at ${file##/*}" | process_input;
                 break;
@@ -2240,7 +2241,7 @@ runs:
             echo "file_error=1" >> "${GITHUB_ENV}";
           fi;
           if [[ "${fixed}" ]]; then
-            [[ $(grep -aiE 'fixit|fix-it' "${error_log}") ]] && echo "file_fixed=1" >> "${GITHUB_ENV}";
+            [[ $(grep -aiF 'fix' "${error_log}") ]] && echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
           seconds="$((SECONDS + start_time))";
           m=$((seconds / 60));
