@@ -46,7 +46,7 @@ inputs:
     description: 'Directory to check files or if using project option the dir to include for header checks & builds'
     type: string
     required: false
-    default: ''
+    default: 'workspace'
   pattern:
     description: 'Search for pattern matches in filetypes or all files'
     type: string
@@ -481,6 +481,8 @@ runs:
             echo 'export BAT_THEME=ansi' | sudo tee -a ~/.bashrc >/dev/null;
           fi;
         fi;
+        dirname=${{ inputs.dirname }};
+        echo "dirname=${dirname}" >> "${GITHUB_ENV}";
         if [[ -d '/usr/local/bin' ]]; then
           echo '/usr/local/bin' >> "${GITHUB_PATH}";
         fi;
@@ -600,8 +602,6 @@ runs:
           text "${text9b}";
           text "${text9c}";
         fi;
-        dirname=${{ inputs.dirname }};
-        echo "dirname=${dirname}" >> "${GITHUB_ENV}";
         if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analyzer > '0' }}; then
           text "::warning:: project:true and filename:set both enabled auto sets analyzer:0 to disable\nTo remove this warning use ( analyzer: 0 )\n";
           echo "analyzer=0" >> "${GITHUB_ENV}";
@@ -1923,14 +1923,14 @@ runs:
         ${{ inputs.include == 'true' }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}" 2>/dev/null);
+            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################\n" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}" 2>/dev/null);
+            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################\n" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
+            files=$(grep -sE "${regex}" "${{ env.database }}");
             echo -e "\n####################\nDatabase File Extension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
         elif [[ "${file_type}" == [cth]* ]]; then
@@ -2124,10 +2124,10 @@ runs:
         }
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [sh] ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}");
+            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}");
+            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
@@ -2260,14 +2260,14 @@ runs:
         } 2>&1;
         if ${{ inputs.database == 'true' }} && [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}" 2>/dev/null);
+            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}" 2>/dev/null);
+            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
+            files=$(grep -sE "${regex}" "${{ env.database }}");
             echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         elif [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]]; then
@@ -2282,11 +2282,11 @@ runs:
             echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         fi;
-        if [[ ${path} ]]; then
-          echo -e "\n####################\ncheckmake.ini found in system continuing ...\n####################" | process_input;
-        fi;
         makefile_count=1
         if [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]] && [[ -n "${files}" ]]; then
+          if [[ ${path} ]]; then
+            echo -e "\n####################\ncheckmake.ini found in system continuing ...\n####################" | process_input;
+          fi;
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           for file in ${files[@]}; do
             count4=$((makefile_count++));
@@ -2370,7 +2370,7 @@ runs:
         fi;
         file_count=1
         if [[ -n "${files}" ]]; then
-          echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################";
+          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################";
           for file in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
