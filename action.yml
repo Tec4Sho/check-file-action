@@ -1912,7 +1912,7 @@ runs:
               echo -e "${output}" >/dev/null;
             fi;
           done;
-        } 2>&1;
+        }
         if [[ -f 'compile_commands.json' ]]; then
           compile_json='compile_commands.json';
         elif [[ -f 'build/compile_commands.json' ]]; then
@@ -2259,7 +2259,7 @@ runs:
               echo -e "${output}" >/dev/null;
             fi;
           done;
-        } 2>&1;
+        }
         if ${{ inputs.database == 'true' }} && [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
@@ -2345,7 +2345,7 @@ runs:
               echo -e "${output}" >/dev/null;
             fi;
           done;
-        } 2>&1;
+        }
         if ${{ inputs.database == 'true' }}; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
@@ -2477,6 +2477,22 @@ runs:
       run: |
         echo -n '';
         set +e
+        file_name="${{ inputs.filename }}";
+        file_type="${file_name##*.}";
+        error_log="${{ inputs.filename }}_error.log";
+        process_input() {
+          while IFS= read -r output; do
+            if ${{ inputs.output == '1' }}; then
+              echo -e "${output}" | tee -a "${error_log}";
+            elif ${{ inputs.output == '2' }}; then
+              echo -e "${output}" >> "${error_log}";
+            elif ${{ inputs.output == '3' }}; then
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
+            fi;
+          done;
+        }
         if ${{ env.file_found == '1' }}; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
@@ -2491,7 +2507,7 @@ runs:
           echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }} file(s)\n####################\n";
           while IFS= read -r file; do
             echo -e "\nSource File: \033[32m${file}\033[0m\n\033[1mDirectory List:\033[0m";     
-            ls -ShApX "${file%/*}" | gawk '{ printf "    %s\n", $0; }';
+            ls -ShApX "${file%/*}" | gawk '{ printf "    %s\n", $0; }' | process_input;
           done <<< "${check_file}";
         fi;
       shell: bash
