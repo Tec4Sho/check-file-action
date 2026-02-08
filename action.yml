@@ -170,7 +170,7 @@ runs:
       run: |
         echo '';
         echo 'export ANSIBLE_FORCE_COLOR=true' | sudo tee -a ~/.bashrc >/dev/null;
-        echo -e "####################\n\033[31mCheck-File-Action-Pro version 2.0.0 [Beta Stable]\033[0m\n####################\n";
+        echo -e "####################\n\033[1mCheck-File-Action-Pro version 2.0.0 [\033[32mBeta Release\033[0m]\033[0m\n####################\n";
         echo -e "Check-File Started: ${{ github.event.repository.updated_at }}\n";
         if [[ -r '/etc/os-release' ]]; then
           . /etc/os-release
@@ -212,7 +212,7 @@ runs:
         show-progress: false
       continue-on-error: false
 
-    - name: Restore Project
+    - name: Restore Project Files
       if: inputs.cache == 'true' && ( inputs.stored == 'true' || inputs.source == 'true' )
       id: restore
       uses: actions/cache/restore@v5
@@ -1989,7 +1989,7 @@ runs:
             fi;
             if ${{ inputs.include == 'true' }}; then
               if ${{ inputs.repair == 'true' }}; then
-                if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(LC_ALL=C grep -sF "${search_path}" "${repaired}") ]]; then
+                if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping {file%/*}\n####################" | process_input;
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
@@ -2083,8 +2083,8 @@ runs:
                 errors=true
               fi;
             fi;
-            if ${{ inputs.number > 0 }}; then
-              if [[ ${{ inputs.number }} -eq ${count1} ]]; then
+            if ${{ inputs.number > '0' }}; then
+              if [[ "${{ inputs.number }}" -eq "${count1}" ]]; then
                 echo -e "\nFile ${count1} checking auto stopped at ${file##*/}" | process_input;
                 break;
               fi;
@@ -2206,6 +2206,15 @@ runs:
                 fi;
                 fixed=true
               fi;
+            else
+              echo -e "\n\n####################\nSHELLCHECK ANALYZING ${file##/*} FOR ERROR(S) ($count3)\n####################\n" | process_input;
+              shellcheck --norc --severity=error --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck exit ( $? )" | process_input;
+              if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################" | process_input;
+              else
+                echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################" | process_input;
+                errors=true
+              fi;
             fi;
             if ${{ inputs.recheck == 'true' }}; then
               echo -e "\n\n####################\nSHELLCHECK ANALYZING ${file##/*} FOR ERROR(S) ($count3)\n####################\n" | process_input;
@@ -2216,18 +2225,9 @@ runs:
                 echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################" | process_input;
                 errors=true
               fi;
-            elif ${{ inputs.repair == 'false' }}; then
-              echo -e "\n\n####################\nSHELLCHECK ANALYZING ${file##/*} FOR ERROR(S) ($count3)\n####################\n" | process_input;
-              shellcheck --norc --severity=warning --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck exit ( $? )" | process_input;
-              if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
-                echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################" | process_input;
-              else
-                echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################" | process_input;
-                errors=true
-              fi;
             fi;
-            if ${{ inputs.number > 0 }}; then
-              if [[ ${{ inputs.number }} -eq ${count1} ]]; then
+            if ${{ inputs.number > '0' }}; then
+              if [[ "${{ inputs.number }}" -eq "${count3}" ]]; then
                 echo -e "\nFile ${count1} checking auto stopped at ${file##/*}" | process_input;
                 break;
               fi;
@@ -2279,7 +2279,7 @@ runs:
             fi;
           done;
         }
-        if ${{ inputs.database == 'true' }} && [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]]; then
+        if ${{ inputs.database == 'true' }} && [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
@@ -2291,7 +2291,7 @@ runs:
             files=$(grep -sE "${regex}" "${{ env.database }}");
             echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
-        elif [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]]; then
+        elif [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "${{ inputs.filename }}" -print);
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
@@ -2320,7 +2320,6 @@ runs:
               else
                 batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${file}" | process_input;
               fi;
-              echo -e "\n";
             fi;
             echo -e "\n####################\nCHECKMAKE ANALYZING $(basename ${file}) FOR ERROR(S) ($count4)\n####################\n" | process_input;
             checkmake "${file}" 2>&1 | process_input || echo -e "::notice:: checkmake exit ( $? )" | process_input;
@@ -2329,6 +2328,12 @@ runs:
             else
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################" | process_input;
               errors=true
+            fi;
+            if ${{ inputs.number > '0' }}; then
+              if [[ "${{ inputs.number }}" -eq "${count4}" ]]; then
+                echo -e "\nFile ${count1} checking auto stopped at ${file##/*}" | process_input;
+                break;
+              fi;
             fi;
           done;
           echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count4}" | process_input;
@@ -2532,15 +2537,15 @@ runs:
         if ${{ env.file_found == '1' }}; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
             check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -path "*/${{ env.dirname }}/*" -name "*${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*${{ inputs.filename }}" -print);
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
-          echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }} file(s)\n####################\n";
+          echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }} file(s)\n####################";
           while IFS= read -r file; do
             echo -e "\nSource File: \033[32m${file}\033[0m\n\033[1mDirectory List:\033[0m";     
             ls -ShApX "${file%/*}" | gawk '{ printf "    %s\n", $0; }' | process_input;
