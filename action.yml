@@ -1920,6 +1920,8 @@ runs:
         else
           compile_json='build/compile_commands.json';
         fi;
+        mkdir -p build/cppcheck
+        build_dir='build/cppcheck';
         ${{ inputs.include == 'true' }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
@@ -2006,7 +2008,7 @@ runs:
                     g++ -MM "${file}" | process_input || echo -e "::notice:: ( exit $? ) g++" | process_input;
                   fi;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice clang-tidy:: ( exit $? )" | process_input;
-                  if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file##*/}\n####################" | process_input;
                   else
                     echo -e "\n####################\nCHECK-FILE FOUND ERROR(S) TO REPAIR\n####################" | process_input;
@@ -2016,8 +2018,8 @@ runs:
                 fi;
               else
                 echo -e "\n####################\nCPPCHECK FILE(S) ANALYZER (${count1})\n####################\n" | process_input;
-                cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport "${file}" 2>&1 | process_input || echo -e "::notice cppcheck:: ( exit $? )" | process_input;
-                if [[ -s "${error_log}" ]] && [[ ! $(LC_ALL=C grep -sE "${file}.*error:" "${error_log}") ]]; then
+                cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" 2>&1 | process_input || echo -e "::notice cppcheck:: ( exit $? )" | process_input;
+                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file##*/}\n####################" | process_input;
                 else
                   echo -e "\n####################\nCHECK-FILE FOUND ERROR(S)\n####################" | process_input;
@@ -2026,7 +2028,7 @@ runs:
               fi;
             else
               if ${{ inputs.repair }}; then
-                if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(LC_ALL=C grep -sF "${search_path}" "${repaired}") ]]; then
+                if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping ${file%/*}\n####################" | process_input;
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
@@ -2053,7 +2055,7 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER (${count1})\n####################\n" | process_input;
-                cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress="*" "${file}" 2>&1 | process_input || echo -e "::notice cppcheck:: ( exit $? )" | process_input;
+                cppcheck --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress="*" --cppcheck-build-dir="${build_dir}" "${file}" 2>&1 | process_input || echo -e "::notice cppcheck:: ( exit $? )" | process_input;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND ${file##*/}\n####################" | process_input;
                 else
