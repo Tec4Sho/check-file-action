@@ -31,22 +31,22 @@ install_llvm() {
 llvm_version() {
   llvm_version="$(llvm-config --version)";
   if [[ $(printf '%s\n%s' "${llvm_version}" "${version}" | sort -V | head -n1) == "${llvm_version}" ]] && [[ "${llvm_version}" != "${version}" ]]; then
-    echo "Expected LLVM major version: ${version}, but got default version: ${llvm_version}" >&2
+    echo -e "\nExpected LLVM major version: ${version}, but got default version: ${llvm_version}" >&2
     exit 0
   elif [[ "${llvm_version}" == "${version}" ]]; then
-    echo "Updated LLVM major version: ${llvm_version}" 2>&1;
+    echo -e "\nUpdated LLVM major version: ${llvm_version}" 2>&1;
   elif [[ "${llvm_version%%.*}" != "${version}" ]]; then
-    echo "Expected LLVM major version: ${version}, but got version: ${llvm_version}" >&2
+    echo -e "\nExpected LLVM major version: ${version}, but got version: ${llvm_version}" >&2
     exit 0
   else
-    echo "Updated LLVM major version: ${llvm_version}" 2>&1;
+    echo -e "\nUpdated LLVM major version: ${llvm_version}" 2>&1;
   fi;
 }
 
 LLVM_VERSION="${LLVM_VERSION:-$(current_llvm_stable)}";
 install_llvm "${LLVM_VERSION}" >/dev/null 2>&1;
-llvm_version "${LLVM_VERSION}" >/dev/null;
+llvm_version "${LLVM_VERSION}";
 
-echo -e "\n\033[32mLLVM ${LLVM_VERSION} has been installed to\033[0m ${LLVM_PATH}" 2>&1;
+echo -e "\n\033[32mLLVM\033[0m ${LLVM_VERSION} \033[32mhas been installed to\033[0m \033[1m${LLVM_PATH}\033[0m\n" 2>&1;
 echo "PATH=${PATH}" >> "${GITHUB_PATH}";
 echo "LLVM_PATH=${LLVM_PATH}" >> "${GITHUB_ENV}";
