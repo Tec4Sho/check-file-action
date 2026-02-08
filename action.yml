@@ -436,7 +436,7 @@ runs:
           python3 -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
         fi;
-        if (${{ inputs.pattern != '' }} || ${{ inputs.database }} || ${{ inputs.source > '0' }}) && [[ ! $(which rg) ]]; then
+        if (${{ inputs.pattern != '' }} || ${{ inputs.database == 'true' }} || ${{ inputs.source > '0' }}) && [[ ! $(which rg) ]]; then
           sudo aptitude -yq install ripgrep 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
@@ -1921,19 +1921,19 @@ runs:
           compile_json='build/compile_commands.json';
         fi;
         ${{ inputs.include == 'true' }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
-        if ${{ inputs.database }}; then
+        if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}" 2>/dev/null);
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################\n" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}" 2>/dev/null);
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################\n" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
             files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nDatabase File Extension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
-        else
+        elif [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
@@ -1942,7 +1942,7 @@ runs:
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ -n "${files}" ]]; then
@@ -2088,13 +2088,13 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
+          seconds="$((SECONDS + start_time))";
+          m=$((seconds / 60));
+          s=$((seconds % 60));
+          printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s";
         elif [[ "${file_type}" == [cth]* ]]; then
           echo -e "\n####################\nFINISHED SEARCHING NO ${{ inputs.filename }} FILE FOUND\n####################\n" | process_input;
         fi;
-        seconds="$((SECONDS + start_time))";
-        m=$((seconds / 60));
-        s=$((seconds % 60));
-        printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s";
       shell: bash
       continue-on-error: true
 
@@ -2122,19 +2122,19 @@ runs:
             fi;
           done;
         }
-        if ${{ inputs.database }}; then
+        if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [sh] ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}");
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}");
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
+            files=$(grep -sE "${regex}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase File Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
-        else
+        elif [[ "${file_type}" == [sh] ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
@@ -2143,12 +2143,12 @@ runs:
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
+            echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         fi;
         if [[ "${file_type}" == [sh] ]] && [[ -n "${files}" ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
-          if ${{ inputs.content }}; then
+          if ${{ inputs.content == 'true' }}; then
             echo -e "\nLocated File(s)\n\n${files}" | process_input;
           fi;
           for file in ${files[@]}; do
@@ -2224,13 +2224,13 @@ runs:
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
+          seconds="$((SECONDS + start_time))";
+          m=$((seconds / 60));
+          s=$((seconds % 60));
+          printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s";
         elif [[ "${file_type}" == [sh] ]]; then
           echo -e "\n####################\nFINISHED SEARCHING NO ${{ inputs.filename }} FILE FOUND\n####################\n" | process_input;
         fi;
-        seconds="$((SECONDS + start_time))";
-        m=$((seconds / 60));
-        s=$((seconds % 60));
-        printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s";
       shell: bash
       continue-on-error: true
 
@@ -2258,19 +2258,19 @@ runs:
             fi;
           done;
         } 2>&1;
-        if ${{ inputs.database == 'true' }}; then
+        if ${{ inputs.database == 'true' }} && [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}" 2>/dev/null);
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}" 2>/dev/null);
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
             files=$(grep -sE "${regex}" "${{ env.database }}" 2>/dev/null);
             echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
-        else
+        elif [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
@@ -2311,14 +2311,14 @@ runs:
           if [[ "${errors}" ]]; then
             echo "file_error=1" >> "${GITHUB_ENV}";
           fi;
+          seconds="$((SECONDS + start_time))";
+          m=$((seconds / 60));
+          s=$((seconds % 60));
+          printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s";
           echo "file_found=1" >> "${GITHUB_ENV}";
         elif [[ $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]]; then
           echo -e "\n####################\nFINISHED SEARCHING NO ${{ inputs.filename }} FILE FOUND\n####################\n" | process_input;
         fi;
-        seconds="$((SECONDS + start_time))";
-        m=$((seconds / 60));
-        s=$((seconds % 60));
-        printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s";
       shell: bash
       continue-on-error: true
 
@@ -2330,12 +2330,26 @@ runs:
         start_time="${{ env.seconds }}";
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        if ${{ inputs.database }}; then
+        error_log="${{ inputs.filename }}_error.log";
+        process_input() {
+          while IFS= read -r output; do
+            if ${{ inputs.output == '1' }}; then
+              echo -e "${output}" | tee -a "${error_log}";
+            elif ${{ inputs.output == '2' }}; then
+              echo -e "${output}" >> "${error_log}";
+            elif ${{ inputs.output == '3' }}; then
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
+            fi;
+          done;
+        } 2>&1;
+        if ${{ inputs.database == 'true' }}; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}" 2>/dev/null);
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}" "${{ env.database }}" 2>/dev/null);
+            files=$(LC_ALL=C grep -sF "/${{ inputs.filename }}$" "${{ env.database }}" 2>/dev/null);
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
@@ -2344,19 +2358,19 @@ runs:
           fi;
         else
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            files=$(sudo find / -not \( -path "*/proc/*" -prune -o -path "*/dev/*" -prune -o -path "*/sys/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
+            files=$(sudo find / -not \( -path "*/proc/*" -prune -o -path "*/dev/*" -prune -o -path "*/sys/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "${{ inputs.filename }}" -print);
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
+            files=$(sudo find / -not \( -path "*/proc/*" -prune -o -path "*/dev/*" -prune -o -path "*/sys/*" -prune \) -type f \( -path "*/${{ env.dirname }}/*" -o -path "*/*/*" \) -name "*${{ inputs.filename }}" -print);
             echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         fi;
         file_count=1
         if [[ -n "${files}" ]]; then
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################";
+          echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################";
           for file in ${files[@]}; do
             count5=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n";
@@ -2370,13 +2384,13 @@ runs:
           echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count5}";
           echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n";
           echo "file_found=1" >> "${GITHUB_ENV}";
+          seconds="$((SECONDS + start_time))";
+          m=$((seconds / 60));
+          s=$((seconds % 60));
+          printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s";
         else
           echo -e "\n####################\nFINISHED SEARCHING NO ${{ inputs.filename }} FILE FOUND\n####################\n";
         fi;
-        seconds="$((SECONDS + start_time))";
-        m=$((seconds / 60));
-        s=$((seconds % 60));
-        printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s";
       shell: bash
       continue-on-error: true
 
