@@ -1911,6 +1911,7 @@ runs:
         cppchecks='.cppcheck';
         github=${GITHUB_WORKSPACE};
         error_log="${github}/${{ inputs.filename }}_error.log";
+        version="clang-${{ inputs.version }}";
         checked=false
         count2=0
         error=0
@@ -1954,13 +1955,13 @@ runs:
           fi;
         elif [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
+            files=$(fdfind -j "$(nproc)" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" --type f "${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
+            files=$(fdfind -j "$(nproc)" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" --type f "${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "*${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "*${{ inputs.filename }}" -print);
+            files=$(fdfind -j "$(nproc)" --type f --glob "**/${{ inputs.dirname }}/**/*${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" --type f "*${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
         fi;
@@ -1978,9 +1979,9 @@ runs:
           fi;
           if [[ -f "${cppchecks}" ]]; then
              echo -e "\n####################\n\t${cppchecks} config file was found continuing...\n####################" | process_input;
-             cppchecks=$(cat ${cppchecks} | tr -d ' \n');
+             cppchecks="$(cat ${cppchecks} | tr -d ' \n')";
           else
-             cppchecks=all;
+             cppchecks='all';
           fi;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
@@ -1990,10 +1991,10 @@ runs:
             search_path="${file}";
             check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
-            echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n" | process_input;
+            echo -e "\n####################\n\tFILE PATH: ( ${count1} )\n####################\n" | process_input;
             echo "${file%/*}";
             if ${{ inputs.content == 'true' }}; then
-              echo -e "\n####################\n\tFILE CONTENT (${count1})\n####################\n" | process_input;
+              echo -e "\n####################\n\tFILE CONTENT: ( ${count1} )\n####################\n" | process_input;
               if [[ -e 'bat.conf' ]]; then
                 batcat "${file}" | process_input;
               else
@@ -2041,9 +2042,9 @@ runs:
               else
                 echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER: ( ${count1} )\n####################\n" | process_input;
                 if [[ "${compile_json}" ]]; then
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="*/${file##*/}" 2>&1 | process_input || error="$?";
+                  cppcheck --clang="${version%%.*}" -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="*/${file#"${file%/*/*}/"}" -I"${include_path}" 2>&1 | process_input || error="$?";
                 else
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
+                  cppcheck --clang="${version%%.*}" -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
                 fi;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
@@ -2588,25 +2589,25 @@ runs:
         if ${{ env.file_found == '1' }}; then
           if ${{ inputs.database == 'true' }}; then
             if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-              files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
+              get_dir_files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
               echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
             elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-              files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
+              get_dir_files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
               echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
             elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
               regex="\${{ inputs.filename }}$";
-              files=$(grep -sE "${regex}" "${{ env.database }}");
+              get_dir_files=$(grep -sE "${regex}" "${{ env.database }}");
               echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
             fi;
           else
             if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-              files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
+              get_dir_files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
               echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
             elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-              files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
+              get_dir_files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
               echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
             elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
-              files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "*${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "*${{ inputs.filename }}" -print);
+              get_dir_files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "*${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "*${{ inputs.filename }}" -print);
               echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################\n" | process_input;
             fi;
           fi;
@@ -2621,7 +2622,7 @@ runs:
                 break;
               fi;
             fi;
-          done <<< "${check_file}";
+          done <<< "${get_dir_files}";
         fi;
       shell: bash
       continue-on-error: true
