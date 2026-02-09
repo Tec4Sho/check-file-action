@@ -2567,15 +2567,29 @@ runs:
           done;
         }
         if ${{ env.file_found == '1' }}; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
-            check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -path "*/${{ env.dirname }}/*" -name "*${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*${{ inputs.filename }}" -print);
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
+          if ${{ inputs.database == 'true' }}; then
+            if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+              files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
+              echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+            elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+              files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
+              echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+            elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
+              regex="\${{ inputs.filename }}$";
+              files=$(grep -sE "${regex}" "${{ env.database }}");
+              echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
+            fi;
+          else
+            if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+              check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "${{ inputs.filename }}" -print);
+              echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+            elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+              check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "${{ inputs.filename }}" -print);
+              echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+            elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
+              check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -path "*/${{ env.dirname }}/*" -name "*${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*${{ inputs.filename }}" -print);
+              echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
+            fi;
           fi;
           echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }} file(s)\n####################" | process_input;
           while IFS= read -r file; do
@@ -2584,7 +2598,7 @@ runs:
             ls -ShApX "${file%/*}" | gawk '{ printf "    %s\n", $0; }' | process_input;
             if ${{ inputs.number > '0' }}; then
               if [[ "${{ inputs.number }}" -eq "${count}" ]]; then
-                echo -e "\nFile checking auto stopped at: ${count} / ${file##*/}" | process_input;
+                echo -e "\nFile checking auto stopped at: ${count} / ${file##*/}\n" | process_input;
                 break;
               fi;
             fi;
