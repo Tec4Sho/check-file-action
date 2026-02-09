@@ -2198,7 +2198,7 @@ runs:
                 echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
                 echo -e "\n####################\nRepaired on ${check_date}\nSkipping ${file##*/}\n####################" | process_input;
               elif ${{ inputs.stored == 'true' }} && ${{ inputs.update == 'true' }}; then
-                echo -e "\n\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################\n" | process_input;
+                echo -e "\n\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
                 shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || echo -e "::notice shellharden:: ( exit $? )" | process_input;
                 if [[ -s "${error_log}" ]] && [[ ! $(sed -n "\|${file##*/}|,/error/p" "${error_log}") ]]; then
                   echo -e "\n####################\nSTORING NO ERRORS FOUND: ${file}\n####################" | process_input;
@@ -2209,7 +2209,7 @@ runs:
                 echo "${file} $(date)" >> "${repaired}";
                 fixed=true
               elif ${{ inputs.stored == 'false' }} || ${{ inputs.update == 'false' }}; then
-                echo -e "\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################\n" | process_input;
+                echo -e "\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
                 shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || echo -e "::notice::shellharden ( exit $? )" | process_input;
                 if [[ -s "${error_log}" ]] && [[ ! $(sed -n "\|${file##*/}|,/error/p" "${error_log}") ]]; then
                   echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND: ${file}\n####################" | process_input;
@@ -2220,9 +2220,9 @@ runs:
                 fixed=true
               fi;
             else
-              echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################\n" | process_input;
-              shellcheck --norc --severity=warning --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck ( exit $? )" | process_input;
-              if [[ -s "${error_log}" ]] && [[ ! $(sed -n "\|${file##*/}|,/warning/p" "${error_log}") ]]; then
+              echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
+              shellcheck --norc --external-sources --enable=all -shell=bash --severity=style --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck ( exit $? )" | process_input;
+              if [[ -s "${error_log}" ]] && [[ ! $(sed -n "\|${file##*/}|,/error/p" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND: ${file}\n####################" | process_input;
               else
                 echo -e "\n####################\nSHELLCHECK FOUND ERRORS\n####################" | process_input;
@@ -2231,8 +2231,8 @@ runs:
             fi;
             if ${{ inputs.recheck == 'true' }}; then
               echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
-              shellcheck --norc --severity=warning --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck ( exit $? )" | process_input;
-              if [[ -s "${error_log}" ]] && [[ ! $(sed -n "\|${file##*/}|,/warning/p" "${error_log}") ]]; then
+              shellcheck --severity=style --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck ( exit $? )" | process_input;
+              if [[ -s "${error_log}" ]] && [[ ! $(sed -n "\|${file##*/}|,/error/p" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND: ${file}\n####################" | process_input;
               else
                 echo -e "\n####################\nSHELLCHECK FOUND ERRORS\n####################" | process_input;
