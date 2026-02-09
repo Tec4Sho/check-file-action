@@ -2136,7 +2136,7 @@ runs:
             fi;
           done;
         }
-        if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [sh] ]]; then
+        if ${{ inputs.database == 'true' }} && [[ "${file_type}" == sh ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
@@ -2148,7 +2148,7 @@ runs:
             files=$(grep -sE "${regex}" "${{ env.database }}");
             echo -e "\n####################\nDatabase File Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
-        elif [[ "${file_type}" == [sh] ]]; then
+        elif [[ "${file_type}" == sh ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "${{ inputs.filename }}" -print);
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
@@ -2160,7 +2160,7 @@ runs:
             echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################\n" | process_input;
           fi;
         fi;
-        if [[ "${file_type}" == [sh] ]] && [[ -n "${files}" ]]; then
+        if [[ "${file_type}" == sh ]] && [[ -n "${files}" ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           if ${{ inputs.content == 'true' }}; then
             echo -e "\nLocated File(s)\n\n${files}" | process_input;
@@ -2227,9 +2227,8 @@ runs:
               fi;
             fi;
             if ${{ inputs.number > '0' }}; then
-              echo -e "\n####################\nFILE CHECKED: ${file##*/} / ${count3}\n####################" | process_input;
               if [[ "${{ inputs.number }}" -eq "${count3}" ]]; then
-                echo -e "\nFile ${count1} checking auto stopped at ${file##/*}" | process_input;
+                echo -e "\nFile ${count3} checking auto stopped at ${file##/*}" | process_input;
                 break;
               fi;
             fi;
@@ -2247,7 +2246,7 @@ runs:
           m=$((seconds / 60));
           s=$((seconds % 60));
           printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
-        elif [[ "${file_type}" == [sh] ]]; then
+        elif [[ "${file_type}" == sh ]]; then
           echo -e "\n####################\nFINISHED SEARCHING NO ${{ inputs.filename }} FILE FOUND\n####################\n" | process_input;
         fi;
       shell: bash
@@ -2332,7 +2331,7 @@ runs:
             fi;
             if ${{ inputs.number > '0' }}; then
               if [[ "${{ inputs.number }}" -eq "${count4}" ]]; then
-                echo -e "\nFile ${count1} checking auto stopped at ${file##/*}" | process_input;
+                echo -e "\nFile ${count4} checking auto stopped at ${file##/*}" | process_input;
                 break;
               fi;
             fi;
@@ -2362,14 +2361,14 @@ runs:
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         github=${GITHUB_WORKSPACE};
-        error_log="${github}/${{ inputs.filename }}_error.log";
+        data_log="${github}/${{ inputs.filename }}_data.log";
         count5=0
         process_input() {
           while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${error_log}";
+              echo -e "${output}" | tee -a "${data_log}";
             elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${error_log}";
+              echo -e "${output}" >> "${data_log}";
             elif ${{ inputs.output == '3' }}; then
               echo -e "${output}";
             elif ${{ inputs.output == '4' }}; then
@@ -2380,14 +2379,14 @@ runs:
         if ${{ inputs.database == 'true' }}; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
             files=$(grep -sE "${regex}" "${{ env.database }}");
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         else
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
@@ -2415,12 +2414,17 @@ runs:
               else
                 batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${file}" | process_input;
               fi;
-              echo -e "\n" | process_input;
+            fi;
+            if ${{ inputs.number > '0' }}; then
+              if [[ "${{ inputs.number }}" -eq "${count5}" ]]; then
+                echo -e "\nFile ${count5} checking auto stopped at ${file##/*}" | process_input;
+                break;
+              fi;
             fi;
           done;
           echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count5}" | process_input;
           echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
-          echo "file_found=1" >> "${GITHUB_ENV}";
+          echo "data_file=1" >> "${GITHUB_ENV}";
           seconds="$((SECONDS + start_time))";
           m=$((seconds / 60));
           s=$((seconds % 60));
@@ -2457,26 +2461,26 @@ runs:
             matches=${matched1};
             if [[ -n ${matches} ]]; then
               counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
-              echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################\n";
-              echo -e "\n${matches}\n";
+              echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################";
+              echo -e "\n${matches}";
               if ${{ inputs.content == 'true' }}; then
                 echo '| Runtime |';
                 contents=${content1};
                 for c in ${contents[@]}; do
                   count=$((file_count++));
-                  echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
+                  echo -e "\n####################\n\tFILE PATH (${count})\n####################";
                   echo -e "\n$(dirname ${c})\n":
-                  echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
+                  echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n";
                   if [[ -e 'bat.conf' ]]; then
                     batcat "${c}";
                   else
                     batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${c}";
                   fi;
-                  echo -e "\n####################\nFILE COMPLETED\n####################\n";
+                  echo -e "\n####################\nPATTERN MATCH COMPLETED\n####################";
                 done;
               fi;
             else
-              echo -e "\n####################\n::warning::PATTERN MATCH FINISHED SEARCHING NO ${{ inputs.pattern }} FOUND\n####################\n";
+              echo -e "\n####################\n::warning::PATTERN MATCH FINISHED SEARCHING NO ${{ inputs.pattern }} FOUND\n####################";
             fi;
           done;
           echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
@@ -2484,26 +2488,26 @@ runs:
           matches=${matched2};
           if [[ ${matches} ]]; then
             counter=$( echo "${matches}" | rg -c "${{ inputs.pattern }}" );
-            echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################\n";
+            echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################";
             echo -e "\n${matches}\n";
             if ${{ inputs.content == 'true' }}; then
               echo '| Runtime |';
               content=${content2};
               for c in ${content[@]}; do
                 count=$((file_count++));
-                echo -e "\n####################\n\tFILE PATH (${count})\n####################\n";
+                echo -e "\n####################\n\tFILE PATH (${count})\n####################";
                 echo -e "\n$(dirname ${c})\n":
-                echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n\n";
+                echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n";
                 if [[ -e 'bat.conf' ]]; then
                   batcat "${c}";
                 else
                   batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${c}";
                 fi;
-                echo -e "\n####################\nFILE COMPLETED\n####################\n";
+                echo -e "\n####################\nPATTERN MATCH COMPLETED\n####################";
               done;
             fi;
           else
-            echo -e "\n####################\n::warning::PATTERN MATCH FINISHED SEARCHING NO ${{ inputs.pattern }} FOUND\n####################\n";
+            echo -e "\n####################\n::warning::PATTERN MATCH FINISHED SEARCHING NO ${{ inputs.pattern }} FOUND\n####################";
           fi;
           echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
         fi;
@@ -2521,13 +2525,16 @@ runs:
         set +e
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
-        error_log="${{ inputs.filename }}_error.log";
+        logfile="${{ inputs.filename }}_error.log"
+        [[ -e "${{ inputs.filename }}_data.log" ]] && logfile="${{ inputs.filename }}_data.log";
+        file_count=1
+        count=0
         process_input() {
           while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${error_log}";
+              echo -e "${output}" | tee -a "${logfile}";
             elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${error_log}";
+              echo -e "${output}" >> "${logfile}";
             elif ${{ inputs.output == '3' }}; then
               echo -e "${output}";
             elif ${{ inputs.output == '4' }}; then
@@ -2546,9 +2553,10 @@ runs:
             check_file=$(find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -path "*/${{ env.dirname }}/*" -name "*${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -name "*${{ inputs.filename }}" -print);
             echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
-          echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }} file(s)\n####################";
+          echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }} file(s)\n####################" | process_input;
           while IFS= read -r file; do
-            echo -e "\nSource File: \033[32m${file}\033[0m\n\033[1mDirectory List:\033[0m";     
+            count=$((file_count++));
+            echo -e "\nSource File: \033[32m${file} / ${count}\033[0m\n\033[1mDirectory List:\033[0m" | process_input;
             ls -ShApX "${file%/*}" | gawk '{ printf "    %s\n", $0; }' | process_input;
           done <<< "${check_file}";
         fi;
@@ -2563,12 +2571,13 @@ runs:
         min_size_bytes=$((20 * 1024 * 1024));
         filename1="${GITHUB_WORKSPACE}/${{ env.github_repository }}_project.log";
         filename2="${GITHUB_WORKSPACE}/${{ inputs.filename }}_error.log";
+        filename3="${GITHUB_WORKSPACE}/${{ inputs.filename }}_data.log";
         if [[ -s "${filename1}" ]]; then
           filesize1=$(stat -c%s "${filename1}");
           ansi2txt "${filename1}" > "${filename1}.tmp";
-          mv -vf "${filename1}.tmp" "${filename1}" && echo -e "\nFile: ${{ inputs.filename }} [ansi2txt] cleaned";
+          mv -vf "${filename1}.tmp" "${filename1}" && echo -e "\nFile: ${{ env.github_repository }} [ansi2txt] cleaned";
           if (( filesize1 > min_size_bytes )); then
-            split -d -C 10M "${filename1}" 'part_' && echo -e "\nFile: ${{ inputs.filename }} [split] completed";
+            split -d -C 10M "${filename1}" 'part_' && echo -e "\nFile: ${{ env.github_repository }} [split] completed";
             echo "file1_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
@@ -2579,6 +2588,15 @@ runs:
           if (( filesize2 > min_size_bytes )); then
             split -d -C 10M "${filename2}" 'part_' && echo -e "\nFile: ${{ inputs.filename }} [split] completed";
             echo "file2_parted=1" >> "${GITHUB_ENV}";
+          fi;
+        fi;
+        if [[ -s "${filename3}" ]]; then
+          filesize3=$(stat -c%s "${filename3}");
+          ansi2txt "${filename3}" > "${filename3}.tmp";
+          mv -vf "${filename3}.tmp" "${filename3}" && echo -e "\nFile: ${{ inputs.filename }} [ansi2txt] cleaned";
+          if (( filesize3 > min_size_bytes )); then
+            split -d -C 10M "${filename3}" 'part_' && echo -e "\nFile: ${{ inputs.filename }} [split] completed";
+            echo "file3_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
       shell: bash
@@ -2677,12 +2695,30 @@ runs:
         include-hidden-files: true
       continue-on-error: true
 
+    - name: Uploading ${{ inputs.filename }} Data Report Artifact
+      if: inputs.report == 'true' && inputs.filename != '' && env.data_file == '1'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.filename }}_data.log
+        path: ${{ inputs.filename }}_data.log
+        include-hidden-files: true
+      continue-on-error: true
+
     - name: Uploading ${{ env.github_repository }} Project Report Artifact
       if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_project.log
         path: ${{ env.github_repository }}_project.log
+        include-hidden-files: true
+      continue-on-error: true
+
+    - name: Uploading ${{ inputs.filename }} Error Report Artifacts
+      if: inputs.report == 'true' && inputs.filename != '' && env.data_file == '1' && env.file3_parted == '1'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.filename }}_split_data.log
+        path: part_*
         include-hidden-files: true
       continue-on-error: true
 
@@ -2713,6 +2749,9 @@ runs:
         fi;
         if [[ -f "${{ inputs.filename }}_error.log" ]]; then
           echo -e "\nLOGFILE: $(rm -vf ${{ inputs.filename }}_error.log)";
+        fi;
+        if [[ -f "${{ inputs.filename }}_data.log" ]]; then
+          echo -e "\nDATAFILE: $(rm -vf ${{ inputs.filename }}_data.log)";
         fi;
         if [[ -e "database" ]]; then
           echo -e "\nDATABASE: $(rm -vf database)";
