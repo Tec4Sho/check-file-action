@@ -448,12 +448,12 @@ runs:
           sudo aptitude -yq install cppcheck 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
           [[ ! $(which cppcheck) ]] && exit 1
         fi;
-        if [[ "${file_type}" == [sh] ]] && ${{ inputs.repair == 'true' }} && [[ ! $(which shellharden) ]]; then
+        if [[ "${file_type}" == sh ]] && ${{ inputs.repair == 'true' }} && [[ ! $(which shellharden) ]]; then
           sudo wget -qO 'shellharden.tar.gz' 'https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-gnu.tar.gz' >/dev/null;
           sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e "${text6}" || echo -e '::error::No shellharden installed Exiting';
           [[ ! $(which shellharden) ]] && exit 1 || echo -e "\nLocation: $(which shellharden)";
         fi;
-        if [[ "${file_type}" == [sh] ]] && [[ ! $(which shellcheck) ]]; then
+        if [[ "${file_type}" == sh ]] && [[ ! $(which shellcheck) ]]; then
           sudo aptitude -yq install shellcheck 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text7}" || echo -e '::error::No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1 || echo -e "\nLocation: $(which shellcheck)";
         fi;
