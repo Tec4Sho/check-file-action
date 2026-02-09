@@ -272,7 +272,7 @@ runs:
     - name: Install LLVM and Clang
       if: inputs.project == 'true' && runner.os == 'Linux'
       run: |
-        echo -n '';
+        source ~/.bashrc
         bash -c "${{ github.action_path }}/scripts/linux.sh";
       env:
         LLVM_VERSION: ${{ inputs.version }}
@@ -293,7 +293,7 @@ runs:
     - name: Installing Dependencies
       if: inputs.pattern != '' || inputs.filename != '' || inputs.project != 'false'
       run: |
-        echo -n '';
+        source ~/.bashrc
         set +e;
         echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
         sudo apt-get clean
@@ -400,9 +400,9 @@ runs:
         if ${{ inputs.project == 'true' }} && [[ ! $(apt list linux-headers-generic >/dev/null 2>&1) ]]; then
           sudo aptitude -yq install linux-headers-generic 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-headers-generic 2>/dev/null)\n####################" || echo -e "::warning::No linux-headers-generic installed for project build";
         fi;
-        if [[ ! $(which fdfind) ]] && (${{ inputs.project == 'true' }} || ${{ inputs.source > '0' }}); then
-          sudo aptitude -yq install fd-find 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nfd dependencies installed\n####################" || echo -e '::error::No fdfind installed for file searches';
-          [[ ! $(which fdfind) ]] && echo -e '::error::No fdfind installed\n';
+        if [[ ! $(which fdfind) ]]; then
+          sudo aptitude -yq install fd-find 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nfdfind dependencies installed\n####################" || echo -e '::error::No fdfind installed for file searches';
+          [[ ! $(which fdfind) ]] && exit 1
         fi;
         if [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && ${{ inputs.repair == 'true' }} && ${{ inputs.filename != '' }}; then
           sudo aptitude -yq install gcc g++ 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
@@ -1068,7 +1068,7 @@ runs:
     - name: Project Compile Commands Json
       if: inputs.project == 'true'
       run: |
-        echo '';
+        source ~/.bashrc
         set +e
         start_time="${SECONDS}";
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -1316,7 +1316,7 @@ runs:
     - name: Project Analyze
       if: inputs.project == 'true' && inputs.analyzer > '0'
       run: |        
-        echo '';
+        source ~/.bashrc
         set +e
         start_time="${{ env.seconds }}";
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -1491,7 +1491,7 @@ runs:
     - name: Build Project
       if: inputs.project == 'true' && inputs.build > '0'
       run: |
-        echo -n '';
+        source ~/.bashrc
         set +e
         start_time="${{ env.seconds }}";
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -1659,7 +1659,7 @@ runs:
     - name: Project Finalized
       if: inputs.project == 'true'
       run: |
-        echo -n '';
+        source ~/.bashrc
         set +e
         start_time="${{ env.seconds }}";
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
@@ -1897,7 +1897,7 @@ runs:
     - name: Check & Repair CC/C++
       if: inputs.filename != '' && inputs.build == '0'
       run: |
-        echo -n '';
+        source ~/.bashrc
         set +e
         start_time="${{ env.seconds }}";
         include_count=1
@@ -1960,7 +1960,7 @@ runs:
           fi;
         elif [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f "(${{ inputs.dirname }}/.*)?${{ inputs.filename }}$" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
@@ -2142,7 +2142,7 @@ runs:
     - name: Check Shell Files
       if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0'
       run: |
-        echo -n '';
+        source ~/.bashrc
         set +e
         start_time="${{ env.seconds }}";
         fixed=false
@@ -2292,7 +2292,7 @@ runs:
     - name: Check Makefile Files
       if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0'
       run: |
-        echo -n '';
+        source ~/.bashrc
         set +e
         start_time="${{ env.seconds }}";
         file_name="${{ inputs.filename }}";
@@ -2400,7 +2400,7 @@ runs:
     - name: Check All Files
       if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0'
       run: |
-        echo -n '';
+        source ~/.bashrc
         set +e
         start_time="${{ env.seconds }}";
         file_name="${{ inputs.filename }}";
@@ -2570,7 +2570,7 @@ runs:
     - name: Directory Contains
       if: inputs.filename != '' && inputs.content == 'true' && inputs.build == '0'
       run: |
-        echo -n '';
+        source ~/.bashrc
         set +e
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
@@ -2635,7 +2635,7 @@ runs:
     - name: Cleanup Artifacts Report
       if: inputs.report == 'true'
       run: |
-        echo -n '';
+        source ~/.bashrc
         set +e
         min_size_bytes=$((20 * 1024 * 1024));
         filename1="${GITHUB_WORKSPACE}/${{ env.github_repository }}_project.log";
