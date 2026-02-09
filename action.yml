@@ -461,7 +461,7 @@ runs:
         checkmake_des="${HOME}/checkmake.ini";
         if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
           sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
-        elif [[ -n $(echo "${file_type}" | LC_ALL=C egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
+        elif [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ $(which checkmake) ]]; then
           echo -e '\ncheckmake.ini file missing, needed for checkmake to function properly\n';
         fi;
         if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ ! $(which checkmake) ]]; then
@@ -483,7 +483,8 @@ runs:
             echo "export BAT_CONFIG_PATH=${github}/bat.conf" | sudo tee -a ~/.bashrc >/dev/null;
           fi;
         fi;
-        dirname=${{ inputs.dirname }};
+        dirname="${{ inputs.dirname }}";
+        echo "dirname = ${dirname}";
         echo "dirname=${dirname}" >> "${GITHUB_ENV}";
         if [[ -d '/usr/local/bin' ]]; then
           echo '/usr/local/bin' >> "${GITHUB_PATH}";
@@ -1885,19 +1886,19 @@ runs:
           [[ -f "/tmp/*/metadata.json" ]] && echo -e"\nCodeChecker Analyzer list: $(cp -vf "/tmp/*/metadata.json" build/)";
           echo -e '\n####################\n\t\033[32mProject Files Checked Exiting...\033[0m\n####################\n' | process_input;
         else
-          echo -e '\n####################\n\t\033[33mProject Files Not Checked Exiting...\033[0m\n####################\n' | process_input;
+          echo -e '\n####################\n\t\033[33mProject Files Check Skipped Exiting...\033[0m\n####################\n' | process_input;
         fi;
         seconds="$((SECONDS + start_time))";
         m=$((seconds / 60));
         s=$((seconds % 60));
-        printf "Project Process Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
+        printf "Project Process Runtime: %d minutes and %d seconds\n\n" "$m" "$s" | process_input;
       shell: bash
       continue-on-error: true
 
     - name: Check & Repair CC/C++
       if: inputs.filename != '' && inputs.build == '0'
       run: |
-        echo '';
+        echo -n '';
         set +e
         start_time="${{ env.seconds }}";
         include_count=1
@@ -2125,7 +2126,7 @@ runs:
     - name: Check Shell Files
       if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0'
       run: |
-        echo '';
+        echo -n '';
         set +e
         start_time="${{ env.seconds }}";
         fixed=false
@@ -2273,7 +2274,7 @@ runs:
     - name: Check Makefile Files
       if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0'
       run: |
-        echo '';
+        echo -n '';
         set +e
         start_time="${{ env.seconds }}";
         file_name="${{ inputs.filename }}";
@@ -2373,7 +2374,7 @@ runs:
     - name: Check All Files
       if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0'
       run: |
-        echo '';
+        echo -n '';
         set +e
         start_time="${{ env.seconds }}";
         file_name="${{ inputs.filename }}";
