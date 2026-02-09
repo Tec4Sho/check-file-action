@@ -1984,7 +1984,7 @@ runs:
           fi;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | head -n "${number}" | process_input || echo -e "Located File(s):" && echo "${file}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            ${{ inputs.number > '0' }} && echo "${files}" | awk '{ printf "%s\n", $0; }' | sed -n "1,${number}p" | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             search_path="${file}";
@@ -2041,7 +2041,7 @@ runs:
               else
                 echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER: ( ${count1} )\n####################\n" | process_input;
                 if [[ "${compile_json}" ]]; then
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="${file}" 2>&1 | process_input || error="$?";
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="*/${file##*/}" 2>&1 | process_input || error="$?";
                 else
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
                 fi;
@@ -2189,7 +2189,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | head -n "${number}" | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            ${{ inputs.number > '0' }} && echo "${files}" | awk '{ printf "%s\n", $0; }' | sed -n "1,${number}p" | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             search_path="${file}";
@@ -2343,7 +2343,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | head -n "${number}" | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            ${{ inputs.number > '0' }} && echo "${files}" | awk '{ printf "%s\n", $0; }' | sed -n "1,${number}p" | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             count4=$((makefile_count++));
@@ -2444,7 +2444,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | head -n "${number}" | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            ${{ inputs.number > '0' }} && echo "${files}" | awk '{ printf "%s\n", $0; }' | sed -n "1,${number}p" | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             count5=$((file_count++));
