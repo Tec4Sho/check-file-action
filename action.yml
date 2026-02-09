@@ -1948,25 +1948,25 @@ runs:
         ${{ inputs.include == 'true' }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
+            files=$(grep -sF "${{ inputs.dirname }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
+            files=$(grep -sF "${{ inputs.dirname }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}");
+            files=$(grep -sE "${{ inputs.dirname }}/.${regex}" "${{ env.database }}" | grep . || grep -sE "${regex}" "${{ env.database }}");
             echo -e "\n####################\nDatabase File Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         elif [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" -p "${path}" --type f "(${{ inputs.dirname }}/.*)?${{ inputs.filename }}$" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/*${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" -p "${path}" --type f "*${{ inputs.filename }}" "${{ env.base }}");
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/*${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type f "*${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         fi;
@@ -2169,33 +2169,33 @@ runs:
         }
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == sh ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
+            files=$(grep -sF "${{ inputs.dirname }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
+            files=$(grep -sF "${{ inputs.dirname }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}");
+            files=$(grep -sE "${{ inputs.dirname }}/.${regex}" "${{ env.database }}" | grep . || grep -sE "${regex}" "${{ env.database }}");
             echo -e "\n####################\nDatabase File Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         elif [[ "${file_type}" == sh ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "*${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "*${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/*${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type f "*${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         fi;
         if [[ "${file_type}" == sh ]] && [[ -n "${files}" ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo -e "Located File(s):" && echo "${files}" | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            ${{ inputs.number > '0' }} && echo -e "\nLocated File(s):\n" && echo "${files}" | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | process_input || echo -e "\nLocated File(s):\n" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             search_path="${file}";
@@ -2319,26 +2319,26 @@ runs:
         }
         if ${{ inputs.database == 'true' }} && [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+            files=$(grep -sF "${{ inputs.dirname }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+            files=$(grep -sF "${{ inputs.dirname }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}");
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
+            files=$(grep -sE "${{ inputs.dirname }}/.${regex}" "${{ env.database }}" | grep . || grep -sE "${regex}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase File Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         elif [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "*${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "*${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/*${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type f "*${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         fi;
         makefile_count=1
@@ -2349,7 +2349,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo -e "Located File(s):" && echo "${files}" | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            ${{ inputs.number > '0' }} && echo -e "\nLocated File(s):\n" && echo "${files}" | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | process_input || echo -e "\nLocated File(s):\n" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             count4=$((makefile_count++));
@@ -2423,26 +2423,26 @@ runs:
         }
         if ${{ inputs.database == 'true' }}; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+            files=$(grep -sF "${{ inputs.dirname }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+            files=$(grep -sF "${{ inputs.dirname }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
-            files=$(grep -sE "${regex}" "${{ env.database }}");
-            echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
+            files=$(grep -sE "${{ inputs.dirname }}/.${regex}" "${{ env.database }}" | grep . || grep -sE "${regex}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase File Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         else
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "/" | grep . || sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type f "${{ inputs.filename }}" "/");
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "/" | grep . || sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type f "${{ inputs.filename }}" "/");
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
-            files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "*${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "*${{ inputs.filename }}" -print);
-            echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/*${{ inputs.filename }}" "/" | grep . || sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type f "*${{ inputs.filename }}" "/");
+            echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         fi;
         file_count=1
@@ -2450,7 +2450,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo -e "Located File(s):" && echo "${files}" | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            ${{ inputs.number > '0' }} && echo -e "\nLocated File(s):\n" && echo "${files}" | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | process_input || echo -e "\nLocated File(s):\n" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             count5=$((file_count++));
@@ -2594,26 +2594,26 @@ runs:
         if ${{ env.file_found == '1' }}; then
           if ${{ inputs.database == 'true' }}; then
             if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-              get_dir_files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-              echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+              files=$(grep -sF "${{ inputs.dirname }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
+              echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
             elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-              get_dir_files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-              echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+              files=$(grep -sF "${{ inputs.dirname }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
+              echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
             elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
               regex="\${{ inputs.filename }}$";
-              get_dir_files=$(grep -sE "${regex}" "${{ env.database }}");
-              echo -e "\n####################\nExtension: ${{ inputs.filename }}\n####################" | process_input;
+              files=$(grep -sE "${{ inputs.dirname }}/.${regex}" "${{ env.database }}" | grep . || grep -sE "${regex}" "${{ env.database }}");
+              echo -e "\n####################\nDatabase File Extension: ${{ inputs.filename }}\n####################" | process_input;
             fi;
           else
             if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-              get_dir_files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
-              echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+              files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
+              echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
             elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-              get_dir_files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "${{ inputs.filename }}" -print);
-              echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+              files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
+              echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
             elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
-              get_dir_files=$(find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -path "*/${{ env.dirname }}/*" -name "*${{ inputs.filename }}" -print | grep -q . || find ${{ env.base }} -not \( -path "*/build/*" -o -path "*/.git/*" \) -prune -o -type f -name "*${{ inputs.filename }}" -print);
-              echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################\n" | process_input;
+              files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/*${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type f "*${{ inputs.filename }}" "${{ env.base }}");
+              echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################" | process_input;
             fi;
           fi;
           echo -e "\n####################\nNOTE: Contents found in directory for ${{ inputs.filename }} file(s)\n####################" | process_input;
@@ -2627,7 +2627,7 @@ runs:
                 break;
               fi;
             fi;
-          done <<< "${get_dir_files}";
+          done <<< "${files}";
         fi;
       shell: bash
       continue-on-error: true
