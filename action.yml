@@ -2221,7 +2221,7 @@ runs:
               fi;
             else
               echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
-              shellcheck --norc --external-sources --enable=all -shell=bash --severity=style --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck ( exit $? )" | process_input;
+              shellcheck --norc --external-sources --enable=all --shell=bash --severity=style --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck ( exit $? )" | process_input;
               if [[ -s "${error_log}" ]] && [[ ! $(sed -n "\|${file##*/}|,/error/p" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND: ${file}\n####################" | process_input;
               else
@@ -2231,7 +2231,7 @@ runs:
             fi;
             if ${{ inputs.recheck == 'true' }}; then
               echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
-              shellcheck --severity=style --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck ( exit $? )" | process_input;
+              shellcheck "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck ( exit $? )" | process_input;
               if [[ -s "${error_log}" ]] && [[ ! $(sed -n "\|${file##*/}|,/error/p" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND: ${file}\n####################" | process_input;
               else
