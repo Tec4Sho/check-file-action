@@ -1980,7 +1980,8 @@ runs:
              cppchecks=all;
           fi;
           if ${{ inputs.content }}; then
-            echo -e "\nLocated File Path(s)\n\n${files}" | process_input;
+            number="${{ inputs.number }}";
+            [[ "${number}" > '0' ]] && echo -e "Located File(s):" && echo "${file}" | awk '{ printf "    %s\n", $0; }' | head -n "${number}" | process_input || echo -e "Located File(s):" && echo "${file}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             search_path="${file}";
@@ -2175,8 +2176,9 @@ runs:
         fi;
         if [[ "${file_type}" == sh ]] && [[ -n "${files}" ]]; then
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
-          if ${{ inputs.content == 'true' }}; then
-            echo -e "\nLocated File(s)\n\n${files}" | process_input;
+          if ${{ inputs.content }}; then
+            number="${{ inputs.number }}";
+            [[ "${number}" > '0' ]] && echo -e "Located File(s):" && echo "${file}" | awk '{ printf "    %s\n", $0; }' | head -n "${number}" | process_input || echo -e "Located File(s):" && echo "${file}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             search_path="${file}";
@@ -2200,7 +2202,7 @@ runs:
               elif ${{ inputs.stored == 'true' }} && ${{ inputs.update == 'true' }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
                 shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || error="$?";
-                if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file##*/}.*?error" "${error_log}") ]]; then
+                if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}") ]]; then
                   echo -e "\n####################\nSTORING NO ERRORS FOUND: ${file}\n####################" | process_input;
                 else
                   echo -e "\n####################\nSTORING FOUND ERRORS TO REPAIR\n####################" | process_input;
@@ -2211,7 +2213,7 @@ runs:
               elif ${{ inputs.stored == 'false' }} || ${{ inputs.update == 'false' }}; then
                 echo -e "\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
                 shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || error="$?";
-                if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file##*/}.*?error" "${error_log}") ]]; then
+                if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}") ]]; then
                   echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND: ${file}\n####################" | process_input;
                 else
                   echo -e "\n####################\nSHELLHARDEN FOUND ERRORS TO REPAIR\n####################" | process_input;
@@ -2221,8 +2223,8 @@ runs:
               fi;
             else
               echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
-              shellcheck --norc --external-sources --enable=all --shell=bash --severity=style --color=always "${file}" 2>&1 | process_input || error="$?";
-              if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file##*/}.*?error" "${error_log}") ]]; then
+              shellcheck --norc --external-sources --enable=all --severity=style --color=always "${file}" 2>&1 | process_input || error="$?";
+              if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND: ${file}\n####################" | process_input;
               else
                 echo -e "\n####################\nSHELLCHECK FOUND ERRORS\n####################" | process_input;
@@ -2232,7 +2234,7 @@ runs:
             if ${{ inputs.recheck == 'true' }}; then
               echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
               shellcheck "${file}" 2>&1 | process_input || error="$?";
-              if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file##*/}.*?error" "${error_log}") ]]; then
+              if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND: ${file}\n####################" | process_input;
               else
                 echo -e "\n####################\nSHELLCHECK FOUND ERRORS\n####################" | process_input;
@@ -2327,6 +2329,10 @@ runs:
             echo -e "\n####################\ncheckmake.ini found in system continuing ...\n####################" | process_input;
           fi;
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
+          if ${{ inputs.content }}; then
+            number="${{ inputs.number }}";
+            [[ "${number}" > '0' ]] && echo -e "Located File(s):" && echo "${file}" | awk '{ printf "    %s\n", $0; }' | head -n "${number}" | process_input || echo -e "Located File(s):" && echo "${file}" | awk '{ printf "    %s\n", $0; }' | process_input;
+          fi;
           for file in ${files[@]}; do
             count4=$((makefile_count++));
             echo -e "\n####################\n\tFILE PATH: ( ${count4} )\n####################\n" | process_input;
