@@ -541,8 +541,11 @@ runs:
         text9b="Searching all files for ${{ inputs.pattern }} match(s)";
         text9c="####################";
         text10a="#####################";
-        text10b="#\033[1m\033[32m CHECK FILE ACTION \033[0m#";
+        text10b="Searching ${{ inputs.filename }} directory first for ${{ inputs.filename }} match(s)";
         text10c="#####################";
+        text11a="#####################";
+        text11b="#\033[1m\033[32m CHECK FILE ACTION \033[0m#";
+        text11c="#####################";
         text() {
           local text="$1";
           echo -e "${text}";
@@ -603,6 +606,11 @@ runs:
           text "\n${text9a}";
           text "${text9b}";
           text "${text9c}";
+        fi;
+        if ${{ inputs.dirname != '' }} && ${{ inputs.filename != '' }}; then
+          text "\n${text10a}";
+          text "${text10b}";
+          text "${text10c}";
         fi;
         if ${{ inputs.project }} && ${{ inputs.filename != '' }} && ${{ inputs.analyzer > '0' }}; then
           text "::warning:: project:true and filename:set both enabled auto sets analyzer:0 to disable\nTo remove this warning use ( analyzer: 0 )\n";
@@ -668,9 +676,9 @@ runs:
             echo -e "\n#####################\n::warning::Repository: ${{ inputs.dirname }} has no ${{ inputs.filetype }} files build only?! continuing....\n#####################\n";
           fi;
         fi;
-        text "\n${text10a}" 2>/dev/null;
-        text "${text10b}" 2>/dev/null;
-        text "${text10c}\n" 2>/dev/null;
+        text "\n${text11a}" 2>/dev/null;
+        text "${text11b}" 2>/dev/null;
+        text "${text11c}\n" 2>/dev/null;
         echo "github_repository=${repo}" >> "${GITHUB_ENV}";
         echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
         echo 'sources=false' >> "${GITHUB_ENV}";
@@ -1953,7 +1961,7 @@ runs:
           fi;
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ -n "${files}" ]]; then
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
+          echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair == 'true' }}; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input;
           elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair == 'true' }}; then
@@ -1975,7 +1983,7 @@ runs:
           fi;
           for file in ${files[@]}; do
             search_path="${file}";
-            check_date=$(LC_ALL=C grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
+            check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
             echo -e "\n####################\n\tFILE PATH (${count1})\n####################\n" | process_input;
             echo "${file%/*}";
@@ -2085,7 +2093,7 @@ runs:
             fi;
             if ${{ inputs.number > '0' }}; then
               if [[ "${{ inputs.number }}" -eq "${count1}" ]]; then
-                echo -e "\nFile ${count1} checking auto stopped at ${file##*/}" | process_input;
+                echo -e "\nFile checking auto stopped at: ${count1} / ${file##*/}" | process_input;
                 break;
               fi;
             fi;
@@ -2161,7 +2169,7 @@ runs:
           fi;
         fi;
         if [[ "${file_type}" == sh ]] && [[ -n "${files}" ]]; then
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
+          echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content == 'true' }}; then
             echo -e "\nLocated File(s)\n\n${files}" | process_input;
           fi;
@@ -2169,10 +2177,10 @@ runs:
             search_path="${file}";
             check_date=$(grep -Fs "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count3=$((shellcheck_count++));
-            echo -e "\n####################\n\tFILE PATH (${count3})\n####################" | process_input;
+            echo -e "\n####################\n\tFILE PATH: ( ${count3} )\n####################\n" | process_input;
             echo "${file%/*}";
             if ${{ inputs.content == 'true' }}; then
-              echo -e "\n####################\n\tFILE CONTENT\n####################\n" | process_input;
+              echo -e "\n####################\n\tFILE CONTENT:\n####################\n" | process_input;
               if [[ -e 'bat.conf' ]]; then
                 batcat "${file}" | process_input;
               else
@@ -2180,55 +2188,55 @@ runs:
               fi;
             fi;
             if ${{ inputs.repair == 'true' }}; then
-              echo -e "\n\n####################\nSHELLCHECK REPAIR ${file##/*} ERROR(S) ($count3)\n####################" | process_input;
+              echo -e "\n####################\nSHELLCHECK REPAIR ${file##*/} ERRORS ( ${count3} )\n####################" | process_input;
               if ${{ inputs.stored == 'true' }} && ${{ inputs.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                 echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
                 echo -e "\n####################\nRepaired on ${check_date}\nSkipping ${file##*/}\n####################" | process_input;
-              elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
-                echo -e "\n\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERROR(S) ($count3)\n####################\n\n" | process_input;
-                shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || echo -e "::notice::shellharden exit ( $? )" | process_input;
-                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+              elif ${{ inputs.stored == 'true' }} && ${{ inputs.update == 'true' }}; then
+                echo -e "\n\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS ( ${count3} )\n####################\n" | process_input;
+                shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || echo -e "::notice shellharden:: ( exit $? )" | process_input;
+                if [[ -s "${error_log}" ]] && [[ ! $(sed -n "/${file}/,/(error):/p" "${error_log}") ]]; then
                   echo -e "\n####################\nSTORING NO ERRORS FOUND\n####################\n\n${file}" | process_input;
                 else
-                  echo -e "\n####################\nSTORING FOUND ERROR(S) TO REPAIR\n####################" | process_input;
+                  echo -e "\n####################\nSTORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                   errors=true
                 fi;
                 echo "${file} $(date)" >> "${repaired}";
                 fixed=true
               elif ${{ inputs.stored == 'false' }} || ${{ inputs.update == 'false' }}; then
-                echo -e "\n\n####################\nSHELLHARDEN ANALYZING ${file##/*} FOR ERROR(S) ($count3)\n####################\n" | process_input;
-                shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || echo -e "::notice::shellharden exit ( $? )" | process_input;
-                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                echo -e "\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS ( ${count3} )\n####################\n" | process_input;
+                shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || echo -e "::notice shellharden:: ( exit $? )" | process_input;
+                if [[ -s "${error_log}" ]] && [[ ! $(sed -n "/${file}/,/(error):/p" "${error_log}") ]]; then
                   echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND ${file}\n####################" | process_input;
                 else
-                  echo -e "\n####################\nSHELLHARDEN FOUND ERROR(S) TO REPAIR\n####################" | process_input;
+                  echo -e "\n####################\nSHELLHARDEN FOUND ERRORS TO REPAIR\n####################" | process_input;
                   errors=true
                 fi;
                 fixed=true
               fi;
             else
-              echo -e "\n\n####################\nSHELLCHECK ANALYZING ${file##/*} FOR ERROR(S) ($count3)\n####################\n" | process_input;
-              shellcheck --norc --severity=error --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck exit ( $? )" | process_input;
-              if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+              echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS ( ${count3} )\n####################\n" | process_input;
+              shellcheck --norc --severity=warning --color=always "${file}" 2>&1 | process_input || echo -e "::notice shellcheck:: ( exit $? )" | process_input;
+              if [[ -s "${error_log}" ]] && [[ ! $(sed -n "/${file}/,/(error):/p" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################" | process_input;
               else
-                echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################" | process_input;
+                echo -e "\n####################\nSHELLCHECK FOUND ERRORS\n####################" | process_input;
                 errors=true
               fi;
             fi;
             if ${{ inputs.recheck == 'true' }}; then
-              echo -e "\n\n####################\nSHELLCHECK ANALYZING ${file##/*} FOR ERROR(S) ($count3)\n####################\n" | process_input;
-              shellcheck --norc --severity=warning --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck exit ( $? )" | process_input;
-              if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+              echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS ( ${count3} )\n####################" | process_input;
+              shellcheck --norc --severity=warning --color=always "${file}" 2>&1 | process_input || echo -e "::notice shellcheck:: ( exit $? )" | process_input;
+              if [[ -s "${error_log}" ]] && [[ ! $(sed -n "/${file}/,/(error):/p" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND ${file}\n####################" | process_input;
               else
-                echo -e "\n####################\nSHELLCHECK FOUND ERROR(S)\n####################" | process_input;
+                echo -e "\n####################\nSHELLCHECK FOUND ERRORS\n####################" | process_input;
                 errors=true
               fi;
             fi;
             if ${{ inputs.number > '0' }}; then
               if [[ "${{ inputs.number }}" -eq "${count3}" ]]; then
-                echo -e "\nFile ${count3} checking auto stopped at ${file##/*}" | process_input;
+                echo -e "\nFile checking auto stopped at: ${count3} / ${file##*/}" | process_input;
                 break;
               fi;
             fi;
@@ -2308,13 +2316,13 @@ runs:
           if [[ ${path} ]]; then
             echo -e "\n####################\ncheckmake.ini found in system continuing ...\n####################" | process_input;
           fi;
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
+          echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           for file in ${files[@]}; do
             count4=$((makefile_count++));
-            echo -e "\n####################\n\tFILE PATH (${count4})\n####################\n" | process_input;
+            echo -e "\n####################\n\tFILE PATH: ( ${count4} )\n####################\n" | process_input;
             echo "${file%/*}";
             if ${{ inputs.content == 'true' }}; then
-              echo -e "\n####################\n\tFILE CONTENT\n####################\n" | process_input;
+              echo -e "\n####################\n\tFILE CONTENT:\n####################\n" | process_input;
               if [[ -e 'bat.conf' ]]; then
                 batcat "${file}" | process_input;
               else
@@ -2323,7 +2331,7 @@ runs:
             fi;
             echo -e "\n####################\nCHECKMAKE ANALYZING $(basename ${file}) FOR ERROR(S) ($count4)\n####################\n" | process_input;
             checkmake "${file}" 2>&1 | process_input || echo -e "::notice:: checkmake exit ( $? )" | process_input;
-            if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+            if [[ -s "${error_log}" ]] && [[ ! $(sed -n "/${file}/,/error/p" "${error_log}") ]]; then
               echo -e "\n####################\nCHECKMAKE NO ERRORS FOUND ${file}\n####################" | process_input;
             else
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################" | process_input;
@@ -2331,7 +2339,7 @@ runs:
             fi;
             if ${{ inputs.number > '0' }}; then
               if [[ "${{ inputs.number }}" -eq "${count4}" ]]; then
-                echo -e "\nFile ${count4} checking auto stopped at ${file##/*}" | process_input;
+                echo -e "\nFile checking auto stopped at: ${count4} / ${file##*/}" | process_input;
                 break;
               fi;
             fi;
@@ -2402,13 +2410,13 @@ runs:
         fi;
         file_count=1
         if [[ -n "${files}" ]]; then
-          echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
+          echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           for file in ${files[@]}; do
             count5=$((file_count++));
-            echo -e "\n####################\n\tFILE PATH (${count5})\n####################\n" | process_input;
+            echo -e "\n####################\n\tFILE PATH: ( ${count5} )\n####################\n" | process_input;
             echo "${file%/*}";
             if ${{ inputs.content == 'true' }}; then
-              echo -e "\n####################\n\tFILE CONTENT (${count5})\n####################\n" | process_input;
+              echo -e "\n####################\n\tFILE CONTENT: ( ${count5} )\n####################\n" | process_input;
               if [[ -e 'bat.conf' ]]; then
                 batcat "${file}" | process_input;
               else
@@ -2417,7 +2425,7 @@ runs:
             fi;
             if ${{ inputs.number > '0' }}; then
               if [[ "${{ inputs.number }}" -eq "${count5}" ]]; then
-                echo -e "\nFile ${count5} checking auto stopped at ${file##/*}" | process_input;
+                echo -e "\nFile checking auto stopped at: ${count5} / ${file##*/}" | process_input;
                 break;
               fi;
             fi;
