@@ -1984,7 +1984,7 @@ runs:
           fi;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo "${files}" | awk '{ printf "%s\n", $0; }' | sed -n "1,${number}p" | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            ${{ inputs.number > '0' }} && echo -e "Located File(s):" && echo "${files}" | sed -n "1,${number}p" | awk '{ printf "%s\n", $0; }' | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             search_path="${file}";
@@ -2189,7 +2189,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo "${files}" | awk '{ printf "%s\n", $0; }' | sed -n "1,${number}p" | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            ${{ inputs.number > '0' }} && echo -e "Located File(s):" && echo "${files}" | sed -n "1,${number}p" | awk '{ printf "%s\n", $0; }' | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             search_path="${file}";
@@ -2343,7 +2343,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo "${files}" | awk '{ printf "%s\n", $0; }' | sed -n "1,${number}p" | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            ${{ inputs.number > '0' }} && echo -e "Located File(s):" && echo "${files}" | sed -n "1,${number}p" | awk '{ printf "%s\n", $0; }' | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             count4=$((makefile_count++));
@@ -2444,7 +2444,7 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo "${files}" | awk '{ printf "%s\n", $0; }' | sed -n "1,${number}p" | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            ${{ inputs.number > '0' }} && echo -e "Located File(s):" && echo "${files}" | sed -n "1,${number}p" | awk '{ printf "%s\n", $0; }' | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             count5=$((file_count++));
