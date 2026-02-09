@@ -2199,7 +2199,7 @@ runs:
                 echo -e "\n####################\nRepaired on ${check_date}\nSkipping ${file##*/}\n####################" | process_input;
               elif ${{ inputs.stored == 'true' }} && ${{ inputs.update == 'true' }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
-                shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || echo -e "::notice shellharden:: ( exit $? )" | process_input;
+                shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || error="$?";
                 if [[ -s "${error_log}" ]] && [[ ! $(sed -n "\|${file##*/}|,/error/p" "${error_log}") ]]; then
                   echo -e "\n####################\nSTORING NO ERRORS FOUND: ${file}\n####################" | process_input;
                 else
@@ -2210,7 +2210,7 @@ runs:
                 fixed=true
               elif ${{ inputs.stored == 'false' }} || ${{ inputs.update == 'false' }}; then
                 echo -e "\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
-                shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || echo -e "::notice::shellharden ( exit $? )" | process_input;
+                shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || error="$?";
                 if [[ -s "${error_log}" ]] && [[ ! $(sed -n "\|${file##*/}|,/error/p" "${error_log}") ]]; then
                   echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND: ${file}\n####################" | process_input;
                 else
@@ -2221,7 +2221,7 @@ runs:
               fi;
             else
               echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
-              shellcheck --norc --external-sources --enable=all --shell=bash --severity=style --color=always "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck ( exit $? )" | process_input;
+              shellcheck --norc --external-sources --enable=all --shell=bash --severity=style --color=always "${file}" 2>&1 | process_input || error="$?";
               if [[ -s "${error_log}" ]] && [[ ! $(sed -n "\|${file##*/}|,/error/p" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND: ${file}\n####################" | process_input;
               else
@@ -2231,7 +2231,7 @@ runs:
             fi;
             if ${{ inputs.recheck == 'true' }}; then
               echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
-              shellcheck "${file}" 2>&1 | process_input || echo -e "::notice::shellcheck ( exit $? )" | process_input;
+              shellcheck "${file}" 2>&1 | process_input || error="$?";
               if [[ -s "${error_log}" ]] && [[ ! $(sed -n "\|${file##*/}|,/error/p" "${error_log}") ]]; then
                 echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND: ${file}\n####################" | process_input;
               else
@@ -2246,6 +2246,11 @@ runs:
               fi;
             fi;
           done;
+          if [[ "${error}" > '0' ]] && ${{ inputs.repair == 'true' }}; then
+            echo -e "::notice::shellharden ( ${error} )" | process_input;
+          elif [[ "${error}" > '0' ]]; then
+            echo -e "::notice::shellcheck ( ${error} )" | process_input;
+          fi;
           echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count3}" | process_input;
           echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
