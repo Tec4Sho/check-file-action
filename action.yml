@@ -1913,6 +1913,9 @@ runs:
         error_log="${github}/${{ inputs.filename }}_error.log";
         checked=false
         count2=0
+        error=0
+        error1=0
+        error2=0
         process_input() {
           while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
@@ -2005,12 +2008,12 @@ runs:
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                   echo -e "\n\n####################\nGCC/G++ FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   if [[ "${file_type}" == [c] ]]; then
-                    gcc -M -MG "${file}" | process_input || echo -e "::notice::gcc ( exit $? )" | process_input;
+                    gcc -M -MG "${file}" | process_input || error1="$?";
                   elif [[ "${file_type}" == [c]* ]]; then
-                    g++ -M -MG "${file}" | process_input || echo -e "::notice::g++ ( exit $? )" | process_input;
+                    g++ -M -MG "${file}" | process_input || error1="$?";
                   fi;
                   echo -e "\n\n####################\nCLANG-TIDY FIX FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice::clang-tidy ( exit $? )" | process_input;
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nSTORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
@@ -2022,11 +2025,11 @@ runs:
                 elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   if [[ "${file_type}" == [c] ]]; then
-                    gcc -MM "${file}" | process_input || echo -e "::notice::gcc ( exit $? )" | process_input;
+                    gcc -MM "${file}" | process_input || error="$?";
                   elif [[ "${file_type}" == [c]* ]]; then
-                    g++ -MM "${file}" | process_input || echo -e "::notice::g++ ( exit $? )" | process_input;
+                    g++ -MM "${file}" | process_input || error1="$?";
                   fi;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice::clang-tidy ( exit $? )" | process_input;
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
@@ -2038,9 +2041,9 @@ runs:
               else
                 echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER: ( ${count1} )\n####################\n" | process_input;
                 if [[ "${compile_json}" ]]; then
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="${file}" --exitcode-suppressions="${file##*/}" 2>&1 | process_input || echo -e "::notice::cppcheck ( exit $? )" | process_input;
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="${file}" --exitcode-suppressions="${file}" 2>&1 | process_input || error="$?";
                 else
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" --exitcode-suppressions="${file##*/}" 2>&1 | process_input || echo -e "::notice::cppcheck ( exit $? )" | process_input;
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" --exitcode-suppressions="${file}" 2>&1 | process_input || error="$?";
                 fi;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
@@ -2056,7 +2059,7 @@ runs:
                   echo -e "\n####################\nChecked on ${check_date}\n\033[32mSkipping:\033[0m ${file}\n####################" | process_input;
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice::clang-tidy ( exit $? )" | process_input;
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nSTORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
@@ -2067,7 +2070,7 @@ runs:
                   fixed=true
                 elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || echo -e "::notice::clang-tidy ( exit $? )" | process_input;
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
@@ -2078,7 +2081,7 @@ runs:
                 fi;
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER: ( ${count1} )\n####################\n" | process_input;
-                cppcheck -j "$(nproc)" -l 2 --clang --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress="*" --cppcheck-build-dir="${build_dir}" "${file}" --exitcode-suppressions="${file##*/}" 2>&1 | process_input || echo -e "::notice::cppcheck ( exit $? )" | process_input;
+                cppcheck -j "$(nproc)" -l 2 --clang --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress="*" --cppcheck-build-dir="${build_dir}" "${file}" --exitcode-suppressions="${file}" 2>&1 | process_input || error="$?";
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                 else
@@ -2089,7 +2092,7 @@ runs:
             fi;
             if ${{ inputs.recheck == 'true' }} && ${{ inputs.repair == 'true' }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE ( ${count1} )\n####################\n" | process_input;
-              cppcheck -j "$(nproc --all)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=* --quiet "${file}" 2>&1 | process_input || echo -e "::notice::cppcheck ( exit $? )" | process_input;
+              cppcheck -j "$(nproc)" --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=* --quiet "${file}" 2>&1 | process_input || error="$?";
               if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
               else
@@ -2107,6 +2110,13 @@ runs:
           echo -e "\n::notice::Total number of ${{ inputs.filename }} file(s) checked is: ${count1}" | process_input;
           echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
+          if [[ "${error}" > '0' ]]; then
+            echo -e "::notice::clang-tidy ( ${error} )" | process_input;
+          elif [[ "${error1}" > '0' ]]; then
+            echo -e "::notice::cppcheck ( ${error1} )" | process_input;
+          elif [[ "${error2}" > '0' ]]; then
+            echo -e "::notice::cppcheck ( ${error2} )" | process_input;
+          fi;
           if [[ "${errors}" ]]; then
             [[ $(grep -aiE 'fixit|fix-it' "${error_log}") ]] && echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
@@ -2137,6 +2147,7 @@ runs:
         error_log="${github}/${{ inputs.filename }}_error.log";
         checked=false
         count3=0
+        error=0
         process_input() {
           while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
@@ -2286,6 +2297,7 @@ runs:
         error_log="${github}/${{ inputs.filename }}_error.log";
         checked=false
         count4=0
+        error=0
         process_input() {
           while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
@@ -2346,8 +2358,8 @@ runs:
               fi;
             fi;
             echo -e "\n####################\nCHECKMAKE ANALYZING $(basename ${file}) FOR ERROR(S) ($count4)\n####################\n" | process_input;
-            checkmake "${file}" 2>&1 | process_input || echo -e "::notice:: checkmake exit ( $? )" | process_input;
-            if [[ -s "${error_log}" ]] && [[ ! $(sed -n "/${file}/,/error/p" "${error_log}") ]]; then
+            checkmake "${file}" 2>&1 | process_input || error="$?";
+            if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file}.*?error" "${error_log}") ]]; then
               echo -e "\n####################\nCHECKMAKE NO ERRORS FOUND ${file}\n####################" | process_input;
             else
               echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################" | process_input;
@@ -2362,6 +2374,9 @@ runs:
           done;
           echo -e "\n::notice:: Total number of ${{ inputs.filename }} file(s) checked is: ${count4}" | process_input;
           echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
+          if [[ "${error}" > '0' ]]; then
+            echo -e "::notice::checkmake ( ${error} )" | process_input;
+          fi;
           if [[ "${errors}" ]]; then
             echo "file_error=1" >> "${GITHUB_ENV}";
           fi;
