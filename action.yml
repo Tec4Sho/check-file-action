@@ -484,7 +484,6 @@ runs:
           fi;
         fi;
         dirname="${{ inputs.dirname }}";
-        echo "dirname = ${dirname}";
         echo "dirname=${dirname}" >> "${GITHUB_ENV}";
         if [[ -d '/usr/local/bin' ]]; then
           echo '/usr/local/bin' >> "${GITHUB_PATH}";
