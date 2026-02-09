@@ -541,7 +541,7 @@ runs:
         text9b="Searching all files for ${{ inputs.pattern }} match(s)";
         text9c="####################";
         text10a="#####################";
-        text10b="Searching ${{ inputs.filename }} directory first for ${{ inputs.filename }} match(s)";
+        text10b="Searching ${{ inputs.dirname }} directory first for ${{ inputs.filename }} match(s)";
         text10c="#####################";
         text11a="#####################";
         text11b="#\033[1m\033[32m CHECK FILE ACTION \033[0m#";
@@ -1940,29 +1940,34 @@ runs:
         mkdir -p build/cppcheck
         build_dir='build/cppcheck';
         include_path="/usr/src/linux-headers-$(uname -r)/include";
+        if ${{ inputs.absolute == 'true' }}; then
+          path='--absolute-path';
+        else
+          path='--relative-path';
+        fi;
         ${{ inputs.include == 'true' }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "/${{ inputs.filename }}" "${{ env.database }}");
-            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
             regex="\${{ inputs.filename }}$";
             files=$(grep -sE "${regex}" "${{ env.database }}");
-            echo -e "\n####################\nDatabase File Extension: ${{ inputs.filename }}\n####################\n" | process_input;
+            echo -e "\n####################\nDatabase File Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         elif [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" --type f "${{ inputs.filename }}" "${{ env.base }}");
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" --type f "${{ inputs.filename }}" "${{ env.base }}");
-            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" -p "${path}" --type f "${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" --type f --glob "**/${{ inputs.dirname }}/**/*${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" --type f "*${{ inputs.filename }}" "${{ env.base }}");
-            echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################\n" | process_input;
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type f --glob "**/${{ inputs.dirname }}/**/*${{ inputs.filename }}" "${{ env.base }}" | grep -q . || fdfind -j "$(nproc)" -p "${path}" --type f "*${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ -n "${files}" ]]; then
@@ -1985,7 +1990,7 @@ runs:
           fi;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo -e "Located File(s):" && echo "${files}" | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | process_input || echo -e "Located File(s):" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            ${{ inputs.number > '0' }} && echo -e "\nLocated File(s):\n" && echo "${files}" | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | process_input || echo -e "\nLocated File(s):\n" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
           fi;
           for file in ${files[@]}; do
             search_path="${file}";
@@ -2042,9 +2047,9 @@ runs:
               else
                 echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER: ( ${count1} )\n####################\n" | process_input;
                 if [[ "${compile_json}" ]]; then
-                  cppcheck --clang="${version%%.*}" -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="*/${file#"${file%/*/*}/"}" -I"${include_path}" 2>&1 | process_input || error="$?";
+                  cppcheck --clang="${{ env.LLVM_PATH }}/bin/${version%%.*}" -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="*/${file#"${file%/*/*}/"}" -I"${include_path}" 2>&1 | process_input || error="$?";
                 else
-                  cppcheck --clang="${version%%.*}" -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
+                  cppcheck --clang="${{ env.LLVM_PATH }}/bin/${version%%.*}" -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=* --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
                 fi;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
