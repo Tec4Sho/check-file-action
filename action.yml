@@ -1143,9 +1143,9 @@ runs:
           clang_includes='check-file-includes.txt';
           usr="/usr/src/linux-headers-$(uname -r)";
           if ${{ env.dirname != '' }}; then
-            echo -e "####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
+            echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           else
-            echo -e "####################\nWorkspace Folder: ${repository}\n####################" | process_input;
+            echo -e "\n####################\nWorkspace Folder: ${repository}\n####################" | process_input;
           fi;
           echo -e "\n####################\nProject Build:\033[32m ${{ github.repository }}\033[0m\n####################" | process_input;
           echo -e "\n####################\nCompiler: ${gcc_version}\n####################" | process_input;
@@ -1910,6 +1910,7 @@ runs:
         file_type="${file_name##*.}";
         cppchecks='.cppcheck';
         github=${GITHUB_WORKSPACE};
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         error_log="${github}/${{ inputs.filename }}_error.log";
         version="clang-${{ inputs.version }}";
         checked=false
@@ -1971,7 +1972,11 @@ runs:
           fi;
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ -n "${files}" ]]; then
-          echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
+          if ${{ env.dirname != '' }}; then
+            echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
+          else
+            echo -e "\n####################\nWorkspace Folder: ${repository}\n####################" | process_input;
+          fi;
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair == 'true' }}; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input;
           elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair == 'true' }}; then
@@ -1988,14 +1993,18 @@ runs:
           else
              cppchecks='all';
           fi;
-          if ${{ inputs.content }}; then
+          if ${{ inputs.content == 'true' }}; then
             number="${{ inputs.number }}";
             if ${{ inputs.number > '0' }}; then
-              echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input; 
+              echo -e "\n\033[32mLocated Files\033[0m:\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
+              echo -n '\033[1mTotal Files Located: \033[0m' | process_input;
+              { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l | process_input;
             else 
               echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
+              echo -n '\033[1mTotal Files Located: \033[0m' | process_input;
+              { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l | process_input;
             fi;
           fi;
           for file in ${files[@]}; do
@@ -2156,6 +2165,7 @@ runs:
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         github=${GITHUB_WORKSPACE};
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         error_log="${github}/${{ inputs.filename }}_error.log";
         checked=false
         count3=0
@@ -2203,15 +2213,23 @@ runs:
           fi;
         fi;
         if [[ "${file_type}" == sh ]] && [[ -n "${files}" ]]; then
-          echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
-          if ${{ inputs.content }}; then
+          if ${{ env.dirname != '' }}; then
+            echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
+          else
+            echo -e "\n####################\nWorkspace Folder: ${repository}\n####################" | process_input;
+          fi;
+          if ${{ inputs.content == 'true' }}; then
             number="${{ inputs.number }}";
             if ${{ inputs.number > '0' }}; then
-              echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input; 
+              echo -e "\n\033[32mLocated Files\033[0m:\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
+              echo -n '\033[1mTotal Files Located: \033[0m' | process_input;
+              { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l | process_input;
             else 
               echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
+              echo -n '\033[1mTotal Files Located: \033[0m' | process_input;
+              { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l | process_input;
             fi;
           fi;
           for file in ${files[@]}; do
@@ -2317,6 +2335,7 @@ runs:
         file='checkmake.ini';
         path='/home/runner/checkmake.ini';
         github=${GITHUB_WORKSPACE};
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         error_log="${github}/${{ inputs.filename }}_error.log";
         checked=false
         count4=0
@@ -2368,15 +2387,23 @@ runs:
           if [[ ${path} ]]; then
             echo -e "\n####################\ncheckmake.ini found in system continuing ...\n####################" | process_input;
           fi;
-          echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
-          if ${{ inputs.content }}; then
+          if ${{ env.dirname != '' }}; then
+            echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
+          else
+            echo -e "\n####################\nWorkspace Folder: ${repository}\n####################" | process_input;
+          fi;
+          if ${{ inputs.content == 'true' }}; then
             number="${{ inputs.number }}";
             if ${{ inputs.number > '0' }}; then
-              echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input; 
+              echo -e "\n\033[32mLocated Files\033[0m:\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
+              echo -n '\033[1mTotal Files Located: \033[0m' | process_input;
+              { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l | process_input;
             else 
               echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
+              echo -n '\033[1mTotal Files Located: \033[0m' | process_input;
+              { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l | process_input;
             fi;
           fi;
           for file in ${files[@]}; do
@@ -2434,6 +2461,7 @@ runs:
         file_name="${{ inputs.filename }}";
         file_type="${file_name##*.}";
         github=${GITHUB_WORKSPACE};
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         data_log="${github}/${{ inputs.filename }}_data.log";
         count5=0
         process_input() {
@@ -2480,15 +2508,23 @@ runs:
         fi;
         file_count=1
         if [[ -n "${files}" ]]; then
-          echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
-          if ${{ inputs.content }}; then
+          if ${{ env.dirname != '' }}; then
+            echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
+          else
+            echo -e "\n####################\nWorkspace Folder: ${repository}\n####################" | process_input;
+          fi;
+          if ${{ inputs.content == 'true' }}; then
             number="${{ inputs.number }}";
             if ${{ inputs.number > '0' }}; then
-              echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input; 
+              echo -e "\n\033[32mLocated Files\033[0m:\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
+              echo -n '\033[1mTotal Files Located: \033[0m' | process_input;
+              { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l | process_input;
             else 
               echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
+              echo -n '\033[1mTotal Files Located: \033[0m' | process_input;
+              { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l | process_input;
             fi;
           fi;
           for file in ${files[@]}; do
@@ -2563,6 +2599,12 @@ runs:
                   else
                     batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${c}";
                   fi;
+                  if ${{ inputs.number > '0' }}; then
+                    if [[ "${{ inputs.number }}" -eq "${count}" ]]; then
+                      echo -e "\nPattern checking auto stopped at: ${count} / ${c##*/}" | process_input;
+                      break;
+                    fi;
+                  fi;
                   echo -e "\n####################\n::notice::PATTERN MATCHED SEARCHING COMPLETED SUCCESSFULLY ✅\n####################";
                 done;
               fi;
@@ -2588,6 +2630,12 @@ runs:
                   batcat "${c}";
                 else
                   batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${c}";
+                fi;
+                if ${{ inputs.number > '0' }}; then
+                  if [[ "${{ inputs.number }}" -eq "${count}" ]]; then
+                    echo -e "\nPattern checking auto stopped at: ${count} / ${c##*/}" | process_input;
+                    break;
+                  fi;
                 fi;
                 echo -e "\n####################\n::notice::PATTERN MATCHED SEARCHING COMPLETED SUCCESSFULLY ✅\n####################";
               done;

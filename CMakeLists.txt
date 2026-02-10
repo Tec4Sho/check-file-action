@@ -18,6 +18,8 @@ message(STATUS "Project Name: ${PROJECT_NAME}")
 
 message(STATUS "Workspace Path: $ENV{GITHUB_WORKSPACE}")
 
+set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES OFF) # Useful/Needed for large list of include directories
+
 find_program(CLANG_TIDY_EXE "clang-tidy")
   if(CLANG_TIDY_EXE)
     message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
@@ -158,6 +160,7 @@ if(EXISTS "${CHECK_FILE_COMPILE}" AND IS_READABLE "${CHECK_FILE_COMPILE}")
     list(REMOVE_DUPLICATES INCLUDE_DIRS)
     target_include_directories("${PROJECT_NAME}" PRIVATE ${INCLUDE_DIRS})
   endif()
+    set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON) # Useful/Needed for large list of include directories
     message(STATUS "Project Includes: cmake added include directories. clang analyzing multiple includes [check 1]")
 elseif(DEFINED PROJECT_AUTO_INCLUDE)
   add_executable("${PROJECT_NAME}") # Creates an executable target named "MyProject" from source files
@@ -285,8 +288,6 @@ set(CMAKE_C_EXTENSIONS ON) # Enables compiler-specific extensions for C
 set(CMAKE_C_COMPILER clang) # Sets the C compiler
 
 # .set(CMAKE_CXX_USE_RESPONSE_FILE_FOR_INCLUDES OFF) 
-
-set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON) # Useful/Needed for large list of include directories
 
 # .file(GLOB_RECURSE PROJECT_SRC_INCLUDES LIST_DIRECTORIES true "/include/")
 
