@@ -1990,7 +1990,13 @@ runs:
           fi;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo -e "\nLocated File(s):\n" && { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | process_input || echo -e "\nLocated File(s):\n" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            if ${{ inputs.number > '0' }}; then
+              echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input; 
+              { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
+            else 
+              echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input;
+              { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
+            fi;
           fi;
           for file in ${files[@]}; do
             search_path="${file}";
@@ -2200,7 +2206,13 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo -e "\nLocated File(s):\n" && { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | process_input || echo -e "\nLocated File(s):\n" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            if ${{ inputs.number > '0' }}; then
+              echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input; 
+              { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
+            else 
+              echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input;
+              { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
+            fi;
           fi;
           for file in ${files[@]}; do
             search_path="${file}";
@@ -2359,7 +2371,13 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo -e "\nLocated File(s):\n" && echo "${files}" | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | process_input || echo -e "\nLocated File(s):\n" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            if ${{ inputs.number > '0' }}; then
+              echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input; 
+              { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
+            else 
+              echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input;
+              { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
+            fi;
           fi;
           for file in ${files[@]}; do
             count4=$((makefile_count++));
@@ -2465,7 +2483,13 @@ runs:
           echo -e "\n####################\nWorkspace Folder: ${{ inputs.dirname }}\n####################" | process_input;
           if ${{ inputs.content }}; then
             number="${{ inputs.number }}";
-            ${{ inputs.number > '0' }} && echo -e "\nLocated File(s):\n" && echo "${files}" | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | process_input || echo -e "\nLocated File(s):\n" && echo "${files}" | awk '{ printf "    %s\n", $0; }' | process_input;
+            if ${{ inputs.number > '0' }}; then
+              echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input; 
+              { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
+            else 
+              echo -e "\n\033[32mLocated File(s)\033[0m:\n" | process_input;
+              { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
+            fi;
           fi;
           for file in ${files[@]}; do
             count5=$((file_count++));
@@ -2508,18 +2532,18 @@ runs:
         start_time="${{ env.seconds }}";
         file_types="${{ inputs.filetype }}";
         if ${{ inputs.database == 'true' }}; then
-          matched1=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -name "*.${type}" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" | rg -q . || find ${{ env.base }} -type f -name "*.${type}" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}");
-          content1=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -name "*.${type}" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" -l --quiet "${{ inputs.pattern }}" | rg -q . || find ${{ env.base }} -type f -name "*.${type}" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" -l --quiet "${{ inputs.pattern }}");
-          matched2=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" | rg -q . || find ${{ env.base }} -type f -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}");
-          content2=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" -l --quiet "${{ inputs.pattern }}" | rg -q . || find ${{ env.base }} -type f -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" -l --quiet "${{ inputs.pattern }}");
+          matched1=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -name "*.${type}" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" | rg . || find ${{ env.base }} -type f -name "*.${type}" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}");
+          content1=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -name "*.${type}" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" -l --quiet "${{ inputs.pattern }}" | rg . || find ${{ env.base }} -type f -name "*.${type}" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" -l --quiet "${{ inputs.pattern }}");
+          matched2=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" | rg . || find ${{ env.base }} -type f -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}");
+          content2=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" -l --quiet "${{ inputs.pattern }}" | rg . || find ${{ env.base }} -type f -print | xargs -r -P "$(nproc)" rg -j "$(nproc)" -l --quiet "${{ inputs.pattern }}");
         else
-          matched1=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -name "*.${type}" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; | grep -q . || find ${{ env.base }} -type f -name "*.${type}" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \;);
-          content1=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -name "*.${type}" -exec grep -q "${{ inputs.pattern }}" "{}" \; | grep -q . || find ${{ env.base }} -type f -name "*.${type}" -exec grep -q "${{ inputs.pattern }}" "{}" \;);
-          matched2=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; | grep -q . || find ${{ env.base }} -type f -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \;);
-          content2=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -exec grep -q "${{ inputs.pattern }}" "{}" \; | grep -q . || find ${{ env.base }} -type f -exec grep -q "${{ inputs.pattern }}" "{}" \;);
+          matched1=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -name "*.${type}" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; | grep . || find ${{ env.base }} -type f -name "*.${type}" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \;);
+          content1=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -name "*.${type}" -exec grep -q "${{ inputs.pattern }}" "{}" \; | grep . || find ${{ env.base }} -type f -name "*.${type}" -exec grep -q "${{ inputs.pattern }}" "{}" \;);
+          matched2=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; | grep . || find ${{ env.base }} -type f -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \;);
+          content2=$(find ${{ env.base }} -type f -path "*/${{ env.dirname }}/*" -exec grep -q "${{ inputs.pattern }}" "{}" \; | grep . || find ${{ env.base }} -type f -exec grep -q "${{ inputs.pattern }}" "{}" \;);
         fi;
-        echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################\n";
-        echo -e "\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################\n";
+        echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################";
+        echo -e "\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################";
         if ${{ inputs.filetype != '' }}; then
           for type in ${file_types[@]}; do
             matches=${matched1};
@@ -2528,23 +2552,22 @@ runs:
               echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN ${{ inputs.filetype }} FILE(S)\n####################";
               echo -e "\n${matches}";
               if ${{ inputs.content == 'true' }}; then
-                echo '| Runtime |';
                 contents=${content1};
                 for c in ${contents[@]}; do
                   count=$((file_count++));
                   echo -e "\n####################\n\tFILE PATH (${count})\n####################";
-                  echo -e "\n$(dirname ${c})\n":
+                  echo -e "\n${c%/*}":
                   echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n";
                   if [[ -e 'bat.conf' ]]; then
                     batcat "${c}";
                   else
                     batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${c}";
                   fi;
-                  echo -e "\n####################\nPATTERN MATCH COMPLETED\n####################";
+                  echo -e "\n####################\n::notice::PATTERN MATCHED SEARCHING COMPLETED SUCCESSFULLY ✅\n####################";
                 done;
               fi;
             else
-              echo -e "\n####################\n::warning::PATTERN MATCH FINISHED SEARCHING NO ${{ inputs.pattern }} FOUND\n####################";
+              echo -e "\n####################\n::warning::SEARCHING COMPLETED PATTERN NOT FOUND: ${{ inputs.pattern }} ❌\n####################";
             fi;
           done;
           echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
@@ -2555,23 +2578,22 @@ runs:
             echo -e "\n####################\n (${counter}) CONTENT MATCH(S) FOUND IN FILE(S)\n####################";
             echo -e "\n${matches}\n";
             if ${{ inputs.content == 'true' }}; then
-              echo '| Runtime |';
               content=${content2};
               for c in ${content[@]}; do
                 count=$((file_count++));
-                echo -e "\n####################\n\tFILE PATH (${count})\n####################";
-                echo -e "\n$(dirname ${c})\n":
-                echo -e "\n####################\n\tFILE CONTENT (${count})\n####################\n";
+                echo -e "\n####################\n\tFILE PATH: ( ${count} )\n####################";
+                echo -e "\n${c%/*}":
+                echo -e "\n####################\n\tFILE CONTENT: ( ${count} )\n####################\n";
                 if [[ -e 'bat.conf' ]]; then
                   batcat "${c}";
                 else
                   batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${c}";
                 fi;
-                echo -e "\n####################\nPATTERN MATCH COMPLETED\n####################";
+                echo -e "\n####################\n::notice::PATTERN MATCHED SEARCHING COMPLETED SUCCESSFULLY ✅\n####################";
               done;
             fi;
           else
-            echo -e "\n####################\n::warning::PATTERN MATCH FINISHED SEARCHING NO ${{ inputs.pattern }} FOUND\n####################";
+            echo -e "\n####################\n::warning::SEARCHING COMPLETED PATTERN NOT FOUND: ${{ inputs.pattern }} ❌\n####################";
           fi;
           echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
         fi;
