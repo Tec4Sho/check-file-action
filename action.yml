@@ -2134,7 +2134,7 @@ runs:
           s=$((seconds % 60));
           printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
         elif [[ "${file_type}" == [cth]* ]]; then
-          echo -e "\n####################\nFINISHED SEARCHING NO ${{ inputs.filename }} FILE FOUND\n####################\n" | process_input;
+          echo -e "\n####################\nFINISHED SEARCHING FILE NOT FOUND: ${{ inputs.filename }}\n####################\n" | process_input;
         fi;
       shell: bash
       continue-on-error: true
@@ -2289,7 +2289,7 @@ runs:
           s=$((seconds % 60));
           printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
         elif [[ "${file_type}" == sh ]]; then
-          echo -e "\n####################\nFINISHED SEARCHING NO ${{ inputs.filename }} FILE FOUND\n####################\n" | process_input;
+          echo -e "\n####################\nFINISHED SEARCHING FILE NOT FOUND: ${{ inputs.filename }}\n####################\n" | process_input;
         fi;
       shell: bash
       continue-on-error: true
@@ -2402,7 +2402,7 @@ runs:
           printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
         elif [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
-          echo -e "\n####################\nFINISHED SEARCHING NO ${{ inputs.filename }} FILE FOUND\n####################\n" | process_input;
+          echo -e "\n####################\nFINISHED SEARCHING FILE NOT FOUND: ${{ inputs.filename }}\n####################\n" | process_input;
         fi;
       shell: bash
       continue-on-error: true
@@ -2494,7 +2494,7 @@ runs:
           s=$((seconds % 60));
           printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
         else
-          echo -e "\n####################\nFINISHED SEARCHING NO ${{ inputs.filename }} FILE FOUND\n####################\n" | process_input;
+          echo -e "\n####################\nFINISHED SEARCHING FILE NOT FOUND: ${{ inputs.filename }}\n####################\n" | process_input;
         fi;
       shell: bash
       continue-on-error: true
