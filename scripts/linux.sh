@@ -48,5 +48,7 @@ install_llvm "${LLVM_VERSION}" >/dev/null 2>&1;
 llvm_version "${LLVM_VERSION}";
 
 echo -e "\n\033[32mLLVM\033[0m ${LLVM_VERSION} \033[32mhas been installed to\033[0m \033[1m${LLVM_PATH}\033[0m\n" 2>&1;
+echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+echo "export LLVM_PATH=${LLVM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
 echo "PATH=${PATH}" >> "${GITHUB_PATH}";
 echo "LLVM_PATH=${LLVM_PATH}" >> "${GITHUB_ENV}";
