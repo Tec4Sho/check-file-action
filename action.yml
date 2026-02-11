@@ -763,9 +763,8 @@ runs:
         echo "export obj=${objtree}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export USERINCLUDE=${USERINCLUDE}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export LINUXINCLUDE=${LINUXINCLUDE}" | sudo tee -a ~/.bashrc >/dev/null;
-        LINUXINCLUDE="${LINUXINCLUDE}\n\nUSERINCLUDE:\n${USERINCLUDE}";
-        ${{ inputs.content == 'true' }} && echo -e "LINUXINCLUDE ${LINUXINCLUDE}" | tr ' ' '\n' && echo -e "USERINCLUDE ${USERINCLUDE}" | tr ' ' '\n'
-        config=$(find "${{ env.base }}" -type f -path '*/config/*' -name 'kernel.release' | grep . || sudo find "/" -xdev -type f -name 'kernel.release' -print);
+        ${{ inputs.content == 'true' }} && echo -e "\nLINUXINCLUDE: ${LINUXINCLUDE}" | tr ' ' '\n' && echo -e "\nUSERINCLUDE: ${USERINCLUDE}" | tr ' ' '\n'
+        config=$(find "${{ env.base }}" -type f -path '*/config/*' -name 'kernel.release' | grep . || sudo find "/usr/src" -xdev -type f -name 'kernel.release' -print);
         if [[ "${config}" ]] && ${{ inputs.content == 'true' }}; then
           echo -e "\nLINUXKERNEL RELEASE:\n${config}";
           sudo less $(echo -n ${config});
