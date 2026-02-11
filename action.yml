@@ -1201,7 +1201,7 @@ runs:
           shift
         fi;
         declare -A includedfiles
-        for file in "${files[@]}"; do
+        for file in ${files[@]}; do
           if [[ ! -f "${file}" ]]; then
             echo "Error: ${file} is not a regular file." >&2;
             continue;
