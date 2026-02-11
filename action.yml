@@ -730,24 +730,23 @@ runs:
         if ${{ inputs.kernel == 'true' }}; then
           srctree="${GITHUB_WORKSPACE}";
           objtree="${GITHUB_WORKSPACE}"; 
-          ${{ inputs.dirname != '' }} && srctree="${GITHUB_WORKSPACE}/${{ inputs.dirname }}";
-          ${{ inputs.dirname != '' }} && objtree="${GITHUB_WORKSPACE}/${{ inputs.dirname }}";
+          ${{ inputs.dirname != '' }} && srctree="${GITHUB_WORKSPACE}/${{ inputs.dirname }}" && objtree="${GITHUB_WORKSPACE}/${{ inputs.dirname }}";
           hdr_arch="${{ inputs.arch }}";
           USERINCLUDE="-I${srctree}/arch/${hdr_arch}/include/uapi \
             -I${objtree}/arch/${hdr_arch}/include/generated/uapi \
             -I${srctree}/include/uapi \
             -I${objtree}/include/generated/uapi \
             -include ${srctree}/include/linux/kconfig.h";
-          KBUILD_OPT="";
-          if [[ -n "${KBUILD_SRC}" ]]; then
-            KBUILD_OPT="-I${srctree}/include";
-          fi;
           LINUXINCLUDE="-I${srctree}/arch/${hdr_arch}/include \
             -I${objtree}/arch/${hdr_arch}/include/generated/uapi \
             -I${objtree}/arch/${hdr_arch}/include/generated \
             ${KBUILD_OPT} \
             -I${objtree}/include \
             -I${srctree}/drivers/misc/mediatek/include";
+          KBUILD_OPT="";
+          if [[ -n "${KBUILD_SRC}" ]]; then
+            KBUILD_OPT="-I${srctree}/include";
+          fi;
         else
           srctree="${GITHUB_WORKSPACE}";
           objtree="${GITHUB_WORKSPACE}";
@@ -765,12 +764,13 @@ runs:
         echo "export USERINCLUDE=${USERINCLUDE}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export LINUXINCLUDE=${LINUXINCLUDE}" | sudo tee -a ~/.bashrc >/dev/null;
         LINUXINCLUDE="${LINUXINCLUDE}\n\nUSERINCLUDE:\n${USERINCLUDE}";
-        ${{ inputs.content == 'true' }} && echo -e "\nLINUXINCLUDE:\n${LINUXINCLUDE}";
+        ${{ inputs.content == 'true' }} && echo -e "\nLINUXINCLUDE:\n ${LINUXINCLUDE}" | tr ' ' '\n' && echo -e "\nUSERINCLUDE:\n ${USERINCLUDE}" | tr ' ' '\n'
         config=$(find "${{ env.base }}" -type f -path '*/config/*' -name 'kernel.release' | grep . || sudo find "/" --xdev -type f -name 'kernel.release' -print);
         if [[ "${config}" ]] && ${{ inputs.content == 'true' }}; then
           echo -e "\nLINUXKERNEL RELEASE:\n ${config}";
-          sudo less -i */release $(echo -n ${config});
+          sudo less $(echo -n ${config});
         fi;
+        echo '';
       shell: bash
       continue-on-error: true
 
