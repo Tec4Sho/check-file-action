@@ -767,7 +767,7 @@ runs:
         ${{ inputs.content == 'true' }} && echo -e "LINUXINCLUDE ${LINUXINCLUDE}" | tr ' ' '\n' && echo -e "USERINCLUDE ${USERINCLUDE}" | tr ' ' '\n'
         config=$(find "${{ env.base }}" -type f -path '*/config/*' -name 'kernel.release' | grep . || sudo find "/" -xdev -type f -name 'kernel.release' -print);
         if [[ "${config}" ]] && ${{ inputs.content == 'true' }}; then
-          echo -e "\nLINUXKERNEL RELEASE:\n ${config}";
+          echo -e "\nLINUXKERNEL RELEASE:\n${config}";
           sudo less $(echo -n ${config});
         fi;
         echo '';
@@ -1252,7 +1252,7 @@ runs:
             done < "${file}";
             if [[ ${dups} -gt 0 ]]; then
               mv "$temp_file" "$file";
-              echo -e "\n\033[32m${file}\033[0m: removed ${dups} duplicate includes" | process_input;
+              echo -e "\n${file}: \033[32mremoved\033[0m ${dups} \033[32mduplicate includes\033[0m" | process_input;
             else
               rm "$temp_file";
             fi;
