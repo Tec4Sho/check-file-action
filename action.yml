@@ -1200,12 +1200,13 @@ runs:
           remove=1;
           shift
         fi;
+        declare -A includedfiles
         for file in "${files[@]}"; do
           if [[ ! -f "${file}" ]]; then
             echo "Error: ${file} is not a regular file." >&2;
             continue;
-          fi;   
-          declare -A includedfiles
+          fi;
+          count=$((file_count++));
           while IFS= read -r line; do
           if [[ "${line}" =~ ^[[:space:]]*#[[:space:]]*include[[:space:]]*[\<\"]([^\>\"]+)[\>\"] ]]; then
             inc_file="${BASH_REMATCH[1]}";
@@ -1239,7 +1240,13 @@ runs:
               rm "$temp_file";
             fi;
           fi;
-          unset includedfiles;
+          includedfiles=();
+          if ${{ inputs.number > '0' }}; then
+            if [[ "${{ inputs.number }}" -eq "${count}" ]]; then
+              echo -e "\nFile checking auto stopped at: ${count} / ${file##*/}" | process_input;
+              break;
+            fi;
+          fi;
         done;
         echo -e "\n Set update: true if you would like to save changes to any duplicates removed from ${{ inputs.filename }} file(s)!!";
         seconds=$((SECONDS - start_time));
