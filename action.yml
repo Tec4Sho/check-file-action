@@ -607,7 +607,7 @@ runs:
         fi;
         if ${{ inputs.database == 'true' }}; then
           if ${{ inputs.root == 'true' }}; then
-            sudo find "/" -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) --xdev -type f -print | sort -t/ -k1.2 > 'database';
+            sudo find "/" -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -xdev -type f -print | sort -t/ -k1.2 > 'database';
           else
             find "${base}" -not \( -path "*/build/*" -prune -o -path "*/.git/*" -prune \) -type f -print | sort -t/ -k1.2 > 'database';
           fi;
@@ -764,8 +764,8 @@ runs:
         echo "export USERINCLUDE=${USERINCLUDE}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export LINUXINCLUDE=${LINUXINCLUDE}" | sudo tee -a ~/.bashrc >/dev/null;
         LINUXINCLUDE="${LINUXINCLUDE}\n\nUSERINCLUDE:\n${USERINCLUDE}";
-        ${{ inputs.content == 'true' }} && echo -e "\nLINUXINCLUDE:\n ${LINUXINCLUDE}" | tr ' ' '\n' && echo -e "\nUSERINCLUDE:\n ${USERINCLUDE}" | tr ' ' '\n'
-        config=$(find "${{ env.base }}" -type f -path '*/config/*' -name 'kernel.release' | grep . || sudo find "/" --xdev -type f -name 'kernel.release' -print);
+        ${{ inputs.content == 'true' }} && echo -e "LINUXINCLUDE ${LINUXINCLUDE}" | tr ' ' '\n' && echo -e "USERINCLUDE ${USERINCLUDE}" | tr ' ' '\n'
+        config=$(find "${{ env.base }}" -type f -path '*/config/*' -name 'kernel.release' | grep . || sudo find "/" -xdev -type f -name 'kernel.release' -print);
         if [[ "${config}" ]] && ${{ inputs.content == 'true' }}; then
           echo -e "\nLINUXKERNEL RELEASE:\n ${config}";
           sudo less $(echo -n ${config});
@@ -1197,7 +1197,7 @@ runs:
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
-            files=$(fdfind -j "$(nproc)" "${path}" --type file --extension "${{ inputs.filetype }}" --search-path "/${{ inputs.dirpath }}/" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}");
+            files=$(fdfind -j "$(nproc)" "${path}" --type file --extension "${{ inputs.filetype }}" --search-path "/${{ inputs.dirpath }}/" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}");
             echo -e "\n####################\nFile Extension: ${{ env.filename }}\n####################" | process_input;
           fi;
         fi;
@@ -2040,9 +2040,9 @@ runs:
                 clean_file="${clean_file##*/}";
                 shopt -s extglob
                 if [[ ${missing_file} == *"/"* ]]; then
-                  locate=$(fdfind -c auto "${abs}" -xdev -p -t f -g "**/${clean_path##+(*./)}" "${{ env.base }}");
+                  locate=$(fdfind -c auto "${abs}" --xdev -p -t f -g "**/${clean_path##+(*./)}" "${{ env.base }}");
                 else
-                  locate=$(fdfind -c auto "${abs}" -xdev -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                  locate=$(fdfind -c auto "${abs}" --xdev -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
                 fi;
                 shopt -u extglob
                 if [[ "${locate}" ]]; then            
@@ -2905,13 +2905,13 @@ runs:
             fi;
           else
             if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-              files=$(fdfind -j "$(nproc)" -xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -xdev -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
+              files=$(fdfind -j "$(nproc)" --xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" --xdev -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
               echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
             elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-              files=$(fdfind -j "$(nproc)" -xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -xdev -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
+              files=$(fdfind -j "$(nproc)" --xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" --xdev -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
               echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
             elif ${{ inputs.filetype != '' }}; then
-              files=$(fdfind -j "$(nproc)" --xdev "${path}" --type file --extension "${{ inputs.filetype }}" "${{ env.base }}" "${{ inputs.dirpath }}" | grep . || fdfind -j "$(nproc)" -xdev -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}");
+              files=$(fdfind -j "$(nproc)" --xdev "${path}" --type file --extension "${{ inputs.filetype }}" "${{ env.base }}" "${{ inputs.dirpath }}" | grep . || fdfind -j "$(nproc)" --xdev -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}");
               echo -e "\n####################\nFile Extension: ${{ env.filename }}\n####################" | process_input;
             fi;
           fi;
