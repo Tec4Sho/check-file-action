@@ -1129,6 +1129,125 @@ runs:
         echo '';
       shell: bash
       continue-on-error: true
+
+    - name: Include Duplicates Remover
+      if: inputs.source == '4'
+      run: |
+        source ~/.bashrc
+        set +e
+        start_time="${SECONDS}";
+        file_name="${{ inputs.filename }}";
+        file_type="${file_name##*.}";
+        github=${GITHUB_WORKSPACE};
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        data_log="${github}/${{ inputs.filename }}_data.log";
+        checked=false
+        count=0
+        file_count=1
+        process_input() {
+          while IFS= read -r output; do
+            if ${{ inputs.output == '1' }}; then
+              echo -e "${output}" | tee -a "${data_log}";
+            elif ${{ inputs.output == '2' }}; then
+              echo -e "${output}" >> "${data_log}";
+            elif ${{ inputs.output == '3' }}; then
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
+            fi;
+          done;
+        }
+        if ${{ inputs.absolute == 'true' }}; then
+          path='--absolute-path';
+        else
+          path='--relative-path';
+        fi;
+        if ${{ inputs.database == 'true' }}; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+            files=$(grep -sF "${{ inputs.dirpath }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(grep -sF "${{ inputs.dirpath }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
+            regex="\${{ inputs.filename }}$";
+            files=$(grep -sE "${{ inputs.dirpath }}/.${regex}" "${{ env.database }}" | grep . || grep -sE "${regex}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase File Extension: ${{ inputs.filename }}\n####################" | process_input;
+          fi;
+        else
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9._-]+$') ]]; then
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "*${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################" | process_input;
+          fi;
+        fi;
+        usage() {
+          echo "Warning no files found" | process_input;
+          echo "By default this mode just warn of duplicates" | process_input;
+          echo "::notice::No files were located. To remove duplicated includes in place use include: true" | process_input;
+          exit 0
+        }
+        remove=0
+        if [[ -ne "${files}" ]]; then 
+          usage;
+        fi;
+        if ${{ inputs.include == 'true' }}; then
+          remove=1;
+          shift
+        fi;
+        for file in "${files[@]}"; do
+          if [[ ! -f "${file}" ]]; then
+            echo "Error: ${file} is not a regular file." >&2;
+            continue;
+          fi;   
+          declare -A includedfiles
+          while IFS= read -r line; do
+          if [[ "${line}" =~ ^[[:space:]]*#[[:space:]]*include[[:space:]]*[\<\"]([^\>\"]+)[\>\"] ]]; then
+            inc_file="${BASH_REMATCH[1]}";
+            ((includedfiles["$inc_file"]++))
+          fi;
+          done < "${file}";
+          if [[ ${remove} -eq 0 ]]; then
+            for inc in "${!includedfiles[@]}"; do
+              if [[ ${includedfiles["$inc"]} -gt 1 ]]; then
+                echo -e "\n\033[31m${file}\033[0m: ${inc} is included more than once." | process_input;
+              fi;
+            done;
+          else
+            temp_file=$(mktemp);
+            dups=0
+            while IFS= read -r line; do
+              if [[ "${line}" =~ ^[[:space:]]*#[[:space:]]*include[[:space:]]*[\<\"]([^\>\"]+)[\>\"] ]]; then
+                inc_file="${BASH_REMATCH[1]}"
+                if [[ ${includedfiles["$inc_file"]} -gt 1 ]]; then
+                  ((includedfiles["$inc_file"]--));
+                  ((dups++));
+                  continue;
+                fi;
+              fi;
+              echo "$line" >> "$temp_file";
+            done < "${file}";
+            if [[ ${dups} -gt 0 ]]; then
+              mv "$temp_file" "$file";
+              echo -e "\n\033[32m${file}\033[0m: removed ${dups} duplicate includes" | process_input;
+            else
+              rm "$temp_file";
+            fi;
+          fi;
+          unset includedfiles;
+        done;
+        echo -e "\n Set update: true if you would like to save changes to any duplicates removed from ${{ inputs.filename }} file(s)!!";
+        seconds=$((SECONDS - start_time));
+        m=$((seconds / 60));
+        s=$((seconds % 60));
+        printf "\nSources Duplicate Includes Runtime:\033[1m %d minutes and %d seconds\033[0m\n\n" "$m" "$s" | process_input;
+      shell: bash
+      continue-on-error: true
     
     - name: Project Compile Commands Json
       if: inputs.project == 'true'
@@ -1957,7 +2076,7 @@ runs:
       continue-on-error: true
 
     - name: Check & Repair CC/C++
-      if: inputs.filename != '' && inputs.build == '0'
+      if: inputs.filename != '' && inputs.build == '0' && inputs.source != '4'
       run: |
         source ~/.bashrc
         set +e
@@ -2218,7 +2337,7 @@ runs:
       continue-on-error: true
 
     - name: Check Shell Files
-      if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0'
+      if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0' && inputs.source != '4'
       run: |
         source ~/.bashrc
         set +e
@@ -2388,7 +2507,7 @@ runs:
       continue-on-error: true
 
     - name: Check Makefile Files
-      if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0'
+      if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0' && inputs.source != '4'
       run: |
         source ~/.bashrc
         set +e
@@ -2516,7 +2635,7 @@ runs:
       continue-on-error: true
 
     - name: Check All Files
-      if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0'
+      if: inputs.filename != '' && env.file_found == '0' && inputs.build == '0' && inputs.source != '4'
       run: |
         source ~/.bashrc
         set +e
