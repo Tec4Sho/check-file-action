@@ -1182,7 +1182,7 @@ runs:
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
-            files=$(fdfind -j "$(nproc)" "${path}" --type file --extension "${{ inputs.filetype }}" "${{ env.base }}" "${{ inputs.dirpath }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}");
+            files=$(fdfind -j "$(nproc)" "${path}" --type file --extension "${{ inputs.filetype }}" --search-path "/${{ inputs.dirpath }}/" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}");
             echo -e "\n####################\nFile Extension: ${{ inputs.filename }}\n####################" | process_input;
           fi;
         fi;
