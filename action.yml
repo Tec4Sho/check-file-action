@@ -733,16 +733,16 @@ runs:
           ${{ inputs.dirname != '' }} && srctree="${GITHUB_WORKSPACE}/${{ inputs.dirname }}" && objtree="${GITHUB_WORKSPACE}/${{ inputs.dirname }}";
           hdr_arch="${{ inputs.arch }}";
           USERINCLUDE="-I${srctree}/arch/${hdr_arch}/include/uapi \
-            -I${objtree}/arch/${hdr_arch}/include/generated/uapi \
-            -I${srctree}/include/uapi \
-            -I${objtree}/include/generated/uapi \
-            -include ${srctree}/include/linux/kconfig.h";
+          -I${objtree}/arch/${hdr_arch}/include/generated/uapi \
+          -I${srctree}/include/uapi \
+          -I${objtree}/include/generated/uapi \
+          -include ${srctree}/include/linux/kconfig.h";
           LINUXINCLUDE="-I${srctree}/arch/${hdr_arch}/include \
-            -I${objtree}/arch/${hdr_arch}/include/generated/uapi \
-            -I${objtree}/arch/${hdr_arch}/include/generated \
-            ${KBUILD_OPT} \
-            -I${objtree}/include \
-            -I${srctree}/drivers/misc/mediatek/include";
+          -I${objtree}/arch/${hdr_arch}/include/generated/uapi \
+          -I${objtree}/arch/${hdr_arch}/include/generated \
+          ${KBUILD_OPT} \
+          -I${objtree}/include \
+          -I${srctree}/drivers/misc/mediatek/include";
           KBUILD_OPT="";
           if [[ -n "${KBUILD_SRC}" ]]; then
             KBUILD_OPT="-I${srctree}/include";
@@ -763,7 +763,7 @@ runs:
         echo "export obj=${objtree}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export USERINCLUDE=${USERINCLUDE}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export LINUXINCLUDE=${LINUXINCLUDE}" | sudo tee -a ~/.bashrc >/dev/null;
-        ${{ inputs.content == 'true' }} && echo -e "\nLINUXINCLUDE: ${LINUXINCLUDE}" | tr ' ' '\n' && echo -e "\nUSERINCLUDE: ${USERINCLUDE}" | tr ' ' '\n'
+        ${{ inputs.content == 'true' }} && echo -e "\nLINUXINCLUDE: ${LINUXINCLUDE// /}" | tr ' ' '\n' && echo -e "\nUSERINCLUDE: ${USERINCLUDE// /}" | tr ' ' '\n'
         config=$(find "${{ env.base }}" -type f -path '*/config/*' -name 'kernel.release' | grep . || sudo find "/usr/src" -xdev -type f -name 'kernel.release' -print);
         if [[ "${config}" ]] && ${{ inputs.content == 'true' }}; then
           echo -e "\nLINUXKERNEL RELEASE:\n${config}";
@@ -1860,244 +1860,6 @@ runs:
       shell: bash
       continue-on-error: true
 
-    - name: Project Finalized
-      if: inputs.project == 'true'
-      run: |
-        source ~/.bashrc
-        set +e
-        start_time="${{ env.seconds }}";
-        compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-        github=${GITHUB_WORKSPACE};
-        project_log="${github}/${repository}_project.log";
-        source_include_list='check-file-compile.txt';
-        check_build=false
-        file_type='c';
-        update=true
-        fixed=false
-        count=1
-        process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${project_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${project_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
-        }
-        if ${{ inputs.absolute == 'true' }}; then
-          abs='--absolute-path';
-        else
-          abs='--relative-path';
-        fi;
-        if ${{ env.check_build == 'true' }}; then
-          check_build=true
-        fi;
-        if ${{ inputs.update == 'false' }}; then
-          echo 'update=false' >> "${GITHUB_ENV}";
-          update=false
-        fi;
-        if ${{ inputs.filetype != '' }}; then
-          file_type="${{ inputs.filetype }}";
-        fi;
-        echo "filetype=${file_type}" >> "${GITHUB_ENV}";
-        if [[ -s "${project_log}" ]] && [[ "${check_build}" == 'true' ]]; then
-          echo -e "\n####################\n\t${project_log##*/} file found checking stats...\n####################" | process_input;
-          deheader_duplicates=$(grep -sFc 'duplicates' "${project_log}");
-          deheader_inclusion=$(grep -sFc 'inclusion' "${project_log}");
-          deheader_removed=$(grep -sFc 'remove' "${project_log}");
-          codechecker_defects=$(grep -so 'Found [1-9] defect' "${project_log}" | cut -d ' ' -f2 | gawk '{ sum += $1 } END { print sum; }');
-          codechecker_no_defects=$(grep -sFoc 'Found no defects' "${project_log}");
-          codechecker_success=$(grep -sFc 'successfully' "${project_log}");
-          codechecker_errors=$(grep -sFc 'Error while processing' "${project_log}");
-          clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" | grep -vc '[\[\]]');
-          clang_information=$(grep -siFc 'information:' "${project_log}");
-          clang_files_missing=$(grep -sFc 'file not found' "${project_log}");
-          clang_files_list1=$(grep -sEo '#include[[:space:]]+["].*["]' "${project_log}" | awk '{ print $2 }' | tr -d '"' | sort -u);
-          clang_files_list2=$(grep -sEo '#include[[:space:]]+[<].*[>]' "${project_log}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
-          clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${project_log}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
-          clang_error1=$(grep -sEo '[1-9] errors generated|1 error generated' "${project_log}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
-          clang_error2=$(grep -siFc 'error:' "${project_log}");
-          clang_failed=$(grep -siFc 'failed:' "${project_log}");
-          clang_fixit1=$(grep -siEc 'fixit|fix-its' "${project_log}");
-          clang_fixit2=$(grep -siF 'clang-tidy applied' "${project_log}");
-          clang_notes=$(grep -siFc 'note:' "${project_log}");
-          located_count=0
-          missing_count=0
-          file_count=0
-          filetype="${{ inputs.filetype }}";
-          if [[ -n "${clang_information}" ]] && [[ "${clang_information:-0}" > '0' ]] && ${{ inputs.analyzer == '3' }}; then
-            echo -e "\n####################\n::notice::⚠️ check-file added ${clang_information}️ information notes on ${file_type} files checked. [Hints] Information addresses key issues that may have error fixes available.\n####################" | process_input;
-          fi;
-          if [[ -n "${clang_warnings}" ]] && [[ "${clang_warnings:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} files checked. [Hints] Try using [\033[1mwarnings-as-errors\033[0m] for possible errors.\n####################" | process_input;
-          fi;
-          if [[ -n "${codechecker_defects}" ]] && [[ "${codechecker_defects:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
-            echo -e "\n####################\n::notice::⚠️ check-file checked ${codechecker_defects} ${file_type} files with defects. [Hints] Check require for those files.\n####################" | process_input;
-          fi;
-          if [[ -n "${codechecker_no_defects}" ]] && [[ "${codechecker_no_defects:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
-            echo -e "\n####################\n::notice::✅ check-file checked ${codechecker_no_defects} ${file_type} files without defects. [Hints] No check require for those files.\n####################" | process_input;
-          fi;
-          if [[ -n "${codechecker_success}" ]] && [[ "${codechecker_success:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
-            echo -e "\n####################\n::notice::✅ check-file checked ${codechecker_success} ${file_type} files successfully without issues. [Hints] No check require for those files.\n####################" | process_input;
-          fi;
-          if [[ -n "${clang_error1}" ]] && [[ "${clang_error1:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::🚫 check-file found ${clang_error1} errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
-          fi;
-          if [[ -n "${clang_error2}" ]] && [[ "${clang_error2:-0}" > '0' ]] && ${{ inputs.build > '0' }}; then
-            echo -e "\n####################\n::notice::🚫 check-file found \033[31m${clang_error2}\033[0m errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
-          fi;
-          if [[ -n "${clang_failed}" ]] && [[ "${clang_failed:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::⚠️ check-file found ${clang_failed}️ fails in all files checked during build. [Hints] This means your [\033[1mBuild failed\033[0m] from possible errors.\n####################" | process_input;
-          fi;
-          if [[ -n "${clang_fixit1}" ]] && [[ "${clang_fixit1:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
-            echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixit1} fix-its to ${file_type} files checked. [Hints] Try using [update: true] for updating your remote repository with the fixes.\n####################" | process_input;
-            fixed=true
-          fi;
-          if [[ -n "${clang_fixit2}" ]] && [[ "${clang_fixit2:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
-            echo -e "\n####################\n::notice::✅ ${clang_fixit2} To ${file_type} files checked. [Hints] Try using (update: true) for updating your remote repository with any fixed files.\n####################" | process_input;
-            fixed=true
-          fi;
-          if [[ -n "${clang_notes}" ]] && [[ "${clang_notes:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::⚠️ check-file added ${clang_notes} notes on ${file_type} files checked. [Hints] Notes are fix suggestions for files that should be addressed before compiling.\n####################" | process_input;
-          fi;
-          if [[ -f "${build_fixes}" ]] && [[ "${clang_replacements:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::✅ check-file applied ${clang_replacements} clang replacement fixes for ${file_type} files checked. [Hints] Clang export fixes are stored in build/fixes.yaml for download. Try using different (analyzer: 1, 2, or 4) for more possible error fixes.\n####################" | process_input;
-          fi;
-          if [[ -n "${deheader_removed}" ]] && [[ "${deheader_removed:-0}" > '0' ]] && ${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}; then
-            echo -e "\n####################\n::notice::✅ check-file removed ${deheader_removed} extra inclusions in ${file_type} file(s) checked. [Hints] Try manually removing any extra includes in files before compiling.\n####################" | process_input;
-            fixed=true
-          fi;
-          if [[ -n "${deheader_duplicates}" ]] && [[ "${deheader_duplicates:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
-            echo -e "\n####################\n::notice::🚫 check-file found ${deheader_duplicates} duplicates or colliding inclusions in ${file_type} files checked. [Hints] Try using [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
-          elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
-            echo -e "\n####################\n::notice::🚫 check-file found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
-          fi;
-          if [[ -n "${clang_files_missing}" ]] && [[ "${clang_files_missing:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
-            [[ -n "${clang_files_list1}" ]] && echo -e "\n####################\nMISSING USER FILES LIST:\n####################\n\n${clang_files_list1}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: ${{ env.base }}\n####################\n" | process_input;
-            declare -A missing
-            found=false
-            while IFS= read -r missing_file; do
-              if [[ "${missing_file}" == *.[h]* ]] || [[ "${missing_file}" == *.[c]* ]]; then
-                file_count=$((file_count + 1));
-                echo "Locating missing ${missing_file} file ...." | process_input;
-                path1="${missing_file//\'/}";
-                path2="${path1##[:]*}";
-                path3="${path2%'\n'}";
-                path4="${path3%\\}";
-                clean_path="${path4##+(*./)}";
-                file1="${missing_file//\'/}";
-                file2="${file1##[:]*}";
-                file3="${file2%'\n'}";
-                file4="${file3%\\}";
-                clean_file="${clean_file##*/}";
-                shopt -s extglob
-                if [[ ${missing_file} == *"/"* ]]; then          
-                  locate=$(fdfind -p -c auto "${abs}" -t f -g "**/${clean_path##+(*./)}" "${{ env.base }}");
-                else
-                  locate=$(fdfind -p -c auto "${abs}" -t f "${clean_file##+(*./)}" "${{ env.base }}");
-                fi;
-                shopt -u extglob
-                if [[ "${locate}" ]]; then            
-                  while IFS= read -r includes; do
-                    located_count=$((located_count + 1));
-                    echo -e "\n\033[32mSource Location:\033[0m ${includes}  [ ✅ ]" | process_input;
-                    echo "${includes%/*}" >> 'check-file-includes.txt';
-                  done <<< "${locate[@]}";
-                  includes_found=true
-                elif [[ -n "${missing[$missing_file]}" ]]; then
-                  includes_found=false
-                  echo -e "\n\033[33mSource file #include \033[0m( ${missing_file} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
-                else
-                  includes_found=false
-                  missing["$missing_file"]=1
-                  missing_count=$((missing_count + 1));
-                  echo -e "\n\033[31mCannot locate missing file\033[0m ${missing_file}  [ ❌ ]" | process_input;
-                fi;
-              fi;             
-            done <<< "${clang_files_list1}";
-            missing=();
-            [[ -n "${clang_files_list2}" ]] && echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: /usr/src/linux-headers-$(uname -r)/include\n####################\n" | process_input;
-            while IFS= read -r missing_file; do
-              if [[ "${missing_file}" == *.[h]* ]] || [[ "${missing_file}" == *.[c]* ]]; then
-                file_count=$((file_count + 1));
-                echo "Locating missing ${missing_file} file ...." | process_input;
-                path1="${missing_file//\'/}";
-                path2="${path1##[:]*}";
-                path3="${path2%'\n'}";
-                path4="${path3%\\}";
-                clean_path="${path4##+(*./)}";
-                file1="${missing_file//\'/}";
-                file2="${file1##[:]*}";
-                file3="${file2%'\n'}";
-                file4="${file3%\\}";
-                clean_file="${clean_file##*/}";
-                shopt -s extglob
-                if [[ ${missing_file} == *"/"* ]]; then
-                  locate=$(fdfind -c auto "${abs}" --xdev -p -t f -g "**/${clean_path##+(*./)}" "${{ env.base }}");
-                else
-                  locate=$(fdfind -c auto "${abs}" --xdev -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
-                fi;
-                shopt -u extglob
-                if [[ "${locate}" ]]; then            
-                  while IFS= read -r includes; do
-                    located_count=$((located_count + 1));
-                    echo -e "\n\033[32mSource Location:\033[0m ${includes}  [ ✅ ]" | process_input;
-                    echo "${includes%/*}" >> 'check-file-includes.txt';
-                  done <<< "${locate[@]}";
-                  includes_found=true
-                elif [[ -n "${missing[$missing_file]}" ]]; then
-                  includes_found=false
-                  echo -e "\n\033[33mSource file #include \033[0m( ${missing_file} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
-                else
-                  includes_found=false
-                  missing["$missing_file"]=1
-                  missing_count=$((missing_count + 1));
-                  echo -e "\n\033[31mCannot locate missing file\033[0m ${missing_file}  [ ❌ ]" | process_input;
-                fi;
-              fi;             
-            done <<< "${clang_files_list2}";
-            unset missing;
-            if [[ -s 'check-file-includes.txt' ]]; then
-              gawk -v ext="${filetype}" '$0 ~ "\\."ext"$" || $0 ~ "\\.(h|hh|hpp|hxx|h\\+\\+)$" { sub(/\/$/, ""); print; }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
-              gawk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::✅ check-file located ${located_count} files. ${missing_count} missing out of ${file_count} total!!!\n\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
-            fi;
-            gawk '{ for (i=1;i<=NF;i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print $i; } } }' "${project_log}" | gawk '{ for (i=1;i<=NF;i++) print $i; }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "\.\..*\.${filetype}$" | gawk -v ext="${filetype}" '$0 ~ "."ext"$" { if (seen[$0]++) next; print; next; } { print; }' | gawk -v ext="${filetype}" '$0 ~ "\\."ext { delete seen; print; next; } !seen[$0]++' > "${source_include_list}" || echo "::notice::File ${source_include_list##*/} was not created!!!" | process_input;
-            [[ -f "${source_include_list}" ]] && cp "${source_include_list}" 'build/' && echo -e "\n\033[32mCopied ${} to build for uploading if needed.\033[0m ✅" | process_input;
-          fi;
-          if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
-            echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
-          fi;
-          [[ -f ${count1} ]] && rm "${count1}";
-          [[ -f ${count2} ]] && rm "${count2}";
-          [[ -f ${count3} ]] && rm "${count3}";
-          ${{ inputs.content == 'true' }} && echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
-          if [[ "${fixed}" ]]; then
-            echo "file_fixed=1" >> "${GITHUB_ENV}";
-          fi;
-          echo "github_include_dirs=" >> "${GITHUB_ENV}";
-          if [[ "${found}" ]]; then
-            echo "includes=true" >> "${GITHUB_ENV}";
-          else
-            echo "includes=false" >> "${GITHUB_ENV}";
-          fi;
-          [[ -f "/tmp/*/metadata.json" ]] && echo -e"\nCodeChecker Analyzer list: $(cp -vf "/tmp/*/metadata.json" build/)";
-          echo -e '\n####################\n\t\033[32mProject Files Checked Exiting...\033[0m\n####################\n' | process_input;
-        else
-          echo -e '\n####################\n\t\033[33mProject Files Check Skipped Exiting...\033[0m\n####################\n' | process_input;
-        fi;
-        seconds="$((SECONDS + start_time))";
-        m=$((seconds / 60));
-        s=$((seconds % 60));
-        printf "Project Process Runtime: %d minutes and %d seconds\n\n" "$m" "$s" | process_input;
-      shell: bash
-      continue-on-error: true
-
     - name: Check & Repair CC/C++
       if: env.filename != '' && inputs.build == '0' && inputs.source != '4'
       run: |
@@ -2356,6 +2118,8 @@ runs:
         elif [[ "${file_type}" == [cth]* ]]; then
           echo -e "\n####################\nFINISHED SEARCHING FILE NOT FOUND: ${{ env.filename }}\n####################\n" | process_input;
         fi;
+        echo "USERINCLUDE=" >> "${GITHUB_ENV}";
+        echo "LINUXINCLUDE=" >> "${GITHUB_ENV}";
       shell: bash
       continue-on-error: true
 
@@ -2942,6 +2706,253 @@ runs:
             done < "${file_path}";
           fi;
         fi;
+      shell: bash
+      continue-on-error: true
+
+    - name: Project Finalized
+      if: inputs.project == 'true' || env.filename != ''
+      run: |
+        source ~/.bashrc
+        set +e
+        start_time="${{ env.seconds }}";
+        compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        github=${GITHUB_WORKSPACE};
+        error_log="${github}/${{ env.filename }}_error.log";
+        project_log="${github}/${repository}_project.log";
+        if [[ -s "${error_log}" ]]; then
+          log_file="${error_log}";
+        else
+          log_file="${project_log}";
+        fi;
+        source_include_list='check-file-compile.txt';
+        check_build=false
+        file_type='c';
+        update=true
+        fixed=false
+        count=1
+        process_input() {
+          while IFS= read -r output; do
+            if ${{ inputs.output == '1' }}; then
+              echo -e "${output}" | tee -a "${log_file}";
+            elif ${{ inputs.output == '2' }}; then
+              echo -e "${output}" >> "${log_file}";
+            elif ${{ inputs.output == '3' }}; then
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
+            fi;
+          done;
+        }
+        if ${{ inputs.absolute == 'true' }}; then
+          abs='--absolute-path';
+        else
+          abs='--relative-path';
+        fi;
+        if ${{ env.check_build == 'true' }}; then
+          check_build=true
+        fi;
+        if ${{ env.file_found == '1' }}; then
+          file_found=true
+        fi;
+        if ${{ inputs.update == 'false' }}; then
+          echo 'update=false' >> "${GITHUB_ENV}";
+          update=false
+        fi;
+        if ${{ inputs.filetype != '' }}; then
+          file_type="${{ inputs.filetype }}";
+        fi;
+        echo "filetype=${file_type}" >> "${GITHUB_ENV}";
+        if [[ -s "${log_file}" ]] && ([[ "${check_build}" == 'true' ]] || [[ "${file_found}" == 'true' ]]); then
+          echo -e "\n####################\n\t${log_file##*/} file found checking stats...\n####################" | process_input;
+          deheader_duplicates=$(grep -sFc 'duplicates' "${log_file}");
+          deheader_inclusion=$(grep -sFc 'inclusion' "${log_file}");
+          deheader_removed=$(grep -sFc 'remove' "${log_file}");
+          codechecker_defects=$(grep -so 'Found [1-9] defect' "${log_file}" | cut -d ' ' -f2 | gawk '{ sum += $1 } END { print sum; }');
+          codechecker_no_defects=$(grep -sFoc 'Found no defects' "${log_file}");
+          codechecker_success=$(grep -sFc 'successfully' "${log_file}");
+          codechecker_errors=$(grep -sFc 'Error while processing' "${log_file}");
+          clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" | grep -vc '[\[\]]');
+          clang_information=$(grep -siFc 'information:' "${log_file}");
+          clang_files_missing=$(grep -sFc 'file not found' "${log_file}");
+          clang_files_list1=$(grep -sEo '#include[[:space:]]+["].*["]' "${log_file}" | awk '{ print $2 }' | tr -d '"' | sort -u);
+          clang_files_list2=$(grep -sEo '#include[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
+          clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
+          clang_error1=$(grep -sEo '[1-9] errors generated|1 error generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
+          clang_error2=$(grep -siFc 'error:' "${log_file}");
+          clang_failed=$(grep -siFc 'failed:' "${log_file}");
+          clang_fixit1=$(grep -siEc 'fixit|fix-its' "${log_file}");
+          clang_fixit2=$(grep -siF 'clang-tidy applied' "${log_file}");
+          clang_notes=$(grep -siFc 'note:' "${log_file}");
+          located_count=0
+          missing_count=0
+          file_count=0
+          filetype="${{ inputs.filetype }}";
+          if [[ -n "${clang_information}" ]] && [[ "${clang_information:-0}" > '0' ]] && ${{ inputs.analyzer == '3' }}; then
+            echo -e "\n####################\n::notice::⚠️ check-file added ${clang_information}️ information notes on ${file_type} files checked. [Hints] Information addresses key issues that may have error fixes available.\n####################" | process_input;
+          fi;
+          if [[ -n "${clang_warnings}" ]] && [[ "${clang_warnings:-0}" > '0' ]]; then
+            echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} files checked. [Hints] Try using [\033[1mwarnings-as-errors\033[0m] for possible errors.\n####################" | process_input;
+          fi;
+          if [[ -n "${codechecker_defects}" ]] && [[ "${codechecker_defects:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
+            echo -e "\n####################\n::notice::⚠️ check-file checked ${codechecker_defects} ${file_type} files with defects. [Hints] Check require for those files.\n####################" | process_input;
+          fi;
+          if [[ -n "${codechecker_no_defects}" ]] && [[ "${codechecker_no_defects:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
+            echo -e "\n####################\n::notice::✅ check-file checked ${codechecker_no_defects} ${file_type} files without defects. [Hints] No check require for those files.\n####################" | process_input;
+          fi;
+          if [[ -n "${codechecker_success}" ]] && [[ "${codechecker_success:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
+            echo -e "\n####################\n::notice::✅ check-file checked ${codechecker_success} ${file_type} files successfully without issues. [Hints] No check require for those files.\n####################" | process_input;
+          fi;
+          if [[ -n "${clang_error1}" ]] && [[ "${clang_error1:-0}" > '0' ]]; then
+            echo -e "\n####################\n::notice::🚫 check-file found ${clang_error1} errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
+          fi;
+          if [[ -n "${clang_error2}" ]] && [[ "${clang_error2:-0}" > '0' ]] && ${{ inputs.build > '0' }}; then
+            echo -e "\n####################\n::notice::🚫 check-file found \033[31m${clang_error2}\033[0m errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
+          fi;
+          if [[ -n "${clang_failed}" ]] && [[ "${clang_failed:-0}" > '0' ]]; then
+            echo -e "\n####################\n::notice::⚠️ check-file found ${clang_failed}️ fails in all files checked during build. [Hints] This means your [\033[1mBuild failed\033[0m] from possible errors.\n####################" | process_input;
+          fi;
+          if [[ -n "${clang_fixit1}" ]] && [[ "${clang_fixit1:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
+            echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixit1} fix-its to ${file_type} files checked. [Hints] Try using [update: true] for updating your remote repository with the fixes.\n####################" | process_input;
+            fixed=true
+          fi;
+          if [[ -n "${clang_fixit2}" ]] && [[ "${clang_fixit2:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
+            echo -e "\n####################\n::notice::✅ ${clang_fixit2} To ${file_type} files checked. [Hints] Try using (update: true) for updating your remote repository with any fixed files.\n####################" | process_input;
+            fixed=true
+          fi;
+          if [[ -n "${clang_notes}" ]] && [[ "${clang_notes:-0}" > '0' ]]; then
+            echo -e "\n####################\n::notice::⚠️ check-file added ${clang_notes} notes on ${file_type} files checked. [Hints] Notes are fix suggestions for files that should be addressed before compiling.\n####################" | process_input;
+          fi;
+          if [[ -f "${build_fixes}" ]] && [[ "${clang_replacements:-0}" > '0' ]]; then
+            echo -e "\n####################\n::notice::✅ check-file applied ${clang_replacements} clang replacement fixes for ${file_type} files checked. [Hints] Clang export fixes are stored in build/fixes.yaml for download. Try using different (analyzer: 1, 2, or 4) for more possible error fixes.\n####################" | process_input;
+          fi;
+          if [[ -n "${deheader_removed}" ]] && [[ "${deheader_removed:-0}" > '0' ]] && ${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}; then
+            echo -e "\n####################\n::notice::✅ check-file removed ${deheader_removed} extra inclusions in ${file_type} file(s) checked. [Hints] Try manually removing any extra includes in files before compiling.\n####################" | process_input;
+            fixed=true
+          fi;
+          if [[ -n "${deheader_duplicates}" ]] && [[ "${deheader_duplicates:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
+            echo -e "\n####################\n::notice::🚫 check-file found ${deheader_duplicates} duplicates or colliding inclusions in ${file_type} files checked. [Hints] Try using [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
+          elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
+            echo -e "\n####################\n::notice::🚫 check-file found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
+          fi;
+          if [[ -n "${clang_files_missing}" ]] && [[ "${clang_files_missing:-0}" > '0' ]]; then
+            echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
+            [[ -n "${clang_files_list1}" ]] && echo -e "\n####################\nMISSING USER FILES LIST:\n####################\n\n${clang_files_list1}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: ${{ env.base }}\n####################\n" | process_input;
+            declare -A missing
+            found=false
+            while IFS= read -r missing_file; do
+              if [[ "${missing_file}" == *.[h]* ]] || [[ "${missing_file}" == *.[c]* ]]; then
+                file_count=$((file_count + 1));
+                echo "Locating missing ${missing_file} file ...." | process_input;
+                path1="${missing_file//\'/}";
+                path2="${path1##[:]*}";
+                path3="${path2%'\n'}";
+                path4="${path3%\\}";
+                clean_path="${path4##+(*./)}";
+                file1="${missing_file//\'/}";
+                file2="${file1##[:]*}";
+                file3="${file2%'\n'}";
+                file4="${file3%\\}";
+                clean_file="${clean_file##*/}";
+                shopt -s extglob
+                if [[ ${missing_file} == *"/"* ]]; then          
+                  locate=$(fdfind -p -c auto "${abs}" -t f -g "**/${clean_path##+(*./)}" "${{ env.base }}");
+                else
+                  locate=$(fdfind -p -c auto "${abs}" -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                fi;
+                shopt -u extglob
+                if [[ "${locate}" ]]; then            
+                  while IFS= read -r includes; do
+                    located_count=$((located_count + 1));
+                    echo -e "\n\033[32mSource Location:\033[0m ${includes}  [ ✅ ]" | process_input;
+                    echo "${includes%/*}" >> 'check-file-includes.txt';
+                  done <<< "${locate[@]}";
+                  includes_found=true
+                elif [[ -n "${missing[$missing_file]}" ]]; then
+                  includes_found=false
+                  echo -e "\n\033[33mSource file #include \033[0m( ${missing_file} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
+                else
+                  includes_found=false
+                  missing["$missing_file"]=1
+                  missing_count=$((missing_count + 1));
+                  echo -e "\n\033[31mCannot locate missing file\033[0m ${missing_file}  [ ❌ ]" | process_input;
+                fi;
+              fi;             
+            done <<< "${clang_files_list1}";
+            missing=();
+            [[ -n "${clang_files_list2}" ]] && echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: /usr/src/linux-headers-$(uname -r)/include\n####################\n" | process_input;
+            while IFS= read -r missing_file; do
+              if [[ "${missing_file}" == *.[h]* ]] || [[ "${missing_file}" == *.[c]* ]]; then
+                file_count=$((file_count + 1));
+                echo "Locating missing ${missing_file} file ...." | process_input;
+                path1="${missing_file//\'/}";
+                path2="${path1##[:]*}";
+                path3="${path2%'\n'}";
+                path4="${path3%\\}";
+                clean_path="${path4##+(*./)}";
+                file1="${missing_file//\'/}";
+                file2="${file1##[:]*}";
+                file3="${file2%'\n'}";
+                file4="${file3%\\}";
+                clean_file="${clean_file##*/}";
+                shopt -s extglob
+                if [[ ${missing_file} == *"/"* ]]; then
+                  locate=$(fdfind -c auto "${abs}" -p -t f -g "**/${clean_path##+(*./)}" "${{ env.base }}");
+                else
+                  locate=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                fi;
+                shopt -u extglob
+                if [[ "${locate}" ]]; then            
+                  while IFS= read -r includes; do
+                    located_count=$((located_count + 1));
+                    echo -e "\n\033[32mSource Location:\033[0m ${includes}  [ ✅ ]" | process_input;
+                    echo "${includes%/*}" >> 'check-file-includes.txt';
+                  done <<< "${locate[@]}";
+                  includes_found=true
+                elif [[ -n "${missing[$missing_file]}" ]]; then
+                  includes_found=false
+                  echo -e "\n\033[33mSource file #include \033[0m( ${missing_file} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
+                else
+                  includes_found=false
+                  missing["$missing_file"]=1
+                  missing_count=$((missing_count + 1));
+                  echo -e "\n\033[31mCannot locate missing file\033[0m ${missing_file}  [ ❌ ]" | process_input;
+                fi;
+              fi;             
+            done <<< "${clang_files_list2}";
+            unset missing;
+            if [[ -s 'check-file-includes.txt' ]]; then
+              gawk -v ext="${filetype}" '$0 ~ "\\."ext"$" || $0 ~ "\\.(h|hh|hpp|hxx|h\\+\\+)$" { sub(/\/$/, ""); print; }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
+              gawk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::✅ check-file located ${located_count} files. ${missing_count} missing out of ${file_count} total!!!\n\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
+            fi;
+            gawk '{ for (i=1;i<=NF;i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print $i; } } }' "${project_log}" | gawk '{ for (i=1;i<=NF;i++) print $i; }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "\.\..*\.${filetype}$" | gawk -v ext="${filetype}" '$0 ~ "."ext"$" { if (seen[$0]++) next; print; next; } { print; }' | gawk -v ext="${filetype}" '$0 ~ "\\."ext { delete seen; print; next; } !seen[$0]++' > "${source_include_list}" || echo "::notice::File ${source_include_list##*/} was not created!!!" | process_input;
+            [[ -f "${source_include_list}" ]] && cp "${source_include_list}" 'build/' && echo -e "\n\033[32mCopied ${} to build for uploading if needed.\033[0m ✅" | process_input;
+          fi;
+          if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
+            echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
+          fi;
+          [[ -f ${count1} ]] && rm "${count1}";
+          [[ -f ${count2} ]] && rm "${count2}";
+          [[ -f ${count3} ]] && rm "${count3}";
+          ${{ inputs.content == 'true' }} && echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
+          if [[ "${fixed}" ]]; then
+            echo "file_fixed=1" >> "${GITHUB_ENV}";
+          fi;
+          echo "github_include_dirs=" >> "${GITHUB_ENV}";
+          if [[ "${found}" ]]; then
+            echo "includes=true" >> "${GITHUB_ENV}";
+          else
+            echo "includes=false" >> "${GITHUB_ENV}";
+          fi;
+          [[ -f "/tmp/*/metadata.json" ]] && echo -e"\nCodeChecker Analyzer list: $(cp -vf "/tmp/*/metadata.json" build/)";
+          echo -e '\n####################\n\t\033[32mProject Files Checked Exiting...\033[0m\n####################\n' | process_input;
+        else
+          echo -e '\n####################\n\t\033[33mProject Files Check Skipped Exiting...\033[0m\n####################\n' | process_input;
+        fi;
+        seconds="$((SECONDS + start_time))";
+        m=$((seconds / 60));
+        s=$((seconds % 60));
+        printf "Project Process Runtime: %d minutes and %d seconds\n\n" "$m" "$s" | process_input;
       shell: bash
       continue-on-error: true
 
