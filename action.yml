@@ -247,7 +247,7 @@ runs:
       continue-on-error: false
 
     - name: Restore Project Files
-      if: inputs.cache == 'true' && ( inputs.stored == 'true' || inputs.source == 'true' )
+      if: inputs.cache == 'true' && ( inputs.stored == 'true' || inputs.source > '0' )
       id: restore
       uses: actions/cache/restore@v5
       env:
@@ -328,7 +328,9 @@ runs:
       if: inputs.project == 'true' && inputs.kernel == 'true' && inputs.arch == 'arm'
       uses: stellar-aria/llvm-embedded-toolchain-for-arm-action@latest
       with:
-        release: 'latest' # <-- The compiler release to use  
+        release: '18.1.3'
+      env:
+        SETUP_LLVM_GITHUB_TOKEN: ${{ inputs.token }}
       continue-on-error: true
 
     - name: Installing Dependencies
@@ -2045,11 +2047,12 @@ runs:
                 echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER: ( ${count1} )\n####################\n" | process_input;
                 if [[ "${compile_json}" ]]; then
                   if ${{ inputs.absolute == 'true' }}; then
-                    file="${file#/*/*/*/*/*/}";
+                    file="${file#/*/*/*/*/*/*/}";
                   else
-                    file="${file#*./}";
+                    file="${file#*./*/}";
                   fi;
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="**/${file}" 2>&1 | process_input || error="$?";
+                  echo -e "\nChecking: ${file}";
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="*/${file}" 2>&1 | process_input || error="$?";
                 else
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
                 fi;
