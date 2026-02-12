@@ -648,11 +648,6 @@ runs:
           text "${text10b}";
           text "${text10c}";
         fi;
-        if ${{ inputs.absolute == 'true' }}; then
-          echo -e "\nAbsolute mode enabled for checking all project files in: \033[34m${GITHUB_WORKSPACE}\033[0m";
-        else
-          echo -e "\nRelative mode enabled for checking all project files in: \033[33m${GITHUB_WORKSPACE}\033[0m";
-        fi;
         if ${{ inputs.project == 'true' }} && ${{ env.filename != '' }} && ${{ inputs.analyzer > '0' }}; then
           text "::warning:: project:true and filename:set both enabled auto sets analyzer:0 to disable\nTo remove this warning use ( analyzer: 0 )\n";
           echo "analyzer=0" >> "${GITHUB_ENV}";
@@ -2049,7 +2044,10 @@ runs:
               else
                 echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER: ( ${count1} )\n####################\n" | process_input;
                 if [[ "${compile_json}" ]]; then
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="*/${file#*/}" 2>&1 | process_input || error="$?";
+                  file="${file#/home/runner/work}";
+                  file="${file#*./}";
+                  file="${file#*/}";
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="*/${file#.}" 2>&1 | process_input || error="$?";
                 else
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
                 fi;
@@ -2119,11 +2117,11 @@ runs:
           echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${error}" > '0' ]]; then
-            echo -e "::notice::clang-tidy ( ${error} )" | process_input;
+            echo -e "::notice::cppcheck ( ${error} )" | process_input;
           elif [[ "${error1}" > '0' ]]; then
-            echo -e "::notice::cppcheck ( ${error1} )" | process_input;
+            echo -e "::notice::gcc/g++ ( ${error1} )" | process_input;
           elif [[ "${error2}" > '0' ]]; then
-            echo -e "::notice::cppcheck ( ${error2} )" | process_input;
+            echo -e "::notice::clang-tidy ( ${error2} )" | process_input;
           fi;
           if [[ "${errors}" ]]; then
             [[ $(grep -aiE 'fixit|fix-it' "${error_log}") ]] && echo "file_fixed=1" >> "${GITHUB_ENV}";
