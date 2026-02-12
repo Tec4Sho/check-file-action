@@ -167,7 +167,7 @@ inputs:
     description: 'Arch to set for checking kernel project includes'
     type: string
     required: false
-    default: 'x86'
+    default: 'arm'
   root:
     description: 'Start search from linux-os root directory not just github_workspace'
     type: boolean
@@ -322,6 +322,13 @@ runs:
         with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
           print(f"llvm-path={os.getenv('LLVM_PATH')}", file=f)
       shell: python
+      continue-on-error: true
+
+    - name: Install LLVM Embedded Toolchain for Arm
+      if: inputs.project == 'true' && inputs.kernel == 'true' && inputs.arch == 'arm'
+      uses: stellar-aria/llvm-embedded-toolchain-for-arm-action@latest
+      with:
+        release: 'latest' # <-- The compiler release to use  
       continue-on-error: true
 
     - name: Installing Dependencies
@@ -1348,7 +1355,12 @@ runs:
           clang_tidy='.clang-tidy';
           clangd_tidy='/home/runner/.local/bin/clangd-tidy';
           clang_includes='check-file-includes.txt';
-          usr="/usr/src/linux-headers-$(uname -r)";
+          linux_usr_src="/usr/src/linux-headers-generic";
+          if [[ -d "${linux_usr_src}" ]]; then
+            linux_usr_src="/usr/src/linux-headers-generic";
+          else
+            linux_usr_src="/usr/src/linux-headers-$(uname -r)";
+          fi; 
           if ${{ env.dirname != '' }}; then
             echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           else
@@ -1419,8 +1431,8 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(find "${usr}" -path "${{ inputs.dirpath }}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${usr}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
-              ${{ inputs.kernel == 'true' }} && header_source=$(find "${{ env.base }}" -path "${{ inputs.dirpath }}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${{ env.base }}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(find "${linux_usr_src}" -path "*/${{ inputs.dirpath }}/*" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${linux_usr_src}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              ${{ inputs.kernel == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'arch' -o -name 'asm' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${{ env.base }}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
