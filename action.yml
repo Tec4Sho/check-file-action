@@ -648,6 +648,11 @@ runs:
           text "${text10b}";
           text "${text10c}";
         fi;
+        if ${{ inputs.absolute == 'true' }}; then
+          echo -e "\nAbsolute mode enabled for checking all project files in: \033[34m${GITHUB_WORKSPACE}\033[0m";
+        else
+          echo -e "\nRelative mode enabled for checking all project files in: \033[33m${GITHUB_WORKSPACE}\033[0m";
+        fi;
         if ${{ inputs.project == 'true' }} && ${{ env.filename != '' }} && ${{ inputs.analyzer > '0' }}; then
           text "::warning:: project:true and filename:set both enabled auto sets analyzer:0 to disable\nTo remove this warning use ( analyzer: 0 )\n";
           echo "analyzer=0" >> "${GITHUB_ENV}";
