@@ -211,30 +211,6 @@ runs:
       shell: bash
       continue-on-error: true
 
-    - name: Setup An Clang Clean
-      if: inputs.project == 'true'
-      run: |
-       echo '';
-       if ${{ inputs.filename != '' }}; then
-         echo "filename=${{ inputs.filename }}" >> "${GITHUB_ENV}";
-       else
-         echo "filename=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
-       fi;
-       echo 'database=database' >> "${GITHUB_ENV}";
-       echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
-       echo "dirname=${{ inputs.dirname }}" >> "${GITHUB_ENV}";
-       echo 'export ALLOW_MISSING_DEPENDENCIES=true' | sudo tee -a ~/.bashrc >/dev/null;
-       echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
-       echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
-       echo 'export LLVM_ENABLE_THREADS=ON' | sudo tee -a ~/.bashrc >/dev/null;
-       echo 'export WITH_TIDY=1' | sudo tee -a ~/.bashrc >/dev/null;
-       echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
-       sudo mkdir -p /usr/local/bin /usr/local/lib/android
-       sudo chmod -R 0755 "${{ github.action_path }}/scripts";
-       [[ $(which clang-tidy-18) ]] && sudo apt-get remove -yq clang-tidy-18 clang-18 llvm-18 >/dev/null
-      shell: bash
-      continue-on-error: true
-
     - name: Clone Recovery Repo
       if: inputs.repository == 'true'
       uses: actions/checkout@v6
@@ -329,8 +305,53 @@ runs:
       uses: stellar-aria/llvm-embedded-toolchain-for-arm-action@latest
       with:
         release: '18.1.3'
+        path-env-var: LLVM_ARM_PATH
+        toolchain-env-var: LLVM_ARM_TOOLCHAIN
       env:
         SETUP_LLVM_GITHUB_TOKEN: ${{ inputs.token }}
+      continue-on-error: true
+
+    - name: Setup An Clang Clean
+      if: inputs.project == 'true'
+      run: |
+       echo '';
+       repo=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+       echo "github_repository=${repo}" >> "${GITHUB_ENV}";
+       if ${{ inputs.filename != '' }}; then
+         echo "filename=${{ inputs.filename }}" >> "${GITHUB_ENV}";
+       else
+         echo "filename=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
+       fi;
+       if ${{ inputs.build > '0' }}; then
+         echo 'github_build_project=true' >> "${GITHUB_ENV}";
+       else
+         echo 'github_build_project=false' >> "${GITHUB_ENV}";
+       fi;
+       echo 'include_count=0' >> "${GITHUB_ENV}";
+       echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
+       echo 'sources=false' >> "${GITHUB_ENV}";
+       echo 'file_fixed=0' >> "${GITHUB_ENV}";
+       echo 'file_found=0' >> "${GITHUB_ENV}";
+       echo 'file_error=0' >> "${GITHUB_ENV}";
+       echo 'file1_parted=0' >> "${GITHUB_ENV}";
+       echo 'file2_parted=0' >> "${GITHUB_ENV}";
+       echo 'build_cache=false' >> "${GITHUB_ENV}";
+       echo 'check_build=false' >> "${GITHUB_ENV}";
+       echo 'database=database' >> "${GITHUB_ENV}";
+       echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
+       echo "dirname=${{ inputs.dirname }}" >> "${GITHUB_ENV}";
+       echo 'export ALLOW_MISSING_DEPENDENCIES=true' | sudo tee -a ~/.bashrc >/dev/null;
+       echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
+       echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
+       echo 'export LLVM_ENABLE_THREADS=ON' | sudo tee -a ~/.bashrc >/dev/null;
+       echo 'export WITH_TIDY=1' | sudo tee -a ~/.bashrc >/dev/null;
+       echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
+       sudo mkdir -p /usr/local/bin /usr/local/lib/android/sdk
+       sudo chown -R $USER:$USER /usr/local/bin /usr/local/lib/android
+       sudo chmod -R 0755 "${{ github.action_path }}/scripts";
+       [[ $(which clang-tidy-18) ]] && sudo apt-get remove -yq clang-tidy-18 >/dev/null;
+       [[ $(which clang-18) ]] && sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
+      shell: bash
       continue-on-error: true
 
     - name: Installing Dependencies
@@ -345,6 +366,16 @@ runs:
         if ${{ inputs.project == 'true' }} && [[ ! $(which cmake) ]]; then
           sudo aptitude -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
           [[ ! $(which cmake) ]] && exit 1
+        fi;
+        if (${{ inputs.project == 'true' }} || [[ "${file_type}" == [cth]* ]]) && ([[ ! $(which clang-tidy) ]] || [[ $(printf '%s\n%s' "${clang_tidy_version}" "${clang_tidy_required_version}" | sort -V | head -n1) == "${clang_tidy_version}" ]] && [[ "${clang_tidy_version}" != "${clang_tidy_required_version}" ]]); then
+          python3 -m pip install --upgrade clang-tools >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check';
+          [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
+          [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
+          [[ ! $(which clang-tidy) ]] && exit 1
+        fi;
+        if [[ ! $(which clang) ]]; then
+          sudo aptitude -yq install clang 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nclang dependencies installed\n####################" || echo -e '::error::No clang installed for repo updates';
+          [[ ! $(which clang) ]] && exit 1
         fi;
         cmake_version=$(cmake --version | grep version | awk '{ print $3; }');
         clang_version=$(clang --version | awk '{ print $4; }');
@@ -391,12 +422,6 @@ runs:
           sudo aptitude -yq install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
-        if ${{ inputs.project == 'true' }} && [[ ! $(which update-ca-certificates) ]]; then
-          sudo aptitude -yq install ca-certificates 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
-        fi;
-        if [[ ! $(which gawk) ]]; then
-          sudo aptitude -yq install gawk 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngawk dependencies installed\n####################" || echo -e "\n::error::No gawk installed in linux exiting";
-        fi;
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
         if ${{ inputs.project == 'true' }} && [[ $(printf '%s\n%s' "${cmake_version}" "${cmake_required_version}" | sort -V | head -n1) == "${cmake_version}" ]] && [[ "${cmake_version}" != "${cmake_required_version}" ]]; then
           python3 -m pip install --upgrade pip >/dev/null && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
@@ -407,6 +432,16 @@ runs:
           python3 -m pip install --upgrade cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -pf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
         fi;
+        if [[ ! $(which bc) ]]; then
+          sudo aptitude -yq install bc 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nbc dependencies installed\n####################" || echo -e '::error::No bc installed for project file amount checks';
+          [[ ! $(which bc) ]] && exit 1
+        fi;
+        if ${{ inputs.project == 'true' }} && [[ ! $(which update-ca-certificates) ]]; then
+          sudo aptitude -yq install ca-certificates 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
+        fi;
+        if [[ ! $(which gawk) ]]; then
+          sudo aptitude -yq install gawk 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngawk dependencies installed\n####################" || echo -e "\n::error::No gawk installed in linux exiting";
+        fi;
         if ${{ inputs.project == 'true' }} && (${{ inputs.source == '4' }} || [[ -e 'check-file-compile.txt' ]]); then
           go build ${{ github.action_path }}/scripts/cmakebar.go && echo -e "\n####################\ncmakebar dependencies installed\n####################" || echo -e '::error::No cmakebar installed for project checks';
           [[ -e "cmakebar" ]] && sudo cp -f 'cmakebar' '/usr/local/bin/'
@@ -414,12 +449,6 @@ runs:
         if [[ ! $(which git) ]]; then
           sudo aptitude -yq install git git-core 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
-        fi;
-        if (${{ inputs.project == 'true' }} || [[ "${file_type}" == [cth]* ]]) && ([[ ! $(which clang-tidy) ]] || [[ $(printf '%s\n%s' "${clang_tidy_version}" "${clang_tidy_required_version}" | sort -V | head -n1) == "${clang_tidy_version}" ]] && [[ "${clang_tidy_version}" != "${clang_tidy_required_version}" ]]); then
-          python3 -m pip install --upgrade clang-tools >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check';
-          [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
-          [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
-          [[ ! $(which clang-tidy) ]] && exit 1
         fi;
         if ${{ inputs.analyzer == '1' }} && ${{ inputs.project == 'true' }} && [[ $(which run-clang-tidy) ]]; then
           echo -e "\n[clang-tools] $(whereis -b run-clang-tidy)";
@@ -449,10 +478,6 @@ runs:
         if [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && ${{ inputs.repair == 'true' }} && ${{ env.filename != '' }}; then
           sudo aptitude -yq install gcc g++ 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
-        fi;
-        if [[ ! $(which clang) ]]; then
-          sudo aptitude -yq install clang 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No clang installed for repo updates';
-          [[ ! $(which clang) ]] && exit 1
         fi;
         if (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}) && [[ ! $(which CodeChecker) ]]; then
           sudo aptitude -yq install python3-pip python3-venv 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
@@ -533,11 +558,6 @@ runs:
         fi;
         if [[ -d "${HOME}/codechecker/build/CodeChecker/bin" ]]; then
           echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
-        fi;
-        if ${{ inputs.build > '0' }}; then
-          echo 'github_build_project=true' >> "${GITHUB_ENV}";
-        else
-          echo 'github_build_project=false' >> "${GITHUB_ENV}";
         fi;
         sudo aptitude install -f -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         echo '';
@@ -717,16 +737,6 @@ runs:
         text "\n${text11a}" 2>/dev/null;
         text "${text11b}" 2>/dev/null;
         text "${text11c}\n" 2>/dev/null;
-        echo "github_repository=${repo}" >> "${GITHUB_ENV}";
-        echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
-        echo 'sources=false' >> "${GITHUB_ENV}";
-        echo 'file_fixed=0' >> "${GITHUB_ENV}";
-        echo 'file_found=0' >> "${GITHUB_ENV}";
-        echo 'file_error=0' >> "${GITHUB_ENV}";
-        echo 'file1_parted=0' >> "${GITHUB_ENV}";
-        echo 'file2_parted=0' >> "${GITHUB_ENV}";
-        echo 'build_cache=false' >> "${GITHUB_ENV}";
-        echo 'check_build=false' >> "${GITHUB_ENV}";
       shell: bash
       continue-on-error: true
 
@@ -765,6 +775,10 @@ runs:
           fi;
           LINUXINCLUDE="-I/usr/src/linux-headers-$(uname -r)/include";
           USERINCLUDE="-include ${srctree}/include/linux/kconfig.h";
+        fi;
+        if ${{ inputs.project == 'true' }} && ${{ inputs.kernel == 'true' }} && ${{ inputs.arch == 'arm' }}; then
+          echo "export LLVM_ARM_PATH=${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+          echo "export LLVM_ARM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
         fi;
         echo "USERINCLUDE=${USERINCLUDE}" >> "${GITHUB_ENV}";
         echo "LINUXINCLUDE=${LINUXINCLUDE}" >> "${GITHUB_ENV}";
@@ -1728,10 +1742,7 @@ runs:
         file_type='c';
         update=true
         fixed=false
-        count=1
-        if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
-          cd "${{ env.dirname }}" && echo -e "User Current Directory;  ${{ env.dirname }}\n" | process_input;
-        fi;
+        count=0
         process_input() {
           while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
@@ -1745,6 +1756,9 @@ runs:
             fi;
           done;
         }
+        if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
+          cd "${{ env.dirname }}" && echo -e "User Current Directory;  ${{ env.dirname }}\n" | process_input;
+        fi;
         if [[ -f 'compile_commands.json' ]]; then
           compile_json='compile_commands.json';
         elif [[ -f 'build/compile_commands.json' ]]; then
