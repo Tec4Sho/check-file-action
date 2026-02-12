@@ -284,32 +284,7 @@ runs:
         go-version: '1.25.3'
       continue-on-error: true
 
-    - name: Install LLVM and Clang
-      if: runner.os == 'Linux' && (inputs.project == 'true' || inputs.filename != '' || inputs.filetype != '')
-      run: |
-        source ~/.bashrc
-        bash -c "${{ github.action_path }}/scripts/linux.sh";
-        if ${{ inputs.project == 'true' }} && ${{ inputs.kernel == 'true' }} && ${{ inputs.arch == 'arm' }}; then
-          bash -c "${{ github.action_path }}/scripts/linux-arm.sh";
-        fi;
-      env:
-        LLVM_VERSION: ${{ inputs.version }}
-        LLVM_ARM_VERSION: ${{ inputs.release }}
-        SETUP_LLVM_GITHUB_TOKEN: ${{ inputs.token }}
-      shell: bash
-      continue-on-error: true
-
-    - id: output-path
-      if: runner.os == 'Linux' && (inputs.project == 'true' || inputs.filename != '' || inputs.filetype != '')
-      run: |
-        print('')
-        import os
-        with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
-          print(f"llvm-path={os.getenv('LLVM_PATH')}", file=f)
-      shell: python
-      continue-on-error: true
-
-    - name: Setup An Clang Clean
+- name: Setup An Clang Clean
       if: inputs.project == 'true'
       run: |
        echo '';
@@ -345,13 +320,39 @@ runs:
        echo 'export WITH_TIDY=1' | sudo tee -a ~/.bashrc >/dev/null;
        echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
        sudo mkdir -p /usr/local/bin /usr/local/lib/android/sdk
-       sudo chown -R $USER:$USER /usr/local/bin /usr/local/lib/android
        sudo chmod -R 0755 "${{ github.action_path }}/scripts";
+       sudo chown -R "${USER}:${USER}" /usr/local/bin /usr/local/lib/android;
+       sudo chown -R "${USER}:${USER}" "${/{ github.action_path }}/scripts";
        [[ $(which clang-tidy-18) ]] && sudo apt-get remove -yq clang-tidy-18 >/dev/null;
        [[ $(which clang-18) ]] && sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
       shell: bash
       continue-on-error: true
 
+    - name: Install LLVM and Clang
+      if: runner.os == 'Linux' && (inputs.project == 'true' || inputs.filename != '' || inputs.filetype != '')
+      run: |
+        source ~/.bashrc
+        bash -c "${{ github.action_path }}/scripts/linux.sh";
+        if ${{ inputs.project == 'true' }} && ${{ inputs.kernel == 'true' }} && ${{ inputs.arch == 'arm' }}; then
+          bash -c "${{ github.action_path }}/scripts/linux-arm.sh";
+        fi;
+      env:
+        LLVM_VERSION: ${{ inputs.version }}
+        LLVM_ARM_VERSION: ${{ inputs.release }}
+        SETUP_LLVM_GITHUB_TOKEN: ${{ inputs.token }}
+      shell: bash
+      continue-on-error: true
+
+    - id: output-path
+      if: runner.os == 'Linux' && (inputs.project == 'true' || inputs.filename != '' || inputs.filetype != '')
+      run: |
+        print('')
+        import os
+        with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
+          print(f"llvm-path={os.getenv('LLVM_PATH')}", file=f)
+      shell: python
+      continue-on-error: true
+    
     - name: Installing Dependencies
       if: inputs.pattern != '' || env.filename != '' || inputs.project != 'false'
       run: |
@@ -380,7 +381,7 @@ runs:
         cmake_required_version="4.2.1";
         if (${{ inputs.project == 'true' }} || [[ "${file_type}" == [cth]* ]]) && ([[ ! $(which clang-tidy) ]] || [[ $(printf '%s\n%s' "${clang_tidy_version}" "${clang_tidy_required_version}" | sort -V | head -n1) == "${clang_tidy_version}" ]] && [[ "${clang_tidy_version}" != "${clang_tidy_required_version}" ]]); then
           python3 -m pip install --upgrade clang-tools >/dev/null && echo -e "\n####################\nclang tools pip dependencies installed\n####################\n" || echo -e '::error::No clang tools installed for project check';
-          [[ ! -e '/usr/bin/clang-tidy' ]] && [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy'
+          [[ -e "${HOME}/.local/bin/clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/clang-tidy" '/usr/bin/clang-tidy' && echo '';
           [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -vf "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy'
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
@@ -2059,12 +2060,12 @@ runs:
                 echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER: ( ${count1} )\n####################\n" | process_input;
                 if [[ "${compile_json}" ]]; then
                   if ${{ inputs.absolute == 'true' }}; then
-                    file="${file#/*/*/*/*/*/*/}";
+                    file="${file#/*/*/*/*/*/}";
                   else
-                    file="${file#*./*/}";
+                    file="${file#*./}";
                   fi;
                   echo -e "\nChecking: ${file}";
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="*/${file}" 2>&1 | process_input || error="$?";
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="${file}" 2>&1 | process_input || error="$?";
                 else
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
                 fi;
