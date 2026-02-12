@@ -304,7 +304,7 @@ runs:
       continue-on-error: true
 
     - name: Install LLVM and Clang
-      if: inputs.project == 'true' && runner.os == 'Linux'
+      if: inputs.project == 'true' && runner.os == 'Linux' && inputs.arch != 'arm'
       run: |
         source ~/.bashrc
         bash -c "${{ github.action_path }}/scripts/linux.sh";
@@ -315,7 +315,7 @@ runs:
       continue-on-error: true
 
     - id: output-path
-      if: inputs.project == 'true' && runner.os == 'Linux'
+      if: inputs.project == 'true' && runner.os == 'Linux' && inputs.arch != 'arm'
       run: |
         print('')
         import os
