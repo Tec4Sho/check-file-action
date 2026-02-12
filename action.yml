@@ -766,14 +766,15 @@ runs:
         fi;
         echo "USERINCLUDE=${USERINCLUDE}" >> "${GITHUB_ENV}";
         echo "LINUXINCLUDE=${LINUXINCLUDE}" >> "${GITHUB_ENV}";
-        echo "export src=${srctree}" | sudo tee -a ~/.bashrc >/dev/null;
-        echo "export obj=${objtree}" | sudo tee -a ~/.bashrc >/dev/null;
+        echo "export srctree=${srctree}" | sudo tee -a ~/.bashrc >/dev/null;
+        echo "export objtree=${objtree}" | sudo tee -a ~/.bashrc >/dev/null;
+        echo "export hdr_arch=${hdr_arch}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export USERINCLUDE=${USERINCLUDE}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export LINUXINCLUDE=${LINUXINCLUDE}" | sudo tee -a ~/.bashrc >/dev/null;
         ${{ inputs.content == 'true' }} && echo -e "\nLINUXINCLUDE: ${LINUXINCLUDE// /}" | tr ' ' '\n' && echo -e "\nUSERINCLUDE: ${USERINCLUDE// /}" | tr ' ' '\n'
         config=$(find "${{ env.base }}" -type f -path '*/config/*' -name 'kernel.release' | grep . || sudo find "/usr/src" -xdev -type f -name 'kernel.release' -print);
         if [[ "${config}" ]] && ${{ inputs.content == 'true' }}; then
-          echo -e "\nLINUXKERNEL RELEASE:\n${config}";
+          echo -e "\nLINUXKERNEL RELEASES:\n${config}";
           sudo less $(echo -n ${config});
         fi;
         echo '';
@@ -1714,7 +1715,7 @@ runs:
         CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
         CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
         ${{ inputs.include == 'true' }} && C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
-        ${{ inputs.kernel == 'true' }} && C_INCLUDE_PATH="${LINUXINCLUDE} ${USERINCLUDE}" && CPLUS_INCLUDE_PATH="${LINUXINCLUDE} ${USERINCLUDE}";
+        ${{ inputs.kernel == 'true' }} && C_INCLUDE_PATH="${LINUXINCLUDE//$'\n'/ } ${USERINCLUDE//$'\n'/ }" && CPLUS_INCLUDE_PATH="${LINUXINCLUDE//$'\n'/ } ${USERINCLUDE//$'\n'/ }";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
@@ -1920,7 +1921,9 @@ runs:
         build_dir='build/cppcheck';
         ${{ inputs.include == 'true' }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         include_path="/usr/src/linux-headers-$(uname -r)/include";
-        ${{ inputs.kernel }} && include_path="${LINUXINCLUDE} ${USERINCLUDE}";
+        if ${{ inputs.kernel == 'true' }}; then
+          include_path="${LINUXINCLUDE//$'\n'/ } ${LINUXINCLUDE//$'\n'/ }";
+        fi;
         if ${{ inputs.absolute == 'true' }}; then
           path='--absolute-path';
         else
@@ -2041,7 +2044,7 @@ runs:
               else
                 echo -e "\n####################\nCPPCHECK INCLUDE FILE(S) ANALYZER: ( ${count1} )\n####################\n" | process_input;
                 if [[ "${compile_json}" ]]; then
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" -I"${include_path}" --project="${compile_json}" --file-filter="*/${file#"${file%/*/*}/"}" 2>&1 | process_input || error="$?";
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="*/${file#"${file%/*/*}/"}" 2>&1 | process_input || error="$?";
                 else
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
                 fi;
