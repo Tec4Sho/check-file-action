@@ -335,6 +335,7 @@ runs:
         set -a
         source ~/.bashrc
         USER="${USER}";
+        export USER
         if [[ -x "${{ github.action_path }}/scripts/linux.sh" ]]; then
           bash -c "${{ github.action_path }}/scripts/linux.sh";
           if ${{ inputs.project == 'true' }} && ${{ inputs.kernel == 'true' }} && ${{ inputs.arch == 'arm' }}; then
