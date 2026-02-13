@@ -1,10 +1,9 @@
 #!/bin/bash
 
 set +e
-set -a
 
 # Configuration
-BASE_URL="https://github.com/ARM-software/LLVM-embedded-toolchain-for-Arm/releases/download"
+base_url='https://github.com/ARM-software/LLVM-embedded-toolchain-for-Arm/releases/download';
 
 # Logic for hasSHA256
 has_sha256() {
@@ -54,7 +53,7 @@ get_distribution_url() {
         llvm_arm_path="/usr/lib/LLVM-ET-Arm-${version}/bin";
     fi;
     echo "${BASE_URL}/${filename}";
-    export filename llvm_arm_path version
+    export $filename $llvm_arm_path $version $ext
 }
 
 # Logic for getSHA256
@@ -66,14 +65,14 @@ get_sha256() {
 
 llvm_arm_install() {
     tmp_file="$(mktemp)";
-    sudo wget -qO "llvm-embedded-toolchain-for-arm-${version}.${ext}" "$2/${filename}" >/dev/null;
-    sudo tar xf "llvm-embedded-toolchain-for-arm-${version}.${ext}" -C "$llvm_arm_path" "llvm-${version}" >/dev/null && rm -vrf "llvm-embedded-toolchain-for-arm-${version}.${ext}";
-    sudo chown -R "${USER}:${USER}" "$llvm_arm_path";
-    echo "$llvm_arm_path" >> "${tmp_file}";
+    sudo wget -qO "llvm-embedded-toolchain-for-arm-$1.$2" "$3/$4" >/dev/null;
+    sudo tar xf "llvm-embedded-toolchain-for-arm-$1.$2" -C "$5" "llvm-${1%%.*}" >/dev/null && rm -vrf "llvm-embedded-toolchain-for-arm-$1.$2";
+    sudo chown -R "$6:$6" "$5";
+    echo "$5" >> "${tmp_file}";
     cat "${GITHUB_PATH}" >>"${tmp_file}";
     cat "${tmp_file}" > "${GITHUB_PATH}";
     rm -f -- "${tmp_file}";
-    LLVM_ARM_PATH="$llvm_arm_path";
+    LLVM_ARM_PATH="$5";
     PATH="${LLVM_ARM_PATH}/bin:${PATH}";  
     # 3. Find Clang Path (Equivalent to setup.findClang)
     if [[ ! -d "$LLVM_ARM_PATH" ]]; then
@@ -97,22 +96,25 @@ llvm_arm_install() {
         echo "LLVM_ARM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN_PATH}" >> "${GITHUB_ENV}";
     fi;
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-    echo -e "\nLLVM ${RELEASE} llvm-embedded-toolchain-for-arm setup complete.";
-    echo "llvm-${RELEASE%%.*}: $LLVM_ARM_PATH";
+    echo -e "\nLLVM $1 llvm-embedded-toolchain-for-arm setup complete.";
+    echo "llvm-${1%%.*}: $LLVM_ARM_PATH";
     echo -e "Toolchain: $LLVM_ARM_TOOLCHAIN\n";
 }
 
 # --- Example Usage ---
-PLATFORM="linux"
-VERSION="${LLVM_VERSION:-latest}"
-RELEASE="${LLVM_ARM_VERSION}";
-if [[ ${RELEASE} == '' ]]; then
+platform="linux";
+version="${LLVM_ARM_VERSION}";
+user="${USER:-runner}";
+if [[ ${LLVM_VERSION} == '' ]]; then
      echo "::error;:[$?] llvm-tools missing.";
 fi;
-if has_sha256 "$RELEASE"; then
-    echo "URL: $(get_distribution_url $RELEASE $PLATFORM)";
-    echo -e "SHA256: $(get_sha256 $RELEASE $PLATFORM)\n";
-    echo -e "INSTALLING: $(llvm_arm_install $RELEASE $BASE_URL $llvm_arm_path)\n";
+if [[ ${version} == '' ]]; then
+     version='19.1.1';
+fi;
+if has_sha256 "$version"; then
+    echo "URL: $(get_distribution_url $version $platform)";
+    echo -e "SHA256: $(get_sha256 $version $platform)\n";
+    echo -e "INSTALLING: $(llvm_arm_install $version $ext $base_url $filename $llvm_arm_path $user)\n";
 else
     echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm.\n";
 fi;
