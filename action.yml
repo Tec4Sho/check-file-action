@@ -332,7 +332,9 @@ runs:
     - name: Install LLVM and Clang
       if: runner.os == 'Linux' && (inputs.project == 'true' || inputs.filename != '' || inputs.filetype != '')
       run: |
+        set -a
         source ~/.bashrc
+        USER="${USER}";
         if [[ -x "${{ github.action_path }}/scripts/linux.sh" ]]; then
           bash -c "${{ github.action_path }}/scripts/linux.sh";
           if ${{ inputs.project == 'true' }} && ${{ inputs.kernel == 'true' }} && ${{ inputs.arch == 'arm' }}; then
