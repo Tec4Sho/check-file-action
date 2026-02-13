@@ -2856,7 +2856,7 @@ runs:
             declare -A missing
             found=false
             while IFS= read -r missing_file; do
-              if [[ "${missing_file}" == *.[h]* ]]; then
+              if [[ "$missing_file" == *.h || "$missing_file" == *.hh || "$missing_file" == *.hpp || "$missing_file" == *.hxx || "$missing_file" == *.h++ ]]; then
                 shopt -s extglob
                 file_count=$((file_count + 1));
                 echo "Locating missing ${missing_file} file ...." | process_input;
@@ -2898,7 +2898,7 @@ runs:
             missing=();
             [[ -n "${clang_files_list2}" ]] && echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: /usr/src/linux-headers-$(uname -r)/include\n####################\n" | process_input;
             while IFS= read -r missing_file; do
-              if [[ "${missing_file}" == *.[h]* ]]; then
+              if [[ "$missing_file" == *.h || "$missing_file" == *.hh || "$missing_file" == *.hpp || "$missing_file" == *.hxx || "$missing_file" == *.h++ ]]; then
                 shopt -s extglob
                 file_count=$((file_count + 1));
                 echo "Locating missing ${missing_file} file ...." | process_input;
