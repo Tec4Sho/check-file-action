@@ -284,7 +284,7 @@ runs:
         go-version: '1.25.3'
       continue-on-error: true
 
-- name: Setup An Clang Clean
+    - name: Setup An Clang Clean
       if: inputs.project == 'true'
       run: |
        echo '';
