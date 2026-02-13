@@ -65,8 +65,9 @@ get_sha256() {
 
 llvm_arm_install() {
     tmp_file="$(mktemp)";
-    sudo wget -qO 'llvm-arm.tar.gz' "${BASE_URL}/${filename}" >/dev/null;
+    sudo wget -qO 'llvm-embedded-toolchain-for-arm-${RELEASE}.tar.gz' "${BASE_URL}/${filename}" >/dev/null;
     sudo tar xf 'llvm-embedded-toolchain-for-arm-${RELEASE}.tar.gz' -C "$llvm_arm_path" "llvm-${RELEASE%%.*}" && rm -vrf 'llvm-embedded-toolchain-for-arm-${RELEASE}.tar.gz';
+    sudo chmod "${USER}:${USER}" "$llvm_arm_path";
     echo "$llvm_arm_path" >> "${tmp_file}";
     cat "${GITHUB_PATH}" >>"${tmp_file}";
     cat "${tmp_file}" > "${GITHUB_PATH}";
