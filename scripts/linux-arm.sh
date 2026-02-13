@@ -2,9 +2,6 @@
 
 set +e
 
-# Configuration
-base_url='https://github.com/ARM-software/LLVM-embedded-toolchain-for-Arm/releases/download';
-
 # Logic for hasSHA256
 has_sha256() {
     [[ "$1" != "13.0.0" && "$1" != "14.0.0" ]]
@@ -16,6 +13,8 @@ get_distribution_url() {
     local platform=$2 # Expected: linux, darwin, or win32
     local os_name="";
     local ext="";
+    local user=$3
+    local base_url=$4
     # Determine OS Name mapping
     if [[ "$version" == "13.0.0" || "$version" == "14.0.0" ]]; then
         case "$platform" in
@@ -53,7 +52,8 @@ get_distribution_url() {
         llvm_arm_path="/usr/lib/LLVM-ET-Arm-${version}/bin";
     fi;
     echo "${BASE_URL}/${filename}";
-    export $filename $llvm_arm_path $version $ext
+    export filename llvm_arm_path version ext
+    echo -e "INSTALLING: $(llvm_arm_install $version $ext $base_url $filename $llvm_arm_path $user)\n";
 }
 
 # Logic for getSHA256
@@ -102,6 +102,8 @@ llvm_arm_install() {
 }
 
 # --- Example Usage ---
+# Configuration
+base_url='https://github.com/ARM-software/LLVM-embedded-toolchain-for-Arm/releases/download';
 platform="linux";
 version="${LLVM_ARM_VERSION}";
 user="${USER:-runner}";
@@ -112,9 +114,8 @@ if [[ ${version} == '' ]]; then
      version='19.1.1';
 fi;
 if has_sha256 "$version"; then
-    echo "URL: $(get_distribution_url $version $platform)";
+    echo "URL: $(get_distribution_url $version $platform $user $base_url)";
     echo -e "SHA256: $(get_sha256 $version $platform)\n";
-    echo -e "INSTALLING: $(llvm_arm_install $version $ext $base_url $filename $llvm_arm_path $user)\n";
 else
     echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm.\n";
 fi;
