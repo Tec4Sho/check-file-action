@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set +e
+set -a
 
 LLVM_PATH=""
 
@@ -11,7 +12,7 @@ current_llvm_stable() {
 
 install_llvm() {
   llvm_version="$1";
-  VERSION="${llvm_version}";
+  version="${llvm_version}";
   tmp_dir="$(mktemp -d)";
   cd "${tmp_dir}";
   curl -fsSL https://apt.llvm.org/llvm.sh -o llvm.sh
@@ -25,7 +26,7 @@ install_llvm() {
   rm -f -- "${tmp_file}";
   LLVM_PATH="/usr/lib/llvm-${llvm_version}";
   PATH="${LLVM_PATH}/bin:${PATH}";  
-  export LLVM_PATH PATH VERSION
+  export LLVM_PATH PATH version
 }
 
 llvm_version() {
