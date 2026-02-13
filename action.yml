@@ -2011,8 +2011,9 @@ runs:
             search_path="${file}";
             check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count1=$((file_count++));
+            echo "${file}" >> 'check_file_paths.txt';
             echo -e "\n####################\n\tFILE PATH: ( ${count1} )\n####################\n" | process_input;
-            echo "${file%/*}";
+            echo "${file%/*}" | process_input;
             if ${{ inputs.content == 'true' }}; then
               echo -e "\n####################\n\tFILE CONTENT: ( ${count1} )\n####################\n" | process_input;
               if [[ -e 'bat.conf' ]]; then
@@ -2247,8 +2248,9 @@ runs:
             search_path="${file}";
             check_date=$(grep -Fs "${search_path}" "${repaired}" | cut -d' ' -f 2-);
             count3=$((shellcheck_count++));
+            echo "${file}" >> 'check_file_paths.txt';
             echo -e "\n####################\n\tFILE PATH: ( ${count3} )\n####################\n" | process_input;
-            echo "${file%/*}";
+            echo "${file%/*}" | process_input;
             if ${{ inputs.content == 'true' }}; then
               echo -e "\n####################\n\tFILE CONTENT:\n####################\n" | process_input;
               if [[ -e 'bat.conf' ]]; then
@@ -2419,8 +2421,9 @@ runs:
           fi;
           while IFS= read -r file; do
             count4=$((makefile_count++));
+            echo "${file}" >> 'check_file_paths.txt';
             echo -e "\n####################\n\tFILE PATH: ( ${count4} )\n####################\n" | process_input;
-            echo "${file%/*}";
+            echo "${file%/*}" | process_input;
             if ${{ inputs.content == 'true' }}; then
               echo -e "\n####################\n\tFILE CONTENT:\n####################\n" | process_input;
               if [[ -e 'bat.conf' ]]; then
@@ -2540,9 +2543,9 @@ runs:
           fi;
           while IFS= read -r file; do
             count5=$((file_count++));
-            echo -e "\n####################\n\tFILE PATH: ( ${count5} )\n####################\n" | process_input;
-            echo "${file%/*}" | tee -a 'check_file_paths.txt';
             echo "${file}" >> 'check_file_paths.txt';
+            echo -e "\n####################\n\tFILE PATH: ( ${count5} )\n####################\n" | process_input;
+            echo "${file%/*}" | process_input;
             if ${{ inputs.content == 'true' }}; then
               echo -e "\n####################\n\tFILE CONTENT: ( ${count5} )\n####################\n" | process_input;
               if [[ -e 'bat.conf' ]]; then
@@ -2696,44 +2699,7 @@ runs:
           path='--relative-path';
         fi;
         if ${{ env.file_found == '1' }}; then
-          if ${{ inputs.database == 'true' }}; then
-            if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-              files=$(grep -sF "${{ inputs.dirpath }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ env.filename }}" "${{ env.database }}");
-              echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
-            elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-              files=$(grep -sF "${{ inputs.dirpath }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ env.filename }}" "${{ env.database }}");
-              echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
-            elif ${{ inputs.filetype != '' }}; then
-              regex="\.${{ inputs.filetype }}$";
-              files=$(grep -sE "${{ inputs.dirpath }}/.${regex}" "${{ env.database }}" | grep . || grep -sE "${regex}" "${{ env.database }}");
-              echo -e "\n####################\nDatabase File Extension: ${{ env.filename }}\n####################" | process_input;
-            fi;
-          else
-            if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-              files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
-              echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
-            elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-              files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
-              echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
-            elif ${{ inputs.filetype != '' }}; then
-              files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${{ inputs.filetype }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}");
-              echo -e "\n####################\nFile Extension: ${{ env.filename }}\n####################" | process_input;
-            fi;
-          fi;
-          if [[ "${files}" ]]; then
-            echo -e "\n####################\nNOTE: Contents found in directory for ${{ env.filename }} file(s)\n####################" | process_input;
-            while IFS= read -r file; do
-              count=$((file_count++));
-              echo -e "\nSource File: \033[32m${file} / ${count}\033[0m\n\033[1mDirectory List:\033[0m" | process_input;
-              ls -ShApX "${file%/*}" | gawk '{ printf "    %s\n", $0; }' | process_input;
-              if ${{ inputs.number > '0' }}; then
-                if [[ "${{ inputs.number }}" -eq "${count}" ]]; then
-                  echo -e "\nFile checking auto stopped at: ${count} / ${file##*/}\n" | process_input;
-                  break;
-                fi;
-              fi;
-            done <<< "${files}";
-          elif [[ -s "${file_path}" ]]; then
+          if [[ -s "${file_path}" ]]; then
             echo -e "\n####################\nNOTE: Contents found in directory for ${{ env.filename }} file(s)\n####################" | process_input;
             while IFS= read -r file; do
               count=$((file_count++));
