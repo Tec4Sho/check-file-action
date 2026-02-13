@@ -65,42 +65,39 @@ get_sha256() {
 
 llvm_arm_install() {
     tmp_file="$(mktemp)";
-    sudo wget -qO 'llvm-embedded-toolchain-for-arm-${RELEASE}.tar.gz' "${BASE_URL}/${filename}" >/dev/null;
-    sudo tar xf 'llvm-embedded-toolchain-for-arm-${RELEASE}.tar.gz' -C "$llvm_arm_path" "llvm-${RELEASE%%.*}" && rm -vrf 'llvm-embedded-toolchain-for-arm-${RELEASE}.tar.gz';
-    sudo chmod "${USER}:${USER}" "$llvm_arm_path";
+    sudo wget -qO 'llvm-embedded-toolchain-for-arm-${RELEASE}.${ext}' "$2/${filename}" >/dev/null;
+    sudo tar xf 'llvm-embedded-toolchain-for-arm-${RELEASE}.${ext}' -C "$llvm_arm_path" "llvm-${RELEASE%%.*}" >/dev/null && rm -vrf 'llvm-embedded-toolchain-for-arm-${RELEASE}.${ext}';
+    sudo chown -R "${USER}:${USER}" "$llvm_arm_path";
     echo "$llvm_arm_path" >> "${tmp_file}";
     cat "${GITHUB_PATH}" >>"${tmp_file}";
     cat "${tmp_file}" > "${GITHUB_PATH}";
     rm -f -- "${tmp_file}";
     LLVM_ARM_PATH="$llvm_arm_path";
     PATH="${LLVM_ARM_PATH}/bin:${PATH}";  
-    export LLVM_ARM_PATH PATH 
     # 3. Find Clang Path (Equivalent to setup.findClang)
     if [[ ! -d "$LLVM_ARM_PATH" ]]; then
         echo "Error: Could not find clang executable" >&2
         exit 1
     fi;
     # 4. Resolve Toolchain Path (Parent directory of /bin)
-    BIN_DIR="${LLVM_ARM_PATH}";
-    LLVM_ARM_TOOLCHAIN_PATH=$(realpath "${BIN_DIR}/..");
+    LLVM_ARM_TOOLCHAIN_PATH=$(realpath "${LLVM_ARM_PATH}/..");
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
-    echo "Adding $BIN_DIR to PATH";
-    export PATH="$BIN_DIR:${PATH}";
+    echo "Added $LLVM_ARM_PATH to PATH";
     # Export custom env vars if requested
     if [[ -n "$LLVM_ARM_PATH" ]]; then
-        export "LLVM_ARM_PATH=$LLVM_ARM_PATH" | sudo tee -a ~/.bashrc >/dev/null;
+        echo "export LLVM_ARM_PATH=${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     fi;
     if [[ -n "$LLVM_ARM_TOOLCHAIN_PATH" ]]; then
-        export "LLVM_ARM_TOOLCHAIN_PATH=$LLVM_ARM_TOOLCHAIN_PATH" | sudo tee -a ~/.bashrc >/dev/null;
+        echo "export LLVM_ARM_TOOLCHAIN_PATH=${LLVM_ARM_TOOLCHAIN_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     fi;
     # GitHub Actions Outputs (only if running in GH Actions)
     if [[ -n "$GITHUB_ENV" ]]; then
-        echo "CLANG_PATH=$LLVM_ARM_PATH" >> "$GITHUB_ENV";
-        echo "LLVM_ARM_TOOLCHAIN=$LLVM_ARM_TOOLCHAIN_PATH" >> "$GITHUB_ENV";
+        echo "CLANG_PATH=${LLVM_ARM_PATH}" >> "${GITHUB_ENV}";
+        echo "LLVM_ARM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN_PATH}" >> "${GITHUB_ENV}";
     fi;
-    export "PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+    echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     echo -e "\nLLVM ${RELEASE} llvm-embedded-toolchain-for-arm setup complete.";
-    echo "Clang: $LLVM_ARM_PATH";
+    echo "llvm-${RELEASE%%.*}: $LLVM_ARM_PATH";
     echo -e "Toolchain: $LLVM_ARM_TOOLCHAIN\n";
 }
 
