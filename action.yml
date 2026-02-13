@@ -174,7 +174,7 @@ inputs:
     required: false
     default: 'arm'
   root:
-    description: 'Start search from linux-os root directory not just github_workspace'
+    description: 'Start search from linux-os root directory not just github_workspace for database'
     type: boolean
     required: false
     default: 'false'
@@ -322,7 +322,7 @@ runs:
        sudo mkdir -p /usr/local/bin /usr/local/lib/android/sdk
        sudo chmod -R 0755 "${{ github.action_path }}/scripts";
        sudo chown -R "${USER}:${USER}" /usr/local/bin /usr/local/lib/android;
-       sudo chown -R "${USER}:${USER}" "${/{ github.action_path }}/scripts";
+       sudo chown -R "${USER}:${USER}" "${{ github.action_path }}/scripts";
        [[ $(which clang-tidy-18) ]] && sudo apt-get remove -yq clang-tidy-18 >/dev/null;
        [[ $(which clang-18) ]] && sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
       shell: bash
@@ -332,9 +332,11 @@ runs:
       if: runner.os == 'Linux' && (inputs.project == 'true' || inputs.filename != '' || inputs.filetype != '')
       run: |
         source ~/.bashrc
-        bash -c "${{ github.action_path }}/scripts/linux.sh";
-        if ${{ inputs.project == 'true' }} && ${{ inputs.kernel == 'true' }} && ${{ inputs.arch == 'arm' }}; then
-          bash -c "${{ github.action_path }}/scripts/linux-arm.sh";
+        if [[ -x "${{ github.action_path }}/scripts/linux.sh" ]]; then
+          bash -c "${{ github.action_path }}/scripts/linux.sh";
+          if ${{ inputs.project == 'true' }} && ${{ inputs.kernel == 'true' }} && ${{ inputs.arch == 'arm' }}; then
+            bash -c "${{ github.action_path }}/scripts/linux-arm.sh";
+          fi;
         fi;
       env:
         LLVM_VERSION: ${{ inputs.version }}
