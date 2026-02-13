@@ -100,7 +100,7 @@ inputs:
   source:
     description: 'Check all soucre files for include directories to auto add for clang/cmake'
     required: false
-    default: 2
+    default: 0
     type: choice
     options:
     - 0 # Disabled
