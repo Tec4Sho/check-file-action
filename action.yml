@@ -22,11 +22,6 @@ inputs:
     - 2 # clang-tidy - faster for small an large project file checks. fix-its
     - 3 # clangd-tidy - fast large project file checks.
     - 4 # codechecker - compiler project file check reports.
-  makefile:
-    description: 'Make filename for building project source'
-    type: string
-    required: false
-    default: 'build/CMakeFiles/Makefile2'
   filename:
     description: 'Check for filename or search for text word matches'
     type: string
@@ -37,8 +32,18 @@ inputs:
     type: string
     required: false
     default: 'c'
+  internel:
+    description: 'If checking kernel builds or projects that dont depend on external /usr/ includes'
+    type: string
+    required: false
+    default: 'true'
+  makefile:
+    description: 'Make filename for building project source'
+    type: string
+    required: false
+    default: 'Makefile'
   database:
-    description: 'Use file database over find commands slower performance for searches'
+    description: 'Use custom database over fdfind real-time file searches for added performance'
     type: boolean 
     required: false
     default: 'false'
@@ -142,11 +147,6 @@ inputs:
     type: boolean
     required: false
     default: 'false'
-  kernel:
-    description: 'If checking kernel builds or projects that dont depend on external /usr/ includes'
-    type: string
-    required: false
-    default: 'true'
   build:
     description: 'Fix Errors found while building repository project'
     type: choice
@@ -338,7 +338,7 @@ runs:
         export USER
         if [[ -x "${{ github.action_path }}/scripts/linux.sh" ]]; then
           bash -c "${{ github.action_path }}/scripts/linux.sh";
-          if ${{ inputs.project == 'true' }} && ${{ inputs.kernel == 'true' }} && ${{ inputs.arch == 'arm' }}; then
+          if ${{ inputs.project == 'true' }} && ${{ inputs.internal == 'true' }} && ${{ inputs.arch == 'arm' }}; then
             bash -c "${{ github.action_path }}/scripts/linux-arm.sh";
           fi;
         fi;
@@ -751,7 +751,7 @@ runs:
         source ~/.bashrc
         set +e
         [[ -n "${LINUXINCLUDE}" ]] && echo -e "\nUSER INCLUDE CHECK: ${USERINCLUDE}\nLINUX INCLUDE CHECK: ${LINUXINCLUDE}";      
-        if ${{ inputs.kernel == 'true' }}; then
+        if ${{ inputs.internal == 'true' }}; then
           srctree="${GITHUB_WORKSPACE}";
           objtree="${GITHUB_WORKSPACE}"; 
           ${{ inputs.dirname != '' }} && srctree="${GITHUB_WORKSPACE}/${{ inputs.dirname }}" && objtree="${GITHUB_WORKSPACE}/${{ inputs.dirname }}";
@@ -781,9 +781,9 @@ runs:
           LINUXINCLUDE="-I/usr/src/linux-headers-$(uname -r)/include";
           USERINCLUDE="-include ${srctree}/include/linux/kconfig.h";
         fi;
-        if ${{ inputs.project == 'true' }} && ${{ inputs.kernel == 'true' }} && ${{ inputs.arch == 'arm' }}; then
-          echo "export LLVM_ARM_PATH=${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-          echo "export LLVM_ARM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
+        if ${{ inputs.project == 'true' }} && ${{ inputs.internal == 'true' }} && ${{ inputs.arch == 'arm' }}; then
+          echo -e "\nLLVM_ARM_PATH=${LLVM_ARM_PATH}";
+          echo -e "LLVM_ARM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}\n";
         fi;
         echo "USERINCLUDE=${USERINCLUDE}" >> "${GITHUB_ENV}";
         echo "LINUXINCLUDE=${LINUXINCLUDE}" >> "${GITHUB_ENV}";
@@ -792,7 +792,7 @@ runs:
         echo "export hdr_arch=${hdr_arch}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export USERINCLUDE=${USERINCLUDE}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export LINUXINCLUDE=${LINUXINCLUDE}" | sudo tee -a ~/.bashrc >/dev/null;
-        ${{ inputs.content == 'true' }} && echo -e "\nLINUXINCLUDE: ${LINUXINCLUDE// /}" | tr ' ' '\n' && echo -e "\nUSERINCLUDE: ${USERINCLUDE// /}" | tr ' ' '\n'
+        ${{ inputs.content == 'true' }} && echo -e "\nLINUXINCLUDE: ${LINUXINCLUDE//$'\n'/ }" | tr ' ' '\n' && echo -e "\nUSERINCLUDE: ${USERINCLUDE//$'\n'/ }" | tr ' ' '\n'
         config=$(find "${{ env.base }}" -type f -path '*/config/*' -name 'kernel.release' | grep . || sudo find "/usr/src" -xdev -type f -name 'kernel.release' -print);
         if [[ "${config}" ]] && ${{ inputs.content == 'true' }}; then
           echo -e "\nLINUXKERNEL RELEASES:\n${config}";
@@ -1095,7 +1095,7 @@ runs:
           done;
         }
         if ${{ inputs.include == 'true' }}; then
-          ${{ inputs.kernel == 'true' }} && export I="${LINUXINCLUDE} ${USERINCLUDE}" || export I="-isystem/usr/src/linux-headers-$(uname -r)/include -I/usr/src/linux-headers-$(uname -r)";
+          ${{ inputs.internal == 'true' }} && export I="${LINUXINCLUDE} ${USERINCLUDE}" || export I="-isystem/usr/src/linux-headers-$(uname -r)/include -I/usr/src/linux-headers-$(uname -r)";
           M="-O1 -ansi -fsyntax-only -fdiagnostics-show-location=once -M -MG -E ${I}";
         else
           M='-O2 -ansi -fsyntax-only -fdiagnostics-show-location=once -MM -E 2>&1';
@@ -1377,12 +1377,7 @@ runs:
           clang_tidy='.clang-tidy';
           clangd_tidy='/home/runner/.local/bin/clangd-tidy';
           clang_includes='check-file-includes.txt';
-          linux_usr_src="/usr/src/linux-headers-generic";
-          if [[ -d "${linux_usr_src}" ]]; then
-            linux_usr_src="/usr/src/linux-headers-generic";
-          else
-            linux_usr_src="/usr/src/linux-headers-$(uname -r)";
-          fi; 
+          linux_usr_src="/usr/src/linux-headers-*/";
           if ${{ env.dirname != '' }}; then
             echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           else
@@ -1453,8 +1448,8 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(find "${linux_usr_src}" -path "*/${{ inputs.dirpath }}/*" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${linux_usr_src}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
-              ${{ inputs.kernel == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'arch' -o -name 'asm' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${{ env.base }}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(sudo find "${linux_usr_src}" -xdev -path "*/${{ inputs.dirpath }}/*" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${linux_usr_src}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'arch' -o -name 'asm' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${{ env.base }}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1736,7 +1731,7 @@ runs:
         CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
         CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
         ${{ inputs.include == 'true' }} && C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
-        ${{ inputs.kernel == 'true' }} && C_INCLUDE_PATH="${LINUXINCLUDE//$'\n'/ } ${USERINCLUDE//$'\n'/ }" && CPLUS_INCLUDE_PATH="${LINUXINCLUDE//$'\n'/ } ${USERINCLUDE//$'\n'/ }";
+        ${{ inputs.internal == 'true' }} && C_INCLUDE_PATH="${LINUXINCLUDE// /} ${USERINCLUDE// /}" && CPLUS_INCLUDE_PATH="${LINUXINCLUDE// /} ${USERINCLUDE// /}";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
@@ -1940,10 +1935,17 @@ runs:
         fi;
         mkdir -p build/cppcheck
         build_dir='build/cppcheck';
-        ${{ inputs.include == 'true' }} && export C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
-        include_path="/usr/src/linux-headers-$(uname -r)/include";
-        if ${{ inputs.kernel == 'true' }}; then
-          include_path="${LINUXINCLUDE//$'\n'/ } ${LINUXINCLUDE//$'\n'/ }";
+        ${{ inputs.include == 'true' }} && export C_INCLUDE_PATH="/usr/local/include:$(echo /usr/src/linux-headers-*/include | tr ' ' ':')${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:$(echo /usr/src/linux-headers-*/include | tr ' ' ':')${CPLUS_INCLUDE_PATH}"
+        if ${{ inputs.internal == 'true' }}; then
+          include_path="${LINUXINCLUDE// /} ${LINUXINCLUDE// /}";
+          LINUXINCLUDE="${LINUXINCLUDE// /}";
+          LINUXINCLUDE="${LINUXINCLUDE//$'-I'/:}";
+          LINUXINCLUDE="${LINUXINCLUDE#:}";
+          USERINCLUDE="${USERINCLUDE// /}";
+          USERINCLUDE="${USERINCLUDE//$'-I'/:}";
+          USERINCLUDE="${USERINCLUDE#:}";
+          export C_INCLUDE_PATH="${LINUXINCLUDE}${USERINCLUDE}:${C_INCLUDE_PATH}";
+          export CPLUS_INCLUDE_PATH="${LINUXINCLUDE}${USERINCLUDE}:${CPLUS_INCLUDE_PATH}";
         fi;
         if ${{ inputs.absolute == 'true' }}; then
           path='--absolute-path';
@@ -2039,7 +2041,7 @@ runs:
                   fi;
                   echo -e "\n\n####################\nCLANG-TIDY FIX FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
-                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nSTORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
                     echo -e "\n####################\nSTORING FOUND ERRORS TO REPAIR\n####################" | process_input;
@@ -2055,7 +2057,7 @@ runs:
                     g++ -MM "${file}" | process_input || error1="$?";
                   fi;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
-                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
                     echo -e "\n####################\nCHECK-FILE FOUND ERRORS TO REPAIR\n####################" | process_input;
@@ -2094,7 +2096,7 @@ runs:
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
-                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nSTORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
                     echo -e "\n####################\nSTORING FOUND ERRORS TO REPAIR\n####################" | process_input;
@@ -2105,7 +2107,7 @@ runs:
                 elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
-                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
                     echo -e "\n####################\nCHECK-FILE FOUND ERRORS TO REPAIR\n####################" | process_input;
@@ -2116,8 +2118,11 @@ runs:
               else
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER: ( ${count1} )\n####################\n" | process_input;
                 cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingIncludeSystem --cppcheck-build-dir="${build_dir}" "${file}" 2>&1 | process_input || error="$?";
-                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                elif [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*Include file:" "${error_log}") ]]; then
+                  echo -e "\n####################\nCHECK-FILE INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
+                  echo 'include_missing=true' >> "${GITHUB_ENV}";
                 else
                   echo -e "\n####################\nCHECK-FILE FOUND ERRORS\n####################" | process_input;
                   errors=true
@@ -2127,7 +2132,7 @@ runs:
             if ${{ inputs.recheck == 'true' }} && ${{ inputs.repair == 'true' }}; then
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE ( ${count1} )\n####################\n" | process_input;
               cppcheck -j "$(nproc)" --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --quiet "${file}" 2>&1 | process_input || error="$?";
-              if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+              if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                 echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
               else
                 echo -e "\n####################\nRECHECK-FILE FOUND ERRORS TO REPAIR\n####################" | process_input;
@@ -2857,7 +2862,7 @@ runs:
             declare -A missing
             found=false
             while IFS= read -r missing_file; do
-              if [[ "$missing_file" == *.h || "$missing_file" == *.hh || "$missing_file" == *.hpp || "$missing_file" == *.hxx || "$missing_file" == *.h++ ]]; then
+              if [[ "$missing_file" == *.h || "$missing_file" == *.hh || "$missing_file" == *.hpp || "$missing_file" == *.hxx || "$missing_file" == *.h++ ]] || [[ "$missing_file" == *.c || "$missing_file" == *.cc || "$missing_file" == *.cpp || "$missing_file" == *.cxx || "$missing_file" == *.c++ ]]; then
                 file_count=$((file_count + 1));
                 echo "Locating missing ${missing_file} file ...." | process_input;
                 path1="${missing_file//\'/}";
@@ -2897,7 +2902,7 @@ runs:
             missing=();
             [[ -n "${clang_files_list2}" ]] && echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: /usr/src/linux-headers-$(uname -r)/include\n####################\n" | process_input;
             while IFS= read -r missing_file; do
-              if [[ "$missing_file" == *.h || "$missing_file" == *.hh || "$missing_file" == *.hpp || "$missing_file" == *.hxx || "$missing_file" == *.h++ ]]; then
+              if [[ "$missing_file" == *.h || "$missing_file" == *.hh || "$missing_file" == *.hpp || "$missing_file" == *.hxx || "$missing_file" == *.h++ ]] || [[ "$missing_file" == *.c || "$missing_file" == *.cc || "$missing_file" == *.cpp || "$missing_file" == *.cxx || "$missing_file" == *.c++ ]]; then
                 file_count=$((file_count + 1));
                 echo "Locating missing ${missing_file} file ...." | process_input;
                 path1="${missing_file//\'/}";
@@ -2979,27 +2984,27 @@ runs:
         if [[ -s "${filename1}" ]]; then
           filesize1=$(stat -c%s "${filename1}");
           ansi2txt "${filename1}" > "${filename1}.tmp";
-          mv -vf "${filename1}.tmp" "${filename1}" && echo -e "\nFile: ${{ env.github_repository }} [ansi2txt] cleaned";
+          mv -vf "${filename1}.tmp" "${filename1}" && echo -e "\nFile: ${{ env.github_repository }} [ansi2txt] cleaned\n";
           if (( filesize1 > min_size_bytes )); then
-            split -d -C 10M "${filename1}" 'part_' && echo -e "\nFile: ${{ env.github_repository }} [split] completed";
+            split -d -C 10M "${filename1}" 'part_' && echo -e "File: ${{ env.github_repository }} [split] completed\n";
             echo "file1_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename2}" ]]; then
           filesize2=$(stat -c%s "${filename2}");
           ansi2txt "${filename2}" > "${filename2}.tmp";
-          mv -vf "${filename2}.tmp" "${filename2}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned";
+          mv -vf "${filename2}.tmp" "${filename2}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned\n";
           if (( filesize2 > min_size_bytes )); then
-            split -d -C 10M "${filename2}" 'part_' && echo -e "\nFile: ${{ env.filename }} [split] completed";
+            split -d -C 10M "${filename2}" 'part_' && echo -e "File: ${{ env.filename }} [split] completed\n";
             echo "file2_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename3}" ]]; then
           filesize3=$(stat -c%s "${filename3}");
           ansi2txt "${filename3}" > "${filename3}.tmp";
-          mv -vf "${filename3}.tmp" "${filename3}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned";
+          mv -vf "${filename3}.tmp" "${filename3}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned\n";
           if (( filesize3 > min_size_bytes )); then
-            split -d -C 10M "${filename3}" 'part_' && echo -e "\nFile: ${{ env.filename }} [split] completed";
+            split -d -C 10M "${filename3}" 'part_' && echo -e "File: ${{ env.filename }} [split] completed\n";
             echo "file3_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
