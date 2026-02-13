@@ -311,6 +311,7 @@ runs:
        echo 'build_cache=false' >> "${GITHUB_ENV}";
        echo 'check_build=false' >> "${GITHUB_ENV}";
        echo 'database=database' >> "${GITHUB_ENV}";
+       echo 'include_missing=true' >> "${GITHUB_ENV}";
        echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
        echo "dirname=${{ inputs.dirname }}" >> "${GITHUB_ENV}";
        echo 'export ALLOW_MISSING_DEPENDENCIES=true' | sudo tee -a ~/.bashrc >/dev/null;
@@ -2073,6 +2074,9 @@ runs:
                 fi;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                elif [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*Include file:" "${error_log}") ]]; then
+                  echo -e "\n####################\nCHECK-FILE INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
+                  echo 'include_missing=true' >> "${GITHUB_ENV}";
                 else
                   echo -e "\n####################\nCHECK-FILE FOUND ERRORS\n####################" | process_input;
                   errors=true
@@ -2812,9 +2816,14 @@ runs:
           codechecker_errors=$(grep -sFc 'Error while processing' "${log_file}");
           clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" | grep -vc '[\[\]]');
           clang_information=$(grep -siFc 'information:' "${log_file}");
-          clang_files_missing=$(grep -sEc 'file not found|#include' "${log_file}");
-          clang_files_list1=$(grep -sEo '#include[[:space:]]+["].*["]' "${log_file}" | awk '{ print $2 }' | tr -d '"' | sort -u);
-          clang_files_list2=$(grep -sEo '#include[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
+          clang_files_missing=$(grep -sEc 'file not found|Include file' "${log_file}");
+          if ${{ env.include_missing == 'true' }}; then
+            clang_files_list1=$(grep -sEo 'Include file:[[:space:]]+["].*["]' "${log_file}" | awk '{ print $2 }' | tr -d '"' | sort -u);
+            clang_files_list2=$(grep -sEo 'Include file:[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
+          else
+            clang_files_list1=$(grep -sEo '#include[[:space:]]+["].*["]' "${log_file}" | awk '{ print $2 }' | tr -d '"' | sort -u);
+            clang_files_list2=$(grep -sEo '#include[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
+          fi;
           clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
           clang_error1=$(grep -sEo '[1-9] errors generated|1 error generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
           clang_error2=$(grep -siEc 'error:|#error' "${log_file}");
@@ -2880,6 +2889,7 @@ runs:
             found=false
             while IFS= read -r missing_file; do
               if [[ "${missing_file}" == *.[h]* ]] || [[ "${missing_file}" == *.[c]* ]]; then
+                shopt -s extglob
                 file_count=$((file_count + 1));
                 echo "Locating missing ${missing_file} file ...." | process_input;
                 path1="${missing_file//\'/}";
@@ -2892,13 +2902,13 @@ runs:
                 file3="${file2%'\n'}";
                 file4="${file3%\\}";
                 clean_file="${clean_file##*/}";
-                shopt -s extglob
-                if [[ ${missing_file} == *"/"* ]]; then          
-                  locate=$(fdfind -p -c auto "${abs}" -t f -g "**/${clean_path##+(*./)}" "${{ env.base }}");
-                else
-                  locate=$(fdfind -p -c auto "${abs}" -t f "${clean_file##+(*./)}" "${{ env.base }}");
-                fi;
                 shopt -u extglob
+                if [[ ${missing_file} == *"/"* ]]; then          
+                  locate=$(fdfind -p "${abs}" -t f -g "**/${clean_path##+(*./)}" "${{ env.base }}");
+                else
+                  locate=$(fdfind -p "${abs}" -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                fi;
+                
                 if [[ "${locate}" ]]; then            
                   while IFS= read -r includes; do
                     located_count=$((located_count + 1));
@@ -2921,6 +2931,7 @@ runs:
             [[ -n "${clang_files_list2}" ]] && echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: /usr/src/linux-headers-$(uname -r)/include\n####################\n" | process_input;
             while IFS= read -r missing_file; do
               if [[ "${missing_file}" == *.[h]* ]] || [[ "${missing_file}" == *.[c]* ]]; then
+                shopt -s extglob
                 file_count=$((file_count + 1));
                 echo "Locating missing ${missing_file} file ...." | process_input;
                 path1="${missing_file//\'/}";
@@ -2933,13 +2944,12 @@ runs:
                 file3="${file2%'\n'}";
                 file4="${file3%\\}";
                 clean_file="${clean_file##*/}";
-                shopt -s extglob
-                if [[ ${missing_file} == *"/"* ]]; then
-                  locate=$(fdfind -c auto "${abs}" -p -t f -g "**/${clean_path##+(*./)}" "${{ env.base }}");
-                else
-                  locate=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
-                fi;
                 shopt -u extglob
+                if [[ ${missing_file} == *"/"* ]]; then
+                  locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path##+(*./)}" "${{ env.base }}");
+                else
+                  locate=$(fdfind "${abs}" -p -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                fi;
                 if [[ "${locate}" ]]; then            
                   while IFS= read -r includes; do
                     located_count=$((located_count + 1));
