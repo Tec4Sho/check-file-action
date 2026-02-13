@@ -54,6 +54,7 @@ get_distribution_url() {
         llvm_arm_path="/usr/lib/LLVM-ET-Arm-${version}/bin";
     fi;
     echo "${BASE_URL}/${filename}";
+    export filename llvm_arm_path version
 }
 
 # Logic for getSHA256
@@ -65,8 +66,8 @@ get_sha256() {
 
 llvm_arm_install() {
     tmp_file="$(mktemp)";
-    sudo wget -qO "llvm-embedded-toolchain-for-arm-${RELEASE}.${ext}" "$2/${filename}" >/dev/null;
-    sudo tar xf "llvm-embedded-toolchain-for-arm-${RELEASE}.${ext}" -C "$llvm_arm_path" "llvm-${RELEASE%%.*}" >/dev/null && rm -vrf "llvm-embedded-toolchain-for-arm-${RELEASE}.${ext}";
+    sudo wget -qO "llvm-embedded-toolchain-for-arm-${version}.${ext}" "$2/${filename}" >/dev/null;
+    sudo tar xf "llvm-embedded-toolchain-for-arm-${version}.${ext}" -C "$llvm_arm_path" "llvm-${version}" >/dev/null && rm -vrf "llvm-embedded-toolchain-for-arm-${version}.${ext}";
     sudo chown -R "${USER}:${USER}" "$llvm_arm_path";
     echo "$llvm_arm_path" >> "${tmp_file}";
     cat "${GITHUB_PATH}" >>"${tmp_file}";
@@ -111,7 +112,7 @@ fi;
 if has_sha256 "$RELEASE"; then
     echo "URL: $(get_distribution_url $RELEASE $PLATFORM)";
     echo -e "SHA256: $(get_sha256 $RELEASE $PLATFORM)\n";
-    echo -e "INSTALLING: $(llvm_arm_install $RELEASE $BASE_URL)\n";
+    echo -e "INSTALLING: $(llvm_arm_install $RELEASE $BASE_URL $llvm_arm_path)\n";
 else
     echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm.\n";
 fi;
