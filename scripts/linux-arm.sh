@@ -76,7 +76,7 @@ llvm_arm_install() {
     PATH="${LLVM_ARM_PATH}/bin:${PATH}";  
     export LLVM_ARM_PATH PATH 
     # 3. Find Clang Path (Equivalent to setup.findClang)
-    if [[ ! -d "$CLANG_PATH" ]]; then
+    if [[ ! -d "$LLVM_ARM_PATH" ]]; then
         echo "Error: Could not find clang executable" >&2
         exit 1
     fi;
