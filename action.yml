@@ -2735,7 +2735,7 @@ runs:
         else
           log_file="${project_log}";
         fi;
-        source_include_list='check-file-compile.txt';
+        source_include_list='check-file-includes.txt';
         check_build=false
         file_type='c';
         update=true
@@ -2786,8 +2786,8 @@ runs:
           clang_information=$(grep -siFc 'information:' "${log_file}");
           clang_files_missing=$(grep -sEc 'file not found|Include file' "${log_file}");
           if ${{ env.include_missing == 'true' }}; then
-            clang_files_list1=$(grep -sEo 'Include file:[[:space:]]+["].*["]' "${log_file}" | awk '{ print $2 }' | tr -d '"' | sort -u);
-            clang_files_list2=$(grep -sEo 'Include file:[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
+            clang_files_list1=$(grep -sEo 'Include file:[[:space:]]+["].*["]' "${log_file}" | awk '{ print $3 }' | tr -d '"' | sort -u);
+            clang_files_list2=$(grep -sEo 'Include file:[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $3 }' | tr -d '<>' | sort -u);
           else
             clang_files_list1=$(grep -sEo '#include[[:space:]]+["].*["]' "${log_file}" | awk '{ print $2 }' | tr -d '"' | sort -u);
             clang_files_list2=$(grep -sEo '#include[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
@@ -2937,12 +2937,10 @@ runs:
               fi;             
             done <<< "${clang_files_list2}";
             unset missing;
-            if [[ -s 'check-file-includes.txt' ]]; then
-              gawk -v ext="${filetype}" '$0 ~ "\\."ext"$" || $0 ~ "\\.(h|hh|hpp|hxx|h\\+\\+)$" { sub(/\/$/, ""); print; }' 'check-file-includes.txt' > 'check-file-includes-tmp.txt';
-              gawk '!seen[$0]++' 'check-file-includes-tmp.txt' > 'check-file-includes.txt' && cp -f 'check-file-includes.txt' 'build/check-file-includes.txt' && echo -e "\n::notice::✅ check-file located ${located_count} files. ${missing_count} missing out of ${file_count} total!!!\n\nDuplicate paths removed from check-file-includes.txt\nFound include directories added to build/check-file-includes.txt\nTo get the file set option ( upload: true )\nRetrive file from artifacts zip download\nThen add it to your repository root before re-check!!!\n\nYou can also set ( cache: true )\nFeature caches local project current state\nThis will store the missing files found list during auto detect mode\nWhich will auto update included directories for checking during next re-check!!!" | process_input && found=true;
+            if [[ -s "${source_include_list}" ]]; then
+              gawk '{ for (i=1;i<=NF;i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print $i; } } }' "${log_file}" | gawk '{ for (i=1;i<=NF;i++) print $i; }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "\.\..*\.${filetype}$" | gawk -v ext="${filetype}" '$0 ~ "."ext"$" { if (seen[$0]++) next; print; next; } { print; }' | gawk -v ext="${filetype}" '$0 ~ "\\."ext { delete seen; print; next; } !seen[$0]++' > "${source_include_list}" || echo "::notice::File ${source_include_list##*/} was not created!!!" | process_input;
+              [[ -s "${source_include_list}" ]] && cp -f "${source_include_list}" 'build/' && echo -e "\n\033[32mCopied ${source_include_list} to build for uploading if needed.\033[0m ✅" | process_input;
             fi;
-            gawk '{ for (i=1;i<=NF;i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print $i; } } }' "${project_log}" | gawk '{ for (i=1;i<=NF;i++) print $i; }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "\.\..*\.${filetype}$" | gawk -v ext="${filetype}" '$0 ~ "."ext"$" { if (seen[$0]++) next; print; next; } { print; }' | gawk -v ext="${filetype}" '$0 ~ "\\."ext { delete seen; print; next; } !seen[$0]++' > "${source_include_list}" || echo "::notice::File ${source_include_list##*/} was not created!!!" | process_input;
-            [[ -f "${source_include_list}" ]] && cp "${source_include_list}" 'build/' && echo -e "\n\033[32mCopied ${} to build for uploading if needed.\033[0m ✅" | process_input;
           fi;
           if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
