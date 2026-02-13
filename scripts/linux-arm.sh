@@ -113,7 +113,7 @@ fi;
 if has_sha256 "$RELEASE"; then
     echo "URL: $(get_distribution_url $RELEASE $PLATFORM)";
     echo -e "SHA256: $(get_sha256 $RELEASE $PLATFORM)\n";
-    echo -e "INSTALLING: $(llvm_install $RELEASE $BASE_URL)\n";
+    echo -e "INSTALLING: $(llvm_arm_install $RELEASE $BASE_URL)\n";
 else
     echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm.\n";
 fi;
