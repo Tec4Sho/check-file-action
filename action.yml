@@ -2069,7 +2069,7 @@ runs:
                 else
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
                 fi;
-                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file}.*error:" "${error_log}") ]]; then
+                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                 else
                   echo -e "\n####################\nCHECK-FILE FOUND ERRORS\n####################" | process_input;
@@ -2810,12 +2810,12 @@ runs:
           codechecker_errors=$(grep -sFc 'Error while processing' "${log_file}");
           clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" | grep -vc '[\[\]]');
           clang_information=$(grep -siFc 'information:' "${log_file}");
-          clang_files_missing=$(grep -sFc 'file not found' "${log_file}");
+          clang_files_missing=$(grep -sEc 'file not found|#include' "${log_file}");
           clang_files_list1=$(grep -sEo '#include[[:space:]]+["].*["]' "${log_file}" | awk '{ print $2 }' | tr -d '"' | sort -u);
           clang_files_list2=$(grep -sEo '#include[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
           clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
           clang_error1=$(grep -sEo '[1-9] errors generated|1 error generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
-          clang_error2=$(grep -siFc 'error:' "${log_file}");
+          clang_error2=$(grep -siEc 'error:|#error' "${log_file}");
           clang_failed=$(grep -siFc 'failed:' "${log_file}");
           clang_fixit1=$(grep -siEc 'fixit|fix-its' "${log_file}");
           clang_fixit2=$(grep -siF 'clang-tidy applied' "${log_file}");
@@ -2823,7 +2823,7 @@ runs:
           located_count=0
           missing_count=0
           file_count=0
-          filetype="${{ inputs.filetype }}";
+          filetype="${{ env.filename }}";
           if [[ -n "${clang_information}" ]] && [[ "${clang_information:-0}" > '0' ]] && ${{ inputs.analyzer == '3' }}; then
             echo -e "\n####################\n::notice::⚠️ check-file added ${clang_information}️ information notes on ${file_type} files checked. [Hints] Information addresses key issues that may have error fixes available.\n####################" | process_input;
           fi;
