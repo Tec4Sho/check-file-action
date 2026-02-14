@@ -2,13 +2,8 @@
 
 set +e
 
-# Logic for hasSHA256
-has_sha256() {
-    [[ "$1" != "13.0.0" && "$1" != "14.0.0" ]]
-}
-
 # Logic for distributionUrl
-get_distribution_url() {
+llvm_arm_install() {
     local version=$1
     local platform=$2 # Expected: linux, darwin, or win32
     local os_name="";
@@ -54,31 +49,11 @@ get_distribution_url() {
         filename="release-$version/LLVM-ET-Arm-$version-$os_name.$ext";
         llvm_arm_path="/usr/lib/LLVM-ET-Arm-${version}/bin";
     fi;
+    export filename="$filename" basename="$basename" llvm_arm_path="$llvm_arm_path" ext="$ext";
     sudo mkdir -p "$llvm_arm_path";
     echo "${download}/${filename}";
-    export filename="$filename" basename="$basename" llvm_arm_path="$llvm_arm_path" ext="$ext";
-}
-
-# Logic for getSHA256
-get_sha256() {
-    local url=$(get_distribution_url "$1" "$2")
-    # Fetch content, follow redirects (-L), and get the first word
-    curl -sL "${url}.sha256" | awk '{print $1}'
-}
-
-llvm_arm_install() {
-    version=$1
-    platform=$2
-    download=$3
-    user=$4
-    arch=$5 
     tmp_file="$(mktemp)";  
-    if [[ $(get_distribution_url "$version" "$platform") ]]; then     
-      ext="$ext";
-      base_url="$base_url";
-      basename="$basename";
-      filename="$filename";
-      llvm_arm_path="$llvm_arm_path";      
+    if [[ -d "${llvm_arm_path}" ]]; then           
       sudo wget -qO "llvm-embedded-toolchain-for-arm-$version.$ext" "$download/$filename" >/dev/null;
       sudo tar -xJvf "llvm-embedded-toolchain-for-arm-$version.$ext" -C "$llvm_arm_path" >/dev/null && rm -rf "llvm-embedded-toolchain-for-arm-$version.$ext";
     else
@@ -134,10 +109,4 @@ fi;
 if [[ "${version}" == '' ]]; then
      version='19.1.1';
 fi;
-if has_sha256 "$version"; then
-    echo -e "URL: $(get_distribution_url $version $platform)\n";
-    echo -e "INSTALLING: $(llvm_arm_install $version $platform $download $user $arch)\n";
-    echo -e "SHA256: $(get_sha256 $version $platform)\n";
-else
-    echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm.\n";
-fi;
+echo -e "\nINSTALLING: $(llvm_arm_install $version $platform $download $user $arch)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm.\n";
