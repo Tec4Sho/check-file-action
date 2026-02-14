@@ -77,8 +77,6 @@ llvm_arm_install() {
     fi;
     # 4. Resolve Toolchain Path (Parent directory of /bin)
     LLVM_ARM_TOOLCHAIN="${LLVM_ARM_PATH%/*}";
-    # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
-    echo "Added $LLVM_ARM_PATH to PATH";
     # GitHub Actions Outputs (only if running in GH Actions)
     if [[ -n "$LLVM_PATH" ]]; then
         echo "export LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
@@ -95,11 +93,13 @@ llvm_arm_install() {
         echo "LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" >> "${GITHUB_ENV}";
         echo "export LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
     fi;
+    # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-    echo -e "\nLLVM-${version%%.*}: ${LLVM_ARM_PATH}";
-    echo -e "Clang-${version%%.*}: ${clang_exe1:-clang_exe2}";
-    echo -e "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
-    echo -e "LLVM-embedded-toolchain-for-arm-${version} setup completed.";
+    echo "Added $LLVM_ARM_PATH to PATH";
+    echo "LLVM-${version%%.*}: ${LLVM_ARM_PATH}";
+    echo "Clang-${version%%.*}: ${clang_exe1:-clang_exe2}";
+    echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
+    echo "LLVM-embedded-toolchain-for-arm-${version} setup completed.";
 }
 
 # --- Example Usage ---
