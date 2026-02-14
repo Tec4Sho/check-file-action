@@ -2872,7 +2872,7 @@ runs:
             while IFS= read -r missing_file; do
               if [[ "${missing_file}" == *.[ch]* ]]; then
                 file_count=$((file_count + 1));
-                echo -e "\n#################### Locating missing \033[1m${missing_file}\033[0m file ( ${file_count} )####################" | process_input;
+                echo -e "\n#################### Locating missing \033[1m${missing_file}\033[0m file ( ${file_count} ) ####################" | process_input;
                 path1="${missing_file//\'/}";
                 path2="${path1##[:]*}";
                 path3="${path2%'\n'}";
@@ -2912,7 +2912,7 @@ runs:
             while IFS= read -r missing_file; do
               if [[ "${missing_file}" == *.[ch]* ]]; then 
                 file_count=$((file_count + 1));
-                echo -e "\n#################### Locating missing \033[1m${missing_file}\033[0m file ( ${file_count} )####################" | process_input;
+                echo -e "\n#################### Locating missing \033[1m${missing_file}\033[0m file ( ${file_count} ) ####################" | process_input;
                 path1="${missing_file//\'/}";
                 path2="${path1##[:]*}";
                 path3="${path2%'\n'}";
