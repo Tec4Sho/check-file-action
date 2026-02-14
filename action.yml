@@ -518,7 +518,7 @@ runs:
           [[ ! $(which rg) ]] && exit 1
         fi;
         if ${{ inputs.report == 'true' }} && [[ ! $(which ansi2txt) ]]; then
-          sudo aptitude -yq install ansi2txt 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text2}" || sudo apt-get -yq install ansi2txt 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text2}" || echo -e '::warning::No colorized-logs installed for log report';
+          python3 -m pip install ansi2txt >/dev/null && echo -e "${text2}" || sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text2}" || echo -e '::warning::No colorized-logs installed for log report';
           [[ ! $(which ansi2txt) ]] && echo -e '::warning::No ansi2txt installed for cleaning log report';
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ ! $(which cppcheck) ]]; then
@@ -3000,8 +3000,8 @@ runs:
         fi;
         if [[ -s "${filename2}" ]]; then
           filesize2=$(stat -c%s "${filename2}");
-          ansi2txt "${filename2}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
-          mv -vf "${filename0}" "${filename2}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned\n";
+          sed -r "s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g" "${filename2}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
+          mv -vf "${filename0}" "${filename2}" && echo -e "\nFile: ${{ env.filename }} [colors] cleaned\n";
           if (( filesize2 > min_size_bytes )); then
             split -d -C 10M "${filename2}" 'part_' && echo -e "File: ${{ env.filename }} [split] completed\n" && echo "file2_parted=1" >> "${GITHUB_ENV}";
           fi;
