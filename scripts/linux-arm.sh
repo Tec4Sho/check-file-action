@@ -12,6 +12,7 @@ llvm_arm_install() {
     local download=$3
     local user=$4
     local arch=$5
+    local llvm=$6
     # Determine OS Name mapping
     if [[ "$version" == "13.0.0" || "$version" == "14.0.0" ]]; then
         case "$platform" in
@@ -42,34 +43,31 @@ llvm_arm_install() {
     fi;
     # Determine Filename Structure
     if [[ "$version" < "18.0.0" ]]; then
-        basename="LLVMEmbeddedToolchainForArm-$version-$os_name";
         filename="release-$version/LLVMEmbeddedToolchainForArm-$version-$os_name.$ext";
-        llvm_arm_path="/usr/lib/LLVMEmbeddedToolchainForArm-${version%%.*}";
     else
-        basename="LLVM-ET-Arm-$version-$os_name";
         filename="release-$version/LLVM-ET-Arm-$version-$os_name.$ext";
-        llvm_arm_path="/usr/lib/LLVM-ET-Arm-${version%%.*}";
     fi;
-    export filename="$filename" basename="$basename" llvm_arm_path="$llvm_arm_path" ext="$ext";
-    sudo mkdir -p "$llvm_arm_path/bin";
+    llvm_arm_path="/usr/lib/llvm-arm-${version%%.*}/bin";
+    export filename="$filename" llvm_arm_path="$llvm_arm_path" ext="$ext";
+    sudo mkdir -p "$llvm_arm_path";
     tmp_file="$(mktemp)";  
     if [[ -d "${llvm_arm_path}" ]]; then
       echo "Downloading: ${download}/${filename}";         
       sudo wget -qO "llvm-embedded-toolchain-for-arm-$version.$ext" "$download/$filename" >/dev/null;
-      sudo tar -xJvf "llvm-embedded-toolchain-for-arm-$version.$ext" -C "$llvm_arm_path" --strip-components=1 >/dev/null && rm -rf "llvm-embedded-toolchain-for-arm-$version.$ext";
+      sudo tar -xJvf "llvm-embedded-toolchain-for-arm-$version.$ext" -C "${llvm_arm_path%/*}" --strip-components=1 >/dev/null && rm -rf "llvm-embedded-toolchain-for-arm-$version.$ext";
     else
       echo "Error: Could not download llvm-embedded-toolchain-for-arm-$version" >&2
       exit 2
     fi;
     sudo chmod -R 0755 "$llvm_arm_path";
-    echo "$llvm_arm_path/bin" >> "${tmp_file}";
+    echo "$llvm_arm_path" >> "${tmp_file}";
     cat "${GITHUB_PATH}" >> "${tmp_file}";
     cat "${tmp_file}" > "${GITHUB_PATH}";
     rm -f -- "${tmp_file}";
-    LLVM_ARM_PATH="$llvm_arm_path/bin";
+    LLVM_ARM_PATH="$llvm_arm_path";
     local PATH="${LLVM_ARM_PATH}:${PATH}";  
     # 3. Find Clang Path (Equivalent to setup.findClang)
-    clang_exe1=$(sudo find "$llvm_arm_path" -xdev -type f -name "clang-${version%%.*}" -print);
+    clang_exe1=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -name "clang-${version%%.*}" -print);
     clang_exe2="${LLVM_ARM_PATH}/clang-${version%%.*}";
     if [[ ! -x "${clang_exe1}" ]] || [[ ! -x "${clang_exe2}" ]]; then
         echo "Error: Could not find clang-$version executable path" >&2
@@ -99,6 +97,29 @@ llvm_arm_install() {
         echo "LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" >> "${GITHUB_ENV}";
         echo "export LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
     fi;
+    SOURCE_DIR="${llvm_arm_path}":
+    TARGET_DIR="/usr/bin";     
+    # Ensure the source directory exists
+    if [[ ! -d "$SOURCE_DIR" ]]; then
+        echo "Source directory $SOURCE_DIR does not exist."
+        exit 1
+    fi;
+    # Iterate over all files in the source directory
+    for file in "$SOURCE_DIR"/*; do
+          filename=$(basename "$file");
+          target_path="$TARGET_DIR/$filename";
+          # Check if a file with the same name already exists in the target directory
+          if [[ -L "$target_path" ]]; then
+              echo "Skipping $filename: already exists is a link in $TARGET_DIR"
+          else
+          # Create a symbolic link using an absolute path for reliability
+              sudo ln -sf "$file" "$target_path" && echo "Created symlink for $filename";
+          fi;
+    done;
+    sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${version%%.*} 190
+    sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${version%%.*} 190
+    sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${llvm%%.*} 210
+    sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${llvm%%.*} 210
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     echo "clang-${version%%.*}: ${clang_exe1:-clang_exe2}";
@@ -111,6 +132,7 @@ llvm_arm_install() {
 download='https://github.com/ARM-software/LLVM-embedded-toolchain-for-Arm/releases/download';
 platform="linux";
 version="${LLVM_ARM_VERSION}";
+llvm="${LLVM_VERSION}";
 user="${USER:-runner}";
 arch=$(uname -m);
 export platform version user arch download
@@ -120,4 +142,4 @@ fi;
 if [[ "${version}" == '' ]]; then
      version='19.1.1';
 fi;
-echo -e "Installing llvm-arm-$version: $(llvm_arm_install $version $platform $download $user $arch)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
+echo -e "Installing llvm-arm-$version: $(llvm_arm_install $version $platform $download $user $arch $llvm)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
