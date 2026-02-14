@@ -13,8 +13,9 @@ get_distribution_url() {
     local platform=$2 # Expected: linux, darwin, or win32
     local os_name="";
     local ext="";
-    local base_url=$3;
-    
+    local download=$3
+    local user=$4
+    local arch=$5
     # Determine OS Name mapping
     if [[ "$version" == "13.0.0" || "$version" == "14.0.0" ]]; then
         case "$platform" in
@@ -72,7 +73,7 @@ llvm_arm_install() {
     user=$4
     arch=$5 
     tmp_file="$(mktemp)";  
-    if get_distribution_url "$version" "$platform"; then     
+    if [[ $(get_distribution_url "$version" "$platform") ]]; then     
       ext="$ext";
       base_url="$base_url";
       basename="$basename";
@@ -135,7 +136,7 @@ if [[ "${version}" == '' ]]; then
 fi;
 if has_sha256 "$version"; then
     echo -e "URL: $(get_distribution_url $version $platform)\n";
-    echo -e "INSTALLING:\n $(llvm_arm_install $version $platform $download $user $arch)\n";
+    echo -e "INSTALLING: $(llvm_arm_install $version $platform $download $user $arch)\n";
     echo -e "SHA256: $(get_sha256 $version $platform)\n";
 else
     echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm.\n";
