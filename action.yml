@@ -302,6 +302,8 @@ runs:
        fi;
        echo 'include_count=0' >> "${GITHUB_ENV}";
        echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
+       echo 'includes=false' >> "${GITHUB_ENV}";
+       echo "include=${{ inputs.include }}" >> "${GITHUB_ENV}";
        echo 'sources=false' >> "${GITHUB_ENV}";
        echo 'file_fixed=0' >> "${GITHUB_ENV}";
        echo 'file_found=0' >> "${GITHUB_ENV}";
