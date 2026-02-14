@@ -327,8 +327,6 @@ runs:
        echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
        sudo mkdir -p /usr/local/bin /usr/local/lib/android/sdk
        sudo chmod -R 0755 "${{ github.action_path }}/scripts";
-       sudo chown -R "${USER}:${USER}" /usr/local/bin /usr/local/lib/android;
-       sudo chown -R "${USER}:${USER}" "${{ github.action_path }}/scripts";
        [[ $(which clang-tidy-18) ]] && sudo apt-get remove -yq clang-tidy-18 >/dev/null;
        [[ $(which clang-18) ]] && sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
       shell: bash
@@ -340,10 +338,11 @@ runs:
         set -a
         source ~/.bashrc
         USER="${USER}";
-        export USER
         if [[ -x "${{ github.action_path }}/scripts/linux.sh" ]]; then
           bash -c "${{ github.action_path }}/scripts/linux.sh";
           if ${{ inputs.project == 'true' }} && ${{ inputs.internal == 'true' }} && ${{ inputs.arch == 'arm' }}; then
+            LLVM_VERSION="${{ inputs.version }}";
+            export USER LLVM_VERSION
             bash -c "${{ github.action_path }}/scripts/linux-arm.sh";
           fi;
         fi;
