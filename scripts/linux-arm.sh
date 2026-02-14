@@ -41,11 +41,11 @@ llvm_arm_install() {
     fi;
     # Determine Filename Structure
     if [[ "$version" < "18.0.0" ]]; then
-        basename="LLVMEmbeddedToolchainForArm-$version-$os_name-$arch";
+        basename="LLVMEmbeddedToolchainForArm-$version-$os_name";
         filename="release-$version/LLVMEmbeddedToolchainForArm-$version-$os_name.$ext";
         llvm_arm_path="/usr/lib/LLVMEmbeddedToolchainForArm-${version}/bin";
     else
-        basename="LLVM-ET-Arm-$version-$os_name-$arch";
+        basename="LLVM-ET-Arm-$version-$os_name";
         filename="release-$version/LLVM-ET-Arm-$version-$os_name.$ext";
         llvm_arm_path="/usr/lib/LLVM-ET-Arm-${version}/bin";
     fi;
@@ -69,10 +69,11 @@ llvm_arm_install() {
     LLVM_ARM_PATH="$llvm_arm_path";
     PATH="${LLVM_ARM_PATH}/bin:${PATH}";  
     # 3. Find Clang Path (Equivalent to setup.findClang)
-    clang_exe=$(find "${LLVM_ARM_PATH}" -type f -name "clang-${version%%.*}");
-    if [[ ! -x "${clang_exe}" ]] || [[ ! -f "${clang_exe}" ]]; then
+    clang_exe1=$(sudo find "${LLVM_ARM_PATH}" -xdev -type f -name "clang-${version%%.*}" -print);
+    # 4. Resolve Toolchain Path (Parent directory of /bin)
+    clang_exe2="${LLVM_ARM_PATH}/${basename}/bin/clang-${version%%.*}";
+    if [[ ! -x "${clang_exe1}" ]] || [[ ! -f "${clang_exe2}" ]]; then
         echo "Error: Could not find clang-$version executable path" >&2
-        exit 1
     fi;
     # 4. Resolve Toolchain Path (Parent directory of /bin)
     LLVM_ARM_TOOLCHAIN="${LLVM_ARM_PATH}/${basename}";
@@ -89,10 +90,11 @@ llvm_arm_install() {
         echo "export LLVM_TOOLCHAIN=${LLVM_TOOLCHAIN}:${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
     else
         echo "Error: llvm-$verion toolchain path not found!!!" >&2
+        exit 1
     fi;
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     echo "llvm-${version%%.*}: $LLVM_ARM_PATH";
-    echo "clang-${version%%.*}: ${clang}";
+    echo "clang-${version%%.*}: ${clang_exe}";
     echo -e "Toolchain: $LLVM_ARM_TOOLCHAIN\n";
     echo -e "\nLLVM-embedded-toolchain-for-arm-$version setup completed.";
 }
