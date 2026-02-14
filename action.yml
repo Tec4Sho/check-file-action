@@ -3005,7 +3005,7 @@ runs:
         fi;
         if [[ -s "${filename3}" ]]; then
           filesize3=$(stat -c%s "${filename3}");
-          ansi2txt "${filename3}" > "${filename3}.tmp" && echo "file_found=1" >> "${GITHUB_ENV}";;
+          ansi2txt "${filename3}" > "${filename3}.tmp" && echo "file_found=1" >> "${GITHUB_ENV}";
           mv -vf "${filename3}.tmp" "${filename3}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned\n";
           if (( filesize3 > min_size_bytes )); then
             split -d -C 10M "${filename3}" 'part_' && echo -e "File: ${{ env.filename }} [split] completed\n" && echo "file3_parted=1" >> "${GITHUB_ENV}";
