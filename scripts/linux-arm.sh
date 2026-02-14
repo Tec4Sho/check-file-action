@@ -62,13 +62,12 @@ llvm_arm_install() {
       exit 2
     fi;
     sudo chmod -R 0755 "$llvm_arm_path";
-    sudo chown -R "$user:$user" "$llvm_arm_path";
     echo "$llvm_arm_path/bin" >> "${tmp_file}";
     cat "${GITHUB_PATH}" >> "${tmp_file}";
     cat "${tmp_file}" > "${GITHUB_PATH}";
     rm -f -- "${tmp_file}";
     LLVM_ARM_PATH="$llvm_arm_path/bin";
-    PATH="${LLVM_ARM_PATH}:${PATH}";  
+    local PATH="${LLVM_ARM_PATH}:${PATH}";  
     # 3. Find Clang Path (Equivalent to setup.findClang)
     clang_exe1=$(sudo find "$llvm_arm_path" -xdev -type f -name "clang-${version%%.*}" -print);
     clang_exe2="${LLVM_ARM_PATH}/clang-${version%%.*}";
@@ -76,13 +75,19 @@ llvm_arm_install() {
         echo "Error: Could not find clang-$version executable path" >&2
         exit 2
     fi;
+    if [[ ! $(cat "${GITHUB_PATH}" | grep -sF "$LLVM_ARM_PATH") ]]; then
+        eccho 'Updating github paths ......'
+        echo "LLVM_ARM_PATH=${LLVM_ARM_PATH}" >> "${GITHUB_PATH}";
+    fi;
     # 4. Resolve Toolchain Path (Parent directory of /bin)
     LLVM_ARM_TOOLCHAIN="${LLVM_ARM_PATH%/*}";
     # GitHub Actions Outputs (only if running in GH Actions)
     if [[ -n "$LLVM_PATH" ]]; then
+        echo "Adding $LLVM_ARM_PATH with $LLVM_PATH to PATH";
         echo "export LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" >> "${GITHUB_ENV}";
     else
+        echo "Adding $LLVM_ARM_PATH to PATH";
         echo "export LLVM_PATH=${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "LLVM_PATH=${LLVM_ARM_PATH}" >> "${GITHUB_ENV}";
     fi;
@@ -96,7 +101,6 @@ llvm_arm_install() {
     fi;
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-    echo "Added $LLVM_ARM_PATH to PATH";
     echo "clang-${version%%.*}: ${clang_exe1:-clang_exe2}";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
