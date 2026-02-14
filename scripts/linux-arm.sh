@@ -56,7 +56,7 @@ llvm_arm_install() {
     if [[ -d "${llvm_arm_path}" ]]; then
       echo "Downloading: ${download}/${filename}";         
       sudo wget -qO "llvm-embedded-toolchain-for-arm-$version.$ext" "$download/$filename" >/dev/null;
-      sudo tar -xJvf "llvm-embedded-toolchain-for-arm-$version.$ext" -C "$llvm_arm_path" --strip-components=1 >/dev/null && rm -vrf "llvm-embedded-toolchain-for-arm-$version.$ext";
+      sudo tar -xJvf "llvm-embedded-toolchain-for-arm-$version.$ext" -C "$llvm_arm_path" --strip-components=1 >/dev/null && rm -rf "llvm-embedded-toolchain-for-arm-$version.$ext";
     else
       echo "Error: Could not download llvm-embedded-toolchain-for-arm-$version" >&2
       exit 2
@@ -97,10 +97,9 @@ llvm_arm_install() {
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     echo "Added $LLVM_ARM_PATH to PATH";
-    echo "LLVM-${version%%.*}: ${LLVM_ARM_PATH}";
-    echo "Clang-${version%%.*}: ${clang_exe1:-clang_exe2}";
+    echo "clang-${version%%.*}: ${clang_exe1:-clang_exe2}";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
-    echo "LLVM-embedded-toolchain-for-arm-${version} setup completed.";
+    echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
 }
 
 # --- Example Usage ---
