@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set +e
+source ~/.bashrc
 
 # Logic for distributionUrl
 llvm_arm_install() {
@@ -43,60 +44,62 @@ llvm_arm_install() {
     if [[ "$version" < "18.0.0" ]]; then
         basename="LLVMEmbeddedToolchainForArm-$version-$os_name";
         filename="release-$version/LLVMEmbeddedToolchainForArm-$version-$os_name.$ext";
-        llvm_arm_path="/usr/lib/LLVMEmbeddedToolchainForArm-${version}/bin";
+        llvm_arm_path="/usr/lib/LLVMEmbeddedToolchainForArm-${version}/";
     else
         basename="LLVM-ET-Arm-$version-$os_name";
         filename="release-$version/LLVM-ET-Arm-$version-$os_name.$ext";
-        llvm_arm_path="/usr/lib/LLVM-ET-Arm-${version}/bin";
+        llvm_arm_path="/usr/lib/LLVM-ET-Arm-${version}/";
     fi;
     export filename="$filename" basename="$basename" llvm_arm_path="$llvm_arm_path" ext="$ext";
-    sudo mkdir -p "$llvm_arm_path";
-    echo "${download}/${filename}";
+    sudo mkdir -p "$llvm_arm_path/bin";
     tmp_file="$(mktemp)";  
-    if [[ -d "${llvm_arm_path}" ]]; then           
+    if [[ -d "${llvm_arm_path}" ]]; then
+      echo "Downloading: ${download}/${filename}";         
       sudo wget -qO "llvm-embedded-toolchain-for-arm-$version.$ext" "$download/$filename" >/dev/null;
-      sudo tar -xJvf "llvm-embedded-toolchain-for-arm-$version.$ext" -C "$llvm_arm_path" >/dev/null && rm -vrf "llvm-embedded-toolchain-for-arm-$version.$ext";
+      sudo tar -xJvf "llvm-embedded-toolchain-for-arm-$version.$ext" -C "$llvm_arm_path" --strip-components=1 >/dev/null && rm -vrf "llvm-embedded-toolchain-for-arm-$version.$ext";
     else
       echo "Error: Could not download llvm-embedded-toolchain-for-arm-$version" >&2
       exit 2
     fi;
     sudo chmod -R 0755 "$llvm_arm_path";
     sudo chown -R "$user:$user" "$llvm_arm_path";
-    echo "$llvm_arm_path" >> "${tmp_file}";
+    echo "$llvm_arm_path/bin" >> "${tmp_file}";
     cat "${GITHUB_PATH}" >> "${tmp_file}";
     cat "${tmp_file}" > "${GITHUB_PATH}";
     rm -f -- "${tmp_file}";
-    LLVM_ARM_PATH="$llvm_arm_path";
-    PATH="${LLVM_ARM_PATH}/bin:${PATH}";  
+    LLVM_ARM_PATH="$llvm_arm_path/bin";
+    PATH="${LLVM_ARM_PATH}:${PATH}";  
     # 3. Find Clang Path (Equivalent to setup.findClang)
-    clang_exe1=$(sudo find "${LLVM_ARM_PATH}" -xdev -type f -name "clang-${version%%.*}" -print);
-    # 4. Resolve Toolchain Path (Parent directory of /bin)
-    clang_exe2="${LLVM_ARM_PATH}/${basename}/bin/clang-${version%%.*}";
+    clang_exe1=$(sudo find "$llvm_arm_path" -xdev -type f -name "clang-${version%%.*}" -print);
+    clang_exe2="${LLVM_ARM_PATH}/clang-${version%%.*}";
     if [[ ! -x "${clang_exe1}" ]] || [[ ! -f "${clang_exe2}" ]]; then
         echo "Error: Could not find clang-$version executable path" >&2
     fi;
     # 4. Resolve Toolchain Path (Parent directory of /bin)
-    LLVM_ARM_TOOLCHAIN="${LLVM_ARM_PATH}/${basename}";
+    LLVM_ARM_TOOLCHAIN="${LLVM_ARM_PATH%/*}";
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "Added $LLVM_ARM_PATH to PATH";
     # GitHub Actions Outputs (only if running in GH Actions)
-    if [[ -n "$GITHUB_ENV" ]]; then
-        echo "LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" >> "${GITHUB_ENV}";
-        echo "LLVM_TOOLCHAIN=${LLVM_TOOLCHAIN}:${LLVM_ARM_TOOLCHAIN}" >> "${GITHUB_ENV}";
-    fi;
-    # Export custom env vars if requested
-    if [[ -d "$LLVM_ARM_TOOLCHAIN" ]]; then
+    if [[ -n "$LLVM_PATH" ]]; then
         echo "export LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+        echo "LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" >> "${GITHUB_ENV}";
+    else
+        echo "export LLVM_PATH=${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+        echo "LLVM_PATH=${LLVM_ARM_PATH}" >> "${GITHUB_ENV}";
+    fi;
+    # Export custom env vars if requested.
+    if [[ -n "$LLVM_TOOLCHAIN" ]]; then
+        echo "LLVM_TOOLCHAIN=${LLVM_TOOLCHAIN}:${LLVM_ARM_TOOLCHAIN}" >> "${GITHUB_ENV}";
         echo "export LLVM_TOOLCHAIN=${LLVM_TOOLCHAIN}:${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
     else
-        echo "Error: llvm-$verion toolchain path not found!!!" >&2
-        exit 1
+        echo "LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" >> "${GITHUB_ENV}";
+        echo "export LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
     fi;
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-    echo "llvm-${version%%.*}: $LLVM_ARM_PATH";
-    echo "clang-${version%%.*}: ${clang_exe}";
-    echo -e "Toolchain: $LLVM_ARM_TOOLCHAIN\n";
-    echo -e "\nLLVM-embedded-toolchain-for-arm-$version setup completed.";
+    echo -e "\nLLVM-${version%%.*}: ${LLVM_ARM_PATH}";
+    echo -e "Clang-${version%%.*}: ${clang_exe1:-clang_exe2}";
+    echo -e "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
+    echo -e "LLVM-embedded-toolchain-for-arm-${version} setup completed.";
 }
 
 # --- Example Usage ---
@@ -113,4 +116,4 @@ fi;
 if [[ "${version}" == '' ]]; then
      version='19.1.1';
 fi;
-echo -e "\nINSTALLING: $(llvm_arm_install $version $platform $download $user $arch)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm.\n";
+echo -e "\nInstalling llvm-arm-$version: $(llvm_arm_install $version $platform $download $user $arch)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
