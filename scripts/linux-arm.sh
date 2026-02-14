@@ -4,7 +4,7 @@ set +e
 
 # Logic for hasSHA256
 has_sha256() {
-    [[ "$1" != "13.0.0" && "$1" != "14.0.0" ]]
+    [[ "$1" != "13.0.0" && "$1" != "14.0.0" ]] && return 1
 }
 
 # Logic for distributionUrl
@@ -56,8 +56,7 @@ get_distribution_url() {
     fi;
     sudo mkdir -p "$llvm_arm_path";
     echo "${base_url}/${filename}";
-    export filename llvm_arm_path base_name version ext
-    echo -e "INSTALLING:\n $(llvm_arm_install $version $ext $base_url $basename $filename $llvm_arm_path $user $arch)\n";
+    export filename basename llvm_arm_path base_url version ext user arch;
 }
 
 # Logic for getSHA256
@@ -68,17 +67,19 @@ get_sha256() {
 }
 
 llvm_arm_install() {
+    get_distribution_url "$1" "$2"
     version=$1
-    ext=$2
-    base_url=$3
-    basename=$4
-    filename=$5
-    llvm_arm_path=$6 
-    user=$7
-    arch=$8
+    proform=$2
+    ext=$ext
+    base_url=$base_url
+    basename=$basename
+    filename=$filename
+    llvm_arm_path=$llvm_arm_path 
+    user=$3
+    arch=$4
     tmp_file="$(mktemp)";
     sudo wget -qO "llvm-embedded-toolchain-for-arm-$version.$ext" "$base_url/$filename" >/dev/null;
-    sudo tar -xJvf "llvm-embedded-toolchain-for-arm-$version.$ext" -C "$llvm_arm_path" >/dev/null && rm -vrf "llvm-embedded-toolchain-for-arm-$version.$ext";
+    sudo tar -xJvf "llvm-embedded-toolchain-for-arm-$version.$ext" -C "$llvm_arm_path" >/dev/null && rm -rf "llvm-embedded-toolchain-for-arm-$version.$ext";
     sudo chmod -R 0755 "$llvm_arm_path";
     sudo chown -R "$user:$user" "$llvm_arm_path";
     echo "$llvm_arm_path" >> "${tmp_file}";
@@ -88,30 +89,30 @@ llvm_arm_install() {
     LLVM_ARM_PATH="$llvm_arm_path";
     PATH="${LLVM_ARM_PATH}/bin:${PATH}";  
     # 3. Find Clang Path (Equivalent to setup.findClang)
-    if [[ ! -d "${LLVM_ARM_PATH}/${basename}/bin/clang-${version%%.*}" ]]; then
+    clang_exe="${LLVM_ARM_PATH}/${basename}/bin/clang-${version%%.*}";
+    if [[ ! -x "${clang_exe}" ]]; then
         echo "Error: Could not find clang-$version executable path" >&2
         exit 1
     fi;
-    clang="${LLVM_ARM_PATH}/${basename}/bin/clang-${version%%.*}";
     # 4. Resolve Toolchain Path (Parent directory of /bin)
     LLVM_ARM_TOOLCHAIN="${LLVM_ARM_PATH}/${basename}";
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "Added $LLVM_ARM_PATH to PATH";
-    # Export custom env vars if requested
-    if [[ -n "$LLVM_ARM_TOOLCHAIN" ]]; then
-        echo "export LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-        echo "export LLVM_TOOLCHAIN=${LLVM_TOOLCHAIN}:${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
-    fi;
     # GitHub Actions Outputs (only if running in GH Actions)
     if [[ -n "$GITHUB_ENV" ]]; then
         echo "LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" >> "${GITHUB_ENV}";
         echo "LLVM_TOOLCHAIN=${LLVM_TOOLCHAIN}:${LLVM_ARM_TOOLCHAIN}" >> "${GITHUB_ENV}";
     fi;
+    # Export custom env vars if requested
+    if [[ -n "$LLVM_ARM_TOOLCHAIN" ]]; then
+        echo "export LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+        echo "export LLVM_TOOLCHAIN=${LLVM_TOOLCHAIN}:${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
+    fi;
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-    echo -e "\nLLVM-embedded-toolchain-for-arm: $version setup completed.";
     echo "llvm-${version%%.*}: $LLVM_ARM_PATH";
     echo "clang-${version%%.*}: ${clang}";
     echo -e "Toolchain: $LLVM_ARM_TOOLCHAIN\n";
+    echo -e "\nLLVM-embedded-toolchain-for-arm-$version setup completed.";
 }
 
 # --- Example Usage ---
@@ -129,6 +130,7 @@ if [[ "${version}" == '' ]]; then
 fi;
 if has_sha256 "$version"; then
     echo -e "URL: $(get_distribution_url $version $platform $user $arch)\n";
+    echo -e "INSTALLING:\n $(llvm_arm_install $version $platform $user $arch)\n";
     echo -e "SHA256: $(get_sha256 $version $platform)\n";
 else
     echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm.\n";
