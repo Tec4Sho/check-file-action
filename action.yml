@@ -517,7 +517,7 @@ runs:
           [[ ! $(which rg) ]] && exit 1
         fi;
         if ${{ inputs.report == 'true' }} && [[ ! $(which ansi2txt) ]]; then
-          python3 -m pip install ansi2txt >/dev/null && echo -e "${text2}" || sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text2}" || echo -e '::warning::No colorized-logs installed for log report';
+          python3 -m pip install ansi2txt >/dev/null && echo -e "${text2}" || sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text2}"
           [[ ! $(which ansi2txt) ]] && echo -e '::warning::No ansi2txt installed for cleaning log report';
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ ! $(which cppcheck) ]]; then
@@ -2887,7 +2887,7 @@ runs:
                 if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
                   locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}");
                 elif [[ -n "${clean_file}" ]]; then
-                  locate=$(fdfind "${abs}" -p -t f "${clean_file}" "${{ env.base }}");
+                  locate=$(fdfind "${abs}" -p -t f -F "${clean_file}" "${{ env.base }}");
                 fi;
                 if [[ -n "${locate}" ]]; then            
                   while IFS= read -r includes; do
@@ -2927,7 +2927,7 @@ runs:
                 if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
                   locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}");
                 elif [[ -n "${clean_file}" ]]; then
-                  locate=$(fdfind "${abs}" -p -t f "${clean_file}" "${{ env.base }}");
+                  locate=$(fdfind "${abs}" -p -t f -F "${clean_file}" "${{ env.base }}");
                 fi;
                 if [[ -n "${locate}" ]]; then            
                   while IFS= read -r includes; do
