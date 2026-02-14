@@ -44,11 +44,11 @@ llvm_arm_install() {
     if [[ "$version" < "18.0.0" ]]; then
         basename="LLVMEmbeddedToolchainForArm-$version-$os_name";
         filename="release-$version/LLVMEmbeddedToolchainForArm-$version-$os_name.$ext";
-        llvm_arm_path="/usr/lib/LLVMEmbeddedToolchainForArm-${version}/";
+        llvm_arm_path="/usr/lib/LLVMEmbeddedToolchainForArm-${version%%.*}";
     else
         basename="LLVM-ET-Arm-$version-$os_name";
         filename="release-$version/LLVM-ET-Arm-$version-$os_name.$ext";
-        llvm_arm_path="/usr/lib/LLVM-ET-Arm-${version}/";
+        llvm_arm_path="/usr/lib/LLVM-ET-Arm-${version%%.*}";
     fi;
     export filename="$filename" basename="$basename" llvm_arm_path="$llvm_arm_path" ext="$ext";
     sudo mkdir -p "$llvm_arm_path/bin";
@@ -72,8 +72,9 @@ llvm_arm_install() {
     # 3. Find Clang Path (Equivalent to setup.findClang)
     clang_exe1=$(sudo find "$llvm_arm_path" -xdev -type f -name "clang-${version%%.*}" -print);
     clang_exe2="${LLVM_ARM_PATH}/clang-${version%%.*}";
-    if [[ ! -x "${clang_exe1}" ]] || [[ ! -f "${clang_exe2}" ]]; then
+    if [[ ! -x "${clang_exe1}" ]] || [[ ! -x "${clang_exe2}" ]]; then
         echo "Error: Could not find clang-$version executable path" >&2
+        exit 2
     fi;
     # 4. Resolve Toolchain Path (Parent directory of /bin)
     LLVM_ARM_TOOLCHAIN="${LLVM_ARM_PATH%/*}";
@@ -116,4 +117,4 @@ fi;
 if [[ "${version}" == '' ]]; then
      version='19.1.1';
 fi;
-echo -e "\nInstalling llvm-arm-$version: $(llvm_arm_install $version $platform $download $user $arch)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
+echo -e "Installing llvm-arm-$version: $(llvm_arm_install $version $platform $download $user $arch)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
