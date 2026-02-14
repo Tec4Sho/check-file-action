@@ -4,7 +4,7 @@ set +e
 
 # Logic for hasSHA256
 has_sha256() {
-    [[ "$1" != "13.0.0" && "$1" != "14.0.0" ]] && return 1
+    [[ "$1" != "13.0.0" && "$1" != "14.0.0" ]]
 }
 
 # Logic for distributionUrl
