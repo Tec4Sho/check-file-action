@@ -2779,30 +2779,30 @@ runs:
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -s "${log_file}" ]] && ([[ "${check_build}" == 'true' ]] || [[ "${file_found}" == 'true' ]]); then
           echo -e "\n####################\n\t${log_file##*/} file found checking stats...\n####################" | process_input;
-          deheader_duplicates=$(grep -sFc 'duplicates' "${log_file}");
-          deheader_inclusion=$(grep -sFc 'inclusion' "${log_file}");
-          deheader_removed=$(grep -sFc 'remove' "${log_file}");
-          codechecker_defects=$(grep -so 'Found [1-9] defect' "${log_file}" | cut -d ' ' -f2 | gawk '{ sum += $1 } END { print sum; }');
-          codechecker_no_defects=$(grep -sFoc 'Found no defects' "${log_file}");
-          codechecker_success=$(grep -sFc 'successfully' "${log_file}");
-          codechecker_errors=$(grep -sFc 'Error while processing' "${log_file}");
-          clang_replacements=$(grep -sF 'Replacements:' "${build_fixes}" | grep -vc '[\[\]]');
-          clang_information=$(grep -siFc 'information:' "${log_file}");
-          clang_files_missing=$(grep -sEc 'file not found|Include file' "${log_file}");
+          deheader_duplicates=$(grep -aFc 'duplicates' "${log_file}");
+          deheader_inclusion=$(grep -saFc 'inclusion' "${log_file}");
+          deheader_removed=$(grep -saFc 'remove' "${log_file}");
+          codechecker_defects=$(grep -sao 'Found [1-9] defect' "${log_file}" | cut -d ' ' -f2 | gawk '{ sum += $1 } END { print sum; }');
+          codechecker_no_defects=$(grep -saFoc 'Found no defects' "${log_file}");
+          codechecker_success=$(grep -saFc 'successfully' "${log_file}");
+          codechecker_errors=$(grep -saFc 'Error while processing' "${log_file}");
+          clang_replacements=$(grep -saF 'Replacements:' "${build_fixes}" | grep -vc '[\[\]]');
+          clang_information=$(grep -saiFc 'information:' "${log_file}");
+          clang_files_missing=$(grep -saEc 'file not found|Include file' "${log_file}");
           if ${{ env.include_missing == 'true' }}; then
-            clang_files_list1=$(grep -sEo 'Include file:[[:space:]]+["].*["]' "${log_file}" | awk '{ print $3 }' | tr -d '"' | sort -u);
-            clang_files_list2=$(grep -sEo 'Include file:[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $3 }' | tr -d '<>' | sort -u);
+            clang_files_list1=$(grep -saEo 'Include file:[[:space:]]+["].*["]' "${log_file}" | awk '{ print $3 }' | tr -d '"' | sort -u);
+            clang_files_list2=$(grep -saEo 'Include file:[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $3 }' | tr -d '<>' | sort -u);
           else
-            clang_files_list1=$(grep -sEo '#include[[:space:]]+["].*["]' "${log_file}" | awk '{ print $2 }' | tr -d '"' | sort -u);
-            clang_files_list2=$(grep -sEo '#include[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
+            clang_files_list1=$(grep -saEo '#include[[:space:]]+["].*["]' "${log_file}" | awk '{ print $2 }' | tr -d '"' | sort -u);
+            clang_files_list2=$(grep -saEo '#include[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
           fi;
-          clang_warnings=$(grep -sEo '[1-9] warnings generated|1 warning generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
-          clang_error1=$(grep -sEo '[1-9] errors generated|1 error generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
-          clang_error2=$(grep -siEc 'error:|#error' "${log_file}");
-          clang_failed=$(grep -siFc 'failed:' "${log_file}");
-          clang_fixit1=$(grep -siEc 'fixit|fix-its' "${log_file}");
-          clang_fixit2=$(grep -siF 'clang-tidy applied' "${log_file}");
-          clang_notes=$(grep -siFc 'note:' "${log_file}");
+          clang_warnings=$(grep -saEo '[1-9] warnings generated|1 warning generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
+          clang_error1=$(grep -saEo '[1-9] errors generated|1 error generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
+          clang_error2=$(grep -saiEc 'error:|#error' "${log_file}");
+          clang_failed=$(grep -saiFc 'failed:' "${log_file}");
+          clang_fixit1=$(grep -saiEc 'fixit|fix-its' "${log_file}");
+          clang_fixit2=$(grep -saiF 'clang-tidy applied' "${log_file}");
+          clang_notes=$(grep -saiFc 'note:' "${log_file}");
           located_count=0
           missing_count=0
           file_count=0
