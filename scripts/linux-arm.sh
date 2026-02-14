@@ -90,7 +90,7 @@ llvm_arm_install() {
         exit 1
     fi;
     # 4. Resolve Toolchain Path (Parent directory of /bin)
-    LLVM_ARM_TOOLCHAIN=$(realpath "${LLVM_ARM_PATH}/${filename%%.*}-${arch}");
+    LLVM_ARM_TOOLCHAIN="${LLVM_ARM_PATH}/${filename%.*}-${arch}";
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "Added $LLVM_ARM_PATH to PATH";
     # Export custom env vars if requested
@@ -106,7 +106,7 @@ llvm_arm_install() {
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     echo -e "\nLLVM-embedded-toolchain-for-arm: $version setup completed.";
     echo "llvm-${version%%.*}: $LLVM_ARM_PATH";
-    echo "clang-${version%%.*}: $LLVM_ARM_PATH";
+    echo "clang-${version%%.*}: $LLVM_ARM_PATH/bin/clang-${version%%.*}";
     echo -e "Toolchain: $LLVM_ARM_TOOLCHAIN\n";
 }
 
