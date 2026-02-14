@@ -2858,6 +2858,7 @@ runs:
             echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
             [[ -n "${clang_files_list1}" ]] && echo -e "\n####################\nMISSING USER FILES LIST:\n####################\n\n${clang_files_list1}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: ${{ env.base }}\n####################\n" | process_input;
             declare -A missing
+            declare -A located
             found=false
             while IFS= read -r missing_file; do
               if [[ "${missing_file}" == *.[ch]* ]]; then
@@ -2872,7 +2873,7 @@ runs:
                 file2="${file1##[:]*}";
                 file3="${file2%'\n'}";
                 file4="${file3%\\}";
-                clean_file="${clean_file##*/}";
+                clean_file="${file4##*/}";
                 if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
                   locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path##*./}" "${{ env.base }}");
                 elif [[ -n "${clean_file}" ]]; then
@@ -2883,7 +2884,7 @@ runs:
                     located_count=$((located_count + 1));
                     echo -e "\n\033[32mUserInclude Source ${missing_file} Location:\033[0m ${includes}  [\033[1m ${located_count} / ✅ \033[0m]" | process_input;
                     echo "${includes%/*}" >> 'check-file-includes.txt';
-                  done <<< ${locate[@]};
+                  done <<< "${locate[@]}";
                   includes_found=true
                 elif [[ -n "${missing[$missing_file]}" ]]; then
                   includes_found=false
@@ -2912,7 +2913,7 @@ runs:
                 file2="${file1##[:]*}";
                 file3="${file2%'\n'}";
                 file4="${file3%\\}";
-                clean_file="${clean_file##*/}";
+                clean_file="${file4##*/}";
                 if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
                   locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path##*./}" "${{ env.base }}");
                 elif [[ -n "${clean_file}" ]]; then
