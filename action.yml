@@ -2739,6 +2739,7 @@ runs:
         else
           log_file="${project_log}";
         fi;
+        cp $log_file build/
         source_include_list='check-file-includes.txt';
         check_build=false
         file_type='c';
@@ -2943,12 +2944,9 @@ runs:
               [[ -s "${source_include_list}" ]] && cp -f "${source_include_list}" 'build/' && echo -e "\n\033[32mCopied ${source_include_list} to build for uploading if needed.\033[0m ✅" | process_input;
             fi;
           fi;
-          if [[ ${update} ]] && ${{ env.analyzer == '2' }}; then
+          if ${{ inputs.update }} && ${{ env.analyzer == '2' }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
           fi;
-          [[ -f ${count1} ]] && rm "${count1}";
-          [[ -f ${count2} ]] && rm "${count2}";
-          [[ -f ${count3} ]] && rm "${count3}";
           ${{ inputs.content == 'true' }} && echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
@@ -2976,35 +2974,33 @@ runs:
       run: |
         source ~/.bashrc
         set +e
+        echo "file_found=0" >> "${GITHUB_ENV}";
         min_size_bytes=$((20 * 1024 * 1024));
         filename1="${GITHUB_WORKSPACE}/${{ env.github_repository }}_project.log";
         filename2="${GITHUB_WORKSPACE}/${{ env.filename }}_error.log";
         filename3="${GITHUB_WORKSPACE}/${{ env.filename }}_data.log";
         if [[ -s "${filename1}" ]]; then
           filesize1=$(stat -c%s "${filename1}");
-          ansi2txt "${filename1}" > "${filename1}.tmp";
+          ansi2txt "${filename1}" > "${filename1}.tmp" && echo "file_found=1" >> "${GITHUB_ENV}";
           mv -vf "${filename1}.tmp" "${filename1}" && echo -e "\nFile: ${{ env.github_repository }} [ansi2txt] cleaned\n";
           if (( filesize1 > min_size_bytes )); then
-            split -d -C 10M "${filename1}" 'part_' && echo -e "File: ${{ env.github_repository }} [split] completed\n";
-            echo "file1_parted=1" >> "${GITHUB_ENV}";
+            split -d -C 10M "${filename1}" 'part_' && echo -e "File: ${{ env.github_repository }} [split] completed\n" && echo "file1_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename2}" ]]; then
           filesize2=$(stat -c%s "${filename2}");
-          ansi2txt "${filename2}" > "${filename2}.tmp";
+          ansi2txt "${filename2}" > "${filename2}.tmp" && echo "file_found=1" >> "${GITHUB_ENV}";
           mv -vf "${filename2}.tmp" "${filename2}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned\n";
           if (( filesize2 > min_size_bytes )); then
-            split -d -C 10M "${filename2}" 'part_' && echo -e "File: ${{ env.filename }} [split] completed\n";
-            echo "file2_parted=1" >> "${GITHUB_ENV}";
+            split -d -C 10M "${filename2}" 'part_' && echo -e "File: ${{ env.filename }} [split] completed\n" && echo "file2_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename3}" ]]; then
           filesize3=$(stat -c%s "${filename3}");
-          ansi2txt "${filename3}" > "${filename3}.tmp";
+          ansi2txt "${filename3}" > "${filename3}.tmp" && echo "file_found=1" >> "${GITHUB_ENV}";;
           mv -vf "${filename3}.tmp" "${filename3}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned\n";
           if (( filesize3 > min_size_bytes )); then
-            split -d -C 10M "${filename3}" 'part_' && echo -e "File: ${{ env.filename }} [split] completed\n";
-            echo "file3_parted=1" >> "${GITHUB_ENV}";
+            split -d -C 10M "${filename3}" 'part_' && echo -e "File: ${{ env.filename }} [split] completed\n" && echo "file3_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
       shell: bash
