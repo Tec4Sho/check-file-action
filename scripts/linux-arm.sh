@@ -76,7 +76,8 @@ llvm_arm_install() {
     tmp_file="$(mktemp)";
     sudo wget -qO "llvm-embedded-toolchain-for-arm-$version.$ext" "$base_url/$filename" >/dev/null;
     sudo tar -xJvf "llvm-embedded-toolchain-for-arm-$version.$ext" -C "$llvm_arm_path" >/dev/null && rm -vrf "llvm-embedded-toolchain-for-arm-$version.$ext";
-    sudo chown -vR "$user:$user" "$llvm_arm_path";
+    sudo chmod -R 0755 "$llvm_arm_path";
+    sudo chown -R "$user:$user" "$llvm_arm_path";
     echo "$llvm_arm_path" >> "${tmp_file}";
     cat "${GITHUB_PATH}" >> "${tmp_file}";
     cat "${tmp_file}" > "${GITHUB_PATH}";
@@ -93,10 +94,8 @@ llvm_arm_install() {
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "Added $LLVM_ARM_PATH to PATH";
     # Export custom env vars if requested
-    if [[ -n "$LLVM_ARM_PATH" ]]; then
-        echo "export LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-    fi;
     if [[ -n "$LLVM_ARM_TOOLCHAIN" ]]; then
+        echo "export LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export LLVM_TOOLCHAIN=${LLVM_TOOLCHAIN}:${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
     fi;
     # GitHub Actions Outputs (only if running in GH Actions)
@@ -112,10 +111,10 @@ llvm_arm_install() {
 }
 
 # --- Example Usage ---
-user="${USER:-runner}";
 # Configuration
 platform="linux";
 version="${LLVM_ARM_VERSION}";
+user="${USER:-runner}";
 arch=$(uname -m);
 export USER platform version arch
 if [[ ${LLVM_VERSION} == '' ]]; then
