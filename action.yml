@@ -311,7 +311,10 @@ runs:
        echo 'build_cache=false' >> "${GITHUB_ENV}";
        echo 'check_build=false' >> "${GITHUB_ENV}";
        echo 'database=database' >> "${GITHUB_ENV}";
-       echo 'include_missing=true' >> "${GITHUB_ENV}";
+       echo "release1=" >> "${GITHUB_ENV}";
+       echo "release2=" >> "${GITHUB_ENV}";
+       echo "release3=" >> "${GITHUB_ENV}";
+       echo 'include_missing=false' >> "${GITHUB_ENV}";
        echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
        echo "dirname=${{ inputs.dirname }}" >> "${GITHUB_ENV}";
        echo 'export ALLOW_MISSING_DEPENDENCIES=true' | sudo tee -a ~/.bashrc >/dev/null;
@@ -757,17 +760,17 @@ runs:
         if ${{ inputs.internal == 'true' }}; then
           ${{ inputs.dirname != '' }} && srctree="${GITHUB_WORKSPACE}/${{ inputs.dirname }}" && objtree="${GITHUB_WORKSPACE}/${{ inputs.dirname }}";
           USERINCLUDE="-I${srctree}/arch/${hdr_arch}/include/uapi \
-          -I${objtree}/arch/${hdr_arch}/include/generated/uapi \
-          -I${srctree}/include/uapi \
-          -I${objtree}/include/generated/uapi \
-          -include ${srctree}/include/linux/kconfig.h";
+        -I${objtree}/arch/${hdr_arch}/include/generated/uapi \
+        -I${srctree}/include/uapi \
+        -I${objtree}/include/generated/uapi \
+        -include ${srctree}/include/linux/kconfig.h";
           LINUXINCLUDE="-I${srctree}/arch/${hdr_arch}/include \
-          -I${objtree}/arch/${hdr_arch}/include/generated/uapi \
-          -I${objtree}/arch/${hdr_arch}/include/generated \
-          ${KBUILD_OPT} \
-          -I${objtree}/include \
-          -I${srctree}/drivers/misc/mediatek/include";
-          KBUILD_OPT="";
+        -I${objtree}/arch/${hdr_arch}/include/generated/uapi \
+        -I${objtree}/arch/${hdr_arch}/include/generated \
+        ${KBUILD_OPT} \
+        -I${objtree}/include \
+        -I${srctree}/drivers/misc/mediatek/include";
+        KBUILD_OPT="";
           if [[ -n "${KBUILD_SRC}" ]]; then
             KBUILD_OPT="-I${srctree}/include";
           fi;
@@ -795,6 +798,12 @@ runs:
         if [[ "${config}" ]] && ${{ inputs.content == 'true' }}; then
           echo -e "\nLINUXKERNEL RELEASES:";
           sudo less $(echo -n ${config});
+          release1="$(sudo less $(echo -n ${config}) | awk 'NR==1')";
+          release2="$(sudo less $(echo -n ${config}) | awk 'NR==2')";
+          release3="$(sudo less $(echo -n ${config}) | awk 'NR==3')";
+          [[ -n "${release1}" ]] && echo "release1=${release1}" >> "${GITHUB_ENV}";
+          [[ -n "${release2}" ]] && echo "release2=${release2}" >> "${GITHUB_ENV}";
+          [[ -n "${release3}" ]] && echo "release3=${release3}" >> "${GITHUB_ENV}";
         fi;
         echo '';
       shell: bash
@@ -1375,7 +1384,7 @@ runs:
           clang_tidy='.clang-tidy';
           clangd_tidy='/home/runner/.local/bin/clangd-tidy';
           clang_includes='check-file-includes.txt';
-          linux_usr_src="/usr/src/linux-headers-*/";
+          linux_usr_src="/usr/src/";
           if ${{ env.dirname != '' }}; then
             echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           else
@@ -1446,7 +1455,7 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(sudo find "${linux_usr_src}" -xdev -path "*/${{ inputs.dirpath }}/*" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${linux_usr_src}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(sudo find "${linux_usr_src}" -xdev \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${linux_usr_src}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
               ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'arch' -o -name 'asm' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${{ env.base }}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
@@ -1999,15 +2008,15 @@ runs:
           if ${{ inputs.content == 'true' }}; then
             number="${{ inputs.number }}";
             if ${{ inputs.number > '0' }}; then
-              echo -e "\n####################\033[32mLocated Files\033[0m:####################\n" | process_input; 
+              echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e '####################\033[1mTotal Files Located: \033[0m####################' | process_input;
-              { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l | process_input;
+              echo -e '\033[1mTotal Files Located: \033[0m' | process_input;
+              echo $({ echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l) | process_input;
             else 
-              echo -e "\n####################\033[32mLocated File(s)\033[0m:####################\n" | process_input;
+              echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e '####################\033[1mTotal Files Located: \033[0m####################' | process_input;
-              { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l | process_input;
+              echo -e '\033[1mTotal Files Located: \033[0m' | process_input;
+              echo $({ echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l) | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2071,7 +2080,6 @@ runs:
                   else
                     file="${file#*./}";
                   fi;
-                  echo -e "\nChecking: ${file}";
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="${file}" 2>&1 | process_input || error="$?";
                 else
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
@@ -2239,15 +2247,15 @@ runs:
           if ${{ inputs.content == 'true' }}; then
             number="${{ inputs.number }}";
             if ${{ inputs.number > '0' }}; then
-              echo -e "\n####################\033[32mLocated Files\033[0m:####################\n" | process_input; 
+              echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e '####################\033[1mTotal Files Located: \033[0m####################' | process_input;
-              { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l | process_input;
+              echo -e '\033[1mTotal Files Located: \033[0m' | process_input;
+              echo $({ echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l) | process_input;
             else 
-              echo -e "\n####################\033[32mLocated File(s)\033[0m:####################\n" | process_input;
+              echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e '####################\033[1mTotal Files Located: \033[0m####################' | process_input;
-              { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l | process_input;
+              echo -e '\033[1mTotal Files Located: \033[0m' | process_input;
+              echo $({ echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l) | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2414,15 +2422,15 @@ runs:
           if ${{ inputs.content == 'true' }}; then
             number="${{ inputs.number }}";
             if ${{ inputs.number > '0' }}; then
-              echo -e "\n####################\033[32mLocated Files\033[0m:####################\n" | process_input; 
+              echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e '####################\033[1mTotal Files Located: \033[0m####################' | process_input;
-              { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l | process_input;
+              echo -e '\033[1mTotal Files Located: \033[0m' | process_input;
+              echo $({ echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l) | process_input;
             else 
-              echo -e "\n####################\033[32mLocated File(s)\033[0m:####################\n" | process_input;
+              echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e '####################\033[1mTotal Files Located: \033[0m####################' | process_input;
-              { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l | process_input;
+              echo -e '\033[1mTotal Files Located: \033[0m' | process_input;
+              echo $({ echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l) | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2536,15 +2544,15 @@ runs:
           if ${{ inputs.content == 'true' }}; then
             number="${{ inputs.number }}";
             if ${{ inputs.number > '0' }}; then
-              echo -e "\n####################\033[32mLocated Files\033[0m:####################\n" | process_input; 
+              echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e '####################\033[1mTotal Files Located: \033[0m####################' | process_input;
-              { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l | process_input;
+              echo -e '\033[1mTotal Files Located: \033[0m' | process_input;
+              echo $({ echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l) | process_input;
             else 
-              echo -e "\n####################\033[32mLocated File(s)\033[0m:####################\n" | process_input;
+              echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e '####################\033[1mTotal Files Located: \033[0m####################' | process_input;
-              { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l | process_input;
+              echo -e '\033[1mTotal Files Located: \033[0m' | process_input;
+              echo $({ echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l) | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2876,9 +2884,9 @@ runs:
                 file4="${file3%\\}";
                 clean_file="${file4##*/}";
                 if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
-                  locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path##*./}" "${{ env.base }}");
+                  locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}");
                 elif [[ -n "${clean_file}" ]]; then
-                  locate=$(fdfind "${abs}" -p -t f "${clean_file:-abcxyz}" "${{ env.base }}");
+                  locate=$(fdfind "${abs}" -p -t f "${clean_file}" "${{ env.base }}");
                 fi;
                 if [[ -n "${locate}" ]]; then            
                   while IFS= read -r includes; do
@@ -2916,9 +2924,9 @@ runs:
                 file4="${file3%\\}";
                 clean_file="${file4##*/}";
                 if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
-                  locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path##*./}" "${{ env.base }}");
+                  locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}");
                 elif [[ -n "${clean_file}" ]]; then
-                  locate=$(fdfind "${abs}" -p -t f "${clean_file:-abcxyz}" "${{ env.base }}");
+                  locate=$(fdfind "${abs}" -p -t f "${clean_file}" "${{ env.base }}");
                 fi;
                 if [[ -n "${locate}" ]]; then            
                   while IFS= read -r includes; do
