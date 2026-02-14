@@ -2860,7 +2860,7 @@ runs:
             declare -A missing
             found=false
             while IFS= read -r missing_file; do
-              if [[ "$missing_file" == *.[ch]* ]]; then
+              if [[ "${missing_file}" == *.[ch]* ]]; then
                 file_count=$((file_count + 1));
                 echo "Locating missing ${missing_file} file ...." | process_input;
                 path1="${missing_file//\'/}";
@@ -2873,12 +2873,12 @@ runs:
                 file3="${file2%'\n'}";
                 file4="${file3%\\}";
                 clean_file="${clean_file##*/}";
-                if [[ ${missing_file} == *"/"* ]]; then          
-                  locate=$(fdfind -p "${abs}" -t f -g -1 "**/${clean_path##*./}" "${{ env.base }}");
-                else
-                  locate=$(fdfind -p "${abs}" -t f "${clean_file##*./}" "${{ env.base }}");
-                fi;             
-                if [[ "${locate}" ]] && [[ "$locate" == *.hh || "$locate" == *.hpp || "$locate" == *.hxx || "$locate" == *.h++ || "$locate" == *.c || "$locate" == *.cc || "$locate" == *.cpp || "$locate" == *.cxx || "$locate" == *.c++ ]]; then            
+                if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
+                  locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path##*./}" "${{ env.base }}");
+                elif [[ -n "${clean_file}" ]]; then
+                  locate=$(fdfind "${abs}" -p -t f "${clean_file:-abcxyz}" "${{ env.base }}");
+                fi;
+                if [[ -n "${locate}" ]]; then            
                   while IFS= read -r includes; do
                     located_count=$((located_count + 1));
                     echo -e "\n\033[32mUserInclude Source ${missing_file} Location:\033[0m ${includes}  [\033[1m ${located_count} / ✅ \033[0m]" | process_input;
@@ -2900,7 +2900,7 @@ runs:
             declare -A missing
             [[ -n "${clang_files_list2}" ]] && echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: /usr/src/linux-headers-$(uname -r)/include\n####################\n" | process_input;
             while IFS= read -r missing_file; do
-              if [[ "$missing_file" == *.[ch]* ]]; then 
+              if [[ "${missing_file}" == *.[ch]* ]]; then 
                 file_count=$((file_count + 1));
                 echo "Locating missing ${missing_file} file ...." | process_input;
                 path1="${missing_file//\'/}";
@@ -2913,17 +2913,17 @@ runs:
                 file3="${file2%'\n'}";
                 file4="${file3%\\}";
                 clean_file="${clean_file##*/}";
-                if [[ ${missing_file} == *"/"* ]]; then
-                  locate=$(fdfind "${abs}" -p -t f -g -1 "**/${clean_path##*./}" "${{ env.base }}");
-                else
-                  locate=$(fdfind "${abs}" -p -t f "${clean_file##*./}" "${{ env.base }}");
+                if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
+                  locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path##*./}" "${{ env.base }}");
+                elif [[ -n "${clean_file}" ]]; then
+                  locate=$(fdfind "${abs}" -p -t f "${clean_file:-abcxyz}" "${{ env.base }}");
                 fi;
-                if [[ "${locate}" ]] && [[ "$locate" == *.hh || "$locate" == *.hpp || "$locate" == *.hxx || "$locate" == *.h++ || "$locate" == *.c || "$locate" == *.cc || "$locate" == *.cpp || "$locate" == *.cxx || "$locate" == *.c++ ]]; then            
+                if [[ -n "${locate}" ]]; then            
                   while IFS= read -r includes; do
                     located_count=$((located_count + 1));
                     echo -e "\n\033[32mSystemInclude Source ${missing_file} Location:\033[0m ${includes}  [ $located_count / ✅ ]" | process_input;
                     echo "${includes%/*}" >> 'check-file-includes.txt';
-                  done <<< ${locate[@]};
+                  done <<< "${locate[@]}";
                   includes_found=true
                 elif [[ -n "${missing[$missing_file]}" ]]; then
                   includes_found=false
