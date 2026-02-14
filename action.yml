@@ -518,7 +518,7 @@ runs:
           [[ ! $(which rg) ]] && exit 1
         fi;
         if ${{ inputs.report == 'true' }} && [[ ! $(which ansi2txt) ]]; then
-          sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text2}" || echo -e '::warning::No colorized-logs installed for log report';
+          sudo aptitude -yq install ansi2txt 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text2}" || sudo apt-get -yq install ansi2txt 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text2}" || echo -e '::warning::No colorized-logs installed for log report';
           [[ ! $(which ansi2txt) ]] && echo -e '::warning::No ansi2txt installed for cleaning log report';
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ ! $(which cppcheck) ]]; then
@@ -2986,29 +2986,30 @@ runs:
         set +e
         echo "file_found=0" >> "${GITHUB_ENV}";
         min_size_bytes=$((20 * 1024 * 1024));
+        filename0="${GITHUB_WORKSPACE}/temp_file.log";
         filename1="${GITHUB_WORKSPACE}/${{ env.github_repository }}_project.log";
         filename2="${GITHUB_WORKSPACE}/${{ env.filename }}_error.log";
         filename3="${GITHUB_WORKSPACE}/${{ env.filename }}_data.log";
         if [[ -s "${filename1}" ]]; then
           filesize1=$(stat -c%s "${filename1}");
-          ansi2txt "${filename1}" > "${filename1}.tmp" && echo "file_found=1" >> "${GITHUB_ENV}";
-          mv -vf "${filename1}.tmp" "${filename1}" && echo -e "\nFile: ${{ env.github_repository }} [ansi2txt] cleaned\n";
+          ansi2txt "${filename1}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
+          mv -vf "${filename0}" "${filename1}" && echo -e "\nFile: ${{ env.github_repository }} [ansi2txt] cleaned\n";
           if (( filesize1 > min_size_bytes )); then
             split -d -C 10M "${filename1}" 'part_' && echo -e "File: ${{ env.github_repository }} [split] completed\n" && echo "file1_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename2}" ]]; then
           filesize2=$(stat -c%s "${filename2}");
-          #ansi2txt "${filename2}" > "${filename2}.tmp" && echo "file_found=1" >> "${GITHUB_ENV}";
-          #mv -vf "${filename2}.tmp" "${filename2}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned\n";
+          ansi2txt "${filename2}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
+          mv -vf "${filename0}" "${filename2}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned\n";
           if (( filesize2 > min_size_bytes )); then
             split -d -C 10M "${filename2}" 'part_' && echo -e "File: ${{ env.filename }} [split] completed\n" && echo "file2_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename3}" ]]; then
           filesize3=$(stat -c%s "${filename3}");
-          ansi2txt "${filename3}" > "${filename3}.tmp" && echo "file_found=1" >> "${GITHUB_ENV}";
-          mv -vf "${filename3}.tmp" "${filename3}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned\n";
+          ansi2txt "${filename3}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
+          mv -vf "${filename0}" "${filename3}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned\n";
           if (( filesize3 > min_size_bytes )); then
             split -d -C 10M "${filename3}" 'part_' && echo -e "File: ${{ env.filename }} [split] completed\n" && echo "file3_parted=1" >> "${GITHUB_ENV}";
           fi;
