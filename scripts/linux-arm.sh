@@ -55,7 +55,7 @@ llvm_arm_install() {
     tmp_file="$(mktemp)";  
     if [[ -d "${llvm_arm_path}" ]]; then           
       sudo wget -qO "llvm-embedded-toolchain-for-arm-$version.$ext" "$download/$filename" >/dev/null;
-      sudo tar -xJvf "llvm-embedded-toolchain-for-arm-$version.$ext" -C "$llvm_arm_path" >/dev/null && rm -rf "llvm-embedded-toolchain-for-arm-$version.$ext";
+      sudo tar -xJvf "llvm-embedded-toolchain-for-arm-$version.$ext" -C "$llvm_arm_path" >/dev/null && rm -vrf "llvm-embedded-toolchain-for-arm-$version.$ext";
     else
       echo "Error: Could not download llvm-embedded-toolchain-for-arm-$version" >&2
       exit 2
@@ -69,8 +69,8 @@ llvm_arm_install() {
     LLVM_ARM_PATH="$llvm_arm_path";
     PATH="${LLVM_ARM_PATH}/bin:${PATH}";  
     # 3. Find Clang Path (Equivalent to setup.findClang)
-    clang_exe="${LLVM_ARM_PATH}/${basename}/bin/clang-${version%%.*}";
-    if [[ ! -x "${clang_exe}" ]]; then
+    clang_exe=$(find "${LLVM_ARM_PATH}" -type f -name "clang-${version%%.*}");
+    if [[ ! -x "${clang_exe}" ]] || [[ ! -f "${clang_exe}" ]]; then
         echo "Error: Could not find clang-$version executable path" >&2
         exit 1
     fi;
@@ -84,9 +84,11 @@ llvm_arm_install() {
         echo "LLVM_TOOLCHAIN=${LLVM_TOOLCHAIN}:${LLVM_ARM_TOOLCHAIN}" >> "${GITHUB_ENV}";
     fi;
     # Export custom env vars if requested
-    if [[ -n "$LLVM_ARM_TOOLCHAIN" ]]; then
+    if [[ -d "$LLVM_ARM_TOOLCHAIN" ]]; then
         echo "export LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export LLVM_TOOLCHAIN=${LLVM_TOOLCHAIN}:${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
+    else
+        echo "Error: llvm-$verion toolchain path not found!!!" >&2
     fi;
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     echo "llvm-${version%%.*}: $LLVM_ARM_PATH";
