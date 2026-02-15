@@ -110,10 +110,10 @@ llvm_arm_install() {
     unalias clang++ 2>/dev/null
     alias clang-${llvm}=$LLVM_ARM_PATH/clang-${version%%.*}
     # Iterate over all files in the source directory
-    sudo update-alternatives --install /usr/bin/clang clang $LLVM_ARM_PATH/clang 100 \
-    --slave /usr/bin/cc cc $LLVM_ARM_PATH/clang
-    sudo update-alternatives --install /usr/bin/clang++ clang++ $LLVM_ARM_PATH/clang++ 100 \
-    --slave /usr/bin/c++ c++ $LLVM_ARM_PATH/clang++
+    sudo update-alternatives --install /usr/bin/clang clang $LLVM_ARM_PATH/clang 200
+    sudo update-alternatives --install /usr/bin/cc cc $LLVM_ARM_PATH/clang 200
+    sudo update-alternatives --install /usr/bin/clang++ clang++ $LLVM_ARM_PATH/clang++ 200
+    sudo update-alternatives --install /usr/bin/c++ c++ $LLVM_ARM_PATH/clang++ 200
     sudo update-alternatives --config clang
     sudo update-alternatives --config clang++
     type -a clang | awk 'NR==1' || type -a clang 2>/dev/null;
