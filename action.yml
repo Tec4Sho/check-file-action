@@ -330,7 +330,7 @@ runs:
        sudo chmod -R 0755 "${{ github.action_path }}/scripts";
        ${{ inputs.version != '' }} && [[ $(which clang-tidy-18) ]] && sudo apt-get remove -yq clang-tidy-18 >/dev/null;
        ${{ inputs.version != '' }} && [[ $(which clang-18) ]] && sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
-       ${{ inputs.version != '' }} && sudo update-alternatives --remove-all clang && sudo update-alternatives --remove-all clang++
+       ${{ inputs.version != '' }} && sudo update-alternatives --remove-all clang >/dev/null && sudo update-alternatives --remove-all clang++ >/dev/null;
       shell: bash
       continue-on-error: true
 
