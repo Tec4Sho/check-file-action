@@ -302,6 +302,8 @@ runs:
        fi;
        echo 'include_count=0' >> "${GITHUB_ENV}";
        echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
+       echo 'includes=false' >> "${GITHUB_ENV}";
+       echo "include=${{ inputs.include }}" >> "${GITHUB_ENV}";
        echo 'sources=false' >> "${GITHUB_ENV}";
        echo 'file_fixed=0' >> "${GITHUB_ENV}";
        echo 'file_found=0' >> "${GITHUB_ENV}";
@@ -325,8 +327,6 @@ runs:
        echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
        sudo mkdir -p /usr/local/bin /usr/local/lib/android/sdk
        sudo chmod -R 0755 "${{ github.action_path }}/scripts";
-       sudo chown -R "${USER}:${USER}" /usr/local/bin /usr/local/lib/android;
-       sudo chown -R "${USER}:${USER}" "${{ github.action_path }}/scripts";
        [[ $(which clang-tidy-18) ]] && sudo apt-get remove -yq clang-tidy-18 >/dev/null;
        [[ $(which clang-18) ]] && sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
       shell: bash
@@ -338,10 +338,11 @@ runs:
         set -a
         source ~/.bashrc
         USER="${USER}";
-        export USER
         if [[ -x "${{ github.action_path }}/scripts/linux.sh" ]]; then
           bash -c "${{ github.action_path }}/scripts/linux.sh";
           if ${{ inputs.project == 'true' }} && ${{ inputs.internal == 'true' }} && ${{ inputs.arch == 'arm' }}; then
+            LLVM_VERSION="${{ inputs.version }}";
+            export USER LLVM_VERSION
             bash -c "${{ github.action_path }}/scripts/linux-arm.sh";
           fi;
         fi;
@@ -516,8 +517,8 @@ runs:
           [[ ! $(which rg) ]] && exit 1
         fi;
         if ${{ inputs.report == 'true' }} && [[ ! $(which ansi2txt) ]]; then
-          sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text2}" || echo -e '::warning::No colorized-logs installed for log report';
-          [[ ! $(which ansi2txt) ]] && echo -e '::warning::No ansi2txt installed for cleaning log report';
+          python3 -m pip install ansi2txt >/dev/null || sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d';
+          [[ $(which ansi2txt) ]] && echo -e "\n${text2}" || echo -e '::warning::No ansi2txt installed for cleaning log report';
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ ! $(which cppcheck) ]]; then
           sudo aptitude -yq install cppcheck 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
@@ -1455,8 +1456,8 @@ runs:
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(sudo find "${linux_usr_src}" -xdev \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${linux_usr_src}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
-              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'arch' -o -name 'asm' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${{ env.base }}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(sudo find "${linux_usr_src}" \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -xdev -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${linux_usr_src}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'linux' -o -name 'arch' -o -name 'asm' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${{ env.base }}" -type d \( -name 'include' -o -name 'linux' -o -name 'arch' -o -name 'asm' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1973,10 +1974,10 @@ runs:
           fi;
         elif [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${{ inputs.filetype }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}");
@@ -2010,13 +2011,11 @@ runs:
             if ${{ inputs.number > '0' }}; then
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -n '\033[1m\tTotal Files Located: \033[0m' | process_input;
-              echo -n $({ echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l) | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | process_input;
             else 
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -n '\033[1m\tTotal Files Located: \033[0m' | process_input;
-              echo -n $({ echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l) | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2228,10 +2227,10 @@ runs:
           fi;
         elif [[ "${file_type}" == sh ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${{ inputs.filetype }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}");
@@ -2249,13 +2248,11 @@ runs:
             if ${{ inputs.number > '0' }}; then
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -n '\033[1m\tTotal Files Located: \033[0m' | process_input;
-              echo -n $({ echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l) | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | process_input;
             else 
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -n '\033[1m\tTotal Files Located: \033[0m' | process_input;
-              echo -n $({ echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l) | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2399,10 +2396,10 @@ runs:
           fi;
         elif [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ inputs.filename }}" "${{ env.base }}");
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${{ inputs.filetype }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}");
@@ -2424,13 +2421,11 @@ runs:
             if ${{ inputs.number > '0' }}; then
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -n '\033[1m\tTotal Files Located: \033[0m' | process_input;
-              echo -n $({ echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l) | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | process_input;
             else 
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -n '\033[1m\tTotal Files Located: \033[0m' | process_input;
-              echo -n $({ echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l) | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2524,10 +2519,10 @@ runs:
           fi;
         else
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "/" | grep . || sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file "${{ inputs.filename }}" "/");
+            files=$(sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "/" | grep . || sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file -g "**/${{ inputs.filename }}" "/");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "/" | grep . || sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file "${{ inputs.filename }}" "/");
+            files=$(sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "/" | grep . || sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file -g "**/${{ inputs.filename }}" "/");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
             files=$(sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${{ inputs.filetype }}" "/" | grep . || sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file -e "${{ inputs.filetype }}" "/");
@@ -2546,13 +2541,11 @@ runs:
             if ${{ inputs.number > '0' }}; then
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -n '\033[1m\tTotal Files Located: \033[0m' | process_input;
-              echo -n $({ echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l) | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | process_input;
             else 
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -n '\033[1m\tTotal Files Located: \033[0m' | process_input;
-              echo -n $({ echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | wc -l) | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2740,14 +2733,17 @@ runs:
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         github=${GITHUB_WORKSPACE};
+        data_log="${github}/${{ env.filename }}_data.log";
         error_log="${github}/${{ env.filename }}_error.log";
         project_log="${github}/${repository}_project.log";
-        if [[ -s "${error_log}" ]]; then
+        if [[ -s "${data_log}" ]]; then
+          log_file="${data_log}";
+        elif [[ -s "${error_log}" ]]; then
           log_file="${error_log}";
         else
           log_file="${project_log}";
         fi;
-        cp $log_file build/
+        cp "$project_log" build/
         source_include_list='check-file-includes.txt';
         check_build=false
         file_type='c';
@@ -2767,7 +2763,7 @@ runs:
             fi;
           done;
         }
-        if ${{ inputs.absolute == 'true' }}; then
+        {}{}  f ${{ inputs.absolute == 'true' }}; then
           abs='--absolute-path';
         else
           abs='--relative-path';
@@ -2783,7 +2779,7 @@ runs:
           update=false
         fi;
         if ${{ inputs.filetype != '' }}; then
-          file_type="${{ inputs.filetype }}";
+          file_type="${{ env.filename }}";
         fi;
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if [[ -s "${log_file}" ]] && ([[ "${check_build}" == 'true' ]] || [[ "${file_found}" == 'true' ]]); then
@@ -2886,7 +2882,7 @@ runs:
                 if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
                   locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}");
                 elif [[ -n "${clean_file}" ]]; then
-                  locate=$(fdfind "${abs}" -p -t f "${clean_file}" "${{ env.base }}");
+                  locate=$(fdfind "${abs}" -p -t f -g "**/${clean_file//./\\.}" "${{ env.base }}");
                 fi;
                 if [[ -n "${locate}" ]]; then            
                   while IFS= read -r includes; do
@@ -2926,7 +2922,7 @@ runs:
                 if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
                   locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}");
                 elif [[ -n "${clean_file}" ]]; then
-                  locate=$(fdfind "${abs}" -p -t f "${clean_file}" "${{ env.base }}");
+                  locate=$(fdfind "${abs}" -p -t f -g "**/${clean_file//./\\.}" "${{ env.base }}");
                 fi;
                 if [[ -n "${locate}" ]]; then            
                   while IFS= read -r includes; do
@@ -2937,7 +2933,7 @@ runs:
                   includes_found=true
                 elif [[ -n "${missing[$missing_file]}" ]]; then
                   includes_found=false
-                  echo -e "\n\033[33mSystemInclude Source file \033[0m( ${missing_file} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
+                  echo -e "\n\033[33mSystemInclude Source file \033[0m( ${missing_file} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;{} 
                 else
                   includes_found=false
                   missing["$missing_file"]=1
@@ -2984,31 +2980,32 @@ runs:
         set +e
         echo "file_found=0" >> "${GITHUB_ENV}";
         min_size_bytes=$((20 * 1024 * 1024));
+        filename0="${GITHUB_WORKSPACE}/temp_file.log";
         filename1="${GITHUB_WORKSPACE}/${{ env.github_repository }}_project.log";
         filename2="${GITHUB_WORKSPACE}/${{ env.filename }}_error.log";
         filename3="${GITHUB_WORKSPACE}/${{ env.filename }}_data.log";
         if [[ -s "${filename1}" ]]; then
           filesize1=$(stat -c%s "${filename1}");
-          ansi2txt "${filename1}" > "${filename1}.tmp" && echo "file_found=1" >> "${GITHUB_ENV}";
-          mv -vf "${filename1}.tmp" "${filename1}" && echo -e "\nFile: ${{ env.github_repository }} [ansi2txt] cleaned\n";
+          ansi2txt "${filename1}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
+          mv -f "${filename0}" "${filename1}" && echo -e "\nLogFile: ${{ env.github_repository }} [\033[1mansi2txt\033[0m] cleaned" 
           if (( filesize1 > min_size_bytes )); then
-            split -d -C 10M "${filename1}" 'part_' && echo -e "File: ${{ env.github_repository }} [split] completed\n" && echo "file1_parted=1" >> "${GITHUB_ENV}";
+            split -d -C 10M "${filename1}" 'part_' && echo -e "\nLogFile: ${{ env.github_repository }} file split completed" && echo "file1_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename2}" ]]; then
           filesize2=$(stat -c%s "${filename2}");
-          #ansi2txt "${filename2}" > "${filename2}.tmp" && echo "file_found=1" >> "${GITHUB_ENV}";
-          #mv -vf "${filename2}.tmp" "${filename2}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned\n";
+          ansi2txt "${filename2}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
+          mv -f "${filename0}" "${filename2}" && echo -e "\nLogFile: ${{ env.filename }} [\033[1mansi2txt\033[0m] cleaned";
           if (( filesize2 > min_size_bytes )); then
-            split -d -C 10M "${filename2}" 'part_' && echo -e "File: ${{ env.filename }} [split] completed\n" && echo "file2_parted=1" >> "${GITHUB_ENV}";
+            split -d -C 10M "${filename2}" 'part_' && echo -e "\nLogFile: ${{ env.filename }} file split completed" && echo "file2_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename3}" ]]; then
           filesize3=$(stat -c%s "${filename3}");
-          ansi2txt "${filename3}" > "${filename3}.tmp" && echo "file_found=1" >> "${GITHUB_ENV}";
-          mv -vf "${filename3}.tmp" "${filename3}" && echo -e "\nFile: ${{ env.filename }} [ansi2txt] cleaned\n";
+          ansi2txt "${filename3}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
+          mv -f "${filename0}" "${filename3}" && echo -e "\nLogFile: ${{ env.filename }} [\033[1mansi2txt\033[0m] cleaned";
           if (( filesize3 > min_size_bytes )); then
-            split -d -C 10M "${filename3}" 'part_' && echo -e "File: ${{ env.filename }} [split] completed\n" && echo "file3_parted=1" >> "${GITHUB_ENV}";
+            split -d -C 10M "${filename3}" 'part_' && echo -e "\nLogFile: ${{ env.filename }} file split completed" && echo "file3_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
       shell: bash
