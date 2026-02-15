@@ -114,8 +114,8 @@ llvm_arm_install() {
     sudo update-alternatives --install /usr/bin/cc cc $LLVM_ARM_PATH/clang 200 >/dev/null;
     sudo update-alternatives --install /usr/bin/clang++ clang++ $LLVM_ARM_PATH/clang++ 200 >/dev/null;
     sudo update-alternatives --install /usr/bin/c++ c++ $LLVM_ARM_PATH/clang++ 200 >/dev/null;
-    sudo update-alternatives --set $LLVM_ARM_PATH/clang
-    sudo update-alternatives --set $LLVM_ARM_PATH/clang++
+    sudo update-alternatives --set clang $LLVM_ARM_PATH/clang
+    sudo update-alternatives --set clang++ $LLVM_ARM_PATH/clang++
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-${version%%.*} ......";
