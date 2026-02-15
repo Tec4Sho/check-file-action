@@ -107,19 +107,10 @@ llvm_arm_install() {
     fi;
     unalias clang 2>/dev/null
     unalias clang++ 2>/dev/null
+    alias clang=$LLVM_ARM_PATH/clang
+    alias clang++=$LLVM_ARM_PATH/clang++
     # Iterate over all files in the source directory
-    for file in "${clang_exe[@]}"; do
-          filename=$(basename "$file");
-          target_path="$target/$filename";
-          # Check if a file with the same name already exists in the target directory
-          if [[ -e "$target_path" || -L "$target_path" ]]; then
-              echo "Skipping $filename: already exists is a file/link in $target"
-          else
-          # Create a symbolic link using an absolute path for reliability
-              sudo ln -sf "$file" "$target_path" && echo "Created symlink for $filename";
-          fi;
-    done;
-    [[ -x "/usr/bin/clang-${version%%.*}" ]] && sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${version%%.*} 100 \
+    sudo update-alternatives --install /usr/bin/clang clang $LLVM_ARM_PATH/clang-${version%%.*} 100 \
     --slave /usr/bin/clang++ clang++ $LLVM_ARM_PATH/clang++ \
     --slave /usr/bin/cc cc $LLVM_ARM_PATH/clang \
     --slave /usr/bin/c++ c++ $LLVM_ARM_PATH/clang++ \
