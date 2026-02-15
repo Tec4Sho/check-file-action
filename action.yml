@@ -327,8 +327,9 @@ runs:
        echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
        sudo mkdir -p /usr/local/bin /usr/local/lib/android/sdk
        sudo chmod -R 0755 "${{ github.action_path }}/scripts";
-       [[ $(which clang-tidy-18) ]] && sudo apt-get remove -yq clang-tidy-18 >/dev/null;
-       [[ $(which clang-18) ]] && sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
+       ${{ inputs.version != '' }} && sudo update-alternatives --remove-all clang && sudo update-alternatives --remove-all clang++
+       #[[ $(which clang-tidy-18) ]] && sudo apt-get remove -yq clang-tidy-18 >/dev/null;
+       #[[ $(which clang-18) ]] && sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
       shell: bash
       continue-on-error: true
 
