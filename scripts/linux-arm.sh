@@ -106,21 +106,20 @@ llvm_arm_install() {
         echo "Source directory $LLVM_ARM_PATH does not exist."
         exit 1
     fi;
-    unalias clang 2>/dev/null
-    unalias clang++ 2>/dev/null
-    alias clang-${llvm}=$LLVM_ARM_PATH/clang-${version%%.*}
+    unalias clang 2>/dev/null;
+    unalias clang++ 2>/dev/null;
+    alias clang-${llvm}=$LLVM_ARM_PATH/clang-${version%%.*} 2>/dev/null;
     # Iterate over all files in the source directory
-    sudo update-alternatives --install /usr/bin/clang clang $LLVM_ARM_PATH/clang 200
-    sudo update-alternatives --install /usr/bin/cc cc $LLVM_ARM_PATH/clang 200
-    sudo update-alternatives --install /usr/bin/clang++ clang++ $LLVM_ARM_PATH/clang++ 200
-    sudo update-alternatives --install /usr/bin/c++ c++ $LLVM_ARM_PATH/clang++ 200
-    sudo update-alternatives --config clang
-    sudo update-alternatives --config clang++
-    type -a clang | awk 'NR==1' || type -a clang 2>/dev/null;
+    sudo update-alternatives --install /usr/bin/clang clang $LLVM_ARM_PATH/clang 200 >/dev/null;
+    sudo update-alternatives --install /usr/bin/cc cc $LLVM_ARM_PATH/clang 200 >/dev/null;
+    sudo update-alternatives --install /usr/bin/clang++ clang++ $LLVM_ARM_PATH/clang++ 200 >/dev/null;
+    sudo update-alternatives --install /usr/bin/c++ c++ $LLVM_ARM_PATH/clang++ 200 >/dev/null;
+    sudo update-alternatives --set $LLVM_ARM_PATH/clang
+    sudo update-alternatives --set $LLVM_ARM_PATH/clang++
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-${version%%.*} ......";
-    echo "clang-${version%%.*}: $(readlink -f $(which clang))";
+    echo "clang: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
 }
