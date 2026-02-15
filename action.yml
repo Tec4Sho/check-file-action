@@ -518,7 +518,7 @@ runs:
         fi;
         if ${{ inputs.report == 'true' }} && [[ ! $(which ansi2txt) ]]; then
           python3 -m pip install ansi2txt >/dev/null || sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d';
-          [[ $(which ansi2txt) ]] && echo -e "${text2}" || echo -e '::warning::No ansi2txt installed for cleaning log report';
+          [[ $(which ansi2txt) ]] && echo -e "\n${text2}" || echo -e '::warning::No ansi2txt installed for cleaning log report';
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ ! $(which cppcheck) ]]; then
           sudo aptitude -yq install cppcheck 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
@@ -2011,11 +2011,11 @@ runs:
             if ${{ inputs.number > '0' }}; then
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1m\tTotal Files Located: $({ echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l)\033[0m" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | process_input;
             else 
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1m\tTotal Files Located: $({ echo "${files}" 2>/dev/null; } | wc -l)\033[0m" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2248,11 +2248,11 @@ runs:
             if ${{ inputs.number > '0' }}; then
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1m\tTotal Files Located: $({ echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l)\033[0m" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | process_input;
             else 
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1m\tTotal Files Located: $({ echo "${files}" 2>/dev/null; } | wc -l)\033[0m" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2421,11 +2421,11 @@ runs:
             if ${{ inputs.number > '0' }}; then
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1m\tTotal Files Located: $({ echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l)\033[0m" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | process_input;
             else 
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1m\tTotal Files Located: $({ echo "${files}" 2>/dev/null; } | wc -l)\033[0m" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2541,11 +2541,11 @@ runs:
             if ${{ inputs.number > '0' }}; then
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1m\tTotal Files Located: $({ echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | wc -l)\033[0m" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | process_input;
             else 
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1m\tTotal Files Located: $({ echo "${files}" 2>/dev/null; } | wc -l)\033[0m" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2738,7 +2738,7 @@ runs:
         project_log="${github}/${repository}_project.log";
         if [[ -s "${data_log}" ]]; then
           log_file="${data_log}";
-        if [[ -s "${error_log}" ]]; then
+        elif [[ -s "${error_log}" ]]; then
           log_file="${error_log}";
         else
           log_file="${project_log}";
@@ -2763,7 +2763,7 @@ runs:
             fi;
           done;
         }
-        if ${{ inputs.absolute == 'true' }}; then
+        {}{}  f ${{ inputs.absolute == 'true' }}; then
           abs='--absolute-path';
         else
           abs='--relative-path';
@@ -2987,25 +2987,25 @@ runs:
         if [[ -s "${filename1}" ]]; then
           filesize1=$(stat -c%s "${filename1}");
           ansi2txt "${filename1}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
-          mv -vf "${filename0}" "${filename1}" && echo -e "\nLogFile: ${{ env.github_repository }} [ansi2txt] cleaned\n";
+          mv -f "${filename0}" "${filename1}" && echo -e "\nLogFile: ${{ env.github_repository }} [\033[1mansi2txt\033[0m] cleaned" 
           if (( filesize1 > min_size_bytes )); then
-            split -d -C 10M "${filename1}" 'part_' && echo -e "LogFile: ${{ env.github_repository }} [split] completed\n" && echo "file1_parted=1" >> "${GITHUB_ENV}";
+            split -d -C 10M "${filename1}" 'part_' && echo -e "\nLogFile: ${{ env.github_repository }} file split completed" && echo "file1_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename2}" ]]; then
           filesize2=$(stat -c%s "${filename2}");
           ansi2txt "${filename2}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
-          mv -vf "${filename0}" "${filename2}" && echo -e "\nLogFile: ${{ env.filename }} [ansi2txt] cleaned\n";
+          mv -f "${filename0}" "${filename2}" && echo -e "\nLogFile: ${{ env.filename }} [\033[1mansi2txt\033[0m] cleaned";
           if (( filesize2 > min_size_bytes )); then
-            split -d -C 10M "${filename2}" 'part_' && echo -e "LogFile: ${{ env.filename }} [split] completed\n" && echo "file2_parted=1" >> "${GITHUB_ENV}";
+            split -d -C 10M "${filename2}" 'part_' && echo -e "\nLogFile: ${{ env.filename }} file split completed" && echo "file2_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename3}" ]]; then
           filesize3=$(stat -c%s "${filename3}");
           ansi2txt "${filename3}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
-          mv -vf "${filename0}" "${filename3}" && echo -e "\nLogFile: ${{ env.filename }} [ansi2txt] cleaned\n";
+          mv -f "${filename0}" "${filename3}" && echo -e "\nLogFile: ${{ env.filename }} [\033[1mansi2txt\033[0m] cleaned";
           if (( filesize3 > min_size_bytes )); then
-            split -d -C 10M "${filename3}" 'part_' && echo -e "LogFile: ${{ env.filename }} [split] completed\n" && echo "file3_parted=1" >> "${GITHUB_ENV}";
+            split -d -C 10M "${filename3}" 'part_' && echo -e "\nLogFile: ${{ env.filename }} file split completed" && echo "file3_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
       shell: bash
