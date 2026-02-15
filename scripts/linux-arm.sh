@@ -74,7 +74,7 @@ llvm_arm_install() {
         exit 2
     fi;
     if [[ ! $(cat "${GITHUB_PATH}" | grep -sF "$LLVM_ARM_PATH") ]]; then
-        eccho 'Updating github paths ......'
+        echo 'Updating github paths ......'
         echo "LLVM_ARM_PATH=${LLVM_ARM_PATH}" >> "${GITHUB_PATH}";
     fi;
     # 4. Resolve Toolchain Path (Parent directory of /bin)
@@ -97,20 +97,19 @@ llvm_arm_install() {
         echo "LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" >> "${GITHUB_ENV}";
         echo "export LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
     fi;
-    SOURCE_DIR="${llvm_arm_path}":
-    TARGET_DIR="/usr/bin";     
+    target="/usr/bin";     
     # Ensure the source directory exists
-    if [[ ! -d "$SOURCE_DIR" ]]; then
-        echo "Source directory $SOURCE_DIR does not exist."
+    if [[ ! -d "$LLVM_ARM_PATH" ]]; then
+        echo "Source directory $LLVM_ARM_PATH does not exist."
         exit 1
     fi;
     # Iterate over all files in the source directory
-    for file in "$SOURCE_DIR"/*; do
+    for file in "${clang_exe1[@]}"; do
           filename=$(basename "$file");
-          target_path="$TARGET_DIR/$filename";
+          target_path="$target/$filename";
           # Check if a file with the same name already exists in the target directory
           if [[ -L "$target_path" ]]; then
-              echo "Skipping $filename: already exists is a link in $TARGET_DIR"
+              echo "Skipping $filename: already exists is a link in $target"
           else
           # Create a symbolic link using an absolute path for reliability
               sudo ln -sf "$file" "$target_path" && echo "Created symlink for $filename";
@@ -122,6 +121,7 @@ llvm_arm_install() {
     sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${llvm%%.*} 210
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+    echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-$version ......";
     echo "clang-${version%%.*}: ${clang_exe1:-clang_exe2}";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
@@ -142,4 +142,4 @@ fi;
 if [[ "${version}" == '' ]]; then
      version='19.1.1';
 fi;
-echo -e "Installing llvm-arm-$version: $(llvm_arm_install $version $platform $download $user $arch $llvm)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
+echo -e "Installing llvm-arm-$version:\n $(llvm_arm_install $version $platform $download $user $arch $llvm)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
