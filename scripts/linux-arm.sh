@@ -47,6 +47,7 @@ llvm_arm_install() {
     else
         filename="release-$version/LLVM-ET-Arm-$version-$os_name.$ext";
     fi;
+    echo "Check clang alternatives:\n $(hash -r)";
     llvm_arm_path="/usr/lib/llvm-arm-${version%%.*}/bin";
     export filename="$filename" llvm_arm_path="$llvm_arm_path" ext="$ext";
     sudo mkdir -p "$llvm_arm_path";
@@ -67,6 +68,7 @@ llvm_arm_install() {
     LLVM_ARM_PATH="$llvm_arm_path";
     local PATH="${LLVM_ARM_PATH}:${PATH}";  
     # 3. Find Clang Path (Equivalent to setup.findClang)
+    clang_exe=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -print);
     clang_exe1=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -name "clang-${version%%.*}" -print);
     clang_exe2="${LLVM_ARM_PATH}/clang-${version%%.*}";
     if [[ ! -x "${clang_exe1}" ]] || [[ ! -x "${clang_exe2}" ]]; then
@@ -82,8 +84,8 @@ llvm_arm_install() {
     # GitHub Actions Outputs (only if running in GH Actions)
     if [[ -n "$LLVM_PATH" ]]; then
         echo "Adding $LLVM_ARM_PATH with $LLVM_PATH to PATH";
-        echo "export LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-        echo "LLVM_PATH=${LLVM_PATH}:${LLVM_ARM_PATH}" >> "${GITHUB_ENV}";
+        echo "export LLVM_PATH=${LLVM_ARM_PATH}:${LLVM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
+        echo "LLVM_PATH=${LLVM_ARM_PATH}:${LLVM_PATH}:" >> "${GITHUB_ENV}";
     else
         echo "Adding $LLVM_ARM_PATH to PATH";
         echo "export LLVM_PATH=${LLVM_ARM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
@@ -91,7 +93,7 @@ llvm_arm_install() {
     fi;
     # Export custom env vars if requested.
     if [[ -n "$LLVM_TOOLCHAIN" ]]; then
-        echo "LLVM_TOOLCHAIN=${LLVM_TOOLCHAIN}:${LLVM_ARM_TOOLCHAIN}" >> "${GITHUB_ENV}";
+        echo "LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}:${LLVM_TOOLCHAIN}" >> "${GITHUB_ENV}";
         echo "export LLVM_TOOLCHAIN=${LLVM_TOOLCHAIN}:${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
     else
         echo "LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" >> "${GITHUB_ENV}";
@@ -103,26 +105,29 @@ llvm_arm_install() {
         echo "Source directory $LLVM_ARM_PATH does not exist."
         exit 1
     fi;
+    unalias clang 2>/dev/null
+    unalias clang++ 2>/dev/null
     # Iterate over all files in the source directory
-    for file in "${clang_exe1[@]}"; do
+    for file in "${clang_exe[@]}"; do
           filename=$(basename "$file");
           target_path="$target/$filename";
           # Check if a file with the same name already exists in the target directory
-          if [[ -L "$target_path" ]]; then
-              echo "Skipping $filename: already exists is a link in $target"
+          if [[ -e "$target_path" || -L "$target_path" ]]; then
+              echo "Skipping $filename: already exists is a file/link in $target"
           else
           # Create a symbolic link using an absolute path for reliability
               sudo ln -sf "$file" "$target_path" && echo "Created symlink for $filename";
           fi;
     done;
-    sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${version%%.*} 190
-    sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${version%%.*} 190
-    sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${llvm%%.*} 210
-    sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-${llvm%%.*} 210
+    [[ -x "/usr/bin/clang-${version%%.*}" ]] && sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${version%%.*} 100 \
+    --slave /usr/bin/clang++ clang++ $LLVM_ARM_PATH/clang++ \
+    --slave /usr/bin/cc cc $LLVM_ARM_PATH/clang \
+    --slave /usr/bin/c++ c++ $LLVM_ARM_PATH/clang++ \
+    type -a clang | head -n 5 2>/dev/null;
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-$version ......";
-    echo "clang-${version%%.*}: ${clang_exe1:-clang_exe2}";
+    echo "clang-${version%%.*}: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
 }
