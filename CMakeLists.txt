@@ -2,6 +2,22 @@ cmake_minimum_required(VERSION 4.1.0) # Specifies the minimum required CMake ver
 
 set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "" FORCE)
 
+# For arm 32 an 64 bit builds using inputs.arch=arm
+if($ENV{arch} STREQUAL "arm")
+# These MUST come before the project() call
+  set(CMAKE_SYSTEM_NAME Linux)
+  set(CMAKE_SYSTEM_PROCESSOR arm)
+  set(ARM_TRIPLE arm-linux-gnueabihf)
+  set(ARM_SYSROOT /usr/${ARM_TRIPLE})
+# Set the flags for the compilers
+  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+# Set the flags for the linker
+  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+  set(CMAKE_C_COMPILER_FORCED TRUE)
+  set(CMAKE_CXX_COMPILER_FORCED TRUE)
+endif()
+
 # ... many examples of user defined project settings for C/C++ ... #
 
 if(DEFINED GITHUB_PROJECT_NAME)

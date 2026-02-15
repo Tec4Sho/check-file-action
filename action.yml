@@ -300,6 +300,10 @@ runs:
        else
          echo 'github_build_project=false' >> "${GITHUB_ENV}";
        fi;
+       echo "arch=${{ inputs.arch }}" >> "${GITHUB_ENV}";
+       echo "release1=" >> "${GITHUB_ENV}";
+       echo "release2=" >> "${GITHUB_ENV}";
+       echo "release3=" >> "${GITHUB_ENV}";
        echo 'include_count=0' >> "${GITHUB_ENV}";
        echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
        echo 'includes=false' >> "${GITHUB_ENV}";
@@ -313,9 +317,6 @@ runs:
        echo 'build_cache=false' >> "${GITHUB_ENV}";
        echo 'check_build=false' >> "${GITHUB_ENV}";
        echo 'database=database' >> "${GITHUB_ENV}";
-       echo "release1=" >> "${GITHUB_ENV}";
-       echo "release2=" >> "${GITHUB_ENV}";
-       echo "release3=" >> "${GITHUB_ENV}";
        echo 'include_missing=false' >> "${GITHUB_ENV}";
        echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
        echo "dirname=${{ inputs.dirname }}" >> "${GITHUB_ENV}";
@@ -327,9 +328,9 @@ runs:
        echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
        sudo mkdir -p /usr/local/bin /usr/local/lib/android/sdk
        sudo chmod -R 0755 "${{ github.action_path }}/scripts";
+       ${{ inputs.version != '' }} && [[ $(which clang-tidy-18) ]] && sudo apt-get remove -yq clang-tidy-18 >/dev/null;
+       ${{ inputs.version != '' }} && [[ $(which clang-18) ]] && sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
        ${{ inputs.version != '' }} && sudo update-alternatives --remove-all clang && sudo update-alternatives --remove-all clang++
-       #[[ $(which clang-tidy-18) ]] && sudo apt-get remove -yq clang-tidy-18 >/dev/null;
-       #[[ $(which clang-18) ]] && sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
       shell: bash
       continue-on-error: true
 
@@ -459,6 +460,10 @@ runs:
         if [[ ! $(which git) ]]; then
           sudo aptitude -yq install git git-core 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
+        fi;
+        if [[ ! $(whereis gcc-arm-linux-gnueabihf) ]]; then
+          sudo aptitude install -y gcc-arm-linux-gnueabihf 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No gcc-arm-linux-gnueabihf installed for arm projects check/build';
+          [[ ! $(whereis gcc-arm-linux-gnueabihf) ]] && echo -e '::warning::No gcc-arm-linux-gnueabihf installed for arm projects';
         fi;
         if ${{ inputs.analyzer == '1' }} && ${{ inputs.project == 'true' }} && [[ $(which run-clang-tidy) ]]; then
           echo -e "\n[clang-tools] $(whereis -b run-clang-tidy)";
