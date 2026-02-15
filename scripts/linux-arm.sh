@@ -113,11 +113,11 @@ llvm_arm_install() {
     sudo update-alternatives --install /usr/bin/clang clang $LLVM_ARM_PATH/clang-${version%%.*} 100 \
     --slave /usr/bin/clang++ clang++ $LLVM_ARM_PATH/clang++ \
     --slave /usr/bin/cc cc $LLVM_ARM_PATH/clang \
-    --slave /usr/bin/c++ c++ $LLVM_ARM_PATH/clang++ \
+    --slave /usr/bin/c++ c++ $LLVM_ARM_PATH/clang++
     type -a clang | awk 'NR==1' 2>/dev/null;
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-    echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-$version ......";
+    echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-${version%%.*} ......";
     echo "clang-${version%%.*}: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
