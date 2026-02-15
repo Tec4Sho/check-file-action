@@ -47,7 +47,7 @@ llvm_arm_install() {
     else
         filename="release-$version/LLVM-ET-Arm-$version-$os_name.$ext";
     fi;
-    echo "Check clang alternatives:\n $(hash -r)";
+    echo "Clearing clang alternatives. $(hash -r)";
     llvm_arm_path="/usr/lib/llvm-arm-${version%%.*}/bin";
     export filename="$filename" llvm_arm_path="$llvm_arm_path" ext="$ext";
     sudo mkdir -p "$llvm_arm_path";
@@ -66,7 +66,7 @@ llvm_arm_install() {
     cat "${tmp_file}" > "${GITHUB_PATH}";
     rm -f -- "${tmp_file}";
     LLVM_ARM_PATH="$llvm_arm_path";
-    local PATH="${LLVM_ARM_PATH}:${PATH}";  
+    export PATH="${LLVM_ARM_PATH}:${PATH}";  
     # 3. Find Clang Path (Equivalent to setup.findClang)
     clang_exe=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -print);
     clang_exe1=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -name "clang-${version%%.*}" -print);
@@ -114,7 +114,7 @@ llvm_arm_install() {
     --slave /usr/bin/clang++ clang++ $LLVM_ARM_PATH/clang++ \
     --slave /usr/bin/cc cc $LLVM_ARM_PATH/clang \
     --slave /usr/bin/c++ c++ $LLVM_ARM_PATH/clang++ \
-    type -a clang | head -n 5 2>/dev/null;
+    type -a clang | awk 'NR==1' 2>/dev/null;
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-$version ......";
