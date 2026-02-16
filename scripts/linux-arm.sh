@@ -66,14 +66,15 @@ llvm_arm_install() {
     cat "${GITHUB_PATH}" >> "${tmp_file}";
     cat "${tmp_file}" > "${GITHUB_PATH}";
     rm -f -- "${tmp_file}";
-    LLVM_ARM_PATH="$llvm_arm_path";
-    LIBRARY_PATH=$LLVM_TOOLCHAIN:/usr/lib/x86_64-linux-gnu:$(which gcc-arm-linux-gnueabihf):$LIBRARY_PATH"
-    export PATH="${LLVM_ARM_PATH}:${PATH}" LIBRARY_PATH="$LIBRARY_PATH";
+    LLVM_ARM_PATH="${llvm_arm_path}";
+    LIBRARY_PATH="${LLVM_TOOLCHAIN}:/usr/lib/x86_64-linux-gnu:$(which gcc-arm-linux-gnueabihf):${LIBRARY_PATH}";
+    export PATH="${LLVM_ARM_PATH}:${PATH}";
+    export LIBRARY_PATH="$LIBRARY_PATH";
     # 3. Find Clang Path (Equivalent to setup.findClang)
     clang_exe=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -print);
     clang_exe1=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -name "clang-${version%%.*}" -print);
     clang_exe2="${LLVM_ARM_PATH}/clang-${version%%.*}";
-    if [[ ! -x "${clang_exe1}" ]] || [[ ! -x "${clang_exe2}" ]]; then
+    if [[ ! -x "${clang_exe1}" || ! -x "${clang_exe2}" ]]; then
         echo "Error: Could not find clang-$version executable path" >&2
         exit 2
     fi;
@@ -124,8 +125,8 @@ llvm_arm_install() {
     echo "clang: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
-    sudo apt-get install gcc-multilib libc6-dev libgcc-s1 2>&1 >/dev/null;
-    echo -e "\nLIBRARY_PATH: $LIBRARY_PATH";
+    sudo apt-get install gcc-multilib libc6-dev libgcc-s1 >/dev/null 2>&1
+    echo -e "\nLIBRARY_PATH: $LIBRARY_PATH" | awk 'NR==1';
 }
 
 # --- Example Usage ---
