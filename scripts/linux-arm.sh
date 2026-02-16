@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set +e
+set -a
 source ~/.bashrc
 
 # Logic for distributionUrl
@@ -67,7 +67,8 @@ llvm_arm_install() {
     cat "${tmp_file}" > "${GITHUB_PATH}";
     rm -f -- "${tmp_file}";
     LLVM_ARM_PATH="$llvm_arm_path";
-    export PATH="${LLVM_ARM_PATH}:${PATH}";  
+    LIBRARY_PATH=$LLVM_TOOLCHAIN:/usr/lib/x86_64-linux-gnu:$(which gcc-arm-linux-gnueabihf):$LIBRARY_PATH"
+    export PATH="${LLVM_ARM_PATH}:${PATH}" LIBRARY_PATH=$LIBRARY_PATH";
     # 3. Find Clang Path (Equivalent to setup.findClang)
     clang_exe=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -print);
     clang_exe1=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -name "clang-${version%%.*}" -print);
@@ -117,11 +118,14 @@ llvm_arm_install() {
     sudo update-alternatives --set clang $LLVM_ARM_PATH/clang
     sudo update-alternatives --set clang++ $LLVM_ARM_PATH/clang++
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
+    echo "export LIBRARY_PATH=$LLVM_TOOLCHAIN:/usr/lib/x86_64-linux-gnu:$(which gcc-arm-linux-gnueabihf):$LIBRARY_PATH" | sudo tee -a ~/.bashrc >/dev/null;
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-${version%%.*} ......";
     echo "clang: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
+    sudo apt-get install gcc-multilib libc6-dev libgcc-s1 2>&1 >/dev/null;
+    echo -e "\nLIBRARY_PATH: $LIBRARY_PATH";
 }
 
 # --- Example Usage ---
@@ -139,4 +143,4 @@ fi;
 if [[ "${version}" == '' ]]; then
      version='19.1.1';
 fi;
-echo -e "Installing llvm-arm-$version:\n $(llvm_arm_install $version $platform $download $user $arch $llvm)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
+echo -e "Installing llvm-arm-$version:\n$(llvm_arm_install $version $platform $download $user $arch $llvm)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
