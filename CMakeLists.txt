@@ -16,6 +16,7 @@ if($ENV{arch} STREQUAL "arm")
   set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
   set(CMAKE_C_COMPILER_FORCED TRUE)
   set(CMAKE_CXX_COMPILER_FORCED TRUE)
+  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
 endif()
 
 # ... many examples of user defined project settings for C/C++ ... #
