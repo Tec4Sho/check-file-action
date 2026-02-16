@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set +e
+set -a
 source ~/.bashrc
 
 # Logic for distributionUrl
@@ -47,7 +47,8 @@ llvm_arm_install() {
     else
         filename="release-$version/LLVM-ET-Arm-$version-$os_name.$ext";
     fi;
-    echo "Check clang alternatives:\n $(hash -r)";
+    echo "Clearing clang alternatives.";
+    hash -r
     llvm_arm_path="/usr/lib/llvm-arm-${version%%.*}/bin";
     export filename="$filename" llvm_arm_path="$llvm_arm_path" ext="$ext";
     sudo mkdir -p "$llvm_arm_path";
@@ -65,13 +66,15 @@ llvm_arm_install() {
     cat "${GITHUB_PATH}" >> "${tmp_file}";
     cat "${tmp_file}" > "${GITHUB_PATH}";
     rm -f -- "${tmp_file}";
-    LLVM_ARM_PATH="$llvm_arm_path";
-    local PATH="${LLVM_ARM_PATH}:${PATH}";  
+    LLVM_ARM_PATH="${llvm_arm_path}";
+    LIBRARY_PATH="${LLVM_TOOLCHAIN}:/usr/lib/x86_64-linux-gnu:$(which gcc-arm-linux-gnueabihf):${LIBRARY_PATH}";
+    export PATH="${LLVM_ARM_PATH}:${PATH}";
+    export LIBRARY_PATH="$LIBRARY_PATH";
     # 3. Find Clang Path (Equivalent to setup.findClang)
     clang_exe=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -print);
     clang_exe1=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -name "clang-${version%%.*}" -print);
     clang_exe2="${LLVM_ARM_PATH}/clang-${version%%.*}";
-    if [[ ! -x "${clang_exe1}" ]] || [[ ! -x "${clang_exe2}" ]]; then
+    if [[ ! -x "${clang_exe1}" || ! -x "${clang_exe2}" ]]; then
         echo "Error: Could not find clang-$version executable path" >&2
         exit 2
     fi;
@@ -105,31 +108,25 @@ llvm_arm_install() {
         echo "Source directory $LLVM_ARM_PATH does not exist."
         exit 1
     fi;
-    unalias clang 2>/dev/null
-    unalias clang++ 2>/dev/null
+    unalias clang 2>/dev/null;
+    unalias clang++ 2>/dev/null;
+    alias clang-${llvm}=$LLVM_ARM_PATH/clang-${version%%.*} 2>/dev/null;
     # Iterate over all files in the source directory
-    for file in "${clang_exe[@]}"; do
-          filename=$(basename "$file");
-          target_path="$target/$filename";
-          # Check if a file with the same name already exists in the target directory
-          if [[ -e "$target_path" || -L "$target_path" ]]; then
-              echo "Skipping $filename: already exists is a file/link in $target"
-          else
-          # Create a symbolic link using an absolute path for reliability
-              sudo ln -sf "$file" "$target_path" && echo "Created symlink for $filename";
-          fi;
-    done;
-    [[ -x "/usr/bin/clang-${version%%.*}" ]] && sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-${version%%.*} 100 \
-    --slave /usr/bin/clang++ clang++ $LLVM_ARM_PATH/clang++ \
-    --slave /usr/bin/cc cc $LLVM_ARM_PATH/clang \
-    --slave /usr/bin/c++ c++ $LLVM_ARM_PATH/clang++ \
-    type -a clang | head -n 5 2>/dev/null;
+    sudo update-alternatives --install /usr/bin/clang clang $LLVM_ARM_PATH/clang 200 >/dev/null;
+    sudo update-alternatives --install /usr/bin/cc cc $LLVM_ARM_PATH/clang 200 >/dev/null;
+    sudo update-alternatives --install /usr/bin/clang++ clang++ $LLVM_ARM_PATH/clang++ 200 >/dev/null;
+    sudo update-alternatives --install /usr/bin/c++ c++ $LLVM_ARM_PATH/clang++ 200 >/dev/null;
+    sudo update-alternatives --set clang $LLVM_ARM_PATH/clang
+    sudo update-alternatives --set clang++ $LLVM_ARM_PATH/clang++
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
+    echo "export LIBRARY_PATH=$LLVM_TOOLCHAIN:/usr/lib/x86_64-linux-gnu:$(which gcc-arm-linux-gnueabihf):$LIBRARY_PATH" | sudo tee -a ~/.bashrc >/dev/null;
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-    echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-$version ......";
-    echo "clang-${version%%.*}: $(readlink -f $(which clang))";
+    echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-${version%%.*} ......";
+    echo "clang: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
+    sudo apt-get install gcc-multilib libc6-dev libgcc-s1 >/dev/null 2>&1
+    echo -e "\nLIBRARY_PATH: $LIBRARY_PATH" | awk 'NR==1';
 }
 
 # --- Example Usage ---
@@ -147,4 +144,4 @@ fi;
 if [[ "${version}" == '' ]]; then
      version='19.1.1';
 fi;
-echo -e "Installing llvm-arm-$version:\n $(llvm_arm_install $version $platform $download $user $arch $llvm)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
+echo -e "Installing llvm-arm-$version:\n$(llvm_arm_install $version $platform $download $user $arch $llvm)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
