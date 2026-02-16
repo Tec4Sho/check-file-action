@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set +e
-set -a
 
 LLVM_PATH=""
 

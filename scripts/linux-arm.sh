@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -a
+set +e
 source ~/.bashrc
 
 # Logic for distributionUrl
@@ -66,10 +66,10 @@ llvm_arm_install() {
     rm -f -- "${tmp_file}";
     LLVM_ARM_PATH="$llvm_arm_path";
     # 3. Find Clang Path (Equivalent to setup.findClang)
-    clang_exe=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -print);
+    clang_exe1=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -name "clang-${version%%.*}" -print);
     clang_exe2="${LLVM_ARM_PATH}/clang-${version%%.*}";
     # run checks
-    if [[ ! -x "$clang_exe2" ]]; then
+    if [[ ! -x "$clang_exe1" || ! -x "$clang_exe2" ]]; then
         echo "Error: Could not find clang-$version executable path" >&2
         exit 2
     fi;
@@ -97,7 +97,7 @@ llvm_arm_install() {
         echo "LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" >> "${GITHUB_ENV}";
         echo "export LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
     fi;
-    LIBRARY_PATH="${LLVM_TOOLCHAIN}:/usr/lib/x86_64-linux-gnu:${LIBRARY_PATH}";
+    LIBRARY_PATH="${LLVM_ARM_TOOLCHAIN}:/usr/lib/x86_64-linux-gnu:${LIBRARY_PATH}";
     export PATH="${LLVM_ARM_PATH}:${PATH}";
     export LIBRARY_PATH="$LIBRARY_PATH";
     # Ensure the source directory exists
@@ -123,6 +123,9 @@ llvm_arm_install() {
     echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-${version%%.*} ......";
     echo "clang: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
+    sudo apt-get install gcc-arm-linux-gnueabihf gcc-multilib libc6-dev libgcc-s1 >/dev/null 2>&1
+    echo -e "Compilier: $(which gcc-arm-linux-gnueabihf)";
+    echo -e "\nLibrary Path: $LIBRARY_PATH" | awk 'NR==1';
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
 }
 
@@ -142,6 +145,3 @@ if [[ "${version}" == '' ]]; then
      version='19.1.1';
 fi;
 echo -e "Installing llvm-arm-$version:\n$(llvm_arm_install $version $platform $download $user $arch $llvm)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
-# sudo apt-get install gcc-multilib libc6-dev libgcc-s1 >/dev/null 2>&1
-echo -e "Compilier: $(which gcc-arm-linux-gnueabihf)";
-echo -e "\nLibrary Path: $LIBRARY_PATH" | awk 'NR==1';
