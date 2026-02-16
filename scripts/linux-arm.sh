@@ -50,7 +50,7 @@ llvm_arm_install() {
     llvm_arm_path="/usr/lib/llvm-arm-${version%%.*}/bin";
     export filename="$filename" llvm_arm_path="$llvm_arm_path" ext="$ext";
     sudo mkdir -p "$llvm_arm_path";
-    tmp_file="$(mktemp)";  
+    tmp_file="$(mktemp)";
     if [[ -d "${llvm_arm_path}" ]]; then
       echo "Downloading: ${download}/${filename}";         
       sudo wget -qO "llvm-embedded-toolchain-for-arm-$version.$ext" "$download/$filename" >/dev/null;
@@ -67,7 +67,7 @@ llvm_arm_install() {
     LLVM_ARM_PATH="${llvm_arm_path}";
     # 3. Find Clang Path (Equivalent to setup.findClang)
     clang_exe=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -print);
-    clang_exe1=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -name "clang-${version%%.*}" -print);
+    clang_exe1=$(sudo find "${llvm_arm_path}" -xdev -type f -name "clang-${version%%.*}" -print -quit);
     clang_exe2="${LLVM_ARM_PATH}/clang-${version%%.*}";
     # run checks
     if [[ ! -x "${clang_exe1}" ]] || [[ ! -x "${clang_exe2}" ]]; then
@@ -125,9 +125,6 @@ llvm_arm_install() {
     echo "clang: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
-    sudo apt-get install gcc-multilib libc6-dev libgcc-s1 >/dev/null 2>&1
-    echo -e "Compilier: $(which gcc-arm-linux-gnueabihf)";
-    echo -e "\nLibrary Path: $LIBRARY_PATH" | awk 'NR==1';
 }
 
 # --- Example Usage ---
@@ -146,3 +143,6 @@ if [[ "${version}" == '' ]]; then
      version='19.1.1';
 fi;
 echo -e "Installing llvm-arm-$version:\n$(llvm_arm_install $version $platform $download $user $arch $llvm)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
+sudo apt-get install gcc-multilib libc6-dev libgcc-s1 >/dev/null 2>&1
+echo -e "Compilier: $(which gcc-arm-linux-gnueabihf)";
+echo -e "\nLibrary Path: $LIBRARY_PATH" | awk 'NR==1';
