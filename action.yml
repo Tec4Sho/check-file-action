@@ -117,6 +117,11 @@ inputs:
     type: number
     required: false
     default: 0
+  module:
+    description: 'Make kernel modules when building project source'
+    type: boolean
+    required: false
+    default: 'false'
   stored:
     description: 'Checked files with errors repaired are skipped if ran again'
     type: boolean
@@ -188,7 +193,7 @@ outputs:
     description: The absolute path to the LLVM installation
     value: ${{ steps.output-path.outputs.llvm-path }}
 
-runs:
+runs: # Uses default x86_64 / linux user machine
   using: composite
   steps:
     - name: Linux Distro Check
@@ -1746,7 +1751,6 @@ runs:
       run: |
         source ~/.bashrc
         set +e
-        set -a
         start_time="${{ env.seconds }}";
         CMAKE_EXPORT_COMPILE_COMMANDS=ON
         CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
@@ -1903,6 +1907,178 @@ runs:
           fi;
         elif ${{ env.build_files == '1' }} && ${{ inputs.build == '4' }}; then
           echo -e "\n####################\n::error:: build directory missing in repo Exiting...\n####################\n" | process_input;
+        fi;
+        echo '';
+        seconds="$((SECONDS + start_time))";
+        echo "seconds=${seconds}" >> "${GITHUB_ENV}";
+      shell: bash
+      continue-on-error: true
+
+    - name: Build For Arm/Arm64 Devices
+      if: contains(fromJSON('["arm", "arm64", "aarch64"]'), inputs.arch) && inputs.build == '5'
+      run: |
+        source ~/.bashrc
+        set +e
+        start_time="${{ env.seconds }}";
+        CMAKE_EXPORT_COMPILE_COMMANDS=ON
+        CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
+        CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
+        ${{ inputs.include == 'true' }} && C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
+        ${{ inputs.internal == 'true' }} && C_INCLUDE_PATH="${LINUXINCLUDE// /} ${USERINCLUDE// /}" && CPLUS_INCLUDE_PATH="${LINUXINCLUDE// /} ${USERINCLUDE// /}";
+        codechecker='codechecker.yaml';
+        compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
+        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        github=${GITHUB_WORKSPACE};
+        project_log="${github}/${repository}_project.log";
+        build_fixes='build/fixes.yaml';
+        check_build=false
+        file_type='c';
+        update=true
+        process_input() {
+          while IFS= read -r output; do
+            if ${{ inputs.output == '1' }}; then
+              echo -e "${output}" | tee -a "${project_log}";
+            elif ${{ inputs.output == '2' }}; then
+              echo -e "${output}" >> "${project_log}";
+            elif ${{ inputs.output == '3' }}; then
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
+            fi;
+          done;
+        }
+        if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
+          cd "${{ env.dirname }}" && echo -e "User Current Directory;  ${{ env.dirname }}\n" | process_input;
+        fi;
+        if [[ -f 'compile_commands.json' ]]; then
+          compile_json='compile_commands.json';
+        elif [[ -f 'build/compile_commands.json' ]]; then
+          compile_json='build/compile_commands.json';
+        else
+          codechecker=$(fdfind -a -p -t f -1 'codechecker.yaml' "${github}");
+          compile_json=$(fdfind -a -p -t f -1 'compile_commands.json' "${github}");
+        fi;
+        envsetup=$(fdfind -c auto -p -t f -1 'envsetup.sh' "${github}");
+        if ${{ env.check_build == 'false' }}; then
+          echo 'check_build=false' >> "${GITHUB_ENV}";
+        fi;
+        if ${{ inputs.update == 'false' }}; then
+          echo 'update=false' >> "${GITHUB_ENV}";
+          update=false
+        fi;
+        if ${{ inputs.filetype != '' }}; then
+          file_type="${{ inputs.filetype }}";
+        fi;
+        echo "filetype=${file_type}" >> "${GITHUB_ENV}";
+        build_alone() {
+          local llvm_version="${{ inputs.release }}";
+          local arch_target="${{ inputs.arch }}";
+          local kernel_path=$(find ${{ env.base }} -maxdepth 3 -type f -name "Makefile" -exec grep -l "VERSION =" {} + | xargs -n1 dirname | head -n 1)
+          local kernel_cpus=$(find ${{ env.base }} -maxdepth 3 -type f -name "BoardConfig.mk" -print | grep -F -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')
+          [[ -f 'BoardConfig.mk' ]] && echo '::warning;;Cant find BoardConfig.mk for setup aborting cpu targeting' | process_input;
+          [[ -z $kernel_cpus ]] && echo '::warning;;Cant find TARGET_CPU_VARIANT for setup aborting cpu targeting' | process_input;
+          # Run make with ARM overrides
+          if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
+            make CC=clang \
+            CXX=clang++ \
+            CFLAGS="--target=arm-linux-gnueabihf -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=/usr/arm-linux-gnueabihf" \
+            LDFLAGS="--target=arm-linux-gnueabihf --sysroot=/usr/arm-linux-gnueabihf"
+          elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a53' ]]; then
+            make CC=clang \
+            CXX=clang++ \
+            CFLAGS="--target=aarch64-unknown-linux-gnu -mcpu=cortex-a53 --sysroot=/usr/aarch64-linux-gnu" \
+            LDFLAGS="--target=aarch64-unknown-linux-gnu --sysroot=/usr/aarch64-linux-gnu"
+          elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a72' ]]; then
+            make CC=clang \
+            CXX=clang++ \
+            CFLAGS="--target=aarch64-unknown-linux-gnu -mcpu=cortex-a72 --sysroot=/usr/aarch64-linux-gnu" \
+            LDFLAGS="--target=aarch64-unknown-linux-gnu --sysroot=/usr/aarch64-linux-gnu"
+          else
+          # Native x86_64
+            make CC=clang \
+            CXX=clang++
+          fi;
+        }
+        build_module() {
+          local llvm_version="${{ inputs.release }}";
+          local arch_target="${{ inputs.arch }}";
+          local kernel_path=$(find ${{ env.base }} -maxdepth 3 -type f -name "Makefile" -exec grep -l "VERSION =" {} + | xargs -n1 dirname | head -n 1)
+          local kernel_cpus=$(find ${{ env.base }} -maxdepth 3 -type f -name "BoardConfig.mk" -print | grep -F -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')
+          if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
+          # Cross-compile for Cortex-A7
+            make ARCH=arm \
+            CROSS_COMPILE=arm-linux-gnueabihf- \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            CC="clang --target=arm-linux-gnueabihf" \
+            LD="clang --target=arm-linux-gnueabihf -fuse-ld=lld" \
+            KCFLAGS="-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard" \
+            -C "${kernel_path}" M="$PWD" modules
+          elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a53' ]]; then
+            # Run make with ARM64 (AArch64) overrides
+            make ARCH=arm64 \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            CC="clang --target=aarch64-unknown-linux-gnu" \
+            LD="ld.lld" \
+            KCFLAGS="-mcpu=cortex-a53" \
+            -C "${kernel_path}" M="$PWD" modules
+          elif [[ "$arch_target" =~ ^(arm64|aarch64) ]]&& [[ "$kernel_cpus" == 'cortex-a72' ]]; then
+            # Run make with ARM64 (AArch64) overrides
+            make ARCH=arm64 \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            CC="clang --target=aarch64-unknown-linux-gnu" \
+            LD="ld.lld" \
+            KCFLAGS="-mcpu=cortex-a72" \
+            -C "${kernel_path}" M="$PWD" modules
+          else
+          # Native x86_64
+            make CC=clang -C "${kernel_path}" M="$PWD" modules
+          fi;
+        }
+        if ${{ env.build_files == '1' }} && ${{ inputs.build == '5' }} && ${{ inputs.module == 'true' }}; then
+          echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################\n' | process_input;
+          sudo bash -c 'source ~/.bashrc';
+          export TERM=dumb
+          if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
+            sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
+          else
+            echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
+          fi;
+          if [[ -e "${codechecker}" ]] && [[ "${envsetup}" ]]; then
+            echo -e "Sources: ${envsetup}";
+            echo -e "\n${codechecker} file was found continuing...\n" | process_input;
+            CodeChecker check \
+              --config "${codechecker}" \
+              --jobs "$(nproc)" \
+              --print-steps \
+              -b "source ${envsetup} && lunch ${{ inputs.makefile }} && build_module ${{ env.filename }} -j$(nproc --all) -k" \
+              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+          fi;
+        elif ${{ env.build_files == '1' }} && ${{ inputs.build == '5' }}; then
+          echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################\n' | process_input;
+          sudo bash -c 'source ~/.bashrc';
+          export TERM=dumb
+          if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
+            sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
+          else
+            echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
+          fi;
+          if [[ -e "${codechecker}" ]] && [[ "${envsetup}" ]]; then
+            echo -e "Sources: ${envsetup}";
+            echo -e "\n${codechecker} file was found continuing...\n" | process_input;
+            CodeChecker check \
+              --config "${codechecker}" \
+              --jobs "$(nproc)" \
+              --print-steps \
+              -b "source ${envsetup} && lunch ${{ inputs.makefile }} && build_alone ${{ env.filename }} -j$(nproc --all) -k" \
+              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+          fi;
+        else
+          echo '::error::No cmake build files were found exiting.....' | process_inputs;
         fi;
         echo '';
         seconds="$((SECONDS + start_time))";

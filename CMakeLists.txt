@@ -2,6 +2,26 @@ cmake_minimum_required(VERSION 4.1.0) # Specifies the minimum required CMake ver
 
 set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "" FORCE)
 
+if(DEFINED GITHUB_PROJECT_NAME)
+  set(PROJECT_NAME "${GITHUB_PROJECT_NAME}")
+else()
+  set(PROJECT_NAME "$ENV{github_repository}")
+endif()
+
+if($ENV{github_build_project})
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
+  message(STATUS "Project Build: clang tools analyze test build")
+  message(STATUS "CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
+else()
+  add_compile_options(
+    "-Wall" "-Wpedantic" "-Wextra" "-fexceptions" "-std=c90"
+    "$<$<CONFIG:DEBUG>:-O0;-ferror-limit=0;-Wno-error=unused-command-line-argument;-Qunused-arguments>"
+  )
+  set(C_FLAGS "${C_FLAGS} -O1 -ferror-limit=0 -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
+  message(STATUS "Project Build: clang tools analyze only")
+  message(STATUS "C_FLAGS: ${C_FLAGS}")
+endif()
+
 # For arm 32 an 64 bit builds using inputs.arch=arm
 if($ENV{arch} STREQUAL "arm")
 # These MUST come before the project() call
@@ -10,22 +30,36 @@ if($ENV{arch} STREQUAL "arm")
   set(ARM_TRIPLE arm-linux-gnueabihf)
   set(ARM_SYSROOT /usr/${ARM_TRIPLE})
 # Set the flags for the compilers
-  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
 # Set the flags for the linker
   set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
   set(CMAKE_C_COMPILER_FORCED TRUE)
   set(CMAKE_CXX_COMPILER_FORCED TRUE)
+  set(CMAKE_C_COMPILER clang)
+  set(CMAKE_CXX_COMPILER clang++)
+  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+endif()
+
+if($ENV{arch} STREQUAL "arm64")
+# These MUST come before the project() call
+  set(CMAKE_SYSTEM_NAME Linux)
+  set(CMAKE_SYSTEM_PROCESSOR arm64)
+  set(ARM_TRIPLE aarch64-unknown-linux-gnu)
+  set(ARM_SYSROOT /usr/${ARM_TRIPLE})
+# Set the flags for the compilers
+  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+# Set the flags for the linker
+  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+  set(CMAKE_C_COMPILER_FORCED TRUE)
+  set(CMAKE_CXX_COMPILER_FORCED TRUE)
+  set(CMAKE_C_COMPILER clang)
+  set(CMAKE_CXX_COMPILER clang++)
   set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
 endif()
 
 # ... many examples of user defined project settings for C/C++ ... #
-
-if(DEFINED GITHUB_PROJECT_NAME)
-  set(PROJECT_NAME "${GITHUB_PROJECT_NAME}")
-else()
-  set(PROJECT_NAME "$ENV{github_repository}")
-endif()
 
 project("${PROJECT_NAME}" VERSION 1.0 LANGUAGES C)
 
@@ -261,20 +295,6 @@ endif()
 # .set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
 
 # .set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall -Werror -pedantic")
-
-if($ENV{github_build_project})
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
-  message(STATUS "Project Build: clang tools analyze test build")
-  message(STATUS "CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
-else()
-  add_compile_options(
-    "-Wall" "-Wpedantic" "-Wextra" "-fexceptions" "-std=c90"
-    "$<$<CONFIG:DEBUG>:-O0;-ferror-limit=0;-Wno-error=unused-command-line-argument;-Qunused-arguments>"
-  )
-  set(C_FLAGS "${C_FLAGS} -O1 -ferror-limit=0 -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
-  message(STATUS "Project Build: clang tools analyze only")
-  message(STATUS "C_FLAGS: ${C_FLAGS}")
-endif()
 
 # .set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -O2 -Wall -Werror -pedantic -std=c99")
 
