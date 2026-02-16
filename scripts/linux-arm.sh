@@ -105,6 +105,8 @@ llvm_arm_install() {
         echo "Source directory $LLVM_ARM_PATH does not exist."
         exit 1
     fi;
+    check1=$(which gcc-arm-linux-gnueabihf)
+    check2=$(whereis gcc-arm-linux-gnueabihf)
     echo "Clearing clang alternatives.";
     hash -r
     unalias clang 2>/dev/null;
@@ -123,8 +125,10 @@ llvm_arm_install() {
     echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-${version%%.*} ......";
     echo "clang: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
-    sudo apt-get install gcc-arm-linux-gnueabihf gcc-multilib libc6-dev libgcc-s1 >/dev/null 2>&1
-    echo -e "Compilier: $(which gcc-arm-linux-gnueabihf)";
+    sudo dpkg --add-architecture i386 2>/dev/null
+    sudo apt-get -yq update >/dev/null
+    sudo aptitude install -yq gcc-arm-linux-gnueabihf gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 >/dev/null 2>&1
+    echo -e "Compilier: ${check1:-ckeck2}";
     echo -e "\nLibrary Path: $LIBRARY_PATH" | awk 'NR==1';
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
 }
