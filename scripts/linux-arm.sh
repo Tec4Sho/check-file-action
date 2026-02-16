@@ -129,7 +129,7 @@ llvm_arm_install() {
     sudo apt-get -yq update >/dev/null
     sudo aptitude install -yq gcc-arm-linux-gnueabihf gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 >/dev/null 2>&1
     echo -e "Compilier: ${check1:-ckeck2}";
-    echo -e "\nLibrary Path: $LIBRARY_PATH" | awk 'NR==1';
+    echo -e "\nLibrary Path: $LIBRARY_PATH";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
 }
 
