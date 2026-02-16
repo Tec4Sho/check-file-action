@@ -64,13 +64,12 @@ llvm_arm_install() {
     cat "${GITHUB_PATH}" >> "${tmp_file}";
     cat "${tmp_file}" > "${GITHUB_PATH}";
     rm -f -- "${tmp_file}";
-    LLVM_ARM_PATH="${llvm_arm_path}";
+    LLVM_ARM_PATH="$llvm_arm_path";
     # 3. Find Clang Path (Equivalent to setup.findClang)
     clang_exe=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -print);
-    clang_exe1=$(sudo find "${llvm_arm_path}" -xdev -type f -name "clang-${version%%.*}" -print -quit);
     clang_exe2="${LLVM_ARM_PATH}/clang-${version%%.*}";
     # run checks
-    if [[ ! -x "${clang_exe1}" ]] || [[ ! -x "${clang_exe2}" ]]; then
+    if [[ ! -x "$clang_exe2" ]]; then
         echo "Error: Could not find clang-$version executable path" >&2
         exit 2
     fi;
@@ -135,14 +134,14 @@ version="${LLVM_ARM_VERSION}";
 llvm="${LLVM_VERSION}";
 user="${USER:-runner}";
 arch=$(uname -m);
-export platform version user arch download
-if [[ ${LLVM_VERSION} == '' ]]; then
+export platform version user arch download llvm
+if [[ "${LLVM_VERSION}" == '' ]]; then
      echo "::error;:[$?] llvm-tools missing.";
 fi;
 if [[ "${version}" == '' ]]; then
      version='19.1.1';
 fi;
 echo -e "Installing llvm-arm-$version:\n$(llvm_arm_install $version $platform $download $user $arch $llvm)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
-sudo apt-get install gcc-multilib libc6-dev libgcc-s1 >/dev/null 2>&1
+# sudo apt-get install gcc-multilib libc6-dev libgcc-s1 >/dev/null 2>&1
 echo -e "Compilier: $(which gcc-arm-linux-gnueabihf)";
 echo -e "\nLibrary Path: $LIBRARY_PATH" | awk 'NR==1';
