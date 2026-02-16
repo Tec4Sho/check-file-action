@@ -2218,11 +2218,11 @@ runs: # Uses default x86_64 / linux user machine
             if ${{ inputs.number > '0' }}; then
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | gawk '{ printf "    %s\n", $0; }' | process_input;
             else 
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | gawk '{ printf "    %s\n", $0; }' | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2286,7 +2286,7 @@ runs: # Uses default x86_64 / linux user machine
                   else
                     file="${file#*./}";
                   fi;
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="${file}" 2>&1 | process_input || error="$?";
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
                 else
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I"${include_path}" 2>&1 | process_input || error="$?";
                 fi;
@@ -2455,11 +2455,11 @@ runs: # Uses default x86_64 / linux user machine
             if ${{ inputs.number > '0' }}; then
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | gawk '{ printf "    %s\n", $0; }' | process_input;
             else 
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | gawk '{ printf "    %s\n", $0; }' | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2628,11 +2628,11 @@ runs: # Uses default x86_64 / linux user machine
             if ${{ inputs.number > '0' }}; then
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | gawk '{ printf "    %s\n", $0; }' | process_input;
             else 
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | gawk '{ printf "    %s\n", $0; }' | process_input;
             fi;
           fi;
           while IFS= read -r file; do
@@ -2748,11 +2748,11 @@ runs: # Uses default x86_64 / linux user machine
             if ${{ inputs.number > '0' }}; then
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input; 
               { echo "${files}" 2>/dev/null; } | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" 2>/dev/null | gawk -v n="${number}" 'NR <= n { print $0; } NR > n { exit; }' 2>/dev/null | wc -l)" | gawk '{ printf "    %s\n", $0; }' | process_input;
             else 
               echo -e "\n####################\n\033[32mLocated Files\033[0m:\n####################\n" | process_input;
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
-              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | process_input;
+              echo -e "\033[1mTotal Files:\033[0m $(echo "${files}" | wc -l)" | gawk '{ printf "    %s\n", $0; }' | process_input;
             fi;
           fi;
           while IFS= read -r file; do
