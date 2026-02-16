@@ -4,18 +4,23 @@ analyze:
   - --enable=sensitive
   - --no-missing-checker-error
   - --report-hash=diagnostic-message
+  - --drop-reports-from-skipped-files
+  - --add-compiler-defaults
+  - --keep-gcc-include-fixed
+  - --keep-gcc-intrin
+  - --ignore=skip.txt
   - --verbose=info
   - --clean
 
 parse:
-  - --trim-path-prefix=$HOME/workspace
+  - --trim-path-prefix=${GITHUB_WORKSPACE}/reports
   - --print-steps
 
 server:
-  - --workspace=$HOME/workspace
+  - --workspace=${GITHUB_WORKSPACE}/reports
   - --port=9090
 
 store:
   - --name=run_name
   - --tag=my_tag
-  - --url=http://codechecker.my:9090/MyProduct
+  - --url=http://codechecker.my:9090/MyProject
