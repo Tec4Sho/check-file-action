@@ -1475,7 +1475,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             else
               header_source=$(sudo find "${linux_usr_src}" \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -xdev -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${linux_usr_src}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
-              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'linux' -o -name 'arch' -o -name 'asm' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${{ env.base }}" -type d \( -name 'include' -o -name 'linux' -o -name 'arch' -o -name 'asm' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'uapi' -o -name 'asm' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${{ env.base }}" -type d \( -name 'include' -o -name 'uapi' -o -name 'asm' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1493,7 +1493,7 @@ runs: # Uses default x86_64 / linux user machine
             fi;
           }
           clang_includes() {
-            find "${{ env.base }}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            find "${{ env.base }}" -type d \( -name 'include' -o -name 'uapi' -o -name 'asm' \) | gawk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               echo -e "--extra-arg=-I${include#./}";
             done;
           }
