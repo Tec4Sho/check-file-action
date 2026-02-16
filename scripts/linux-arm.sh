@@ -68,7 +68,7 @@ llvm_arm_install() {
     rm -f -- "${tmp_file}";
     LLVM_ARM_PATH="$llvm_arm_path";
     LIBRARY_PATH=$LLVM_TOOLCHAIN:/usr/lib/x86_64-linux-gnu:$(which gcc-arm-linux-gnueabihf):$LIBRARY_PATH"
-    export PATH="${LLVM_ARM_PATH}:${PATH}" LIBRARY_PATH=$LIBRARY_PATH";
+    export PATH="${LLVM_ARM_PATH}:${PATH}" LIBRARY_PATH="$LIBRARY_PATH";
     # 3. Find Clang Path (Equivalent to setup.findClang)
     clang_exe=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -print);
     clang_exe1=$(sudo find "${llvm_arm_path%/*}" -xdev -type f -name "clang-${version%%.*}" -print);
