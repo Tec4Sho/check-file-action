@@ -1816,6 +1816,7 @@ runs: # Uses default x86_64 / linux user machine
           if [[ -e "${codechecker}" ]] && [[ "${envsetup}" ]]; then
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
+            make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
@@ -1824,6 +1825,7 @@ runs: # Uses default x86_64 / linux user machine
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
+            make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
@@ -1831,6 +1833,7 @@ runs: # Uses default x86_64 / linux user machine
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
+            make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
@@ -1859,7 +1862,8 @@ runs: # Uses default x86_64 / linux user machine
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          CodeChecker log --build "make -j$(nproc)" --output "${compile_json}" 2>&1 | process_input || echo -e "\n::notice::CodeChecker log exit-code ($?)" | process_input;
+          make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
+          CodeChecker log --build "make -nB -j$(nproc)" --output "${compile_json}" 2>&1 | process_input || echo -e "\n::notice::CodeChecker log exit-code ($?)" | process_input;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -aiF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
           elif [[ -s "${project_log}" ]] && [[ $(grep -aF 'error:' "${project_log}") ]]; then
@@ -1876,7 +1880,8 @@ runs: # Uses default x86_64 / linux user machine
         if ${{ env.build_files == '1' }} && ${{ inputs.build == '3' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tDeheader analyze sources includes on build...(dry-run -3)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
-          deheader -v -r -m "make -n -j$(nproc)" 2>&1 | process_input || echo -e "\n::notice::deheader check exit-code ($?)" | process_input;
+          make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
+          deheader -v -r -m "make -nB -j$(nproc)" 2>&1 | process_input || echo -e "\n::notice::deheader check exit-code ($?)" | process_input;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -aiF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
           elif [[ -s "${project_log}" ]] && [[ $(grep -aE ' duplicates|inclusion' "${project_log}") ]]; then
@@ -1894,6 +1899,7 @@ runs: # Uses default x86_64 / linux user machine
           echo -e '\n####################\n\tDeheader analyze & repair sources includes on build...(test-run -4)\n####################\n' | process_input;
           sudo bash -c 'source ~/.bashrc'
           [[ "${envsetup}" ]] && echo -e "Sources: ${envsetup}\n" || echo '::error::No envsetup.sh file to source for lunch mode exiting';
+          make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
           deheader -v -r -m "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ env.filename }} -j$(nproc) -k'" 2>&1 | process_input || echo -e "\n::notice::deheader build exit-code ($?)" | process_input;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -aiF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
@@ -1933,6 +1939,7 @@ runs: # Uses default x86_64 / linux user machine
         build_fixes='build/fixes.yaml';
         check_build=false
         file_type='c';
+        envsetup=$(fdfind -p -t f -1 'envsetup.sh' "${github}");
         update=true
         process_input() {
           while IFS= read -r output; do
@@ -1958,7 +1965,6 @@ runs: # Uses default x86_64 / linux user machine
           codechecker=$(fdfind -a -p -t f -1 'codechecker.yaml' "${github}");
           compile_json=$(fdfind -a -p -t f -1 'compile_commands.json' "${github}");
         fi;
-        envsetup=$(fdfind -c auto -p -t f -1 'envsetup.sh' "${github}");
         if ${{ env.check_build == 'false' }}; then
           echo 'check_build=false' >> "${GITHUB_ENV}";
         fi;
@@ -2039,8 +2045,20 @@ runs: # Uses default x86_64 / linux user machine
             make CC=clang -C "${kernel_path}" M="$PWD" modules
           fi;
         }
-        if ${{ env.build_files == '1' }} && ${{ inputs.build == '5' }} && ${{ inputs.module == 'true' }}; then
-          echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################\n' | process_input;
+        if ${{ inputs.module == 'true' }}; then
+          make='build_module';
+        else
+          make='build_alone';
+        fi;
+        if ${{ env.build_files == '1' }}; then
+          echo -e "\nChecking gcc for default includes:" | process_input;
+          if [[ ${{ inputs.filetype }} == [c] ]]; then
+            `gcc -print-prog-name=cc1` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
+          elif [[ ${{ inputs.filetype }} == [c]* ]]; then
+            `gcc -print-prog-name=cc1plus` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
+          fi;
+          echo | gcc -v -E - 2>&1 | awk '/#include <...> search starts here:/{flag=1;next} /End of search list./{flag=0} flag' | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
+          echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################\n' |  process_input;
           sudo bash -c 'source ~/.bashrc';
           export TERM=dumb
           if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
@@ -2051,34 +2069,34 @@ runs: # Uses default x86_64 / linux user machine
           if [[ -e "${codechecker}" ]] && [[ "${envsetup}" ]]; then
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
+            make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
               --print-steps \
-              -b "source ${envsetup} && lunch ${{ inputs.makefile }} && build_module ${{ env.filename }} -j$(nproc --all) -k" \
+              -b "source ${envsetup} && lunch ${{ inputs.makefile }} && $make ${{ env.filename }} -j$(nproc --all) -k" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
-          fi;
-        elif ${{ env.build_files == '1' }} && ${{ inputs.build == '5' }}; then
-          echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################\n' | process_input;
-          sudo bash -c 'source ~/.bashrc';
-          export TERM=dumb
-          if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
-            sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
-          else
-            echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
-          fi;
-          if [[ -e "${codechecker}" ]] && [[ "${envsetup}" ]]; then
-            echo -e "Sources: ${envsetup}";
-            echo -e "\n${codechecker} file was found continuing...\n" | process_input;
+          elif [[ "${envsetup}" ]]; then
+            echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
+            make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
-              --config "${codechecker}" \
+              --add-compiler-defaults \
               --jobs "$(nproc)" \
               --print-steps \
-              -b "source ${envsetup} && lunch ${{ inputs.makefile }} && build_alone ${{ env.filename }} -j$(nproc --all) -k" \
+              -b "source ${envsetup} && lunch ${{ inputs.makefile }} && $make ${{ env.filename }} -j$(nproc) -k" \
+              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+          else
+            echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
+            make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
+            CodeChecker check \
+              --add-compiler-defaults \
+              --jobs "$(nproc)" \
+              --print-steps \
+              -b "$make ${{ inputs.makefile }} -nB -j$(nproc) -k" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           fi;
         else
-          echo '::error::No cmake build files were found exiting.....' | process_inputs;
+          echo '::error::No cmake build files were found. Is (project: true) set?\n Exiting.....' | process_inputs;
         fi;
         echo '';
         seconds="$((SECONDS + start_time))";
