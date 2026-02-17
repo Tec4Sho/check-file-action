@@ -104,7 +104,7 @@ llvm_arm_install() {
         exit 1
     fi;
     check1="clang-${version%%.*}";
-    check2=$(find /usr -type d -name "*linux-gnueabihf*");
+    check2=$(sudo find /usr -type d \( -name '*gcc*' -o -a -name '*g++*' \) -print);
     echo "Clearing clang alternatives.";
     hash -r
     unalias clang 2>/dev/null;
@@ -121,13 +121,12 @@ llvm_arm_install() {
     echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-${version%%.*} ......";
     echo "clang: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
-    sudo dpkg --add-architecture i386 2>/dev/null
-    sudo apt-get -yq update >/dev/null
-    sudo aptitude install -yq sudo apt-get install -y linux-headers-generic-armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
+    sudo dpkg --add-architecture i386 >/dev/null
+    sudo aptitude install -yq linux-headers-generic-armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null;
     LIBRARY_PATH="${LLVM_ARM_TOOLCHAIN}/lib:/usr/lib/gcc:${LIBRARY_PATH}";
     LIBRARY_PATH="${LIBRARY_PATH%:}";
     export LIBRARY_PATH="${LIBRARY_PATH%:}";
-    echo -e "Compilier: ${check1}\nPaths: ${LLVM_ARM_PATH}\n$check2";
+    echo -e "Compilier: ${check1}\nPaths: ${LLVM_ARM_PATH}\n${check2}";
     echo -e "Library Path: $LIBRARY_PATH";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
     echo "export LIBRARY_PATH=$LIBRARY_PATH" | sudo tee -a ~/.bashrc >/dev/null;
