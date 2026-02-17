@@ -446,7 +446,7 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         text0="####################\ngit dependencies installed\n####################";
         text1="####################\nripgrep dependencies installed\n####################";
-        text2="####################\ncolorized-logs dependencies installed\n####################";
+        text2="####################\nansi2txt dependencies installed\n####################";
         text3="####################\nca-certificates dependencies installed\n####################";
         text4="####################\ncppcheck dependencies installed\n####################";
         text5="####################\nclang-tools dependencies installed\n####################";
@@ -542,7 +542,7 @@ runs: # Uses default x86_64 / linux user machine
           python3 -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
         fi;
-        if (${{ inputs.pattern != '' }} || ${{ inputs.database == 'true' }} || ${{ inputs.source > '0' }}) && [[ ! $(which rg) ]]; then
+        if [[ ! $(which rg) ]]; then
           sudo aptitude -yq install ripgrep 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
@@ -2256,7 +2256,8 @@ runs: # Uses default x86_64 / linux user machine
               include_count=1;
               declare -A missing
               includes_found=false
-              include_paths='';
+              include_paths='check-file-includes';
+              echo -n > "$include_paths";
               include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[">]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);
               while IFS= read -r include; do
                 if [[ "${include}" == *.[ch]* ]]; then
