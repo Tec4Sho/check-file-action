@@ -2268,12 +2268,12 @@ runs: # Uses default x86_64 / linux user machine
               [[ -n "${include_source}" ]] && echo -e "\nTotal header objectives found:\n ${include_source}"
               while IFS= read -r include; do
                 if [[ "${include}" == *.[ch]* ]]; then
-                  clean_path="${include%/*}";
+                  clean_path="${include##*./}";
                   clean_file="${include##*/}";
                   if [[ "${include}" == *"/"* && "${clean_path}" != "/" ]]; then
                     header=$(fdfind "${path}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}");
                   elif [[ -n "${clean_file}" ]]; then
-                    header=$(fdfind "${path}" -p -t f -g "**/${clean_file//./\\.}" "${file%/*}");
+                    header=$(fdfind "${path}" -p -t f -g "**/${clean_file//./\\.}" "${{ env.base }}");
                   fi;
                   if [[ -n "${header}" ]]; then
                     while IFS= read -r includes; do
