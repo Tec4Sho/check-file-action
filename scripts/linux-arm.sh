@@ -104,7 +104,7 @@ llvm_arm_install() {
         exit 1
     fi;
     check1="clang-${version%%.*}";
-    check2=$(sudo find /usr -type d \( -name '*gcc*' -o -name '*g++*' \) -print);
+    check2=$(find /usr -type d -name "*linux-gnueabihf*");
     echo "Clearing clang alternatives.";
     hash -r
     unalias clang 2>/dev/null;
