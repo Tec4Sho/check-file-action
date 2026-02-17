@@ -104,7 +104,7 @@ llvm_arm_install() {
         exit 1
     fi;
     check1="clang-${version%%.*}";
-    check2=$(sudo find /usr -type d \( -name '*gcc*' -o -a -name '*g++*' \) -print);
+    check2=$(sudo find /usr -type d \( -name '*gcc*' -o -name '*g++*' \) -print);
     echo "Clearing clang alternatives.";
     hash -r
     unalias clang 2>/dev/null;
@@ -122,7 +122,7 @@ llvm_arm_install() {
     echo "clang: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
     sudo dpkg --add-architecture i386 >/dev/null
-    sudo aptitude install -yq linux-headers-generic-armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null;
+    sudo apt-get install -yq linux-headers-generic-armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null;
     LIBRARY_PATH="${LLVM_ARM_TOOLCHAIN}/lib:/usr/lib/gcc:${LIBRARY_PATH}";
     LIBRARY_PATH="${LIBRARY_PATH%:}";
     export LIBRARY_PATH="${LIBRARY_PATH%:}";
