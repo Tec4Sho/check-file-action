@@ -97,10 +97,7 @@ llvm_arm_install() {
         echo "LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" >> "${GITHUB_ENV}";
         echo "export LLVM_TOOLCHAIN=${LLVM_ARM_TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
     fi;
-    LIBRARY_PATH="${LLVM_ARM_TOOLCHAIN}:/usr/lib/x86_64-linux-gnu:$(whereis gcc-arm-linux-gnueabihf):${LIBRARY_PATH}";
     export PATH="${LLVM_ARM_PATH}:${PATH}";
-    LIBRARY_PATH="${LIBRARY_PATH%:}";
-    export LIBRARY_PATH="${LIBRARY_PATH%:}";
     # Ensure the source directory exists
     if [[ ! -d "$LLVM_ARM_PATH" ]]; then
         echo "Source directory $LLVM_ARM_PATH does not exist."
@@ -122,17 +119,20 @@ llvm_arm_install() {
     sudo update-alternatives --set clang $LLVM_ARM_PATH/clang
     sudo update-alternatives --set clang++ $LLVM_ARM_PATH/clang++
     # 5. Export variables (Equivalent to core.exportVariable / core.addPath)
-    echo "export LIBRARY_PATH=$LIBRARY_PATH" | sudo tee -a ~/.bashrc >/dev/null;
-    echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
     echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-${version%%.*} ......";
     echo "clang: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
     sudo dpkg --add-architecture i386 2>/dev/null
     sudo apt-get -yq update >/dev/null
     sudo aptitude install -yq sudo apt-get install -y linux-headers-generic-armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
-    echo -e "Compilier: ${check1}\nPaths: ${LLVM_ARM_PATH} ${check2:-$check3}}";
+    LIBRARY_PATH="${LLVM_ARM_TOOLCHAIN}/lib:/usr/lib/$(which gcc-arm-linux-gnueabihf):${LIBRARY_PATH}";
+    LIBRARY_PATH="${LIBRARY_PATH%:}";
+    export LIBRARY_PATH="${LIBRARY_PATH%:}";
+    echo -e "Compilier: ${check1}\nPaths: ${LLVM_ARM_PATH} ${check2:-$check3}";
     echo -e "Library Path: $LIBRARY_PATH";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
+    echo "export LIBRARY_PATH=$LIBRARY_PATH" | sudo tee -a ~/.bashrc >/dev/null;
+    echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
 }
 
 # --- Example Usage ---
