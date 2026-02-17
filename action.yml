@@ -348,6 +348,10 @@ runs: # Uses default x86_64 / linux user machine
         sudo add-apt-repository universe >/dev/null;
         sudo add-apt-repository restricted >/dev/null;
         sudo add-apt-repository multiverse >/dev/null;
+        if [[ ${{ inputs.arch }} == "arm"* ]]; then
+          sudo dpkg --add-architecture i386 >/dev/null;
+          sudo dpkg --add-architecture armhf >/dev/null;
+        fi;
         sudo apt-get -yq update 2>&1 >/dev/null | sed '/Running/,/host./d';
         sudo apt-get -yq install aptitude 2>&1 >/dev/null | sed '/Running/,/host./d' || echo -e '::error::No aptitude installer for installing packages';
       shell: bash
@@ -434,19 +438,19 @@ runs: # Uses default x86_64 / linux user machine
               echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
               echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
               echo "deb-src http://archive.ubuntu.com/ubuntu noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
-              sudo aptitude install -yq linux-headers-generic-armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null;
+              sudo aptitude install -yq  gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null;
             elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM sources to /etc/apt/sources.list ###"
               echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
               echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
               echo "deb-src http://archive.ubuntu.com/ubuntu jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
-              sudo aptitude install -yq linux-headers-generic-armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null;
+              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null;
             elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM sources to /etc/apt/sources.list ###"
               echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
               echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
               echo "deb-src http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
-              sudo aptitude install -yq linux-headers-generic-armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
+              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
             fi;
           fi;
         fi;
@@ -464,13 +468,13 @@ runs: # Uses default x86_64 / linux user machine
         file_type="${file_name##*.}";
         github=${GITHUB_WORKSPACE};
         if [[ ! $(which python3) ]]; then
-          sudo aptitude -yq install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
+          s udo aptitude -yq install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
         if ${{ inputs.project == 'true' }} && [[ $(printf '%s\n%s' "${cmake_version}" "${cmake_required_version}" | sort -V | head -n1) == "${cmake_version}" ]] && [[ "${cmake_version}" != "${cmake_required_version}" ]]; then
           python3 -m pip install --upgrade pip >/dev/null && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
-          echo -e "\nCMake version $cmake_version upgrading to latest python cmake";
+          e cho -e "\nCMake version $cmake_version upgrading to latest python cmake";
           sudo rm -f "$(which cmake)";
           sudo mkdir -p '/usr/local/bin';
           echo "/usr/local/bin" >> "${GITHUB_PATH}";
@@ -482,7 +486,7 @@ runs: # Uses default x86_64 / linux user machine
           [[ ! $(which bc) ]] && exit 1
         fi;
         if ${{ inputs.project == 'true' }} && [[ ! $(which update-ca-certificates) ]]; then
-          sudo aptitude -yq install ca-certificates 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
+          s udo aptitude -yq install ca-certificates 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
         if [[ ! $(which gawk) ]]; then
           sudo aptitude -yq install gawk 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngawk dependencies installed\n####################" || echo -e "\n::error::No gawk installed in linux exiting";
