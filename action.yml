@@ -908,7 +908,7 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\nAnalyzing Includes Source File ${count1}: ${file##*/}" | process_input;
             if ${{ inputs.include == 'true' }}; then
               includes_found=false
-              include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+["].*["]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);
+              include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+["].*["]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '"' | sort -u);
               if [[ "${include_source}" ]]; then
                 echo -e "\n\tuser include file objectives:\n\n${include_source}" | process_input;
                 while IFS= read -r include; do
@@ -2135,6 +2135,8 @@ runs: # Uses default x86_64 / linux user machine
         error_log="${github}/${{ env.filename }}_error.log";
         version="clang-${{ inputs.version }}";
         checked=false
+        include_count=1
+        count1=0
         count2=0
         error=0
         error1=0
@@ -2163,9 +2165,6 @@ runs: # Uses default x86_64 / linux user machine
         build_dir='build/cppcheck';
         ${{ inputs.include == 'true' }} && export C_INCLUDE_PATH="/usr/local/include:$(echo /usr/src/linux-headers-*/include | tr ' ' ':')${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:$(echo /usr/src/linux-headers-*/include | tr ' ' ':')${CPLUS_INCLUDE_PATH}"
         if ${{ inputs.internal == 'true' }}; then
-          LINUXINCLUDE=$(echo "$LINUXINCLUDE" | sed 's|-I/[^/]*/[^/]*/[^/]*/[^/]*/[^/]*|-I.|g')
-          USERINCLUDE=$(echo "$USERINCLUDE" | sed 's|-I/[^/]*/[^/]*/[^/]*/[^/]*|-I.|g')
-          export include_path="${LINUXINCLUDE//  /} ${USERINCLUDE//  /}";
           LINUXINCLUDE="${LINUXINCLUDE//  /}";
           LINUXINCLUDE="${LINUXINCLUDE//$'-I'/:}";
           LINUXINCLUDE="${LINUXINCLUDE#:}";
@@ -2254,6 +2253,41 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             fi;
             if ${{ inputs.include == 'true' }}; then
+              include_count=1;
+              declare -A missing
+              includes_found=false
+              include_paths='';
+              include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[">]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);
+              while IFS= read -r include; do
+                if [[ "${include}" == *.[ch]* ]]; then
+                  clean_path="${include%/*}";
+                  clean_file="${include##*/}";
+                  if [[ ${include} == *"/"* ]]; then
+                    header=$(fdfind "${abs}" -p -t f -g "**/${path4##*./}" "${{ env.base }}");  
+                  else
+                    header=$(fdfind "${abs}" -p -t f "${clean_file##*./}" "${file%/*}");
+                  fi;
+                  if [[ -n "${header}" ]]; then
+                    while IFS= read -r includes; do
+                      count2=$((include_count++));
+                      echo "${includes%/*}" >> "${include_paths}";
+                      echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\033[32mLOCATION:\033[0m ${includes}" | process_input;
+                    done <<< "${header[@]}";
+                    includes_found=true
+                  elif [[ -n "${missing[$include]}" ]]; then
+                    echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
+                    includes_found=false      
+                  else
+                    includes_found=false
+                    missing["${include}"]=1
+                    countX=$((include_missing++));
+                    echo -e "\n::notice::\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
+                  fi;
+                fi;
+              done <<< "${include_source[@]}";
+              if [[ -s "${include_paths}" ]]; then
+                echo -e "\ncheck-file added include paths to ${file##*/} successfully!" | process_input;
+              fi;
               if ${{ inputs.repair == 'true' }}; then
                 if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
@@ -2299,9 +2333,9 @@ runs: # Uses default x86_64 / linux user machine
                   else
                     file="${file#*./}";
                   fi;
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="${file}" -I${include_path} 2>&1 | process_input || error="$?";
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="${file}" --includes-file="${include_paths}" 2>&1 | process_input || error="$?";
                 else
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" -I${include_path} 2>&1 | process_input || error="$?";
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" --includes-file="${include_paths}" 2>&1 | process_input || error="$?";
                 fi;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                   echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
