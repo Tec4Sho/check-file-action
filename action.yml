@@ -518,7 +518,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo aptitude -yq install gcc g++ 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
         fi;
-        if (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}) && [[ ! $(which CodeChecker) ]]; then
+        if (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.build == '5' }}) && [[ ! $(which CodeChecker) ]]; then
           sudo aptitude -yq install python3-pip python3-venv 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
           python3 -m pip install --upgrade codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies installed\n####################" || echo -e '::error::No codechecker installed for project checks';
           sudo mkdir -p "${HOME}/codechecker/venv/include";
@@ -1950,7 +1950,7 @@ runs: # Uses default x86_64 / linux user machine
         build_fixes='build/fixes.yaml';
         check_build=false
         file_type='c';
-        envsetup=$(fdfind -p -t f -1 'envsetup.sh' "${github}");
+        envsetup=$(fdfind -p -a -t f -1 'envsetup.sh' "${github}");
         update=true
         process_input() {
           while IFS= read -r output; do
