@@ -428,19 +428,19 @@ runs: # Uses default x86_64 / linux user machine
             fi;
             if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM sources to /etc/apt/sources.list ###"
-              echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble main universe" >  /etc/apt/sources.list
-              echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main universe" >>  /etc/apt/sources.list
-              echo "deb-src http://archive.ubuntu.com/ubuntu noble main universe" >>  /etc/apt/sources.list
+              echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
+              echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
+              echo "deb-src http://archive.ubuntu.com/ubuntu noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
             elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM sources to /etc/apt/sources.list ###"
-              echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main universe" >  /etc/apt/sources.list
-              echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe" >>  /etc/apt/sources.list
-              echo "deb-src http://archive.ubuntu.com/ubuntu jammy main universe" >>  /etc/apt/sources.list
+              echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
+              echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
+              echo "deb-src http://archive.ubuntu.com/ubuntu jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
             elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM sources to /etc/apt/sources.list ###"
-              echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu focal main universe" >  /etc/apt/sources.list
-              echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe" >>  /etc/apt/sources.list
-              echo "deb-src http://archive.ubuntu.com/ubuntu focal main universe" >>  /etc/apt/sources.list
+              echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
+              echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
+              echo "deb-src http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
             fi;
           fi;
         fi;
@@ -488,10 +488,6 @@ runs: # Uses default x86_64 / linux user machine
         if [[ ! $(which git) ]]; then
           sudo aptitude -yq install git git-core 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
-        fi;
-        if [[ ! $(which gcc-arm-linux-gnueabihf) ]]; then
-          sudo aptitude install -y gcc-arm-linux-gnueabihf 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No gcc-arm-linux-gnueabihf installed for arm projects check/build';
-          [[ ! $(whereis gcc-arm-linux-gnueabihf) ]] && echo -e '::warning::No gcc-arm-linux-gnueabihf installed for arm projects';
         fi;
         if ${{ inputs.analyzer == '1' }} && ${{ inputs.project == 'true' }} && [[ $(which run-clang-tidy) ]]; then
           echo -e "\n[clang-tools] $(whereis -b run-clang-tidy)";
