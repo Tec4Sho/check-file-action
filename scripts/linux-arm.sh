@@ -104,8 +104,6 @@ llvm_arm_install() {
         exit 1
     fi;
     check1="clang-${version%%.*}";
-    check2=$(which gcc-arm-linux-gnueabihf)
-    check3=$(whereis gcc-arm-linux-gnueabihf)
     echo "Clearing clang alternatives.";
     hash -r
     unalias clang 2>/dev/null;
@@ -125,10 +123,10 @@ llvm_arm_install() {
     sudo dpkg --add-architecture i386 2>/dev/null
     sudo apt-get -yq update >/dev/null
     sudo aptitude install -yq sudo apt-get install -y linux-headers-generic-armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
-    LIBRARY_PATH="${LLVM_ARM_TOOLCHAIN}/lib:/usr/lib/$(which gcc-arm-linux-gnueabihf):${LIBRARY_PATH}";
+    LIBRARY_PATH="${LLVM_ARM_TOOLCHAIN}/lib:/usr/lib/gcc/arm-linux-gnueabihf/:${LIBRARY_PATH}";
     LIBRARY_PATH="${LIBRARY_PATH%:}";
     export LIBRARY_PATH="${LIBRARY_PATH%:}";
-    echo -e "Compilier: ${check1}\nPaths: ${LLVM_ARM_PATH} ${check2:-$check3}";
+    echo -e "Compilier: ${check1}\nPaths: ${LLVM_ARM_PATH}";
     echo -e "Library Path: $LIBRARY_PATH";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
     echo "export LIBRARY_PATH=$LIBRARY_PATH" | sudo tee -a ~/.bashrc >/dev/null;
