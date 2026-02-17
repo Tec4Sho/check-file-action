@@ -1485,8 +1485,8 @@ runs: # Uses default x86_64 / linux user machine
                 done < "${clang_sources}";
               fi;
             else
-              header_source=$(sudo find "${linux_usr_src}" \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -xdev -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${linux_usr_src}" -type d -name 'include' | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
-              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'hwregs' -o -name 'uapi' -o -name 'gdb' -o -name 'asm' -o -name 'radix*' -o -name 'cpu*' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${{ env.base }}" -type d \( -name 'include' -o -name 'hwregs' -o -name 'uapi' -o -name 'gdb' -o -name 'asm' -o -name 'radix*' -o -name 'cpu*' \) | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              header_source=$(sudo find "${linux_usr_src}" \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -xdev -xtype d -name 'include' -print | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || sudo find "${linux_usr_src}" -xtype d -name 'include' -print | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
+              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -xtype d \( -name 'hwregs' -o -name 'gdb' -o -name 'uapi' -o -name 'include' \) -print | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null | grep . || find "${{ env.base }}" -xtype d \( -name 'hwregs' -o -name 'gdb' -o -name 'uapi' -o -name 'include' \) -print | gawk '{ print length($0), $0 }' | sort -n -u | cut -d' ' -f 2- 2>/dev/null);
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1504,7 +1504,7 @@ runs: # Uses default x86_64 / linux user machine
             fi;
           }
           clang_includes() {
-            find "${{ env.base }}" -type d \( -name 'include' -o -name 'hwregs' -o -name 'uapi' -o -name 'gdb' -o -name 'asm' -o -name 'radix*' -o -name 'cpu*' \) | gawk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
+            find "${{ env.base }}" -xtype d \( -name 'hwregs' -o -name 'gdb' -o -name 'uapi' -o -name 'include' \) -print | gawk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null | while IFS= read -r include; do
               echo -e "--extra-arg=-I${include#./}";
             done;
           }
@@ -2259,20 +2259,21 @@ runs: # Uses default x86_64 / linux user machine
               include_paths='check-file-includes';
               echo -n > "$include_paths";
               include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[">]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);
+              [[ -n "${include_source}" ]] && echo -e "\nTotal header objectives found:\n ${include_source}"
               while IFS= read -r include; do
                 if [[ "${include}" == *.[ch]* ]]; then
                   clean_path="${include%/*}";
                   clean_file="${include##*/}";
-                  if [[ ${include} == *"/"* ]]; then
-                    header=$(fdfind "${abs}" -p -t f -g "**/${path4##*./}" "${{ env.base }}");  
-                  else
-                    header=$(fdfind "${abs}" -p -t f "${clean_file##*./}" "${file%/*}");
+                  if [[ "${include}" == *"/"* && "${clean_path}" != "/" ]]; then
+                    header=$(fdfind "${path}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}");
+                  elif [[ -n "${clean_file}" ]]; then
+                    header=$(fdfind "${path}" -p -t f -g "**/${clean_file//./\\.}" "${file%/*}");
                   fi;
                   if [[ -n "${header}" ]]; then
                     while IFS= read -r includes; do
                       count2=$((include_count++));
                       echo "${includes%/*}" >> "${include_paths}";
-                      echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\033[32mLOCATION:\033[0m ${includes}" | process_input;
+                      echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ${count2} / ✅ ]\n\033[32mLOCATION:\033[0m ${includes}" | process_input;
                     done <<< "${header[@]}";
                     includes_found=true
                   elif [[ -n "${missing[$include]}" ]]; then
@@ -2282,12 +2283,14 @@ runs: # Uses default x86_64 / linux user machine
                     includes_found=false
                     missing["${include}"]=1
                     countX=$((include_missing++));
-                    echo -e "\n::notice::\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[31m is missing!?\033[0m  [ ❌ ]" | process_input;
+                    echo -e "\n::notice::\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[31m is missing!?\033[0m  [ ${countX} / ❌ ]" | process_input;
                   fi;
                 fi;
               done <<< "${include_source[@]}";
+              echo -e "\n::notice::Total number of include file(s) found is: ${count2}";
               if [[ -s "${include_paths}" ]]; then
-                echo -e "\ncheck-file added include paths to ${file##*/} successfully!" | process_input;
+                echo -e "\ncheck-file include paths for ${file##*/} -I/directory/ checks added!" | process_input;
+                cp "${include_paths}" build/
               fi;
               if ${{ inputs.repair == 'true' }}; then
                 if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
@@ -2352,7 +2355,7 @@ runs: # Uses default x86_64 / linux user machine
               if ${{ inputs.repair == 'true' }}; then
                 if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
-                  echo -e "\n####################\nChecked on ${check_date}\n\033[32mSkipping:\033[0m ${file}\n####################" | process_input;
+                   echo -e "\n####################\nChecked on ${check_date}\n\033[32mSkipping:\033[0m ${file}\n####################" | process_input;
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
@@ -2406,6 +2409,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             fi;
           done <<< "${files[@]}";
+          ${{ inputs.include == 'true' }} && echo -e "\n::notice::Total number of include file(s) missing is: ${countX}" | process_input && unset missing;
           echo -e "\n::notice::Total number of ${{ env.filename }} file(s) checked is: ${count1}" | process_input;
           echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
