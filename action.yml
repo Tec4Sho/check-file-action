@@ -292,57 +292,64 @@ runs: # Uses default x86_64 / linux user machine
     - name: Setup An Clang Clean
       if: inputs.project == 'true'
       run: |
-       echo '';
-       repo=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-       echo "github_repository=${repo}" >> "${GITHUB_ENV}";
-       if ${{ inputs.filename != '' }}; then
-         echo "filename=${{ inputs.filename }}" >> "${GITHUB_ENV}";
-       else
-         echo "filename=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
-       fi;
-       if ${{ inputs.build > '0' }}; then
-         echo 'github_build_project=true' >> "${GITHUB_ENV}";
-       else
-         echo 'github_build_project=false' >> "${GITHUB_ENV}";
-       fi;
-       echo "arch=${{ inputs.arch }}" >> "${GITHUB_ENV}";
-       echo "release1=" >> "${GITHUB_ENV}";
-       echo "release2=" >> "${GITHUB_ENV}";
-       echo "release3=" >> "${GITHUB_ENV}";
-       echo 'include_count=0' >> "${GITHUB_ENV}";
-       echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
-       echo 'includes=false' >> "${GITHUB_ENV}";
-       echo "include=${{ inputs.include }}" >> "${GITHUB_ENV}";
-       echo 'sources=false' >> "${GITHUB_ENV}";
-       echo 'file_fixed=0' >> "${GITHUB_ENV}";
-       echo 'file_found=0' >> "${GITHUB_ENV}";
-       echo 'file_error=0' >> "${GITHUB_ENV}";
-       echo 'file1_parted=0' >> "${GITHUB_ENV}";
-       echo 'file2_parted=0' >> "${GITHUB_ENV}";
-       echo 'build_cache=false' >> "${GITHUB_ENV}";
-       echo 'check_build=false' >> "${GITHUB_ENV}";
-       echo 'database=database' >> "${GITHUB_ENV}";
-       echo 'include_missing=false' >> "${GITHUB_ENV}";
-       echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
-       echo "dirname=${{ inputs.dirname }}" >> "${GITHUB_ENV}";
-       echo 'export ALLOW_MISSING_DEPENDENCIES=true' | sudo tee -a ~/.bashrc >/dev/null;
-       echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
-       echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
-       echo 'export LLVM_ENABLE_THREADS=ON' | sudo tee -a ~/.bashrc >/dev/null;
-       echo 'export WITH_TIDY=1' | sudo tee -a ~/.bashrc >/dev/null;
-       echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
-       sudo mkdir -p /usr/local/bin /usr/local/lib/android/sdk
-       sudo chmod -R 0755 "${{ github.action_path }}/scripts";
-       if ${{ inputs.version != '' }} && [[ $(which clang-tidy-18) ]]; then
-         sudo apt-get remove -yq clang-tidy-18 >/dev/null;
-       fi;
-       if ${{ inputs.version != '' }} && [[ $(which clang-18) ]]; then
-         sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
-       fi;
-       if ${{ inputs.version != '' }}; then
-         sudo update-alternatives --remove-all clang >/dev/null 2>&1
-         sudo update-alternatives --remove-all clang++ >/dev/null 2>&1
-       fi;
+        echo '';
+        repo=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        echo "github_repository=${repo}" >> "${GITHUB_ENV}";
+        if ${{ inputs.filename != '' }}; then
+          echo "filename=${{ inputs.filename }}" >> "${GITHUB_ENV}";
+        else
+          echo "filename=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
+        fi;
+        if ${{ inputs.build > '0' }}; then
+          echo 'github_build_project=true' >> "${GITHUB_ENV}";
+        else
+          echo 'github_build_project=false' >> "${GITHUB_ENV}";
+        fi;
+        echo "arch=${{ inputs.arch }}" >> "${GITHUB_ENV}";
+        echo "release1=" >> "${GITHUB_ENV}";
+        echo "release2=" >> "${GITHUB_ENV}";
+        echo "release3=" >> "${GITHUB_ENV}";
+        echo 'include_count=0' >> "${GITHUB_ENV}";
+        echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
+        echo 'includes=false' >> "${GITHUB_ENV}";
+        echo "include=${{ inputs.include }}" >> "${GITHUB_ENV}";
+        echo 'sources=false' >> "${GITHUB_ENV}";
+        echo 'file_fixed=0' >> "${GITHUB_ENV}";
+        echo 'file_found=0' >> "${GITHUB_ENV}";
+        echo 'file_error=0' >> "${GITHUB_ENV}";
+        echo 'file1_parted=0' >> "${GITHUB_ENV}";
+        echo 'file2_parted=0' >> "${GITHUB_ENV}";
+        echo 'build_cache=false' >> "${GITHUB_ENV}";
+        echo 'check_build=false' >> "${GITHUB_ENV}";
+        echo 'database=database' >> "${GITHUB_ENV}";
+        echo 'include_missing=false' >> "${GITHUB_ENV}";
+        echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
+        echo "dirname=${{ inputs.dirname }}" >> "${GITHUB_ENV}";
+        echo 'export ALLOW_MISSING_DEPENDENCIES=true' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export GIT_DISCOVERY_ACROSS_FILESYSTEM=1' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export DEBIAN_FRONTEND=noninteractive' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export LLVM_ENABLE_THREADS=ON' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export WITH_TIDY=1' | sudo tee -a ~/.bashrc >/dev/null;
+        echo 'export LC_ALL=C' | sudo tee -a ~/.bashrc >/dev/null;
+        sudo mkdir -p /usr/local/bin /usr/local/lib/android/sdk
+        sudo chmod -R 0755 "${{ github.action_path }}/scripts";
+        if ${{ inputs.version != '' }} && [[ $(which clang-tidy-18) ]]; then
+          sudo apt-get remove -yq clang-tidy-18 >/dev/null;
+        fi;
+        if ${{ inputs.version != '' }} && [[ $(which clang-18) ]]; then
+          sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
+        fi;
+        if ${{ inputs.version != '' }}; then
+          sudo update-alternatives --remove-all clang >/dev/null 2>&1
+          sudo update-alternatives --remove-all clang++ >/dev/null 2>&1
+        fi;
+        sudo apt-get clean
+        sudo add-apt-repository main >/dev/null;
+        sudo add-apt-repository universe >/dev/null;
+        sudo add-apt-repository restricted >/dev/null;
+        sudo add-apt-repository multiverse >/dev/null;
+        sudo apt-get -yq update 2>&1 >/dev/null | sed '/Running/,/host./d';
+        sudo apt-get -yq install aptitude 2>&1 >/dev/null | sed '/Running/,/host./d' || echo -e '::error::No aptitude installer for installing packages';
       shell: bash
       continue-on-error: true
 
@@ -382,10 +389,6 @@ runs: # Uses default x86_64 / linux user machine
       run: |
         source ~/.bashrc
         set +e;
-        sudo apt-get clean
-        sudo add-apt-repository universe >/dev/null;
-        sudo apt-get -yq update 2>&1 >/dev/null | sed '/Running/,/host./d';
-        sudo apt-get -yq install aptitude 2>&1 >/dev/null | sed '/Running/,/host./d' || echo -e '::error::No aptitude installer for installing packages';
         linux_distro1="24.04";
         linux_distro2="22.04";
         linux_distro3="20.04";
@@ -431,16 +434,19 @@ runs: # Uses default x86_64 / linux user machine
               echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
               echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
               echo "deb-src http://archive.ubuntu.com/ubuntu noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
+              sudo aptitude install -yq linux-headers-generic-armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null;
             elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM sources to /etc/apt/sources.list ###"
               echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
               echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
               echo "deb-src http://archive.ubuntu.com/ubuntu jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
+              sudo aptitude install -yq linux-headers-generic-armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null;
             elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM sources to /etc/apt/sources.list ###"
               echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
               echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
               echo "deb-src http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
+              sudo aptitude install -yq linux-headers-generic-armhf gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6:i386 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
             fi;
           fi;
         fi;
