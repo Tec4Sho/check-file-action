@@ -426,6 +426,22 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\nKitWare Keyring: Noble ${linux_verison}\n";
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
             fi;
+            if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
+              echo "### Copying ARM sources to /etc/apt/sources.list ###"
+              echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble main universe" >  /etc/apt/sources.list
+              echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main universe" >>  /etc/apt/sources.list
+              echo "deb-src http://archive.ubuntu.com/ubuntu noble main universe" >>  /etc/apt/sources.list
+            elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
+              echo "### Copying ARM sources to /etc/apt/sources.list ###"
+              echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main universe" >  /etc/apt/sources.list
+              echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe" >>  /etc/apt/sources.list
+              echo "deb-src http://archive.ubuntu.com/ubuntu jammy main universe" >>  /etc/apt/sources.list
+            elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
+              echo "### Copying ARM sources to /etc/apt/sources.list ###"
+              echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu focal main universe" >  /etc/apt/sources.list
+              echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe" >>  /etc/apt/sources.list
+              echo "deb-src http://archive.ubuntu.com/ubuntu focal main universe" >>  /etc/apt/sources.list
+            fi;
           fi;
         fi;
         text0="####################\ngit dependencies installed\n####################";
@@ -473,7 +489,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo aptitude -yq install git git-core 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
-        if [[ ! $(whereis gcc-arm-linux-gnueabihf) ]]; then
+        if [[ ! $(which gcc-arm-linux-gnueabihf) ]]; then
           sudo aptitude install -y gcc-arm-linux-gnueabihf 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No gcc-arm-linux-gnueabihf installed for arm projects check/build';
           [[ ! $(whereis gcc-arm-linux-gnueabihf) ]] && echo -e '::warning::No gcc-arm-linux-gnueabihf installed for arm projects';
         fi;
