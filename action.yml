@@ -430,72 +430,8 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\nKitWare Keyring: Noble ${linux_verison}\n";
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
             fi;
-            if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
-              echo "### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources ###";
-              sudo dpkg --add-architecture armhf
-        sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null <<EOF
-        Types: deb
-        URIs: http://archive.ubuntu.com/ubuntu/ http://security.ubuntu.com/ubuntu/
-        Suites: noble noble-updates noble-backports noble-security
-        Components: main restricted universe multiverse
-        Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
-        Architectures: amd64 i386
-        EOF
-        sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-security main universe restricted multiverse
-        EOF
-              sudo rm -rf /var/lib/apt/lists/*
-              sudo apt update >/dev/null 2>&1
-              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
-            elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
-              echo "### Copying ARM jammy sources to /etc/apt/sources.list ###";
-              sudo dpkg --add-architecture armhf
-        sudo tee /etc/apt/sources.list > /dev/null <<EOF
-        Types: deb
-        URIs: http://archive.ubuntu.com http://security.ubuntu.com
-        Suites: jammy jammy-updates jammy-backports jammy-security
-        Components: main restricted universe multiverse
-        Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
-        Architectures: amd64 i386
-        EOF
-        sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe restricted multiverse
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-updates main universe restricted multiverse
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-security main universe restricted multiverse
-        EOF
-              sudo rm -rf /var/lib/apt/lists/*
-              sudo apt update >/dev/null 2>&1
-              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
-            elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
-              echo "### Copying ARM focal sources to /etc/apt/sources.list ###";
-              sudo dpkg --add-architecture armhf
-              sudo tee /etc/apt/sources.list > /dev/null <<EOF
-        Types: deb
-        URIs: http://archive.ubuntu.com http://security.ubuntu.com
-        Suites: jammy jammy-updates jammy-backports jammy-security
-        Components: main restricted universe multiverse
-        Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
-        Architectures: amd64 i386
-        EOF
-        sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe restricted multiverse
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-updates main universe restricted multiverse
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-security main universe restricted multiverse
-        EOF
-              sudo rm -rf /var/lib/apt/lists/*
-              sudo apt update >/dev/null 2>&1
-              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
-            fi;
           fi;
-        fi;
-        if [[ ${{ inputs.arch }} == "arm"* ]]; then
-          sudo dpkg --add-architecture i386 >/dev/null;
-          dpkg --print-architecture
-          dpkg --print-foreign-architectures
-          apt-cache policy | grep -E "o=Ubuntu|arch="
-        fi;
+        fi;    
         text0="####################\ngit dependencies installed\n####################";
         text1="####################\nripgrep dependencies installed\n####################";
         text2="####################\nansi2txt dependencies installed\n####################";
@@ -648,6 +584,72 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         if [[ -d "${HOME}/codechecker/build/CodeChecker/bin" ]]; then
           echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
+        fi;
+        if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
+              echo "### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources ###";
+              sudo dpkg --add-architecture armhf
+        sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null <<EOF
+        Types: deb
+        URIs: http://archive.ubuntu.com/ubuntu/ http://security.ubuntu.com/ubuntu/
+        Suites: noble noble-updates noble-backports noble-security
+        Components: main restricted universe multiverse
+        Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+        Architectures: amd64 i386
+        EOF
+        sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-security main universe restricted multiverse
+        EOF
+              sudo rm -rf /var/lib/apt/lists/*
+              sudo apt update >/dev/null 2>&1
+              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
+            elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
+              echo "### Copying ARM jammy sources to /etc/apt/sources.list ###";
+              sudo dpkg --add-architecture armhf
+        sudo tee /etc/apt/sources.list > /dev/null <<EOF
+        Types: deb
+        URIs: http://archive.ubuntu.com http://security.ubuntu.com
+        Suites: jammy jammy-updates jammy-backports jammy-security
+        Components: main restricted universe multiverse
+        Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+        Architectures: amd64 i386
+        EOF
+        sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-updates main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-security main universe restricted multiverse
+        EOF
+              sudo rm -rf /var/lib/apt/lists/*
+              sudo apt update >/dev/null 2>&1
+              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
+            elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
+              echo "### Copying ARM focal sources to /etc/apt/sources.list ###";
+              sudo dpkg --add-architecture armhf
+              sudo tee /etc/apt/sources.list > /dev/null <<EOF
+        Types: deb
+        URIs: http://archive.ubuntu.com http://security.ubuntu.com
+        Suites: jammy jammy-updates jammy-backports jammy-security
+        Components: main restricted universe multiverse
+        Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+        Architectures: amd64 i386
+        EOF
+        sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-updates main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-security main universe restricted multiverse
+        EOF
+              sudo rm -rf /var/lib/apt/lists/*
+              sudo apt update >/dev/null 2>&1
+              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
+            fi;
+          fi;
+        fi;
+        if [[ ${{ inputs.arch }} == "arm"* ]]; then
+          sudo dpkg --add-architecture i386 >/dev/null;
+          dpkg --print-architecture
+          dpkg --print-foreign-architectures
+          apt-cache policy | grep -E "o=Ubuntu|arch="
         fi;
         sudo aptitude install -f -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         echo '';
