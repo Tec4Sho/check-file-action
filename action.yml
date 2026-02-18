@@ -646,15 +646,15 @@ runs: # Uses default x86_64 / linux user machine
         sudo tee /etc/apt/sources.list > /dev/null <<EOF
         Types: deb
         URIs: http://archive.ubuntu.com http://security.ubuntu.com
-        Suites: jammy jammy-updates jammy-backports jammy-security
+        Suites: focal focal-updates focal-backports focal-security
         Components: main restricted universe multiverse
         Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
         Architectures: amd64 i386
         EOF
         sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe restricted multiverse
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-updates main universe restricted multiverse
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-security main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal-updates main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal-security main universe restricted multiverse
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
@@ -662,9 +662,9 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         if [[ ${{ inputs.arch }} == "arm"* ]]; then
           sudo dpkg --add-architecture i386 >/dev/null;
-          dpkg --print-architecture
-          dpkg --print-foreign-architectures
-          apt-cache policy | grep -E "o=Ubuntu|arch=" | gawk -F'b=' '!seen[$2]++ { print }'
+          echo "architecture: $(dpkg --print-architecture)";
+          echo "foreign-architectures: $(dpkg --print-foreign-architectures)";
+          apt-cache policy | grep -E "o=Ubuntu|arch=" | gawk -F'b=' '!seen[$2]++ { print; }'
         fi;
         sudo aptitude install -f -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         echo '';
