@@ -344,8 +344,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo update-alternatives --remove-all clang++ >/dev/null 2>&1
         fi;
         sudo apt-get clean
-        sudo add-apt-repository -y main >/dev/null;
-        sudo add-apt-repository -y universe >/dev/null;
+        
         if [[ ${{ inputs.arch }} == "arm"* ]]; then
           sudo dpkg --add-architecture i386 >/dev/null;
           sudo dpkg --add-architecture armhf >/dev/null;
