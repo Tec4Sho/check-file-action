@@ -39,6 +39,7 @@ if($ENV{arch} STREQUAL "arm")
   set(CMAKE_C_COMPILER clang)
   set(CMAKE_CXX_COMPILER clang++)
   set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+  message(STATUS "Project Arch: $ENV{arch}")
 endif()
 
 if($ENV{arch} STREQUAL "arm64")
@@ -57,6 +58,7 @@ if($ENV{arch} STREQUAL "arm64")
   set(CMAKE_C_COMPILER clang)
   set(CMAKE_CXX_COMPILER clang++)
   set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+  message(STATUS "Project Arch: $ENV{arch}")
 endif()
 
 # ... many examples of user defined project settings for C/C++ ... #
@@ -69,10 +71,10 @@ message(STATUS "Project Name: ${PROJECT_NAME}")
 
 message(STATUS "Workspace Path: $ENV{GITHUB_WORKSPACE}")
 
-if($ENV{include})
-  set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES OFF) # Compile command json for small list of include directories, needed for cppcheck only
+if($ENV{rsp})
+  set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON) # Compile command json for small list of include directories, needed for cppcheck only
 else()
-  set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON) # Useful/Needed for large list of include directories, is not used by cppcheck only
+  set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES OFF) # Useful/Needed for large list of include directories, is not used by cppcheck only
 endif()
 
 find_program(CLANG_TIDY_EXE "clang-tidy")
