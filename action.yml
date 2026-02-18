@@ -447,8 +447,8 @@ runs: # Uses default x86_64 / linux user machine
         deb [arch=armhf] http://ports.ubuntu.com noble-security main universe restricted multiverse
         EOF
               sudo rm -rf /var/lib/apt/lists/*
-              sudo apt update >/dev/null
-              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
+              sudo apt update >/dev/null 2>&1
+              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
             elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM jammy sources to /etc/apt/sources.list ###";
               sudo dpkg --add-architecture armhf
@@ -466,8 +466,8 @@ runs: # Uses default x86_64 / linux user machine
         deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-security main universe restricted multiverse
         EOF
               sudo rm -rf /var/lib/apt/lists/*
-              sudo apt update >/dev/null
-              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
+              sudo apt update >/dev/null 2>&1
+              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
             elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM focal sources to /etc/apt/sources.list ###";
               sudo dpkg --add-architecture armhf
@@ -485,8 +485,8 @@ runs: # Uses default x86_64 / linux user machine
         deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-security main universe restricted multiverse
         EOF
               sudo rm -rf /var/lib/apt/lists/*
-              sudo apt update >/dev/null
-              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
+              sudo apt update >/dev/null 2>&1
+              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
             fi;
           fi;
         fi;
