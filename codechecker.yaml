@@ -5,12 +5,13 @@ analyze:
   - --no-missing-checker-error
   - --report-hash=diagnostic-message
   - --drop-reports-from-skipped-files
-  - --add-compiler-defaults
   - --keep-gcc-include-fixed
   - --keep-gcc-intrin
   - --ignore=skip.txt
   - --verbose=info
   - --clean
+  - "--"
+  - "--target=${TARGET_ARCH}"
 
 parse:
   - --trim-path-prefix=${GITHUB_WORKSPACE}/reports

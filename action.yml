@@ -310,6 +310,18 @@ runs: # Uses default x86_64 / linux user machine
         else
           echo 'github_build_project=false' >> "${GITHUB_ENV}";
         fi;
+        if [[ "${{ inputs.arch }}" == "arm" ]]; then
+          AUTO_ARCH="${TARGET_ARCH:-arm-none-eabi}";
+          COMPILERS="gcc:g++:arm-linux-androideabi-gcc:arm-linux-androideabi-g++";
+        elif [[ "${{ inputs.arch }}" == "arm64" ]]; then
+          AUTO_ARCH="${TARGET_ARCH:-aarch64-linux-android}";
+          COMPILERS="gcc:g++:aarch64-linux-android-gcc:aarch64-linux-android-g++";
+        else
+          AUTO_ARCH="${TARGET_ARCH:-x86_64-pc-linux-gnu}";
+          COMPILERS="gcc:g++:cc:c++";
+        fi;
+        echo "TARGET_ARCH=${AUTO_ARCH}" >> "${GITHUB_ENV}";
+        echo "CC_LOGGER_GCC_LIKE=${COMPILERS}" >> "${GITHUB_ENV}";
         echo "arch=${{ inputs.arch }}" >> "${GITHUB_ENV}";
         echo "release1=" >> "${GITHUB_ENV}";
         echo "release2=" >> "${GITHUB_ENV}";
@@ -591,7 +603,7 @@ runs: # Uses default x86_64 / linux user machine
           echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
         fi;
         if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
-          echo "### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources ###";
+          echo -e "\n### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources ###";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null <<EOF
         Types: deb
@@ -610,7 +622,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo apt update >/dev/null 2>&1
           sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
         elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
-          echo "### Copying ARM jammy sources to /etc/apt/sources.list ###";
+          echo -e "\n### Copying ARM jammy sources to /etc/apt/sources.list ###";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list > /dev/null <<EOF
         Types: deb
@@ -629,7 +641,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo apt update >/dev/null 2>&1
           sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
         elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
-          echo "### Copying ARM focal sources to /etc/apt/sources.list ###";
+          echo -e "\n### Copying ARM focal sources to /etc/apt/sources.list ###";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list > /dev/null <<EOF
         Types: deb
@@ -1821,7 +1833,6 @@ runs: # Uses default x86_64 / linux user machine
         start_time="${{ env.seconds }}";
         CMAKE_EXPORT_COMPILE_COMMANDS=ON
         CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
-        CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
         ${{ inputs.include == 'true' }} && C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
         ${{ inputs.internal == 'true' }} && C_INCLUDE_PATH="${LINUXINCLUDE// /} ${USERINCLUDE// /}" && CPLUS_INCLUDE_PATH="${LINUXINCLUDE// /} ${USERINCLUDE// /}";
         codechecker='codechecker.yaml';
