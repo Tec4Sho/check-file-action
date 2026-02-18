@@ -344,10 +344,10 @@ runs: # Uses default x86_64 / linux user machine
           sudo update-alternatives --remove-all clang++ >/dev/null 2>&1
         fi;
         sudo apt-get clean
-        sudo add-apt-repository main >/dev/null;
-        sudo add-apt-repository universe >/dev/null;
-        sudo add-apt-repository restricted >/dev/null;
-        sudo add-apt-repository multiverse >/dev/null;
+        sudo add-apt-repository -y main >/dev/null;
+        sudo add-apt-repository -y universe >/dev/null;
+        sudo add-apt-repository -y restricted >/dev/null;
+        sudo add-apt-repository -y multiverse >/dev/null;
         if [[ ${{ inputs.arch }} == "arm"* ]]; then
           sudo dpkg --add-architecture i386 >/dev/null;
           sudo dpkg --add-architecture armhf >/dev/null;
@@ -434,23 +434,44 @@ runs: # Uses default x86_64 / linux user machine
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
             fi;
             if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
-              echo "### Copying ARM sources to /etc/apt/sources.list ###"
-              echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
-              echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
-              echo "deb-src http://archive.ubuntu.com/ubuntu noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
-              sudo aptitude install -yq  gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null;
+              echo "### Copying ARM noble sources to /etc/apt/sources.list ###";
+              sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
+              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse
+              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse
+              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-security main universe restricted multiverse
+              deb [arch=amd64] http://archive.ubuntu.com noble main universe restricted multiverse
+              deb [arch=amd64] http://archive.ubuntu.com noble-updates main universe restricted multiverse
+              deb [arch=amd64] http://security.ubuntu.com noble-security main universe restricted multiverse
+              EOF
+              echo "deb-src http://archive.ubuntu.com/ubuntu noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null
+              sudo apt update >/dev/null
+              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
             elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
-              echo "### Copying ARM sources to /etc/apt/sources.list ###"
-              echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
-              echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
-              echo "deb-src http://archive.ubuntu.com/ubuntu jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
-              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null;
+              echo "### Copying ARM jammy sources to /etc/apt/sources.list ###";
+              sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
+              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe restricted multiverse
+              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-updates main universe restricted multiverse
+              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-security main universe restricted multiverse
+              deb [arch=amd64] http://archive.ubuntu.com jammy main universe restricted multiverse
+              deb [arch=amd64] http://archive.ubuntu.com jammy-updates main universe restricted multiverse
+              deb [arch=amd64] http://security.ubuntu.com jammy-security main universe restricted multiverse
+              EOF
+              echo "deb-src http://archive.ubuntu.com/ubuntu jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null
+              sudo apt update >/dev/null
+              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
             elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
-              echo "### Copying ARM sources to /etc/apt/sources.list ###"
-              echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
-              echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
-              echo "deb-src http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null;
-              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libstdc++6:i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
+              echo "### Copying ARM focal sources to /etc/apt/sources.list ###";
+              sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
+              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe restricted multiverse
+              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal-updates main universe restricted multiverse
+              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal-security main universe restricted multiverse
+              deb [arch=amd64] http://archive.ubuntu.com focal main universe restricted multiverse
+              deb [arch=amd64] http://archive.ubuntu.com focal-updates main universe restricted multiverse
+              deb [arch=amd64] http://security.ubuntu.com focal-security main universe restricted multiverse
+              EOF
+              echo "deb-src http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null
+              sudo apt update >/dev/null
+              sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
             fi;
           fi;
         fi;
