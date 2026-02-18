@@ -350,6 +350,7 @@ runs: # Uses default x86_64 / linux user machine
         sudo add-apt-repository -y multiverse >/dev/null;
         sudo apt-get -yq update 2>&1 >/dev/null | sed '/Running/,/host./d';
         sudo apt-get -yq install aptitude 2>&1 >/dev/null | sed '/Running/,/host./d' || echo -e '::error::No aptitude installer for installing packages';
+        echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
       shell: bash
       continue-on-error: true
 
@@ -432,39 +433,37 @@ runs: # Uses default x86_64 / linux user machine
             if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM noble sources to /etc/apt/sources.list ###";
               sudo dpkg --add-architecture armhf
-              sudo sed -i 's/^deb /deb [arch=amd64] /g' /etc/apt/sources.list
-              sudo sed -i 's/^deb-src /deb-src [arch=amd64] /g' /etc/apt/sources.list
+              sudo sed -i 's/Architectures: /&amd64 /' /etc/apt/sources.list.d/ubuntu.sources || \
+              sudo sed -i '/^Suites:/i Architectures: amd64' /etc/apt/sources.list.d/ubuntu.sources
         sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse
-        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-security main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com noble main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com noble-updates main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com noble-security main universe restricted multiverse
         EOF
               sudo apt update >/dev/null
               sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
             elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM jammy sources to /etc/apt/sources.list ###";
+              sudo dpkg --add-architecture armhf
+              sudo sed -i 's/^deb /deb [arch=amd64] /g' /etc/apt/sources.list
+              sudo sed -i 's/^deb-src /deb-src [arch=amd64] /g' /etc/apt/sources.list
         sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
         deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe restricted multiverse
         deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-updates main universe restricted multiverse
         deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-security main universe restricted multiverse
-        deb [arch=amd64] http://archive.ubuntu.com jammy main universe restricted multiverse
-        deb [arch=amd64] http://archive.ubuntu.com jammy-updates main universe restricted multiverse
-        deb [arch=amd64] http://security.ubuntu.com jammy-security main universe restricted multiverse
         EOF
-              echo "deb-src http://archive.ubuntu.com/ubuntu jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null
               sudo apt update >/dev/null
               sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
             elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM focal sources to /etc/apt/sources.list ###";
+              sudo dpkg --add-architecture armhf
+              sudo sed -i 's/^deb /deb [arch=amd64] /g' /etc/apt/sources.list
+              sudo sed -i 's/^deb-src /deb-src [arch=amd64] /g' /etc/apt/sources.list
         sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
         deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe restricted multiverse
         deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal-updates main universe restricted multiverse
         deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal-security main universe restricted multiverse
-        deb [arch=amd64] http://archive.ubuntu.com focal main universe restricted multiverse
-        deb [arch=amd64] http://archive.ubuntu.com focal-updates main universe restricted multiverse
-        deb [arch=amd64] http://security.ubuntu.com focal-security main universe restricted multiverse
         EOF
-              echo "deb-src http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null
               sudo apt update >/dev/null
               sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
             fi;
@@ -472,6 +471,9 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         if [[ ${{ inputs.arch }} == "arm"* ]]; then
           sudo dpkg --add-architecture i386 >/dev/null;
+          dpkg --print-architecture
+          dpkg --print-foreign-architectures
+          apt-cache policy | grep -E "o=Ubuntu|arch="
         fi;
         text0="####################\ngit dependencies installed\n####################";
         text1="####################\nripgrep dependencies installed\n####################";
@@ -487,13 +489,12 @@ runs: # Uses default x86_64 / linux user machine
         file_type="${file_name##*.}";
         github=${GITHUB_WORKSPACE};
         if [[ ! $(which python3) ]]; then
-          s udo aptitude -yq install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
+          sudo aptitude -yq install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
-        echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
         if ${{ inputs.project == 'true' }} && [[ $(printf '%s\n%s' "${cmake_version}" "${cmake_required_version}" | sort -V | head -n1) == "${cmake_version}" ]] && [[ "${cmake_version}" != "${cmake_required_version}" ]]; then
           python3 -m pip install --upgrade pip >/dev/null && echo -e "\n####################\npip dependencies installed\n####################" || echo -e '::warning::pip not updated for project checks';
-          e cho -e "\nCMake version $cmake_version upgrading to latest python cmake";
+          echo -e "\nCMake version $cmake_version upgrading to latest python cmake";
           sudo rm -f "$(which cmake)";
           sudo mkdir -p '/usr/local/bin';
           echo "/usr/local/bin" >> "${GITHUB_PATH}";
@@ -505,7 +506,7 @@ runs: # Uses default x86_64 / linux user machine
           [[ ! $(which bc) ]] && exit 1
         fi;
         if ${{ inputs.project == 'true' }} && [[ ! $(which update-ca-certificates) ]]; then
-          s udo aptitude -yq install ca-certificates 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
+          sudo aptitude -yq install ca-certificates 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
         if [[ ! $(which gawk) ]]; then
           sudo aptitude -yq install gawk 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngawk dependencies installed\n####################" || echo -e "\n::error::No gawk installed in linux exiting";
