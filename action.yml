@@ -663,8 +663,8 @@ runs: # Uses default x86_64 / linux user machine
         if [[ ${{ inputs.arch }} == "arm"* ]]; then
           sudo dpkg --add-architecture i386 >/dev/null;
           echo "architecture: $(dpkg --print-architecture)";
-          echo "foreign-architectures: $(dpkg --print-foreign-architectures)";
-          apt-cache policy | grep -E "o=Ubuntu|arch=" | gawk -F'b=' '!seen[$2]++ { print; }'
+          echo "foreign-architectures: $(dpkg --print-foreign-architectures | tr '\n' ' ')";
+          apt-cache policy | grep -E "o=Ubuntu|arch=" | gawk -F'b=' '!seen[$2]++ { print; }' | tr -d' ';
         fi;
         sudo aptitude install -f -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
         echo '';
