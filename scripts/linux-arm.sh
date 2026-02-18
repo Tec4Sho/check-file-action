@@ -104,7 +104,7 @@ llvm_arm_install() {
         exit 1
     fi;
     check1="clang-${version%%.*}";
-    check2=$(sudo find /usr -type d \( -name '*gcc*' -o -name '*g++*' \) -print);
+    check2=$(sudo find /usr -type d \( -iname 'gcc' -o -iname 'clang' \) -print);
     echo "Clearing clang alternatives.";
     hash -r
     unalias clang 2>/dev/null;
@@ -121,7 +121,6 @@ llvm_arm_install() {
     echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-${version%%.*} ......";
     echo "clang: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
-    sudo dpkg --add-architecture i386 >/dev/null
     LIBRARY_PATH="${LLVM_ARM_TOOLCHAIN}/lib:/usr/lib/gcc:${LIBRARY_PATH}";
     LIBRARY_PATH="${LIBRARY_PATH%:}";
     export LIBRARY_PATH="${LIBRARY_PATH%:}";
