@@ -104,7 +104,7 @@ llvm_arm_install() {
         exit 1
     fi;
     check1="clang-${version%%.*}";
-    check2=$(sudo find /usr -xdev -path '*/lib/*' -type d -name 'clang' -print);
+    check2=$(sudo find /usr/lib -xdev -type d -name 'clang' -print);
     echo "Clearing clang alternatives.";
     hash -r
     unalias clang 2>/dev/null;
@@ -121,7 +121,7 @@ llvm_arm_install() {
     echo "Updated LLVM Toolchain to llvm-$llvm and llvm-arm-${version%%.*} ......";
     echo "clang: $(readlink -f $(which clang))";
     echo "Toolchain: ${LLVM_ARM_TOOLCHAIN}";
-    LIBRARY_PATH="${LLVM_ARM_TOOLCHAIN}/lib:/usr/lib/gcc:${LIBRARY_PATH}";
+    LIBRARY_PATH="${LLVM_ARM_TOOLCHAIN}/lib:/usr/lib/clang:/usr/lib/gcc:${LIBRARY_PATH}";
     LIBRARY_PATH="${LIBRARY_PATH%:}";
     export LIBRARY_PATH="${LIBRARY_PATH%:}";
     echo -e "Compilier: ${check1}\nClang Paths:\n${check2}";
