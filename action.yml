@@ -173,6 +173,11 @@ inputs:
     type: boolean
     required: false
     default: 'false'
+  token:
+    description: Token to authenticate GitHub API requests
+    type: string
+    required: false
+    default: ${{ github.token }}
   arch:
     description: 'Arch to set for checking kernel project includes'
     type: string
@@ -183,11 +188,11 @@ inputs:
     type: boolean
     required: false
     default: 'false'
-  token:
-    description: Token to authenticate GitHub API requests
-    type: string
+  rsp:
+    description: 'Use cmake includes.C.rsp file for including many header paths in compile json file'
+    type: boolean 
     required: false
-    default: ${{ github.token }}
+    default: 'true'
 outputs:
   llvm-path:
     description: The absolute path to the LLVM installation
@@ -312,7 +317,7 @@ runs: # Uses default x86_64 / linux user machine
         echo 'include_count=0' >> "${GITHUB_ENV}";
         echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
         echo 'includes=false' >> "${GITHUB_ENV}";
-        echo "include=${{ inputs.include }}" >> "${GITHUB_ENV}";
+        echo "include=${{ inputs.rsp }}" >> "${GITHUB_ENV}";
         echo 'sources=false' >> "${GITHUB_ENV}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
@@ -1537,7 +1542,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             else
               header_source=$(sudo find "${linux_usr_src}" \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -xdev -xtype d -name 'include' -print | grep . || sudo find "${linux_usr_src}" -xtype d -name 'include' -print);
-              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -xtype d \( -name 'uapi' -o -name 'include' \) -print | grep . || fdfind "${abs}" -L -t d '^(hwregs|gdb|uapi|include)$' "${{ env.base }}");
+              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -xtype d \( -name 'uapi' -o -name 'include' \) -print | grep . || fdfind "${abs}" -t d '^(uapi|include)$' "${{ env.base }}");
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -2308,7 +2313,7 @@ runs: # Uses default x86_64 / linux user machine
               declare -A missing
               includes_found=false
               include_paths='check-file-includes';
-              echo -n > "$include_paths";
+              echo -n > 'temp-file';
               include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[">]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);
               [[ -n "${include_source}" ]] && echo -e "\nTotal header objectives found:\n ${include_source}" | gawk '{ printf "    %s\n", $0; }' | process_input;
               while IFS= read -r include; do
@@ -2323,7 +2328,7 @@ runs: # Uses default x86_64 / linux user machine
                   if [[ -n "${header}" ]]; then
                     while IFS= read -r includes; do
                       count2=$((include_count++));
-                      echo "${includes%/*}" >> "${include_paths}";
+                      echo "${includes%/*}" >> 'temp-file';
                       echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ${count2} / ✅ ]\n\033[32mLOCATION:\033[0m ${includes}" | process_input;
                     done <<< "${header[@]}";
                     includes_found=true
@@ -2339,7 +2344,8 @@ runs: # Uses default x86_64 / linux user machine
                 fi;
               done <<< "${include_source[@]}";
               echo -e "\n::notice::Total number of include file(s) found is: ${count2}" | gawk '{ printf "    %s\n", $0; }' | process_input;
-              if [[ -s "${include_paths}" ]]; then
+              if [[ -s 'temp-file' ]]; then
+                sed -E '/\/include\// s|/[^/]+$||' temp-file | sort -u > "${include_paths}";
                 echo -e "\ncheck-file: objectives for \033[1m${file##*/}\033[0m -I/\033[34minclude/directory/paths\033[0m/ added!" | process_input;
                 cp "${include_paths}" build/
               fi;
