@@ -2203,6 +2203,8 @@ runs: # Uses default x86_64 / linux user machine
         version="clang-${{ inputs.version }}";
         checked=false
         include_count=1
+        missing_count=1
+        countX=0
         count1=0
         count2=0
         error=0
