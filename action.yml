@@ -431,40 +431,40 @@ runs: # Uses default x86_64 / linux user machine
             fi;
             if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM noble sources to /etc/apt/sources.list ###";
-              sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
-              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse
-              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse
-              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-security main universe restricted multiverse
-              deb [arch=amd64] http://archive.ubuntu.com noble main universe restricted multiverse
-              deb [arch=amd64] http://archive.ubuntu.com noble-updates main universe restricted multiverse
-              deb [arch=amd64] http://security.ubuntu.com noble-security main universe restricted multiverse
-              EOF
+        sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-updates main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports noble-security main universe restricted multiverse
+        deb [arch=amd64] http://archive.ubuntu.com noble main universe restricted multiverse
+        deb [arch=amd64] http://archive.ubuntu.com noble-updates main universe restricted multiverse
+        deb [arch=amd64] http://security.ubuntu.com noble-security main universe restricted multiverse
+        EOF
               echo "deb-src http://archive.ubuntu.com/ubuntu noble main universe" | sudo tee -a /etc/apt/sources.list >/dev/null
               sudo apt update >/dev/null
               sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
             elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM jammy sources to /etc/apt/sources.list ###";
-              sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
-              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe restricted multiverse
-              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-updates main universe restricted multiverse
-              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-security main universe restricted multiverse
-              deb [arch=amd64] http://archive.ubuntu.com jammy main universe restricted multiverse
-              deb [arch=amd64] http://archive.ubuntu.com jammy-updates main universe restricted multiverse
-              deb [arch=amd64] http://security.ubuntu.com jammy-security main universe restricted multiverse
-              EOF
+        sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-updates main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy-security main universe restricted multiverse
+        deb [arch=amd64] http://archive.ubuntu.com jammy main universe restricted multiverse
+        deb [arch=amd64] http://archive.ubuntu.com jammy-updates main universe restricted multiverse
+        deb [arch=amd64] http://security.ubuntu.com jammy-security main universe restricted multiverse
+        EOF
               echo "deb-src http://archive.ubuntu.com/ubuntu jammy main universe" | sudo tee -a /etc/apt/sources.list >/dev/null
               sudo apt update >/dev/null
               sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
             elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
               echo "### Copying ARM focal sources to /etc/apt/sources.list ###";
-              sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
-              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe restricted multiverse
-              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal-updates main universe restricted multiverse
-              deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal-security main universe restricted multiverse
-              deb [arch=amd64] http://archive.ubuntu.com focal main universe restricted multiverse
-              deb [arch=amd64] http://archive.ubuntu.com focal-updates main universe restricted multiverse
-              deb [arch=amd64] http://security.ubuntu.com focal-security main universe restricted multiverse
-              EOF
+        sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal-updates main universe restricted multiverse
+        deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal-security main universe restricted multiverse
+        deb [arch=amd64] http://archive.ubuntu.com focal main universe restricted multiverse
+        deb [arch=amd64] http://archive.ubuntu.com focal-updates main universe restricted multiverse
+        deb [arch=amd64] http://security.ubuntu.com focal-security main universe restricted multiverse
+        EOF
               echo "deb-src http://archive.ubuntu.com/ubuntu focal main universe" | sudo tee -a /etc/apt/sources.list >/dev/null
               sudo apt update >/dev/null
               sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null
