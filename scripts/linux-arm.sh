@@ -104,7 +104,7 @@ llvm_arm_install() {
         exit 1
     fi;
     check1="clang-${version%%.*}";
-    check2=$(sudo find /usr -type d \( -iname 'gcc' -o -iname 'clang' \) -print);
+    check2=$(sudo find /usr -xdev -path '*/lib/*' -type d -name 'clang' -print);
     echo "Clearing clang alternatives.";
     hash -r
     unalias clang 2>/dev/null;
@@ -124,8 +124,8 @@ llvm_arm_install() {
     LIBRARY_PATH="${LLVM_ARM_TOOLCHAIN}/lib:/usr/lib/gcc:${LIBRARY_PATH}";
     LIBRARY_PATH="${LIBRARY_PATH%:}";
     export LIBRARY_PATH="${LIBRARY_PATH%:}";
-    echo -e "Compilier: ${check1}\nPaths: ${LLVM_ARM_PATH}\n${check2}";
-    echo -e "Library Path: $LIBRARY_PATH";
+    echo -e "Compilier: ${check1}\nClang Paths:\n${check2}";
+    echo -e "Library Paths: $LIBRARY_PATH";
     echo -e "\n\033[32mllvm-embedded-toolchain-for-arm-\033[0m${version}\033[32m has been installed to\033[0m \033[1m${LLVM_ARM_TOOLCHAIN}\033[0m.";
     echo "export LIBRARY_PATH=$LIBRARY_PATH" | sudo tee -a ~/.bashrc >/dev/null;
     echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
