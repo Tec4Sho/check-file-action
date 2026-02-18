@@ -205,8 +205,8 @@ runs: # Uses default x86_64 / linux user machine
       run: |
         echo '';
         echo 'export ANSIBLE_FORCE_COLOR=true' | sudo tee -a ~/.bashrc >/dev/null;
-        echo -e "####################\n\033[1mCheck-File-Action-Pro version 2.0.0 [\033[32mBeta Release\033[0m]\033[0m\n####################\n";
-        echo -e "Check-File Started: ${{ github.event.repository.updated_at }}\n";
+        echo -e "####################\n\033[1mCheck-File-Action-Pro version 2.0.0 [\033[42mBeta Release\033[0m]\033[0m\n####################\n";
+        echo -e "\033[1mCHECK-FILE::\033[0m Started: ${{ github.event.repository.updated_at }}\n";
         if [[ -r '/etc/os-release' ]]; then
           . /etc/os-release
           if [[ "${ID}" == 'ubuntu' ]]; then
@@ -260,7 +260,7 @@ runs: # Uses default x86_64 / linux user machine
       run: |
         echo '';
         if ${{ steps.restore.outputs.cache-hit == 'true' }}; then
-          echo -e "####################\n\033[32mCheck-File Restored Project Configuration From Cache!\033[0m\n####################\n";
+          echo -e "####################\n\033[32m\033[1mCHECK-FILE::\033[0m Restored Project Configuration From Cache!\033[0m\n####################\n";
         fi;
         echo "Repository Owner and Name: ${GITHUB_REPOSITORY}";
         echo "Branch Name: ${{ github.ref_name }}";
@@ -329,7 +329,7 @@ runs: # Uses default x86_64 / linux user machine
         echo 'include_count=0' >> "${GITHUB_ENV}";
         echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
         echo 'includes=false' >> "${GITHUB_ENV}";
-        echo "include=${{ inputs.rsp }}" >> "${GITHUB_ENV}";
+        echo "rsp=${{ inputs.rsp }}" >> "${GITHUB_ENV}";
         echo 'sources=false' >> "${GITHUB_ENV}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
@@ -966,8 +966,8 @@ runs: # Uses default x86_64 / linux user machine
         if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '1' }} && [[ "${include_files1}" ]]; then
           declare -A processed
           declare -A missing
-          echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m verbose \033[0m]" | process_input;
-          echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
+          echo -e "\n\033[32m\033[1mCHECK-FILE::\033[0m discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m verbose \033[0m]" | process_input;
+          echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           while IFS= read -r file; do
             include_count=1
             count1=$((file_count++));
@@ -1041,7 +1041,7 @@ runs: # Uses default x86_64 / linux user machine
             echo 'check_build=true' >> "${GITHUB_ENV}";
             echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories added after duplicate cleaning!!!\033[0m\nSet option (\033[1m cache: true \033[0m) to use this list for source include checks without manually downloading an adding the file to your repo\n With cache you should set (\033[1m source: 0 \033[0m)running sources again each check!" | process_input;
           else
-            echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
+            echo -e '\n::notice::\033[31mNo include objectives discovered or \033[1mCHECK-FILE::\033[0m encountered an issue!!!\033[0m' | process_input;
           fi;
           if [[ "${count5}" > '0' ]]; then
             echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${count5}\033[0m\n[Hint] Many source files may call these \033[31mmissing include files.\nYou may need to remove the missing include file objectives or added the file before compiling!!!" | process_input;
@@ -1054,8 +1054,8 @@ runs: # Uses default x86_64 / linux user machine
           s=$((seconds % 60));
           printf "Project Auto Include Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
         elif [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '2' }} && [[ "${include_files2}" ]]; then
-          echo -e "\n\033[32mCheck-File discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[33m medium \033[0m]" | process_input;
-          echo -e "\n####################\nCheck-File Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
+          echo -e "\n\033[32m\033[1mCHECK-FILE::\033[0m discovered include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[33m medium \033[0m]" | process_input;
+          echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m Auto Fix Sources Include [ Status: \033[32mAnalzying\033[0m ]\n####################" | process_input;
           echo > "${name_count_file}";
           declare -A processed
           while IFS= read -r file; do         
@@ -1115,9 +1115,9 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\n${count2}\033[32m includes successfully added after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ✅ ]" | process_input;
               source_include=true
             elif [[ "${includes_missing}" == 'true' ]]; then
-              echo -e "\n\033[32mCheck-File discovered missing include objective after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ❌ ]" | process_input;
+              echo -e "\n\033[32m\033[1mCHECK-FILE::\033[0m discovered missing include objective after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ ❌ ]" | process_input;
             elif [[ -z "${include_source}" ]]; then
-              echo -e "\n\033[32mCheck-File discovered no include objective after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ 🚫 ]" | process_input;
+              echo -e "\n\033[32m\033[1mCHECK-FILE::\033[0m discovered no include objective after scanning file: \033[0m\033[1m${name##*/}\033[0m  [ 🚫 ]" | process_input;
             fi;
           done <<< "${include_files2[@]}";
           if [[ -s "${include1}" ]]; then
@@ -1131,7 +1131,7 @@ runs: # Uses default x86_64 / linux user machine
             echo 'check_build=true' >> "${GITHUB_ENV}";
             echo -e "\n::notice::\033[34mTotal include source file added during scan\033[0m\033[1m ${count3}\033[0m\n[Hint] \033[1m${count4}\033[0m included directories added after duplicate cleaning!!!\033[0m\nSet option (\033[1m cache: true \033[0m) to use this list for source include checks without manually downloading an adding the file to your repository\nWith caching you should then set (\033[1m source: 0 \033[0m) before checking sources again!" | process_input;
           else
-            echo -e '\n::notice::\033[31mNo include objectives discovered or check-file encountered an issue!!!\033[0m' | process_input;
+            echo -e '\n::notice::\033[31mNo include objectives discovered or \033[1mCHECK-FILE::\033[0m encountered an issue!!!\033[0m' | process_input;
           fi;
           if [[ "${count5}" > '0' ]]; then
             echo -e "\n::notice::\033[34m⚠️ Total include source files missing during scan\033[0m\033[1m ${count5}\033[0m\n[Hint] Many source files may call these \033[31mmissing include files.\nYou may need to remove the missing include file objectives or added the file before compiling!!!" | process_input;
@@ -1216,8 +1216,8 @@ runs: # Uses default x86_64 / linux user machine
         [[ -f "${include_list}" ]] && mv -f "${include_list}" "${include_list}.old";
         [[ -f "${include1}" ]] && rm -f "include-file*.txt";        
         if [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.source == '3' }} && [[ "${include_files}" ]]; then
-          echo -e "\n\033[32mCheck-File gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
-          echo -e "\n####################\nCheck-File Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
+          echo -e "\n\033[32m\033[1mCHECK-FILE::\033[0m gcc include objectives running full scan now: \033[0m\033[1mContent Display\033[0m  [\033[1m high \033[0m]" | process_input;
+          echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m Auto Fix Sources Include Status: [ \033[32mAnalzying\033[0m ]\n####################" | process_input;
           if [[ "${{ inputs.filetype }}" == [c] ]] && [[ "$(which gcc)" ]]; then
             echo -e '\n[\033[1mGCC Mode 2\033[0m]\n';
             fdfind -j "$(nproc)" -p "${abs}" -e "${{ inputs.filetype }}" "${{ env.base }}" -X gcc ${M} | process_input;
@@ -1247,7 +1247,7 @@ runs: # Uses default x86_64 / linux user machine
             fi;           
             echo -e "\n::notice::\033[34mTotal source files scanned:\033[0m \033[1m${count1}\033[0m. Their were \033[1m${count0}\033[0m unique include files checked. Final results: \033[1m${count2}\033[0m ${{ inputs.filetype }} files and their header directories added in total,\n[Hint] You can cache or download this file add it to your repository which auto creates a custom \033[31mcompile command json file when found!!!\033[0m." | process_input;
             if [[ "${clang_file_errors}" > '0' ]]; then
-              echo -e "\n::notice::\033[34m⚠️ Total include source file errors during scan\033[0m\033[1m ${clang_file_errors}\033[0m\n[Hint] Many source files may report the \033[31mfatal file errors.\033[0m\n\033[1mCheck-file notice file issues that needs repair before compiling!!!\033[0m" | process_input;
+              echo -e "\n::notice::\033[34m⚠️ Total include source file errors during scan\033[0m\033[1m ${clang_file_errors}\033[0m\n[Hint] Many source files may report the \033[31mfatal file errors.\033[0m\n\033[1m\033[1mCHECK-FILE::\033[0m notice file issues that needs repair before compiling!!!\033[0m" | process_input;
             fi;
             if [[ "${clang_files_missing}" > '0' ]]; then
               echo -e "\n::notice::\033[34m⚠️ Total include source file missing calls during scan\033[0m\033[1m ${clang_files_missing}\033[0m\n[Hint] Many source files may call these \033[31mmissing include files.\033[0m\nYou may need to remove the missing include file objectives or added the files before compiling!!!" | process_input;
@@ -1593,19 +1593,19 @@ runs: # Uses default x86_64 / linux user machine
           if [[ "$(cmake_includes)" ]]; then
             echo "github_include_dirs=$(cmake_includes)" >> "${GITHUB_ENV}";
             if [[ -f "${count3}" ]]; then
-              echo -e "\n####################\n\tcheck-file added \033[1m$(cat ${count3})\033[0m source include directories [source:\033[32m auto mode\033[0m]\n\tcmake additional header objectives updated successfully!\n####################" | process_input;
+              echo -e "\n####################\n\t\033[1mCHECK-FILE::\033[0m added \033[1m$(cat ${count3})\033[0m source include directories [source:\033[32m auto mode\033[0m]\n\tcmake additional header objectives updated successfully!\n####################" | process_input;
             elif [[ -f "${count2}" ]]; then
-              echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n\tcheck-file updated $(cat ${count2}) additional header directories\n####################" | process_input;
+              echo -e "\n####################\n\t\033[1mCHECK-FILE::\033[0m added $(cat ${count1}) header include directories\n\t\033[1mCHECK-FILE::\033[0m updated $(cat ${count2}) additional header directories\n####################" | process_input;
             else
-              echo -e "\n####################\n\tcheck-file added $(cat ${count1}) header include directories\n####################" | process_input;
+              echo -e "\n####################\n\t\033[1mCHECK-FILE::\033[0m added $(cat ${count1}) header include directories\n####################" | process_input;
             fi;
           elif ${{ env.include_count > '1000' }} && ${{ env.sources }}; then
-            echo -e "\n####################\n\tcheck-file added \033[1m${{ env.include_count }}\033[0m source files & their include directories [source:\033[32m auto mode\033[0m]\n\tcmake source & header objectives updated successfully!\n####################" | process_input;
+            echo -e "\n####################\n\t\033[1mCHECK-FILE::\033[0m added \033[1m${{ env.include_count }}\033[0m source files & their include directories [source:\033[32m auto mode\033[0m]\n\tcmake source & header objectives updated successfully!\n####################" | process_input;
           elif ${{ env.include_count > '1000' }}; then
-            echo -e "\n####################\n\tcheck-file added \033[1m${{ env.include_count }}\033[0m source include directories [source:\033[32m auto mode\033[0m]\n\tcmake max additional header objectives updated successfully!\n####################" | process_input;
+            echo -e "\n####################\n\t\033[1mCHECK-FILE::\033[0m added \033[1m${{ env.include_count }}\033[0m source include directories [source:\033[32m auto mode\033[0m]\n\tcmake max additional header objectives updated successfully!\n####################" | process_input;
           elif [[ -e 'check-file-compile.txt' ]]; then
             total_count=$(gawk 'NF > 0 { count++ } END { print count }' 'check-file-compile.txt');
-            echo -e "\n####################\n\tcheck-file added \033[1m${total_count}\033[0m source files & their include directories [source:\033[32m auto mode\033[0m]\n\tcmake source files & header objectives updated successfully!\n####################" | process_input;
+            echo -e "\n####################\n\t\033[1mCHECK-FILE::\033[0m added \033[1m${total_count}\033[0m source files & their include directories [source:\033[32m auto mode\033[0m]\n\tcmake source files & header objectives updated successfully!\n####################" | process_input;
           fi;
           if [[ -f "${clang_tidy}" ]]; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input;
@@ -2326,7 +2326,7 @@ runs: # Uses default x86_64 / linux user machine
               include_paths='check-file-includes';
               echo -n > 'temp-file';
               include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[">]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);
-              [[ -n "${include_source}" ]] && echo -e "\nTotal header objectives found:\n ${include_source}" | gawk '{ printf "    %s\n", $0; }' | process_input;
+              [[ -n "${include_source}" ]] && echo -e "\n\033[1mTotal header objectives found\033[0m:\n${include_source}" | gawk '{ printf "    %s\n", $0; }' | process_input;
               while IFS= read -r include; do
                 if [[ "${include}" == *.[ch]* ]]; then
                   clean_path="${include##*./}";
@@ -2340,29 +2340,29 @@ runs: # Uses default x86_64 / linux user machine
                     while IFS= read -r includes; do
                       count2=$((include_count++));
                       echo "${includes%/*}" >> 'temp-file';
-                      echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ${count2} / ✅ ]\n\033[32mLOCATION:\033[0m ${includes}" | process_input;
+                      echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[43m is located!\033[0m  [ ${count2} / ✅ ]\n\033[32mLOCATION:\033[0m ${includes}" | process_input;
                     done <<< "${header[@]}";
                     includes_found=true
                   elif [[ -n "${missing[$include]}" ]]; then
-                    echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
+                    echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[41m skipped \033[0m]" | process_input;
                     includes_found=false      
                   else
                     includes_found=false
                     missing["${include}"]=1
                     countX=$((include_missing++));
-                    echo -e "\n::notice::\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[31m is missing!?\033[0m  [ ${countX} / ❌ ]" | process_input;
+                    echo -e "\n::notice::\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[41m is missing!?\033[0m  [ ${countX} / ❌ ]" | process_input;
                   fi;
                 fi;
               done <<< "${include_source[@]}";
-              echo -e "\n::notice::Total number of include file(s) found is: ${count2}" | gawk '{ printf "    %s\n", $0; }' | process_input;
+              echo -e "\n::notice::Total include files found: ${count2}" | gawk '{ printf " \033[42m%s\033[0m\n", $0; }' | process_input;
               if [[ -s 'temp-file' ]]; then
                 sed -E '/\/include\// s|/[^/]+$||' temp-file | sort -u > "${include_paths}";
-                echo -e "\ncheck-file: objectives for \033[1m${file##*/}\033[0m -I/\033[34minclude/directory/paths\033[0m/ added!" | process_input;
-                cp "${include_paths}" build/
+                echo -e "\ncheck-file: objectives for \033[1m${file##*/}\033[0m -I/\033[44minclude/directory/paths\033[0m/ added!" | process_input;
+                [[ -s "${include_paths}" ]] && cp -v "${include_paths}" build/
               fi;
               if ${{ inputs.repair == 'true' }}; then
                 if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
-                  echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
+                  echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORED NOTHING TO REPAIR\n####################" | process_input;
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping {file%/*}\n####################" | process_input;
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                   echo -e "\n\n####################\nGCC/G++ FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
@@ -2374,9 +2374,9 @@ runs: # Uses default x86_64 / linux user machine
                   echo -e "\n\n####################\nCLANG-TIDY FIX FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
-                    echo -e "\n####################\nSTORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                    echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
-                    echo -e "\n####################\nSTORING FOUND ERRORS TO REPAIR\n####################" | process_input;
+                    echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                     errors=true
                   fi;
                   echo "${file} $(date)" >> "${repaired}";
@@ -2390,9 +2390,9 @@ runs: # Uses default x86_64 / linux user machine
                   fi;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
-                    echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                    echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
-                    echo -e "\n####################\nCHECK-FILE FOUND ERRORS TO REPAIR\n####################" | process_input;
+                    echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input;
                     errors=true
                   fi;
                   fixed=true
@@ -2407,30 +2407,35 @@ runs: # Uses default x86_64 / linux user machine
                   fi;
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --includes-file="${include_paths}" --project="${compile_json}" --file-filter="${file}" 2>&1 | process_input || error="$?";
                 else
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" --includes-file="${include_paths}" 2>&1 | process_input || error="$?";
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=missingIncludeSystem --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" --includes-file="${include_paths}" 2>&1 | process_input || error="$?";
                 fi;
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
-                  echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
-                elif [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*Include file:" "${error_log}") ]]; then
-                  echo -e "\n####################\nCHECK-FILE INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
-                  echo 'include_missing=true' >> "${GITHUB_ENV}";
+                  echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                 else
-                  echo -e "\n####################\nCHECK-FILE FOUND ERRORS\n####################" | process_input;
+                  echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m FOUND ERRORS\n####################" | process_input;
                   errors=true
                 fi;
+                if [[ -s "${error_log}" ]] && [[ $(grep -sE "${file//./\\.}.*Include file:" "${error_log}") ]]; then
+                  echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
+                  echo 'include_missing=true' >> "${GITHUB_ENV}";
+                fi;
+                 if [[ -s "${error_log}" ]] && [[ $(grep -sE '\[.*:[0-9]*\] #error' "${error_log}") ]]; then
+                  echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m INCLUDE FILE WITH ERRORS FOUND IN: ${file##*/}\n####################" | process_input;
+                  echo 'include_missing=true' >> "${GITHUB_ENV}";
+                 fi;
               fi;
             else
-              if ${{ inputs.repair == 'true' }}; then
+              if ${{ inputs.repair == 'true' }}; then grep '\[.*:[0-9]*\] #error'
                 if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
-                  echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
+                  echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORED NOTHING TO REPAIR\n####################" | process_input;
                    echo -e "\n####################\nChecked on ${check_date}\n\033[32mSkipping:\033[0m ${file}\n####################" | process_input;
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
-                    echo -e "\n####################\nSTORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                    echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
-                    echo -e "\n####################\nSTORING FOUND ERRORS TO REPAIR\n####################" | process_input;
+                    echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                     errors=true
                   fi;
                   echo "${file} $(date)" >> "${repaired}";
@@ -2439,9 +2444,9 @@ runs: # Uses default x86_64 / linux user machine
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
-                    echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                    echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
-                    echo -e "\n####################\nCHECK-FILE FOUND ERRORS TO REPAIR\n####################" | process_input;
+                    echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input;
                     errors=true
                   fi;
                   fixed=true
@@ -2450,12 +2455,12 @@ runs: # Uses default x86_64 / linux user machine
                 echo -e "\n\n####################\nCPPCHECK FILE ANALYZER: ( ${count1} )\n####################\n" | process_input;
                 cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingIncludeSystem --cppcheck-build-dir="${build_dir}" "${file}" 2>&1 | process_input || error="$?";
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
-                  echo -e "\n####################\nCHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                  echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                 elif [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*Include file:" "${error_log}") ]]; then
-                  echo -e "\n####################\nCHECK-FILE INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
+                  echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
                   echo 'include_missing=true' >> "${GITHUB_ENV}";
                 else
-                  echo -e "\n####################\nCHECK-FILE FOUND ERRORS\n####################" | process_input;
+                  echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m FOUND ERRORS\n####################" | process_input;
                   errors=true
                 fi;
               fi;
@@ -2464,9 +2469,9 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE ( ${count1} )\n####################\n" | process_input;
               cppcheck -j "$(nproc)" --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --quiet "${file}" 2>&1 | process_input || error="$?";
               if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
-                echo -e "\n####################\nRECHECK-FILE NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                echo -e "\n####################\nRE\033[1mCHECK-FILE::\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
               else
-                echo -e "\n####################\nRECHECK-FILE FOUND ERRORS TO REPAIR\n####################" | process_input;
+                echo -e "\n####################\nRE\033[1mCHECK-FILE::\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input;
                 errors=true
               fi;
             fi;
@@ -2479,7 +2484,7 @@ runs: # Uses default x86_64 / linux user machine
           done <<< "${files[@]}";
           ${{ inputs.include == 'true' }} && echo -e "\n::notice::Total number of include file(s) missing is: ${countX}" | process_input && unset missing;
           echo -e "\n::notice::Total number of ${{ env.filename }} file(s) checked is: ${count1}" | process_input;
-          echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
+          echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${error}" > '0' ]]; then
             echo -e "::notice::cppcheck ( ${error} )" | process_input;
@@ -2499,7 +2504,7 @@ runs: # Uses default x86_64 / linux user machine
           s=$((seconds % 60));
           printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
         elif [[ "${file_type}" == [cth]* ]]; then
-          echo -e "\n####################\nFINISHED SEARCHING FILE NOT FOUND: ${{ env.filename }}\n####################\n" | process_input;
+          echo -e "\n####################\n\033[1mCHECK-FILE\033[0m FINISHED SEARCHING FILE NOT FOUND: ${{ env.filename }}\n####################\n" | process_input;
         fi;
         echo "USERINCLUDE=" >> "${GITHUB_ENV}";
         echo "LINUXINCLUDE=" >> "${GITHUB_ENV}";
@@ -2600,15 +2605,15 @@ runs: # Uses default x86_64 / linux user machine
             if ${{ inputs.repair == 'true' }}; then
               echo -e "\n####################\nSHELLCHECK REPAIR ${file##*/} ERRORS: ( ${count3} )\n####################" | process_input;
               if ${{ inputs.stored == 'true' }} && ${{ inputs.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
-                echo -e "\n####################\nSTORED NOTHING TO REPAIR\n####################" | process_input;
+                echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORED NOTHING TO REPAIR\n####################" | process_input;
                 echo -e "\n####################\nRepaired on ${check_date}\nSkipping ${file##*/}\n####################" | process_input;
               elif ${{ inputs.stored == 'true' }} && ${{ inputs.update == 'true' }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
                 shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || error="$?";
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}") ]]; then
-                  echo -e "\n####################\nSTORING NO ERRORS FOUND: ${file}\n####################" | process_input;
+                  echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING NO ERRORS FOUND: ${file}\n####################" | process_input;
                 else
-                  echo -e "\n####################\nSTORING FOUND ERRORS TO REPAIR\n####################" | process_input;
+                  echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                   errors=true
                 fi;
                 echo "${file} $(date)" >> "${repaired}";
@@ -2617,9 +2622,9 @@ runs: # Uses default x86_64 / linux user machine
                 echo -e "\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
                 shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || error="$?";
                 if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}") ]]; then
-                  echo -e "\n####################\nSHELLHARDEN NO ERRORS FOUND: ${file}\n####################" | process_input;
+                  echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND: ${file}\n####################" | process_input;
                 else
-                  echo -e "\n####################\nSHELLHARDEN FOUND ERRORS TO REPAIR\n####################" | process_input;
+                  echo -e "\n####################\n\033[1mCHECK-FILE\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input;
                   errors=true
                 fi;
                 fixed=true
@@ -2628,9 +2633,9 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
               shellcheck --norc --external-sources --enable=all --severity=style --color=always "${file}" 2>&1 | process_input || error="$?";
               if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}") ]]; then
-                echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND: ${file}\n####################" | process_input;
+                echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND: ${file}\n####################" | process_input;
               else
-                echo -e "\n####################\nSHELLCHECK FOUND ERRORS\n####################" | process_input;
+                echo -e "\n####################\n\033[1mCHECK-FILE\033[0m FOUND ERRORS\n####################" | process_input;
                 errors=true
               fi;
             fi;
@@ -2638,9 +2643,9 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
               shellcheck "${file}" 2>&1 | process_input || error="$?";
               if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}") ]]; then
-                echo -e "\n####################\nSHELLCHECK NO ERRORS FOUND: ${file}\n####################" | process_input;
+                echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND: ${file}\n####################" | process_input;
               else
-                echo -e "\n####################\nSHELLCHECK FOUND ERRORS\n####################" | process_input;
+                echo -e "\n####################\n\033[1mCHECK-FILE\033[0m FOUND ERRORS\n####################" | process_input;
                 errors=true
               fi;
             fi;
@@ -2657,7 +2662,7 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "::notice::shellcheck ( ${error} )" | process_input;
           fi;
           echo -e "\n::notice:: Total number of ${{ env.filename }} file(s) checked is: ${count3}" | process_input;
-          echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
+          echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${errors}" ]]; then
             echo "file_error=1" >> "${GITHUB_ENV}";
@@ -2670,7 +2675,7 @@ runs: # Uses default x86_64 / linux user machine
           s=$((seconds % 60));
           printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
         elif [[ "${file_type}" == sh ]]; then
-          echo -e "\n####################\nFINISHED SEARCHING FILE NOT FOUND: ${{ env.filename }}\n####################\n" | process_input;
+          echo -e "\n####################\n\033[1mCHECK-FILE\033[0m FINISHED SEARCHING FILE NOT FOUND: ${{ env.filename }}\n####################\n" | process_input;
         fi;
       shell: bash
       continue-on-error: true
@@ -2771,9 +2776,9 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n####################\nCHECKMAKE ANALYZING $(basename ${file}) FOR ERROR(S) ($count4)\n####################\n" | process_input;
             checkmake "${file}" 2>&1 | process_input || error="$?";
             if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file}.*?error" "${error_log}") ]]; then
-              echo -e "\n####################\nCHECKMAKE NO ERRORS FOUND ${file}\n####################" | process_input;
+              echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND ${file}\n####################" | process_input;
             else
-              echo -e "\n####################\nCHECKMAKE FOUND ERROR(S)\n####################" | process_input;
+              echo -e "\n####################\n\033[1mCHECK-FILE\033[0m FOUND ERROR(S)\n####################" | process_input;
               errors=true
             fi;
             if ${{ inputs.number > '0' }}; then
@@ -2784,7 +2789,7 @@ runs: # Uses default x86_64 / linux user machine
             fi;
           done <<< "${files[@]}";
           echo -e "\n::notice:: Total number of ${{ env.filename }} file(s) checked is: ${count4}" | process_input;
-          echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
+          echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           if [[ "${error}" > '0' ]]; then
             echo -e "::notice::checkmake ( ${error} )" | process_input;
           fi;
@@ -2797,7 +2802,7 @@ runs: # Uses default x86_64 / linux user machine
           printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
         elif [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
-          echo -e "\n####################\nFINISHED SEARCHING FILE NOT FOUND: ${{ env.filename }}\n####################\n" | process_input;
+          echo -e "\n####################\n\033[1mCHECK-FILE\033[0m FINISHED SEARCHING FILE NOT FOUND: ${{ env.filename }}\n####################\n" | process_input;
         fi;
       shell: bash
       continue-on-error: true
@@ -2896,14 +2901,14 @@ runs: # Uses default x86_64 / linux user machine
             fi;
           done <<< "${files[@]}";
           echo -e "\n::notice:: Total number of ${{ env.filename }} file(s) checked is: ${count5}" | process_input;
-          echo -e "\nScanning Completed!\nCheck-File-Action Exiting!\n .....\n" | process_input;
+          echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           echo "data_file=1" >> "${GITHUB_ENV}";
           seconds="$((SECONDS + start_time))";
           m=$((seconds / 60));
           s=$((seconds % 60));
           printf "Process Runtime: %d minutes and %d seconds\n" "$m" "$s" | process_input;
         else
-          echo -e "\n####################\nFINISHED SEARCHING FILE NOT FOUND: ${{ env.filename }}\n####################\n" | process_input;
+          echo -e "\n####################\n\033[1mCHECK-FILE\033[0m FINISHED SEARCHING FILE NOT FOUND: ${{ env.filename }}\n####################\n" | process_input;
         fi;
       shell: bash
       continue-on-error: true
@@ -2964,7 +2969,7 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\n####################\n::warning::SEARCHING COMPLETED PATTERN NOT FOUND: ${{ inputs.pattern }} ❌\n####################";
             fi;
           done;
-          echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
+          echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mPattern Locator\033[0m\nExiting...\n";
         else
           if [[ ${matched2} ]]; then
             counter=$( echo "${matched2}" | rg -c "${{ inputs.pattern }}" );
@@ -2993,7 +2998,7 @@ runs: # Uses default x86_64 / linux user machine
           else
             echo -e "\n####################\n::warning::SEARCHING COMPLETED PATTERN NOT FOUND: ${{ inputs.pattern }} ❌\n####################";
           fi;
-          echo -e "\nScanning Completed!\nPattern Locator\nExiting...\n";
+          echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mPattern Locator\033[0m\nExiting...\n";
         fi;
         seconds="$((SECONDS + start_time))";
         m=$((seconds / 60));
@@ -3140,31 +3145,31 @@ runs: # Uses default x86_64 / linux user machine
           file_count=0
           filetype="${{ env.filename }}";
           if [[ -n "${clang_information}" ]] && [[ "${clang_information:-0}" > '0' ]] && ${{ inputs.analyzer == '3' }}; then
-            echo -e "\n####################\n::notice::⚠️ check-file added ${clang_information}️ information notes on ${file_type} files checked. [Hints] Information addresses key issues that may have error fixes available.\n####################" | process_input;
+            echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE::\033[0m added ${clang_information}️ information notes on ${file_type} files checked. [Hints] Information addresses key issues that may have error fixes available.\n####################" | process_input;
           fi;
           if [[ -n "${clang_warnings}" ]] && [[ "${clang_warnings:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::⚠️ check-file found ${clang_warnings}️ warnings in ${file_type} files checked. [Hints] Try using [\033[1mwarnings-as-errors\033[0m] for possible errors.\n####################" | process_input;
+            echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE::\033[0m found ${clang_warnings}️ warnings in ${file_type} files checked. [Hints] Try using [\033[1mwarnings-as-errors\033[0m] for possible errors.\n####################" | process_input;
           fi;
           if [[ -n "${codechecker_defects}" ]] && [[ "${codechecker_defects:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
-            echo -e "\n####################\n::notice::⚠️ check-file checked ${codechecker_defects} ${file_type} files with defects. [Hints] Check require for those files.\n####################" | process_input;
+            echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE::\033[0m checked ${codechecker_defects} ${file_type} files with defects. [Hints] Check require for those files.\n####################" | process_input;
           fi;
           if [[ -n "${codechecker_no_defects}" ]] && [[ "${codechecker_no_defects:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
-            echo -e "\n####################\n::notice::✅ check-file checked ${codechecker_no_defects} ${file_type} files without defects. [Hints] No check require for those files.\n####################" | process_input;
+            echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE::\033[0m checked ${codechecker_no_defects} ${file_type} files without defects. [Hints] No check require for those files.\n####################" | process_input;
           fi;
           if [[ -n "${codechecker_success}" ]] && [[ "${codechecker_success:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
-            echo -e "\n####################\n::notice::✅ check-file checked ${codechecker_success} ${file_type} files successfully without issues. [Hints] No check require for those files.\n####################" | process_input;
+            echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE::\033[0m checked ${codechecker_success} ${file_type} files successfully without issues. [Hints] No check require for those files.\n####################" | process_input;
           fi;
           if [[ -n "${clang_error1}" ]] && [[ "${clang_error1:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::🚫 check-file found ${clang_error1} errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
+            echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE::\033[0m found ${clang_error1} errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
           fi;
           if [[ -n "${clang_error2}" ]] && [[ "${clang_error2:-0}" > '0' ]] && ${{ inputs.build > '0' }}; then
-            echo -e "\n####################\n::notice::🚫 check-file found \033[31m${clang_error2}\033[0m errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
+            echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE::\033[0m found \033[31m${clang_error2}\033[0m errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
           fi;
           if [[ -n "${clang_failed}" ]] && [[ "${clang_failed:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::⚠️ check-file found ${clang_failed}️ fails in all files checked during build. [Hints] This means your [\033[1mBuild failed\033[0m] from possible errors.\n####################" | process_input;
+            echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE::\033[0m found ${clang_failed}️ fails in all files checked during build. [Hints] This means your [\033[1mBuild failed\033[0m] from possible errors.\n####################" | process_input;
           fi;
           if [[ -n "${clang_fixit1}" ]] && [[ "${clang_fixit1:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
-            echo -e "\n####################\n::notice::✅ check-file applied ${clang_fixit1} fix-its to ${file_type} files checked. [Hints] Try using [update: true] for updating your remote repository with the fixes.\n####################" | process_input;
+            echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE::\033[0m applied ${clang_fixit1} fix-its to ${file_type} files checked. [Hints] Try using [update: true] for updating your remote repository with the fixes.\n####################" | process_input;
             fixed=true
           fi;
           if [[ -n "${clang_fixit2}" ]] && [[ "${clang_fixit2:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
@@ -3172,23 +3177,23 @@ runs: # Uses default x86_64 / linux user machine
             fixed=true
           fi;
           if [[ -n "${clang_notes}" ]] && [[ "${clang_notes:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::⚠️ check-file added ${clang_notes} notes on ${file_type} files checked. [Hints] Notes are fix suggestions for files that should be addressed before compiling.\n####################" | process_input;
+            echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE::\033[0m added ${clang_notes} notes on ${file_type} files checked. [Hints] Notes are fix suggestions for files that should be addressed before compiling.\n####################" | process_input;
           fi;
           if [[ -f "${build_fixes}" ]] && [[ "${clang_replacements:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::✅ check-file applied ${clang_replacements} clang replacement fixes for ${file_type} files checked. [Hints] Clang export fixes are stored in build/fixes.yaml for download. Try using different (analyzer: 1, 2, or 4) for more possible error fixes.\n####################" | process_input;
+            echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE::\033[0m applied ${clang_replacements} clang replacement fixes for ${file_type} files checked. [Hints] Clang export fixes are stored in build/fixes.yaml for download. Try using different (analyzer: 1, 2, or 4) for more possible error fixes.\n####################" | process_input;
           fi;
           if [[ -n "${deheader_removed}" ]] && [[ "${deheader_removed:-0}" > '0' ]] && ${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}; then
-            echo -e "\n####################\n::notice::✅ check-file removed ${deheader_removed} extra inclusions in ${file_type} file(s) checked. [Hints] Try manually removing any extra includes in files before compiling.\n####################" | process_input;
+            echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE::\033[0m removed ${deheader_removed} extra inclusions in ${file_type} file(s) checked. [Hints] Try manually removing any extra includes in files before compiling.\n####################" | process_input;
             fixed=true
           fi;
           if [[ -n "${deheader_duplicates}" ]] && [[ "${deheader_duplicates:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
-            echo -e "\n####################\n::notice::🚫 check-file found ${deheader_duplicates} duplicates or colliding inclusions in ${file_type} files checked. [Hints] Try using [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
+            echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE::\033[0m found ${deheader_duplicates} duplicates or colliding inclusions in ${file_type} files checked. [Hints] Try using [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
           elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
-            echo -e "\n####################\n::notice::🚫 check-file found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
+            echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE::\033[0m found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
           if [[ -n "${clang_files_missing}" ]] && [[ "${clang_files_missing:-0}" > '0' ]]; then
-            echo -e "\n####################\n::notice::❌ check-file discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
-            [[ -n "${clang_files_list1}" ]] && echo -e "\n####################\nMISSING USER FILES LIST:\n####################\n\n${clang_files_list1}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: ${{ env.base }}/${{ env.dirname }}\n####################\n" | process_input;
+            echo -e "\n####################\n::notice::❌ \033[1mCHECK-FILE::\033[0m discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
+            [[ -n "${clang_files_list1}" ]] && echo -e "\n####################\nMISSING USER FILES LIST:\n####################\n\n${clang_files_list1}" | process_input && echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m AUTO LOCATE FILE MATCHES IN: ${{ env.base }}/${{ env.dirname }}\n####################\n" | process_input;
             declare -A missing
             declare -A located
             found=false
@@ -3231,7 +3236,7 @@ runs: # Uses default x86_64 / linux user machine
             done <<< "${clang_files_list1[@]}";
             unset missing;
             declare -A missing
-            [[ -n "${clang_files_list2}" ]] && echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input && echo -e "\n####################\nCHECK-FILE AUTO LOCATE FILE MATCHES IN: ${{ env.base }}/${{ env.dirname }}\n####################\n" | process_input;
+            [[ -n "${clang_files_list2}" ]] && echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input && echo -e "\n####################\n\033[1mCHECK-FILE::\033[0m AUTO LOCATE FILE MATCHES IN: ${{ env.base }}/${{ env.dirname }}\n####################\n" | process_input;
             while IFS= read -r missing_file; do
               if [[ "${missing_file}" == *.[ch]* ]]; then 
                 file_count=$((file_count + 1));
