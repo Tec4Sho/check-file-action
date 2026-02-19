@@ -2317,6 +2317,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             fi;
             if ${{ inputs.include == 'true' }}; then
+              include_bases='';
               include_count=1;
               declare -A missing
               includes_found=false
@@ -2336,6 +2337,7 @@ runs: # Uses default x86_64 / linux user machine
                   if [[ -n "${header}" ]]; then
                     while IFS= read -r includes; do
                       count2=$((include_count++));
+                      include_bases+="-I${includes} ";
                       echo "${includes%/*}" >> 'temp-file';
                       echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ${count2} / ✅ ]\n\033[32mLOCATION:\033[0m ${includes}" | process_input;
                     done <<< "${header[@]}";
@@ -2354,8 +2356,8 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\n::notice::Total include files found: ${count2}" | gawk '{ printf " \033[32m%s\033[0m\n", $0; }' | process_input;
               if [[ -s 'temp-file' ]]; then
                 sed -E '/\/include\// s|/[^/]+$||' temp-file | sort -u > "${include_paths}";
-                echo -e "\ncheck-file: objectives for \033[1m${file##*/}\033[0m -I/\033[43minclude/directory/paths\033[0m/ added!" | process_input;
-                [[ -s "${include_paths}" ]] && cp -v "${include_paths}" build/
+                echo -e "\ncheck-file: objectives for \033[1m${file##*/}\033[0m -I/\033[36minclude/directory/paths\033[0m/ added!" | process_input;
+                [[ -s "${include_paths}" ]] && cp "${include_paths}" build/
               fi;
               if ${{ inputs.repair == 'true' }}; then
                 if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
@@ -2369,7 +2371,7 @@ runs: # Uses default x86_64 / linux user machine
                     g++ -M -MG "${file}" | process_input || error1="$?";
                   fi;
                   echo -e "\n\n####################\nCLANG-TIDY FIX FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes "${include_bases}" 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
@@ -2385,7 +2387,7 @@ runs: # Uses default x86_64 / linux user machine
                   elif [[ "${file_type}" == [c]* ]]; then
                     g++ -MM "${file}" | process_input || error1="$?";
                   fi;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes "${include_bases}" 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
@@ -2399,10 +2401,11 @@ runs: # Uses default x86_64 / linux user machine
                 if [[ "${compile_json}" ]]; then
                   if ${{ inputs.absolute == 'true' }}; then
                     file="${file#/*/*/*/*/*/}";
+                    sed -E '/\/include\// s|/[^/]+$||' temp-file | sed -E 's|^(/[^/]*){5}/||' | sort -u > "${include_paths}";
                   else
                     file="${file#*./}";
                   fi;
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --file-filter="${file}" --includes-file="${include_paths}" 2>&1 | process_input || error="$?";
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --includes-file="${include_paths}" --file-filter="${file}" 2>&1 | process_input || error="$?";
                 else
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=missingIncludeSystem --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" --includes-file="${include_paths}" 2>&1 | process_input || error="$?";
                 fi;
