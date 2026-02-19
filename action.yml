@@ -3058,7 +3058,11 @@ runs: # Uses default x86_64 / linux user machine
         else
           log_file="${project_log}";
         fi;
-        [[ -s "${project_log}" ]] && cp "$project_log" build/
+        if [[ -s "${project_log}" ]] && ${{ env.dirname != '' }}; then
+          cp "$project_log" ${{ env.dirname }}/build/
+        elif [[ -s "${project_log}" ]]; then
+          cp "$project_log" build/
+        fi;
         source_include_list='check-file-includes.txt';
         check_build=false
         file_type='c';
