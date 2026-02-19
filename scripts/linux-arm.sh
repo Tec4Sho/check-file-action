@@ -141,9 +141,10 @@ user="${USER:-runner}";
 arch=$(uname -m);
 export platform version user arch download llvm
 if [[ "${LLVM_VERSION}" == '' ]]; then
-     echo "::error;:[$?] llvm-tools missing.";
+     echo "::error;:[$?] llvm-tools missing." >&2;
 fi;
 if [[ "${version}" == '' ]]; then
-     version='19.1.1';
+     echo '::warning::llvm arm has no version (release) skipping install' >&2;
+     exit 0
 fi;
 echo -e "Installing llvm-arm-$version:\n$(llvm_arm_install $version $platform $download $user $arch $llvm)\n" || echo -e "::error;:[$?] Setting up llvm-embedded-toolchain-for-arm failed.\n";
