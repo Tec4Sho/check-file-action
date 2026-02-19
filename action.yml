@@ -2269,7 +2269,7 @@ runs: # Uses default x86_64 / linux user machine
           elif [[ ! -f "${clang_file}" ]] && ${{ inputs.repair == 'true' }}; then
             echo -e "\n####################\n::error:: .clang-tidy not found exiting...\n####################" | process_input;
           fi;
-          [[ -f "${compile_json}" ]] && echo -e '\n####################\n\tA compile_commands.json was found continuing...\n####################' | process_input || echo -e '\n####################\n\tA compile_commands.json was not found\nSet option ( project: true ) to create one if needed, continuing....\n####################' | process_input;
+          [[ -f "${compile_json}" ]] && echo -e '\n####################\n\tcompile_commands.json was found continuing...\n####################' | process_input || echo -e '\n####################\n\tA compile_commands.json was not found\nSet option ( project: true ) to create one if needed, continuing....\n####################' | process_input;
           if [[ -f "${cppchecks}" ]]; then
              echo -e "\n####################\n\t${cppchecks} config file was found continuing...\n####################" | process_input;
              cppchecks="$(cat ${cppchecks} | tr -d ' \n')";
@@ -2304,11 +2304,8 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             fi;
             if ${{ inputs.include == 'true' }}; then
-              include_bases='';
-              include_count=1;
+              includes_missing=false; include_paths='check-file-includes'; include_bases=''; include_count=1;
               declare -A missing
-              includes_missing=false
-              include_paths='check-file-includes';
               echo -n > 'temp-file';
               include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[">]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);
               [[ -n "${include_source}" ]] && echo -e "\n\033[1mTotal header objectives found\033[0m:\n${include_source}" | gawk '{ printf "    \033[4m%s\033[0m\n", $0; }' | process_input;
@@ -2332,15 +2329,14 @@ runs: # Uses default x86_64 / linux user machine
                     echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[31m skipped \033[0m]" | process_input;
                     includes_missing=true     
                   else
-                    includes_missing=true
-                    missing["${include}"]=1
+                    includes_missing=true; missing["${include}"]=1
                     countX=$((include_missing++));
                     echo -e "\n::notice::\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[31m is missing!?\033[0m  [ ${countX} / ❌ ]" | process_input;
                   fi;
                 fi;
               done <<< "${include_source[@]}";
-              echo -e "\n::notice::\033[32mTotal include files found:\033[0m \033[1m${count2}"\033[0m" | process_input;
-              [[ ! $(echo "$includes_bases" | grep -sF 'tools/testing/radix-tree ' ) ]] && include_bases+="-Itools/testing/radix-tree ";
+              echo -e "\n::notice::\033[32mTotal include files found:\033[0m \033[1m${count2}\033[0m" | process_input;
+              [[ ! $(echo "$includes_bases" | grep -sF 'tools/testing/radix-tree ') ]] && include_bases+='-Itools/testing/radix-tree ';
               if [[ -s 'temp-file' ]]; then
                 echo -e "\ncheck-file: objectives for \033[1m${file##*/}\033[0m -I/\033[36minclude/directory/paths\033[0m/ added!" | process_input;
               fi;
