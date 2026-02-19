@@ -879,7 +879,7 @@ runs: # Uses default x86_64 / linux user machine
           echo -e "\nLLVM_ARM_PATH: ${LLVM_ARM_PATH}";
           echo -e "LLVM_ARM_TOOLCHAIN: ${LLVM_ARM_TOOLCHAIN}\n";
         fi;
-        echo "export kconfig=${srctree}/include/linux/kconfig.h" | sudo tee -a ~/.bashrc >/dev/null;
+        echo "export kconfig=include/linux/kconfig.h" | sudo tee -a ~/.bashrc >/dev/null;
         echo "USERINCLUDE=${USERINCLUDE}" >> "${GITHUB_ENV}";
         echo "LINUXINCLUDE=${LINUXINCLUDE}" >> "${GITHUB_ENV}";
         echo "export srctree=${srctree}" | sudo tee -a ~/.bashrc >/dev/null;
