@@ -2345,12 +2345,6 @@ runs: # Uses default x86_64 / linux user machine
                   echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORED NOTHING TO REPAIR\n####################" | process_input;
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping {file%/*}\n####################" | process_input;
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
-                  echo -e "\n\n####################\nGCC/G++ FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
-                  if [[ "${file_type}" == [c] ]]; then
-                    gcc -M -MG "${file}" | process_input || error1="$?";
-                  elif [[ "${file_type}" == [c]* ]]; then
-                    g++ -M -MG "${file}" | process_input || error1="$?";
-                  fi;
                   echo -e "\n\n####################\nCLANG-TIDY FIX FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes "${include_bases}" 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
@@ -2363,11 +2357,6 @@ runs: # Uses default x86_64 / linux user machine
                   fixed=true
                 elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
-                  if [[ "${file_type}" == [c] ]]; then
-                    gcc -MM "${file}" | process_input || error="$?";
-                  elif [[ "${file_type}" == [c]* ]]; then
-                    g++ -MM "${file}" | process_input || error1="$?";
-                  fi;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes "${include_bases}" 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
