@@ -2192,12 +2192,9 @@ runs: # Uses default x86_64 / linux user machine
         source ~/.bashrc
         set +e
         start_time="${{ env.seconds }}";
-        include_count=1
-        include_total=1
-        build_cache='build_cache';
+        include_count=1; include_total=1; file_count=1
         clang_file='.clang-tidy';
         repaired='check-file-repaired.txt';
-        file_count=1
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         cppchecks='.cppcheck';
@@ -2205,9 +2202,7 @@ runs: # Uses default x86_64 / linux user machine
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         error_log="${github}/${{ env.filename }}_error.log";
         version="clang-${{ inputs.version }}";
-        checked=false
-        include_count=1
-        missing_count=1
+        checked=false; include_count=1; missing_count=1
         countX=0; count1=0; count2=0; error=0; error1=0; error2=0;
         process_input() {
           while IFS= read -r output; do
@@ -2231,7 +2226,6 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         mkdir -p build/cppcheck
         build_dir='build/cppcheck';
-        ${{ inputs.include == 'true' }} && export C_INCLUDE_PATH="/usr/local/include:$(echo /usr/src/linux-headers-*/include | tr ' ' ':')${C_INCLUDE_PATH}" && export CPLUS_INCLUDE_PATH="/usr/local/include:$(echo /usr/src/linux-headers-*/include | tr ' ' ':')${CPLUS_INCLUDE_PATH}"
         if ${{ inputs.absolute == 'true' }}; then
           path='--absolute-path';
         else
@@ -2314,7 +2308,7 @@ runs: # Uses default x86_64 / linux user machine
               include_bases='';
               include_count=1;
               declare -A missing
-              includes_found=false
+              includes_missing=false
               include_paths='check-file-includes';
               echo -n > 'temp-file';
               include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[">]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);
@@ -2335,12 +2329,12 @@ runs: # Uses default x86_64 / linux user machine
                       echo "${includes%/*}" >> 'temp-file';
                       echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ${count2} / ✅ ]\n\033[32mLOCATION:\033[0m ${includes}" | process_input;
                     done <<< "${header[@]}";
-                    includes_found=true
+                    includes_missing=false
                   elif [[ -n "${missing[$include]}" ]]; then
                     echo -e "\n\033[33mSource file #include \033[0m( ${include} )\033[33m already listed missing!\033[0m  [\033[31m skipped \033[0m]" | process_input;
-                    includes_found=false      
+                    includes_missing=true     
                   else
-                    includes_found=false
+                    includes_missing=true
                     missing["${include}"]=1
                     countX=$((include_missing++));
                     echo -e "\n::notice::\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[31m is missing!?\033[0m  [ ${countX} / ❌ ]" | process_input;
@@ -2419,7 +2413,7 @@ runs: # Uses default x86_64 / linux user machine
                  fi;
               fi;
             else
-              if ${{ inputs.repair == 'true' }}; then grep '\[.*:[0-9]*\] #error'
+              if ${{ inputs.repair == 'true' }}; then
                 if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
                   echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORED NOTHING TO REPAIR\n####################" | process_input;
                    echo -e "\n####################\nChecked on ${check_date}\n\033[32mSkipping:\033[0m ${file}\n####################" | process_input;
@@ -2476,7 +2470,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             fi;
           done <<< "${files[@]}";
-          ${{ inputs.include == 'true' }} && echo -e "\n::notice::Total number of include file(s) missing is: ${countX}" | process_input && unset missing;
+          [[ "${includes_missing}" == 'true' ]] && echo -e "\n::notice::Total number of include file(s) missing is: ${countX}" | process_input && unset missing;
           echo -e "\n::notice::Total number of ${{ env.filename }} file(s) checked is: ${count1}" | process_input;
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
