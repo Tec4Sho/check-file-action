@@ -3376,7 +3376,7 @@ runs: # Uses default x86_64 / linux user machine
               git status 2>&1 | process_input;
             fi;
           else
-            echo 'Was git push event successful status ? unknown' | process_input;
+            echo 'Was git push event successful status unknown?' | process_input;
           fi;
         fi;
       shell: bash
@@ -3409,7 +3409,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Uploading ${{ env.filename }} Error Report Artifact
-      if: inputs.report == 'true' && env.filename != '' && env.file_found == '1'
+      if: inputs.report == 'true' && env.filename != '' && env.file_found == '1' && env.data_file == '0'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.filename }}_error.log
@@ -3418,7 +3418,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Uploading ${{ env.filename }} Data Report Artifact
-      if: inputs.report == 'true' && env.filename != '' && env.data_file == '1'
+      if: inputs.report == 'true' && env.filename != '' && env.file_found == '1' && env.data_file == '1'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.filename }}_data.log
