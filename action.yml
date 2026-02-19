@@ -461,7 +461,7 @@ runs: # Uses default x86_64 / linux user machine
         text9="####################\nbatcat dependencies installed\n####################";
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
-        github=${GITHUB_WORKSPACE};
+        github="${GITHUB_WORKSPACE}";
         if [[ ! $(which python3) ]]; then
           sudo aptitude -yq install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
@@ -1290,7 +1290,7 @@ runs: # Uses default x86_64 / linux user machine
         start_time="${SECONDS}";
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
-        github=${GITHUB_WORKSPACE};
+        github="${GITHUB_WORKSPACE}";
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         data_log="${github}/${{ env.filename }}_data.log";
         checked=false
@@ -1419,7 +1419,7 @@ runs: # Uses default x86_64 / linux user machine
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-        github=${GITHUB_WORKSPACE};
+        github="${GITHUB_WORKSPACE}";
         project_log="${github}/${repository}_project.log";
         clang_sources='check-file-sources.txt';
         codechecker='codechecker.yaml';
@@ -1662,7 +1662,7 @@ runs: # Uses default x86_64 / linux user machine
         start_time="${{ env.seconds }}";
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-        github=${GITHUB_WORKSPACE};
+        github="${GITHUB_WORKSPACE}";
         project_log="${github}/${repository}_project.log";
         clang_sources='check-file-sources.txt';
         codechecker='codechecker.yaml';
@@ -1842,7 +1842,7 @@ runs: # Uses default x86_64 / linux user machine
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-        github=${GITHUB_WORKSPACE};
+        github="${GITHUB_WORKSPACE}";
         project_log="${github}/${repository}_project.log";
         build_fixes='build/fixes.yaml';
         check_build=false
@@ -2010,13 +2010,10 @@ runs: # Uses default x86_64 / linux user machine
         start_time="${{ env.seconds }}";
         CMAKE_EXPORT_COMPILE_COMMANDS=ON
         CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
-        CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
-        ${{ inputs.include == 'true' }} && C_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${C_INCLUDE_PATH}" && CPLUS_INCLUDE_PATH="/usr/local/include:/usr/src/linux-headers-$(uname -r)/include:${CPLUS_INCLUDE_PATH}";
-        ${{ inputs.internal == 'true' }} && C_INCLUDE_PATH="${LINUXINCLUDE// /} ${USERINCLUDE// /}" && CPLUS_INCLUDE_PATH="${LINUXINCLUDE// /} ${USERINCLUDE// /}";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-        github=${GITHUB_WORKSPACE};
+        github="${GITHUB_WORKSPACE}";
         project_log="${github}/${repository}_project.log";
         build_fixes='build/fixes.yaml';
         check_build=false
@@ -2038,14 +2035,13 @@ runs: # Uses default x86_64 / linux user machine
         }
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}" && echo -e "User Current Directory;  ${{ env.dirname }}\n" | process_input;
+          codechecker=$(fdfind -p -a -t f -1 'codechecker.yaml' "${github}");
+          compile_json=$(fdfind -p -a -t f -1 'compile_commands.json' "${github}");
         fi;
         if [[ -f 'compile_commands.json' ]]; then
           compile_json='compile_commands.json';
         elif [[ -f 'build/compile_commands.json' ]]; then
           compile_json='build/compile_commands.json';
-        else
-          codechecker=$(fdfind -a -p -t f -1 'codechecker.yaml' "${github}");
-          compile_json=$(fdfind -a -p -t f -1 'compile_commands.json' "${github}");
         fi;
         if ${{ env.check_build == 'false' }}; then
           echo 'check_build=false' >> "${GITHUB_ENV}";
@@ -2162,7 +2158,6 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
-              --add-compiler-defaults \
               --jobs "$(nproc)" \
               --print-steps \
               -b "source ${envsetup} && lunch ${{ inputs.makefile }} && $make ${{ env.filename }} -j$(nproc) -k" \
@@ -2171,7 +2166,6 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
-              --add-compiler-defaults \
               --jobs "$(nproc)" \
               --print-steps \
               -b "$make ${{ inputs.makefile }} -nB -j$(nproc) -k" \
@@ -2198,7 +2192,7 @@ runs: # Uses default x86_64 / linux user machine
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         cppchecks='.cppcheck';
-        github=${GITHUB_WORKSPACE};
+        github="${GITHUB_WORKSPACE}";
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         error_log="${github}/${{ env.filename }}_error.log";
         version="clang-${{ inputs.version }}";
@@ -2509,7 +2503,7 @@ runs: # Uses default x86_64 / linux user machine
         shellcheck_count=1
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
-        github=${GITHUB_WORKSPACE};
+        github="${GITHUB_WORKSPACE}";
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         error_log="${github}/${{ env.filename }}_error.log";
         checked=false
@@ -2678,7 +2672,7 @@ runs: # Uses default x86_64 / linux user machine
         file_type="${file_name##*.}";
         file='checkmake.ini';
         path='/home/runner/checkmake.ini';
-        github=${GITHUB_WORKSPACE};
+        github="${GITHUB_WORKSPACE}";
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         error_log="${github}/${{ env.filename }}_error.log";
         checked=false
@@ -2803,7 +2797,7 @@ runs: # Uses default x86_64 / linux user machine
         start_time="${{ env.seconds }}";
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
-        github=${GITHUB_WORKSPACE};
+        github="${GITHUB_WORKSPACE}";
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         data_log="${github}/${{ env.filename }}_data.log";
         count5=0
@@ -3052,7 +3046,7 @@ runs: # Uses default x86_64 / linux user machine
         start_time="${{ env.seconds }}";
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-        github=${GITHUB_WORKSPACE};
+        github="${GITHUB_WORKSPACE}";
         data_log="${github}/${{ env.filename }}_data.log";
         error_log="${github}/${{ env.filename }}_error.log";
         project_log="${github}/${repository}_project.log";
@@ -3063,7 +3057,7 @@ runs: # Uses default x86_64 / linux user machine
         else
           log_file="${project_log}";
         fi;
-        cp "$project_log" build/
+        [[ -s "${project_log}" ]] && cp "$project_log" build/
         source_include_list='check-file-includes.txt';
         check_build=false
         file_type='c';
