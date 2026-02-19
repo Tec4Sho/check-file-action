@@ -625,12 +625,9 @@ runs: # Uses default x86_64 / linux user machine
           echo -e "\n### Copying ARM jammy sources to /etc/apt/sources.list ###";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list > /dev/null <<EOF
-        Types: deb
-        URIs: http://archive.ubuntu.com http://security.ubuntu.com
-        Suites: jammy jammy-updates jammy-backports jammy-security
-        Components: main restricted universe multiverse
-        Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
-        Architectures: amd64 i386
+        deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu jammy main universe restricted multiverse
+        deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu jammy-updates main universe restricted multiverse
+        deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu jammy-security main universe restricted multiverse
         EOF
         sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
         deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports jammy main universe restricted multiverse
@@ -644,12 +641,9 @@ runs: # Uses default x86_64 / linux user machine
           echo -e "\n### Copying ARM focal sources to /etc/apt/sources.list ###";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list > /dev/null <<EOF
-        Types: deb
-        URIs: http://archive.ubuntu.com http://security.ubuntu.com
-        Suites: focal focal-updates focal-backports focal-security
-        Components: main restricted universe multiverse
-        Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
-        Architectures: amd64 i386
+        deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu focal main universe restricted multiverse
+        deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu focal-updates main universe restricted multiverse
+        deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu focal-security main universe restricted multiverse
         EOF
         sudo tee /etc/apt/sources.list.d/multiarch-fix.list > /dev/null <<EOF
         deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe restricted multiverse
