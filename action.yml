@@ -2200,7 +2200,7 @@ runs: # Uses default x86_64 / linux user machine
         source ~/.bashrc
         set +e
         start_time="${{ env.seconds }}";
-        include_count=1; include_total=1; file_count=1
+        include_count=1; include_total=1; file_count=1;
         clang_file='.clang-tidy';
         repaired='check-file-repaired.txt';
         file_name="${{ env.filename }}";
@@ -2209,7 +2209,7 @@ runs: # Uses default x86_64 / linux user machine
         github="${GITHUB_WORKSPACE}";
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         error_log="${github}/${{ env.filename }}_error.log";
-        checked=false; include_count=1; missing_count=1
+        checked=false; include_count=1; missing_count=1;
         countX=0; count1=0; count2=0; error=0; error1=0; error2=0;
         process_input() {
           while IFS= read -r output; do
@@ -2379,7 +2379,7 @@ runs: # Uses default x86_64 / linux user machine
                     [[ -s 'temp-file' ]] && sed -E '/\/include\// s|/[^/]+$||' temp-file | sort -u > "${include_paths}" && cp "${include_paths}" build/
                     [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '/\/include\// s|/[^/]+$||' | awk '!seen[$0]++' | xargs);
                   fi;
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --showtime=file-total --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --include="${{ env.kconfig }}" --includes-file="${include_paths}" --file-filter="${file}" 2>&1 | process_input || error="$?";
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --showtime=file-total --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --include="${{ env.kconfig }}" --file-filter="${file}" -Itools/testing/radix-tree 2>&1 | process_input || error="$?";
                 else
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --showtime=file-total --suppress=missingIncludeSystem --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" --includes-file="${include_paths}" 2>&1 | process_input || error="$?";
                 fi;
