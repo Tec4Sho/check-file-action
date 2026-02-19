@@ -1561,7 +1561,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             else
               header_source=$(sudo find "${linux_usr_src}" \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -xdev -xtype d -name 'include' -print | grep . || sudo find "${linux_usr_src}" -xtype d -name 'include' -print);
-              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -xtype d \( -name 'radix-tree' -o -name 'uapi' -o -name 'include' \) -print | grep . || fdfind -j "$(nproc)" -p "${abs}" -t d '^(radix-tree|uapi|include)$' "${{ env.base }}");
+              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -xtype d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' \) -print | grep . || fdfind -p "${abs}" -t d '^(uapi|include|radix-tree)$' "${{ env.base }}");
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
