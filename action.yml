@@ -2127,9 +2127,9 @@ runs: # Uses default x86_64 / linux user machine
           fi;
         }
         if ${{ inputs.module == 'true' }}; then
-          make='build_module';
+          alias make='build_module';
         else
-          make='build_alone';
+          alias make='build_alone';
         fi;
         if ${{ env.build_files == '1' }}; then
           echo -e "\nChecking gcc for default includes:" | process_input;
@@ -2150,28 +2150,28 @@ runs: # Uses default x86_64 / linux user machine
           if [[ -e "${codechecker}" ]] && [[ "${envsetup}" ]]; then
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
+            # make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
               --print-steps \
-              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && $make ${{ env.filename }} -j$(nproc --all) -k'" \
+              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ env.filename }} -j$(nproc) -k'" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
+            # make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
-              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && $make ${{ env.filename }} -j$(nproc) -k'" \
+              -b "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ env.filename }} -j$(nproc) -k'" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
+            # make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
-              -b "$make ${{ inputs.makefile }} -nB -j$(nproc) -k" \
+              -b "make ${{ inputs.makefile }} -nB -j$(nproc) -k" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           fi;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -aiF 'Process completed with exit code' "${project_log}") ]]; then
