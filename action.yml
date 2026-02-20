@@ -1566,7 +1566,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             else
               header_source=$(sudo find "${linux_usr_src}" \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -xdev -xtype d -name 'include' -print | grep . || sudo find "${linux_usr_src}" -xtype d -name 'include' -print);
-              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -xtype d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' \) -print | grep . || fdfind -L -p "${abs}" -t d --max-limit="${{ input.limit }}" '^(uapi|include|radix-tree)$' "${{ env.base }}");
+              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -xtype d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' \) -print | grep . || fdfind -L -p "${abs}" -t d --max-results="${{ input.limit }}" '^(uapi|include|radix-tree)$' "${{ env.base }}");
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1584,7 +1584,7 @@ runs: # Uses default x86_64 / linux user machine
             fi;
           }
           clang_includes() {
-            fdfind "${abs}" -L -t d --max-limit="${{ input.limit }}" '^(hwregs|gdb|uapi|include)$' "${{ env.base }}" | while IFS= read -r include; do
+            fdfind "${abs}" -L -t d --max-results="${{ input.limit }}" '^(hwregs|gdb|uapi|include)$' "${{ env.base }}" | while IFS= read -r include; do
               echo -e "--extra-arg=-I${include#./}";
             done;
           }
@@ -1811,14 +1811,15 @@ runs: # Uses default x86_64 / linux user machine
             [[ ! -s 'skip.txt' ]] && echo -e '# Skip all system includes\n-*/usr/include/*\n-*/usr/local/include/*\n-*/site-packages/*' > 'skip.txt';
             if ${{ inputs.repair }}; then
               echo -e "\nRepair mode continuing without config file continuing...\n" | process_input;
-              CodeChecker analyze "${compile_json}" --jobs "$(nproc --all)" --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)" | process_input;
-              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc --all)" --apply ./reports 2>&1 | process_input || echo -e "\nCodeChecker fixit exit-code ($?)" | process_input;
+              CodeChecker analyze "${compile_json}" --jobs "$(nproc)" --output ./reports 2>&1 | process_input || echo -e "\nCodeChecker analyzer exit-code ($?)" | process_input;
+              CodeChecker fixit --checker-name bugprone-suspicious-string-compare --jobs "$(nproc)" --apply ./reports 2>&1 | process_input || echo -e "\nCodeChecker fixit exit-code ($?)" | process_input;
               CodeChecker parse ./reports 2>&1 | process_input || echo -e "\nCodeChecker parse exit-code ($?)" | process_input;
             else
               [[ -e "${codechecker}" ]] && echo -e "\n${codechecker} file was found continuing...\n" | process_input || echo -e "\n::warning::${codechecker} file was not found continuing...\n" | process_input;
-              CodeChecker check --logfile "${compile_json}" --config "${codechecker}" --jobs "$(nproc --all)" 2>&1 | process_input || echo -e "\nCodeChecker check exit-code ($?)" | process_input;
+              [[ -e "${codechecker}" ]] && CodeChecker check --logfile "${compile_json}" --config "${codechecker}" --jobs "$(nproc)" 2>&1 | process_input || echo -e "\nCodeChecker check exit-code ($?)" | process_input;
+              [[ ! -e "${codechecker}" ]] && CodeChecker check --logfile "${compile_json}" --jobs "$(nproc)" 2>&1 | process_input || echo -e "\nCodeChecker check exit-code ($?)" | process_input;
             fi;
-            if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -aiF 'Process completed with exit code' "${project_log}") ]]; then
+            if [[ "${PIPESTATUS[0]}" == '1' || "${PIPESTATUS[1]}" == '1' ]] || [[ -s "${project_log}" && $(grep -aiF 'Process completed with exit code' "${project_log}") ]]; then
               echo 'check_build=false' >> "${GITHUB_ENV}";
             elif [[ -s "${project_log}" ]] && [[ $(grep -aiE 'error:|Error while processing' "${project_log}") ]]; then
               echo -e "\n::notice::Errors found checking project files" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
@@ -2366,6 +2367,19 @@ runs: # Uses default x86_64 / linux user machine
                 fi;
               done <<< "${include_source[@]}";
               echo -e "\n::notice::\033[1m${file##*/}\033[0m \033[32mtotal header files found:\033[0m \033[1m${count2}\033[0m" | process_input;
+              if ${{ inputs.absolute == 'true' }}; then
+                  clean_file="${file#/*/*/*/*/*/}";
+                  [[ -s 'temp-file' ]] && sed -E '/\/include\// s|/[^/]+$||' temp-file | sed -E 's|^(/[^/]*){5}/||' | sort -u > "${include_paths}" && cp "${include_paths}" build/
+                  [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '/\/include\// s|/[^/]+$||' | sed -E 's|^(/[^/]*){5}/||' | awk '!seen[$0]++' | xargs);
+                else
+                  clean_file="${file#*./}";
+                  [[ -s 'temp-file' ]] && sed -E '/\/include\// s|/[^/]+$||' temp-file | sort -u > "${include_paths}" && cp "${include_paths}" build/
+                  [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '/\/include\// s|/[^/]+$||' | awk '!seen[$0]++' | xargs);
+                fi;
+                if [[ -s 'temp-file' ]]; then
+                  count=$(gawk 'NF > 0 { count++; } END { print count + 0; }' "${include_paths}")
+                  echo -e "\n\033[1mcheck-file: ${count} include paths for \033[1m${file##*/}\033[0m added!" | process_input;
+                fi;
               [[ ! $(echo "$includes_bases" | grep -sF 'tools/testing/radix-tree ') ]] && include_bases+='-Itools/testing/radix-tree ';
               if ${{ inputs.repair == 'true' }}; then
                 if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
@@ -2394,23 +2408,9 @@ runs: # Uses default x86_64 / linux user machine
                   fixed=true
                 fi;
               else
-                if ${{ inputs.absolute == 'true' }}; then
-                  echo -e "\n####################\nCPPCHECK INCLUDE FILES ANALYZER: ( ${count1} ) \033[2mabsolute path\033[0m\n####################\n" | process_input;
-                  file="${file#/*/*/*/*/*/}";
-                  [[ -s 'temp-file' ]] && sed -E '/\/include\// s|/[^/]+$||' temp-file | sed -E 's|^(/[^/]*){5}/||' | sort -u > "${include_paths}" && cp "${include_paths}" build/
-                  [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '/\/include\// s|/[^/]+$||' | sed -E 's|^(/[^/]*){5}/||' | awk '!seen[$0]++' | xargs);
-                else
-                  echo -e "\n####################\nCPPCHECK INCLUDE FILES ANALYZER: ( ${count1} ) \033[2mrelative path\033[0m\n####################\n" | process_input;
-                  file="${file#*./}";
-                  [[ -s 'temp-file' ]] && sed -E '/\/include\// s|/[^/]+$||' temp-file | sort -u > "${include_paths}" && cp "${include_paths}" build/
-                  [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '/\/include\// s|/[^/]+$||' | awk '!seen[$0]++' | xargs);
-                fi;
-                if [[ -s 'temp-file' ]]; then
-                  count=$(gawk 'NF > 0 { count++; } END { print count + 0; }' "${include_paths}")
-                  echo -e "\n\033[1mcheck-file: ${count} include paths for \033[1m${file##*/}\033[0m added!" | process_input;
-                fi;
+                echo -e "\n####################\nCPPCHECK INCLUDE FILES ANALYZER: ( ${count1} ) \n####################\n" | process_input;
                 if [[ -e "${compile_json}" ]]; then
-                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --showtime=file-total --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --include="${{ env.kconfig }}" --file-filter="${file}" 2>&1 | process_input || error="$?";
+                  cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --showtime=file-total --suppress=checkersReport --cppcheck-build-dir="${build_dir}" --project="${compile_json}" --include="${{ env.kconfig }}" --file-filter="${clean_file}" 2>&1 | process_input || error="$?";
                 else
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --showtime=file-total --suppress=missingIncludeSystem --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" --includes-file="${include_paths}" 2>&1 | process_input || error="$?";
                 fi;
@@ -3414,10 +3414,12 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Build Release
-      if: inputs.build > '0' && inputs.project == 'true' && env.build_files == '1'
+      if: inputs.build > '0' && inputs.project == 'true' && env.build_files == '1' && inputs.repository == 'true'
       uses: softprops/action-gh-release@v1
       with:
-        files: ${{ inputs.dirname }}/out/target/*
+        files: |
+          ${{ inputs.dirname }}/out/target/*
+          ${{ env.build }}/bin/*
         name: Build For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
       continue-on-error: true
