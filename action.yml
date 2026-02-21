@@ -316,25 +316,25 @@ runs: # Uses default x86_64 / linux user machine
         else
           echo 'github_build_project=false' >> "${GITHUB_ENV}";
         fi;
-        if ${{ inputs.arch == "" }}; then
+        if [[ -z "${{ inputs.arch }}" ]]; then
           echo -e '\n::warning::Please remove empty arch option before running if not needed setting default x86_64';
-          echo "arch=x86_64" >> "${GITHUB_ENV}";
+          echo 'arch=x86_64' >> "${GITHUB_ENV}";
           arch='x86_64';
         else
           echo "arch=${{ inputs.arch }}" >> "${GITHUB_ENV}";
-          arch="${{ inputs.arch }}" ;
+          arch="${{ inputs.arch }}";
         fi;
         AUTO_ARCH="${TARGET_ARCH}";
-        COMPILERS="clang:clang++:gcc:g++:cc:c++";
-        if [[ "${arch}" == "arm" ]]; then
+        COMPILERS='clang:clang++:gcc:g++:cc:c++';
+        if [[ "${arch}" == 'arm' ]]; then
           AUTO_ARCH="${TARGET_ARCH:-arm-none-eabi}";
-          COMPILERS="gcc:g++:arm-linux-androideabi-gcc:arm-linux-androideabi-g++";
-        elif [[ "${arch}" == "arm64" || "${arch}" == "aarch64" ]]; then
+          COMPILERS='gcc:g++:arm-linux-androideabi-gcc:arm-linux-androideabi-g++';
+        elif [[ "${arch}" == 'arm64' || "${arch}" == 'aarch64' ]]; then
           AUTO_ARCH="${TARGET_ARCH:-aarch64-linux-android}";
-          COMPILERS="gcc:g++:aarch64-linux-android-gcc:aarch64-linux-android-g++";
-        elif [[ "${arch}" == "x86_64" ]]; then
+          COMPILERS='gcc:g++:aarch64-linux-android-gcc:aarch64-linux-android-g++';
+        elif [[ "${arch}" == 'x86_64' ]]; then
           AUTO_ARCH="${TARGET_ARCH:-x86_64-pc-linux-gnu}";
-          COMPILERS="gcc:g++:cc:c++";
+          COMPILERS='gcc:g++:cc:c++';
         fi;       
         echo "TARGET_ARCH=${AUTO_ARCH}" >> "${GITHUB_ENV}";
         echo "CC_LOGGER_GCC_LIKE=${COMPILERS}" >> "${GITHUB_ENV}";
