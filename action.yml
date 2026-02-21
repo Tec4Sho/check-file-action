@@ -557,8 +557,8 @@ runs: # Uses default x86_64 / linux user machine
           [[ ! $(which rg) ]] && exit 1
         fi;
         if ${{ inputs.report == 'true' }} && [[ ! $(which ansi2txt) ]]; then
-          python3 -m pip install ansi2txt >/dev/null || sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d';
-          [[ $(which ansi2txt) ]] && echo -e "\n${text2}" || echo -e '::warning::No ansi2txt installed for cleaning log report';
+          python3 -m pip install ansi2txt >/dev/null && echo -e "\n${text2}"; 
+          [[ ! $(which ansi2txt) ]] && sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text2}\n" || echo -e '::warning::No ansi2txt installed for cleaning log report';
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ ! $(which cppcheck) ]]; then
           sudo aptitude -yq install cppcheck 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
@@ -1442,7 +1442,6 @@ runs: # Uses default x86_64 / linux user machine
           cd "${{ env.dirname }}";
           cmakelist="${{ github.action_path }}/CMakeLists.txt";
           [[ ! -f 'CMakeLists.txt' ]] && cp -v "${cmakelist}" . 2>/dev/null;
-          echo "build=${{ env.dirname }}/build" >> "${GITHUB_ENV}";
           echo '';
         fi;
         process_input() {
@@ -1565,7 +1564,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             else
               header_source=$(sudo find "${linux_usr_src}" \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -xdev -xtype d -name 'include' -print | grep . || sudo find "${linux_usr_src}" -xtype d -name 'include' -print);
-              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -xtype d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' \) -print | grep . || fdfind -L -p "${abs}" -t d --max-results="${{ inputs.limit }}" '^(uapi|include|radix-tree)$' "${{ env.base }}");
+              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' \) -print | grep . || fdfind -p "${abs}" -t d --max-results=${{ inputs.limit }} '^(uapi|include|radix-tree)$' "${{ env.base }}");
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1583,7 +1582,7 @@ runs: # Uses default x86_64 / linux user machine
             fi;
           }
           clang_includes() {
-            fdfind "${abs}" -L -t d --max-results="${{ inputs.limit }}" '^(hwregs|gdb|uapi|include)$' "${{ env.base }}" | while IFS= read -r include; do
+            fdfind "${abs}" -t d --max-results="${{ inputs.limit }}" '^(hwregs|gdb|uapi|include)$' "${{ env.base }}" | while IFS= read -r include; do
               echo -e "--extra-arg=-I${include#./}";
             done;
           }
@@ -2389,7 +2388,7 @@ runs: # Uses default x86_64 / linux user machine
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping {file%/*}\n####################" | process_input;
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                   echo -e "\n\n####################\nCLANG-TIDY ERRORS REPAIR ANALYZER: ( ${count1} )\n####################\n" | process_input;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes ${include_bases} 2>&1 | process_input || error2="$?";
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- ${include_bases} 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
@@ -2400,7 +2399,7 @@ runs: # Uses default x86_64 / linux user machine
                   fixed=true
                 elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                   echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes ${include_bases} 2>&1 | process_input || error2="$?";
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- ${include_bases} 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
@@ -3563,4 +3562,4 @@ runs: # Uses default x86_64 / linux user machine
         text "${textc}\n";
       shell: bash
       continue-on-error: true
-## Version 2.0.0 Professional (beta stable 10) | gawk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null
+## Version 2.0.0 Professional (beta stable 10) | gawk '{ print length($0), $0 }' | sort -n | cut -d' ' -f 2- 2>/dev/null ##
