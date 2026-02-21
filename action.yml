@@ -336,7 +336,7 @@ runs: # Uses default x86_64 / linux user machine
         echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
         echo 'includes=false' >> "${GITHUB_ENV}"
         echo "rsp=${{ inputs.rsp }}" >> "${GITHUB_ENV}";
-        echo 'build=build' >> "${GITHUB_ENV}";
+        echo 'build=build/' >> "${GITHUB_ENV}";
         echo 'sources=false' >> "${GITHUB_ENV}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
@@ -3414,7 +3414,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Build Release
-      if: inputs.build > '0' && inputs.project == 'true' && env.build_files == '1' && inputs.repository == 'true'
+      if: inputs.build > '5' && inputs.project == 'true' && env.build_files == '1' && inputs.repository == 'false'
       uses: softprops/action-gh-release@v1
       with:
         files: |
@@ -3437,7 +3437,7 @@ runs: # Uses default x86_64 / linux user machine
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_build
-        path: ${{ env.build }}
+        path: ${{ env.build }}/
         include-hidden-files: true
       continue-on-error: true
 
