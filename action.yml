@@ -3056,6 +3056,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             done < "${file_path}";
           fi;
+          echo '';
         fi;
       shell: bash
       continue-on-error: true
@@ -3348,6 +3349,7 @@ runs: # Uses default x86_64 / linux user machine
             split -d -C 10M "${filename3}" 'part_' && echo -e "\nLogFile: ${{ env.filename }} file split completed" && echo "file3_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
+        echo '';
       shell: bash
       continue-on-error: true
       
