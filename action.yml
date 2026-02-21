@@ -557,7 +557,7 @@ runs: # Uses default x86_64 / linux user machine
           [[ ! $(which rg) ]] && exit 1
         fi;
         if ${{ inputs.report == 'true' }} && [[ ! $(which ansifilter) ]]; then
-          sudo aptitude -yq install ansifilter 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text2}";
+          sudo aptitude -yq install ansifilter 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text2}";
           [[ ! $(which ansifilter) ]] && echo -e '::warning::No ansifilter installed for cleaning log report';
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ ! $(which cppcheck) ]]; then
@@ -609,7 +609,7 @@ runs: # Uses default x86_64 / linux user machine
           echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
         fi;
         if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
-          echo -e "\n### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources ###";
+          echo -e "\n#### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources ####\n";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null <<EOF
         Types: deb
@@ -628,7 +628,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo apt update >/dev/null 2>&1
           sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
         elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
-          echo -e "\n### Copying ARM jammy sources to /etc/apt/sources.list ###";
+          echo -e "\n#### Copying ARM jammy sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list > /dev/null <<EOF
         deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu jammy main universe restricted multiverse
@@ -644,7 +644,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo apt update >/dev/null 2>&1
           sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
         elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
-          echo -e "\n### Copying ARM focal sources to /etc/apt/sources.list ###";
+          echo -e "\n#### Copying ARM focal sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list > /dev/null <<EOF
         deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu focal main universe restricted multiverse
@@ -1564,7 +1564,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             else
               header_source=$(sudo find "${linux_usr_src}" \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -xdev -xtype d -name 'include' -print | grep . || sudo find "${linux_usr_src}" -xtype d -name 'include' -print);
-              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' -o -name "${{ inputs.arch }}" \) -print | grep . || fdfind -p "${abs}" --max-results="${{ inputs.limit }}" -t d "^(${{ inputs.arch }}|uapi|include|radix-tree)$" "${{ env.base }}");
+              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' -o -name "${{ inputs.arch }}" \) -print | grep . || fdfind -p "${abs}" --max-results="${{ inputs.limit }}" -t d ".*/(${{ inputs.arch }}|uapi|include|radix-tree)(/|$)" "${{ env.base }}");
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
