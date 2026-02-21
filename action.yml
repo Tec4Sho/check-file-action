@@ -3420,7 +3420,7 @@ runs: # Uses default x86_64 / linux user machine
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          ${{ inputs.dirname }}/out/target/*
+          ${{ inputs.dirname }}/out/target/**/*.zip
           ${{ env.build }}/bin/*
         name: Build For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
@@ -3428,7 +3428,7 @@ runs: # Uses default x86_64 / linux user machine
 
     - name: Uploading ${{ github.repository }} Project Report Checks
       if: inputs.analyzer == '4' && inputs.project == 'true' && inputs.repair == 'true' && env.build_files == '1'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ env.github_repository }}_reports
         path: reports
@@ -3436,7 +3436,7 @@ runs: # Uses default x86_64 / linux user machine
 
     - name: Uploading Build Files Artifacts
       if: inputs.upload == 'true' && inputs.project == 'true' && env.build_files == '1'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ env.github_repository }}_build
         path: build
@@ -3445,7 +3445,7 @@ runs: # Uses default x86_64 / linux user machine
 
     - name: Uploading ${{ env.filename }} Error Report Artifact
       if: inputs.report == 'true' && env.filename != '' && env.file_found == '1' && env.data_file == '0'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ env.filename }}_error.log
         path: ${{ env.filename }}_error.log
@@ -3454,7 +3454,7 @@ runs: # Uses default x86_64 / linux user machine
 
     - name: Uploading ${{ env.filename }} Data Report Artifact
       if: inputs.report == 'true' && env.filename != '' && env.file_found == '1' && env.data_file == '1'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ env.filename }}_data.log
         path: ${{ env.filename }}_data.log
@@ -3463,7 +3463,7 @@ runs: # Uses default x86_64 / linux user machine
 
     - name: Uploading ${{ env.github_repository }} Project Report Artifact
       if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ env.github_repository }}_project.log
         path: ${{ env.github_repository }}_project.log
@@ -3472,7 +3472,7 @@ runs: # Uses default x86_64 / linux user machine
 
     - name: Uploading ${{ env.filename }} Error Report Artifacts
       if: inputs.report == 'true' && env.filename != '' && env.data_file == '1' && env.file3_parted == '1'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ env.filename }}_split_data.log
         path: part_*
@@ -3481,7 +3481,7 @@ runs: # Uses default x86_64 / linux user machine
 
     - name: Uploading ${{ env.filename }} Error Report Artifacts
       if: inputs.report == 'true' && env.filename != '' && env.file_found == '1' && env.file2_parted == '1'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ env.filename }}_split_error.log
         path: part_*
@@ -3490,7 +3490,7 @@ runs: # Uses default x86_64 / linux user machine
 
     - name: Uploading ${{ github.repository }} Project Report Artifacts
       if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true' && env.file1_parted == '1'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: ${{ env.github_repository }}_split_project.log
         path: part_*
