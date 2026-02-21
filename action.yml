@@ -300,7 +300,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Setup An Clang Clean
-      if: inputs.project == 'true'
+      if: inputs.project == 'true' || inputs.filename != '' || inputs.filetype != ''
       run: |
         echo '';
         source ~/.bashrc
@@ -388,7 +388,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Install LLVM and Clang
-      if: runner.os == 'Linux' && (inputs.project == 'true' || inputs.filename != '' || inputs.filetype != '')
+      if: runner.os == 'Linux' && inputs.pattern == '' && (inputs.project == 'true' || inputs.filename != '' || inputs.filetype != '')
       run: |
         set -a
         source ~/.bashrc
@@ -618,7 +618,7 @@ runs: # Uses default x86_64 / linux user machine
         if [[ -d "${HOME}/codechecker/build/CodeChecker/bin" ]]; then
           echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
         fi;
-        if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ env.arch }}" == "arm"* ]]; then
+        if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources ####\n";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null <<EOF
@@ -637,7 +637,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
           sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
-        elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ env.arch }}" == "arm"* ]]; then
+        elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM jammy sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list > /dev/null <<EOF
@@ -653,7 +653,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
           sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
-        elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ env.arch }}" == "arm"* ]]; then
+        elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM focal sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list > /dev/null <<EOF
@@ -858,7 +858,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Linux Project Includes
-      if: inputs.project == 'true' || env.filename != ''
+      if: ( inputs.project == 'true' || env.filename != '' ) && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
@@ -1427,7 +1427,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
     
     - name: Project Compile Commands Json
-      if: inputs.project == 'true'
+      if: inputs.project == 'true' && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
@@ -1674,7 +1674,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Project Analyze
-      if: inputs.project == 'true' && inputs.analyzer > '0'
+      if: inputs.project == 'true' && inputs.analyzer > '0' && inputs.pattern == ''
       run: |        
         source ~/.bashrc
         set +e
@@ -1850,7 +1850,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
       
     - name: Build Project
-      if: inputs.project == 'true' && inputs.build > '0'
+      if: inputs.project == 'true' && inputs.build > '0' && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
@@ -2023,7 +2023,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Build For Arm/Arm64 Devices
-      if: contains(fromJSON('["arm", "arm64", "aarch64"]'), env.arch) && inputs.build == '5'
+      if: contains(fromJSON('["arm", "arm64", "aarch64"]'), env.arch) && inputs.build == '5' && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
@@ -2239,7 +2239,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Check & Repair CC/C++
-      if: env.filename != '' && inputs.build == '0' && inputs.source != '4'
+      if: env.filename != '' && inputs.build == '0' && inputs.source != '4' && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
@@ -2527,7 +2527,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Check Shell Files
-      if: env.filename != '' && env.file_found == '0' && inputs.build == '0' && inputs.source != '4'
+      if: env.filename != '' && env.file_found == '0' && inputs.build == '0' && inputs.source != '4' && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
@@ -2696,7 +2696,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Check Makefile Files
-      if: env.filename != '' && env.file_found == '0' && inputs.build == '0' && inputs.source != '4'
+      if: env.filename != '' && env.file_found == '0' && inputs.build == '0' && inputs.source != '4' && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
@@ -2823,7 +2823,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Check All Files
-      if: env.filename != '' && env.file_found == '0' && inputs.build == '0' && inputs.source != '4' && env.data_file == '0'
+      if: env.filename != '' && env.file_found == '0' && inputs.build == '0' && inputs.source != '4' && env.data_file == '0' && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
@@ -3023,7 +3023,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Directory Contains
-      if: env.filename != '' && inputs.content == 'true' && inputs.build == '0'
+      if: env.filename != '' && inputs.content == 'true' && inputs.build == '0' && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
@@ -3073,7 +3073,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Project Finalized
-      if: inputs.project == 'true' || env.filename != ''
+      if: ( inputs.project == 'true' || env.filename != '' ) && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
