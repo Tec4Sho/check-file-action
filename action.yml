@@ -187,7 +187,7 @@ inputs:
     description: 'Arch to set for checking kernel project includes'
     type: string
     required: false
-    default: 'arm'
+    default: 'x86_64'
   root:
     description: 'Start search from linux-os root directory not just github_workspace for database'
     type: boolean
@@ -303,6 +303,7 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.project == 'true'
       run: |
         echo '';
+        source ~/.bashrc
         repo=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         echo "github_repository=${repo}" >> "${GITHUB_ENV}";
         if ${{ inputs.filename != '' }}; then
@@ -315,19 +316,28 @@ runs: # Uses default x86_64 / linux user machine
         else
           echo 'github_build_project=false' >> "${GITHUB_ENV}";
         fi;
-        if [[ "${{ inputs.arch }}" == "arm" ]]; then
+        if ${{ inputs.arch == "" }}; then
+          echo -e '\n::warning::Please remove empty arch option before running if not needed setting default x86_64';
+          echo "arch=x86_64" >> "${GITHUB_ENV}";
+          arch='x86_64';
+        else
+          echo "arch=${{ inputs.arch }}" >> "${GITHUB_ENV}";
+          arch="${{ inputs.arch }}" ;
+        fi;
+        AUTO_ARCH="${TARGET_ARCH}";
+        COMPILERS="clang:clang++:gcc:g++:cc:c++";
+        if [[ "${arch}" == "arm" ]]; then
           AUTO_ARCH="${TARGET_ARCH:-arm-none-eabi}";
           COMPILERS="gcc:g++:arm-linux-androideabi-gcc:arm-linux-androideabi-g++";
-        elif [[ "${{ inputs.arch }}" == "arm64" ]]; then
+        elif [[ "${arch}" == "arm64" || "${arch}" == "aarch64" ]]; then
           AUTO_ARCH="${TARGET_ARCH:-aarch64-linux-android}";
           COMPILERS="gcc:g++:aarch64-linux-android-gcc:aarch64-linux-android-g++";
-        else
+        elif [[ "${arch}" == "x86_64" ]]; then
           AUTO_ARCH="${TARGET_ARCH:-x86_64-pc-linux-gnu}";
           COMPILERS="gcc:g++:cc:c++";
-        fi;
+        fi;       
         echo "TARGET_ARCH=${AUTO_ARCH}" >> "${GITHUB_ENV}";
         echo "CC_LOGGER_GCC_LIKE=${COMPILERS}" >> "${GITHUB_ENV}";
-        echo "arch=${{ inputs.arch }}" >> "${GITHUB_ENV}";
         echo "release1=" >> "${GITHUB_ENV}";
         echo "release2=" >> "${GITHUB_ENV}";
         echo "release3=" >> "${GITHUB_ENV}";
@@ -385,7 +395,7 @@ runs: # Uses default x86_64 / linux user machine
         USER="${USER}";
         if [[ -x "${{ github.action_path }}/scripts/linux.sh" ]]; then
           bash -c "${{ github.action_path }}/scripts/linux.sh";
-          if ${{ inputs.project == 'true' }} && ${{ inputs.internal == 'true' }} && ${{ inputs.arch == 'arm' }}; then
+          if ${{ inputs.project == 'true' }} && ${{ inputs.internal == 'true' }} && ${{ env.arch == 'arm' }}; then
             LLVM_VERSION="${{ inputs.version }}";
             export USER LLVM_VERSION
             bash -c "${{ github.action_path }}/scripts/linux-arm.sh";
@@ -608,7 +618,7 @@ runs: # Uses default x86_64 / linux user machine
         if [[ -d "${HOME}/codechecker/build/CodeChecker/bin" ]]; then
           echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
         fi;
-        if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
+        if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ env.arch }}" == "arm"* ]]; then
           echo -e "\n#### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources ####\n";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null <<EOF
@@ -627,7 +637,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
           sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
-        elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
+        elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ env.arch }}" == "arm"* ]]; then
           echo -e "\n#### Copying ARM jammy sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list > /dev/null <<EOF
@@ -643,7 +653,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
           sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
-        elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ inputs.arch }}" == "arm"* ]]; then
+        elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ env.arch }}" == "arm"* ]]; then
           echo -e "\n#### Copying ARM focal sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list > /dev/null <<EOF
@@ -660,7 +670,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo apt update >/dev/null 2>&1
           sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
         fi;
-        if [[ ${{ inputs.arch }} == "arm"* ]]; then
+        if [[ "${{ env.arch }}" == "arm"* ]]; then
           sudo dpkg --add-architecture i386 >/dev/null;
           echo "architecture: $(dpkg --print-architecture)";
           echo "foreign-architectures: $(dpkg --print-foreign-architectures | tr '\n' ' ')";
@@ -855,7 +865,7 @@ runs: # Uses default x86_64 / linux user machine
         [[ -n "${LINUXINCLUDE}" ]] && echo -e "\nUSER INCLUDE CHECK: ${USERINCLUDE}\nLINUX INCLUDE CHECK: ${LINUXINCLUDE}";
         srctree="${GITHUB_WORKSPACE}";
         objtree="${srctree}";
-        hdr_arch="${{ inputs.arch }}";
+        hdr_arch="${{ env.arch }}";
         if ${{ inputs.internal == 'true' }}; then
           ${{ inputs.dirname != '' }} && srctree="${GITHUB_WORKSPACE}/${{ inputs.dirname }}" && objtree="${GITHUB_WORKSPACE}/${{ inputs.dirname }}";
           LINUXINCLUDE="-I${srctree}/arch/${hdr_arch}/include \
@@ -881,7 +891,7 @@ runs: # Uses default x86_64 / linux user machine
           USERINCLUDE="-include ${srctree}/include/linux/kconfig.h";
           ${{ inputs.content == 'true' }} && echo -e "\nUSERINCLUDE: ${USERINCLUDE// /}" && echo -e "\nLINUXINCLUDE: ${LINUXINCLUDE// /}";
         fi;
-        if ${{ inputs.project == 'true' }} && ${{ inputs.internal == 'true' }} && ${{ inputs.arch == 'arm' }} && [[ -n "${LLVM_ARM_PATH}" ]]; then
+        if ${{ inputs.project == 'true' }} && ${{ inputs.internal == 'true' }} && ${{ env.arch == 'arm' }} && [[ -n "${LLVM_ARM_PATH}" ]]; then
           echo -e "\nLLVM_ARM_PATH: ${LLVM_ARM_PATH}";
           echo -e "LLVM_ARM_TOOLCHAIN: ${LLVM_ARM_TOOLCHAIN}\n";
         fi;
@@ -1564,7 +1574,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             else
               header_source=$(sudo find "${linux_usr_src}" \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -xdev -xtype d -name 'include' -print | grep . || sudo find "${linux_usr_src}" -xtype d -name 'include' -print);
-              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' -o -name "${{ inputs.arch }}" \) -print | grep . || fdfind -p "${abs}" --max-results="${{ inputs.limit }}" -t d ".*/(${{ inputs.arch }}|uapi|include|radix-tree)(/|$)" "${{ env.base }}");
+              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' -o -name "${{ env.arch }}" \) -print | grep . || fdfind -p "${abs}" --max-results="${{ inputs.limit }}" -t d ".*/(${{ env.arch }}|uapi|include|radix-tree)(/|$)" "${{ env.base }}");
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -2013,7 +2023,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Build For Arm/Arm64 Devices
-      if: contains(fromJSON('["arm", "arm64", "aarch64"]'), inputs.arch) && inputs.build == '5'
+      if: contains(fromJSON('["arm", "arm64", "aarch64"]'), env.arch) && inputs.build == '5'
       run: |
         source ~/.bashrc
         set +e
@@ -2091,7 +2101,7 @@ runs: # Uses default x86_64 / linux user machine
         }
         build_alone() {
           local llvm_version="${{ inputs.release }}";
-          local arch_target="${{ inputs.arch }}";
+          local arch_target="${{ env.arch }}";
           local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "${{ inputs.DEVICE_NAME }}" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')
           [[ -z $kernel_cpus ]] && echo '::warning;;Cant find TARGET_CPU_VARIANT for setup aborting cpu targeting' | process_input;
           # Run make with ARM overrides
@@ -2119,7 +2129,7 @@ runs: # Uses default x86_64 / linux user machine
         }
         build_module() {
           local llvm_version="${{ inputs.release }}";
-          local arch_target="${{ inputs.arch }}";
+          local arch_target="${{ env.arch }}";
           find_vendor_kernel "${arch_target}";
           local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "${{ inputs.DEVICE_NAME }}" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')
           [[ -z $kernel_cpus ]] && echo '::warning;;Cant find TARGET_CPU_VARIANT for setup aborting cpu targeting' | process_input;
