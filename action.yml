@@ -457,7 +457,7 @@ runs: # Uses default x86_64 / linux user machine
         fi;    
         text0="####################\ngit dependencies installed\n####################";
         text1="####################\nripgrep dependencies installed\n####################";
-        text2="####################\nansi2txt dependencies installed\n####################";
+        text2="####################\nansifilter dependencies installed\n####################";
         text3="####################\nca-certificates dependencies installed\n####################";
         text4="####################\ncppcheck dependencies installed\n####################";
         text5="####################\nclang-tools dependencies installed\n####################";
@@ -556,9 +556,9 @@ runs: # Uses default x86_64 / linux user machine
           sudo aptitude -yq install ripgrep 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
-        if ${{ inputs.report == 'true' }} && [[ ! $(which ansi2txt) ]]; then
-          python3 -m pip install ansi2txt >/dev/null && echo -e "\n${text2}" || echo -e '::warning::No ansi2txt installed for cleaning log report';
-          [[ ! $(which ansi2txt) ]] && sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text2}\n";
+        if ${{ inputs.report == 'true' }} && [[ ! $(which ansifilter) ]]; then
+          sudo aptitude -yq install ansifilter 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text2}";
+          [[ ! $(which ansifilter) ]] && echo -e '::warning::No ansifilter installed for cleaning log report';
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ ! $(which cppcheck) ]]; then
           sudo aptitude -yq install cppcheck 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
@@ -1564,7 +1564,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             else
               header_source=$(sudo find "${linux_usr_src}" \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -xdev -xtype d -name 'include' -print | grep . || sudo find "${linux_usr_src}" -xtype d -name 'include' -print);
-              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' \) -print | grep . || fdfind -p "${abs}" -t d --max-results=${{ inputs.limit }} '^(uapi|include|radix-tree)$' "${{ env.base }}");
+              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -type d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' -o -name "${{ inputs.arch }}" \) -print | grep . || fdfind -p "${abs}" --max-results="${{ inputs.limit }}" -t d "^(${{ inputs.arch }}|uapi|include|radix-tree)$" "${{ env.base }}");
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1582,7 +1582,7 @@ runs: # Uses default x86_64 / linux user machine
             fi;
           }
           clang_includes() {
-            fdfind "${abs}" -t d --max-results="${{ inputs.limit }}" '^(hwregs|gdb|uapi|include)$' "${{ env.base }}" | while IFS= read -r include; do
+            fdfind -p "${abs}" -t d --max-results="${{ inputs.limit }}" '^(hwregs|gdb|uapi|include)$' "${{ env.base }}" | while IFS= read -r include; do
               echo -e "--extra-arg=-I${include#./}";
             done;
           }
@@ -3328,24 +3328,24 @@ runs: # Uses default x86_64 / linux user machine
         filename3="${GITHUB_WORKSPACE}/${{ env.filename }}_data.log";
         if [[ -s "${filename1}" ]]; then
           filesize1=$(stat -c%s "${filename1}");
-          ansi2txt "${filename1}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
-          mv -f "${filename0}" "${filename1}" && echo -e "\nLogFile: ${{ env.github_repository }} [\033[1mansi2txt\033[0m] cleaned" 
+          ansifilter -i "${filename1}" -o "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
+          mv -f "${filename0}" "${filename1}" && echo -e "\nLogFile: ${{ env.github_repository }} [\033[1mansifilter\033[0m] cleaned" 
           if (( filesize1 > min_size_bytes )); then
             split -d -C 10M "${filename1}" 'part_' && echo -e "\nLogFile: ${{ env.github_repository }} file split completed" && echo "file1_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename2}" ]]; then
           filesize2=$(stat -c%s "${filename2}");
-          ansi2txt "${filename2}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
-          mv -f "${filename0}" "${filename2}" && echo -e "\nLogFile: ${{ env.filename }} [\033[1mansi2txt\033[0m] cleaned";
+          ansifilter -i "${filename2}" -o "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
+          mv -f "${filename0}" "${filename2}" && echo -e "\nLogFile: ${{ env.filename }} [\033[1mansifilter\033[0m] cleaned";
           if (( filesize2 > min_size_bytes )); then
             split -d -C 10M "${filename2}" 'part_' && echo -e "\nLogFile: ${{ env.filename }} file split completed" && echo "file2_parted=1" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename3}" ]]; then
           filesize3=$(stat -c%s "${filename3}");
-          ansi2txt "${filename3}" > "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
-          mv -f "${filename0}" "${filename3}" && echo -e "\nLogFile: ${{ env.filename }} [\033[1mansi2txt\033[0m] cleaned";
+          ansifilter -i "${filename3}" -o "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
+          mv -f "${filename0}" "${filename3}" && echo -e "\nLogFile: ${{ env.filename }} [\033[1mansifilter\033[0m] cleaned";
           if (( filesize3 > min_size_bytes )); then
             split -d -C 10M "${filename3}" 'part_' && echo -e "\nLogFile: ${{ env.filename }} file split completed" && echo "file3_parted=1" >> "${GITHUB_ENV}";
           fi;
