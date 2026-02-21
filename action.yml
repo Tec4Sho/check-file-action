@@ -557,8 +557,8 @@ runs: # Uses default x86_64 / linux user machine
           [[ ! $(which rg) ]] && exit 1
         fi;
         if ${{ inputs.report == 'true' }} && [[ ! $(which ansi2txt) ]]; then
-          python3 -m pip install ansi2txt >/dev/null && echo -e "\n${text2}"; 
-          [[ ! $(which ansi2txt) ]] && sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text2}\n" || echo -e '::warning::No ansi2txt installed for cleaning log report';
+          python3 -m pip install ansi2txt >/dev/null && echo -e "\n${text2}" || echo -e '::warning::No ansi2txt installed for cleaning log report';
+          [[ ! $(which ansi2txt) ]] && sudo aptitude -yq install colorized-logs 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text2}\n";
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ ! $(which cppcheck) ]]; then
           sudo aptitude -yq install cppcheck 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
@@ -2505,6 +2505,7 @@ runs: # Uses default x86_64 / linux user machine
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
+          [[ -s "${error_log}" ]] && cp "${error_log}" build/
           seconds="$((SECONDS + start_time))";
           m=$((seconds / 60));
           s=$((seconds % 60));
