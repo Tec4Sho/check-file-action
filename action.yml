@@ -198,6 +198,11 @@ inputs:
     type: boolean 
     required: false
     default: 'false'
+  fix:
+    description: 'Use to fix multiple NUll errors in files that a dev or program editor currupted'
+    type: boolean 
+    required: false
+    default: 'false'
 outputs:
   llvm-path:
     description: The absolute path to the LLVM installation
@@ -1843,6 +1848,77 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           [[ -f 'compile_flags.txt' ]] && mv -f 'compile_flags.txt' 'build/';
         fi;
+        echo '';
+        seconds="$((SECONDS + start_time))";
+        echo "seconds=${seconds}" >> "${GITHUB_ENV}";
+      shell: bash
+      continue-on-error: true
+
+    - name: Build Project
+      if: inputs.project == 'true' && inputs.build > '0' && inputs.fix == 'true' && inputs.pattern == ''
+      run: |
+        source ~/.bashrc
+        set +e
+        start_time="${{ env.seconds }}";
+        CMAKE_EXPORT_COMPILE_COMMANDS=ON
+        CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
+        process_input() {
+          while IFS= read -r output; do
+            if ${{ inputs.output == '1' }}; then
+              echo -e "${output}" | tee -a "${error_log}";
+            elif ${{ inputs.output == '2' }}; then
+              echo -e "${output}" >> "${error_log}";
+            elif ${{ inputs.output == '3' }}; then
+              echo -e "${output}";
+            elif ${{ inputs.output == '4' }}; then
+              echo -e "${output}" >/dev/null;
+            fi;
+          done;
+        }
+        if ${{ inputs.absolute == 'true' }}; then
+          path='--absolute-path';
+        else
+          path='--relative-path';
+        fi;
+        file_count=1
+        count=0
+        if ${{ inputs.database == 'true' }} && [[ "${file_type}" == sh ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+            files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
+          elif ${{ inputs.filetype != '' }}; then
+            regex="\.${{ inputs.filetype }}$";
+            files=$(grep -sE "${{ inputs.dirpath }}/.${regex}" "${{ env.database }}" | grep . || grep -sE "${regex}" "${{ env.database }}");
+            echo -e "\n####################\nDatabase File Extension: ${{ env.filename }}\n####################" | process_input;
+          fi;
+        elif [[ "${file_type}" == sh ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
+            echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
+          elif ${{ inputs.filetype != '' }}; then
+            files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${{ inputs.filetype }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}");
+            echo -e "\n####################\nFile Extension: ${{ env.filename }}\n####################" | process_input;
+          fi;
+        fi;
+        if [[ -n "${files}" ]]; then
+        echo -e "\n####################\nMutli instances of NULL in source files cleaning\n####################\n";
+        while IFS= read -r file; do
+          count=$((file_count++));
+          echo -e "Checking ${file##*/} / ${count}";
+          sed -i -n 's/\(= NULL\)\{2,\}/= NULL/gp' "${file}";
+          if ${{ inputs.number > '0' }}; then
+            if [[ "${{ inputs.number }}" -eq "${count}" ]]; then
+              echo -e "\nFile checking auto stopped at: ${count} / ${file##*/}" | process_input;
+              break;
+            fi;
+          fi; 
+        done <<< "${files}";
         echo '';
         seconds="$((SECONDS + start_time))";
         echo "seconds=${seconds}" >> "${GITHUB_ENV}";
