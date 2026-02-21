@@ -182,7 +182,7 @@ inputs:
     description: 'Limit number of include directories when adding paths'
     type: number
     required: false
-    default: '150'
+    default: 150
   arch:
     description: 'Arch to set for checking kernel project includes'
     type: string
@@ -336,7 +336,7 @@ runs: # Uses default x86_64 / linux user machine
         echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
         echo 'includes=false' >> "${GITHUB_ENV}"
         echo "rsp=${{ inputs.rsp }}" >> "${GITHUB_ENV}";
-        echo 'build=build/' >> "${GITHUB_ENV}";
+        echo 'build=build' >> "${GITHUB_ENV}";
         echo 'sources=false' >> "${GITHUB_ENV}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
@@ -1566,7 +1566,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             else
               header_source=$(sudo find "${linux_usr_src}" \( -path "*/${{ inputs.dirpath }}/*" -o -path "/*linux-headers-${{ env.release1 }}/*" -o -path "*/linux-headers-${{ env.release2 }}/*" -o -path "*/linux-headers-${{ env.release3 }}/*" \) -xdev -xtype d -name 'include' -print | grep . || sudo find "${linux_usr_src}" -xtype d -name 'include' -print);
-              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -xtype d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' \) -print | grep . || fdfind -L -p "${abs}" -t d --max-results="${{ input.limit }}" '^(uapi|include|radix-tree)$' "${{ env.base }}");
+              ${{ inputs.internal == 'true' }} && header_source=$(find "${{ env.base }}" -path "*/${{ inputs.dirpath }}/*" -xtype d \( -name 'include' -o -name 'uapi' -o -name 'radix-tree' \) -print | grep . || fdfind -L -p "${abs}" -t d --max-results="${{ inputs.limit }}" '^(uapi|include|radix-tree)$' "${{ env.base }}");
               while IFS= read -r include; do
                 include_count=$((include_count + 1));
                 echo "${include_count}" > "${count1}";
@@ -1584,7 +1584,7 @@ runs: # Uses default x86_64 / linux user machine
             fi;
           }
           clang_includes() {
-            fdfind "${abs}" -L -t d --max-results="${{ input.limit }}" '^(hwregs|gdb|uapi|include)$' "${{ env.base }}" | while IFS= read -r include; do
+            fdfind "${abs}" -L -t d --max-results="${{ inputs.limit }}" '^(hwregs|gdb|uapi|include)$' "${{ env.base }}" | while IFS= read -r include; do
               echo -e "--extra-arg=-I${include#./}";
             done;
           }
@@ -2352,7 +2352,7 @@ runs: # Uses default x86_64 / linux user machine
                   if [[ -n "${header}" ]]; then
                     while IFS= read -r includes; do
                       count2=$((include_count++));
-                      include_bases+="-I${includes} ";
+                      include_bases+="-I${includes%/*/*} ";
                       echo "${includes%/*}" >> 'temp-file';
                       echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ${count2} / ✅ ]\n\033[32mLOCATION:\033[0m ${includes}" | process_input;
                     done <<< "${header[@]}";
@@ -3121,7 +3121,7 @@ runs: # Uses default x86_64 / linux user machine
         if ${{ inputs.filetype != '' }}; then
           file_type="${{ env.filename }}";
         fi;
-        echo "filetype=${file_type}" >> "${GITHUB_ENV}";
+        echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
         if [[ -s "${log_file}" ]] && ([[ "${check_build}" == 'true' ]] || [[ "${file_found}" == 'true' ]]); then
           echo -e "\n####################\n\t${log_file##*/} file found checking stats...\n####################" | process_input;
           deheader_duplicates=$(grep -aFc 'duplicates' "${log_file}");
@@ -3437,7 +3437,7 @@ runs: # Uses default x86_64 / linux user machine
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.github_repository }}_build
-        path: ${{ env.build }}/
+        path: ${{ env.build }}
         include-hidden-files: true
       continue-on-error: true
 
