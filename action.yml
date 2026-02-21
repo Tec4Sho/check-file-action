@@ -3429,7 +3429,7 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.analyzer == '4' && inputs.project == 'true' && inputs.repair == 'true' && env.build_files == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.github_repository }}_reports
+        name: ${{ env.github_repository }}_reports.zip
         path: reports
       continue-on-error: true
 
@@ -3437,7 +3437,7 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.upload == 'true' && inputs.project == 'true' && env.build_files == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.github_repository }}_build
+        name: ${{ env.github_repository }}_build.zip
         path: build
         include-hidden-files: true
       continue-on-error: true
@@ -3446,7 +3446,7 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.report == 'true' && env.filename != '' && env.file_found == '1' && env.data_file == '0'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.filename }}_error.log
+        name: ${{ env.filename }}_error.log.zip
         path: ${{ env.filename }}_error.log
         include-hidden-files: true
       continue-on-error: true
@@ -3455,7 +3455,7 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.report == 'true' && env.filename != '' && env.file_found == '1' && env.data_file == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.filename }}_data.log
+        name: ${{ env.filename }}_data.log.zip
         path: ${{ env.filename }}_data.log
         include-hidden-files: true
       continue-on-error: true
@@ -3464,7 +3464,7 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.github_repository }}_project.log
+        name: ${{ env.github_repository }}_project.log.zip
         path: ${{ env.github_repository }}_project.log
         include-hidden-files: true
       continue-on-error: true
@@ -3473,7 +3473,7 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.report == 'true' && env.filename != '' && env.data_file == '1' && env.file3_parted == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.filename }}_split_data.log
+        name: ${{ env.filename }}_split_data.log.zip
         path: part_*
         include-hidden-files: true
       continue-on-error: true
@@ -3482,7 +3482,7 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.report == 'true' && env.filename != '' && env.file_found == '1' && env.file2_parted == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.filename }}_split_error.log
+        name: ${{ env.filename }}_split_error.log.zip
         path: part_*
         include-hidden-files: true
       continue-on-error: true
@@ -3491,7 +3491,7 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true' && env.file1_parted == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.github_repository }}_split_project.log
+        name: ${{ env.github_repository }}_split_project.log.zip
         path: part_*
         include-hidden-files: true
       continue-on-error: true
