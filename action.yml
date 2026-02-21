@@ -2941,21 +2941,12 @@ runs: # Uses default x86_64 / linux user machine
         else
           path='--relative-path';
         fi;
-        if ${{ inputs.database == 'true' }}; then
-          matched1=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${{ inputs.filetype }}" "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}");
-          content1=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${{ inputs.filetype }}" "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${{ inputs.filetype }}" "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}");
-          matched2=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**" "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}");
-          content2=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**" "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}");
-        else
-          matched1=$(find "${{ env.base }}" -type f -path "*/${{ inputs.dirpath }}/*" -name "*.${{ inputs.filetype }}" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; | grep . || find "${{ env.base }}" -type f -name "*.${type}" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \;);
-          content1=$(find "${{ env.base }}" -type f -path "*/${{ inputs.dirpath }}/*" -name "*.${{ inputs.filetype }}" -exec grep -l "${{ inputs.pattern }}" "{}" \; | grep . || find "${{ env.base }}" -type f -name "*.${type}" -exec grep -l "${{ inputs.pattern }}" "{}" \;);
-          matched2=$(find "${{ env.base }}" -type f -path "*/${{ inputs.dirpath }}/*" -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \; | grep . || find "${{ env.base }}" -type f -exec grep --color=always -sHanF "${{ inputs.pattern }}" "{}" \;);
-          content2=$(find "${{ env.base }}" -type f -path "*/${{ inputs.dirpath }}/*" -exec grep -l "${{ inputs.pattern }}" "{}" \; | grep . || find "${{ env.base }}" -type f -exec grep -l "${{ inputs.pattern }}" "{}" \;);
-        fi;
         echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################";
         echo -e "\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################";
         if ${{ inputs.filetype != '' }}; then
           for type in ${file_types[@]}; do
+            matched1=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${type}" "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${type}" "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}");
+            content1=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${type}" "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${type}" "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}");
             if [[ -n ${matched1} ]]; then
               counter=$( echo "${matched1}" | rg -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n ( ${counter} ) CONTENT MATCH FOUND IN ${{ inputs.filetype }} FILE(S)\n####################";
@@ -2986,7 +2977,9 @@ runs: # Uses default x86_64 / linux user machine
           done;
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mPattern Locator\033[0m\nExiting...\n";
         else
-          if [[ ${matched2} ]]; then
+          matched2=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**" "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}");
+          content2=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**" "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}");
+          if [[ -n ${matched2} ]]; then
             counter=$( echo "${matched2}" | rg -c "${{ inputs.pattern }}" );
             echo -e "\n####################\n ( ${counter} ) CONTENT MATCH FOUND IN FILE(S)\n####################";
             echo -e "\n${matched2}\n";
