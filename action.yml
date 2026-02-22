@@ -2176,7 +2176,7 @@ runs: # Uses default x86_64 / linux user machine
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
           local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')
-          [[ -z $kernel_cpus ]] && echo '::warning;;Cant find TARGET_CPU_VARIANT for setup aborting cpu targeting' | process_input;
+          [[ -z $kernel_cpus ]] && make
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
             make CC=clang \
             CXX=clang++ \
@@ -2196,14 +2196,12 @@ runs: # Uses default x86_64 / linux user machine
             make CC=clang \
             CXX=clang++
           fi;
-          echo -e "\n$kernel_cpus";
         }
         build_module() {
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
-          find_vendor_kernel "${arch_target}";
           local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')
-          [[ -z $kernel_cpus ]] && echo '::warning;;Cant find TARGET_CPU_VARIANT for setup aborting cpu targeting' | process_input;
+          [[ -z $kernel_cpus ]] && make
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
             make ARCH=arm \
             CROSS_COMPILE=arm-linux-gnueabihf- \
@@ -2234,13 +2232,9 @@ runs: # Uses default x86_64 / linux user machine
           else
             make CC=clang -C "${kroot}" M="$PWD" modules
           fi;
-          echo -e "\n$kernel_cpus: $kroot";
         }
-        if ${{ inputs.module == 'true' }}; then
-          alias cmake='build_module';
-        else
-          alias cmake='build_alone';
-        fi;
+        export CLANG_TRIPLE=arm-linux-gnu-
+        find_vendor_kernel "${{ env.arch }}";
         if ${{ env.build_files == '1' }}; then
           echo -e "\nChecking gcc for default includes:" | process_input;
           if [[ ${{ inputs.filetype }} == [c] ]]; then
@@ -2256,21 +2250,46 @@ runs: # Uses default x86_64 / linux user machine
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]]; then
+          if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
+            make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && cmake ${{ env.filename }} -j$(nproc) -k'" \
+              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && build_module ${{ env.filename }} -j$(nproc) -k'" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && cmake ${{ env.filename }} -j$(nproc) -k'" \
+              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && build_module ${{ env.filename }} -j$(nproc) -k'" \
+              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+          else
+            echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
+            CodeChecker check \
+              --jobs "$(nproc)" \
+              --print-steps \
+              --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" \
+              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+          elif [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]]; then
+            make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
+            echo -e "Sources: ${envsetup}";
+            echo -e "\n${codechecker} file was found continuing...\n" | process_input;
+            CodeChecker check \
+              --config "${codechecker}" \
+              --jobs "$(nproc)" \
+              --print-steps \
+              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && build_alone ${{ env.filename }} -j$(nproc) -k'" \
+              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+          elif [[ "${envsetup}" ]]; then
+            echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
+            CodeChecker check \
+              --jobs "$(nproc)" \
+              --print-steps \
+              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && build_alone ${{ env.filename }} -j$(nproc) -k'" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
