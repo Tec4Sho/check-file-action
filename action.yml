@@ -2877,7 +2877,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             fi;
             echo -e "\n####################\nCHECKMAKE ANALYZING ${file##*/} FOR ERRORS ($count4)\n####################\n" | process_input;
-            checkmake "${file}" 2>&1 | process_input || error="$?";
+            go run github.com/checkmake/checkmake/cmd/checkmake@latest "${file}" 2>&1 | process_input || error="$?";
             if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file}.*?error" "${error_log}") ]]; then
               echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND ${file}\n####################" | process_input;
             else
