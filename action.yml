@@ -1855,8 +1855,8 @@ runs: # Uses default x86_64 / linux user machine
       shell: bash
       continue-on-error: true
 
-    - name: Build Project
-      if: inputs.project == 'true' && inputs.build > '0' && inputs.fix == 'true' && inputs.pattern == ''
+    - name: NULL Errors Fixer
+      if: inputs.project == 'true' && emv.filename != '' && inputs.fix == 'true' && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
