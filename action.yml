@@ -2143,34 +2143,30 @@ runs: # Uses default x86_64 / linux user machine
           file_type="${{ inputs.filetype }}";
         fi;
         find_vendor_kernel() {
-          local target_arch=$1  # 'arm' or 'arm64'
+          local target_arch=$1
           echo "Searching for $target_arch module linker script...";
           local lds_file=$(find $GITHUB_WORKSPACE -path "*/arch/$target_arch/*" -name "module.lds" | head -n 1);
           if [[ -z "$lds_file" ]]; then
-           #echo "::warning::module.lds not found. Searching for any .lds in arch/$target_arch..."
+           echo "module.lds not found. Searching for any .lds in arch/$target_arch..."
             lds_file=$(find $GITHUB_WORKSPACE -path "*/arch/$target_arch/*" -name "*.lds" | head -n 1)
           fi;
           if [[ -z "$lds_file" ]]; then
-            echo "::error::Could not find a valid linker script for $target_arch."
-            exit 0
+            echo "::error::Could not find a valid linker script for $target_arch.";
           fi;
-          # 2. Derive the SRCTREE by going up from arch/$target_arch/...
-          # We look for the directory that contains the 'include' folder and 'Makefile'
-          local current_dir=$(dirname "$lds_file");
+          local current_dir="${lds_file%/*}";
           local kroot=""; 
           while [[ "$current_dir" != "$GITHUB_WORKSPACE" && "$current_dir" != "/" ]]; do
           if [[ -f "$current_dir/Makefile" && -d "$current_dir/include" ]]; then
-            kroot="$current_dir"
-            break
+            kroot="$current_dir";
+            break;
           fi;
-          current_dir=$(dirname "$current_dir")
+          current_dir="${current_dir%/*}";
           done;
           if [[ -z "$kroot" ]]; then
-            echo "::error::Found LDS but could not find Kernel Root (Makefile)."
+            echo "::error::Found LDS but could not find Kernel Root (Makefile).";
             exit 0
           fi;
-          # echo "Detected LDS: $lds_file" 
-          # Export to GitHub Environment
+          echo "Detected LDS: $lds_file";
           echo "SRCTREE=$kroot" >> "$GITHUB_ENV";
           echo "LDS_PATH=$lds_file" >> "$GITHUB_ENV";
           export "$kroot";
@@ -2178,9 +2174,8 @@ runs: # Uses default x86_64 / linux user machine
         build_alone() {
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
-          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "${{ inputs.DEVICE_NAME }}" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')
+          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')
           [[ -z $kernel_cpus ]] && echo '::warning;;Cant find TARGET_CPU_VARIANT for setup aborting cpu targeting' | process_input;
-          # Run make with ARM overrides
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
             make CC=clang \
             CXX=clang++ \
@@ -2197,7 +2192,6 @@ runs: # Uses default x86_64 / linux user machine
             CFLAGS="--target=aarch64-unknown-linux-gnu -mcpu=cortex-a72 --sysroot=/usr/aarch64-linux-gnu" \
             LDFLAGS="--target=aarch64-unknown-linux-gnu --sysroot=/usr/aarch64-linux-gnu"
           else
-          # Native x86_64
             make CC=clang \
             CXX=clang++
           fi;
@@ -2207,10 +2201,9 @@ runs: # Uses default x86_64 / linux user machine
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
           find_vendor_kernel "${arch_target}";
-          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "${{ inputs.DEVICE_NAME }}" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')
+          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')
           [[ -z $kernel_cpus ]] && echo '::warning;;Cant find TARGET_CPU_VARIANT for setup aborting cpu targeting' | process_input;
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
-          # Cross-compile for Cortex-A7
             make ARCH=arm \
             CROSS_COMPILE=arm-linux-gnueabihf- \
             LLVM=1 \
@@ -2220,7 +2213,6 @@ runs: # Uses default x86_64 / linux user machine
             KCFLAGS="-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard" \
             -C "${kroot}" M="$PWD" modules
           elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a53' ]]; then
-            # Run make with ARM64 (AArch64) overrides
             make ARCH=arm64 \
             CROSS_COMPILE=aarch64-linux-gnu- \
             LLVM=1 \
@@ -2230,7 +2222,6 @@ runs: # Uses default x86_64 / linux user machine
             KCFLAGS="-mcpu=cortex-a53" \
             -C "${kroot}" M="$PWD" modules
           elif [[ "$arch_target" =~ ^(arm64|aarch64) ]]&& [[ "$kernel_cpus" == 'cortex-a72' ]]; then
-            # Run make with ARM64 (AArch64) overrides
             make ARCH=arm64 \
             CROSS_COMPILE=aarch64-linux-gnu- \
             LLVM=1 \
@@ -2240,15 +2231,14 @@ runs: # Uses default x86_64 / linux user machine
             KCFLAGS="-mcpu=cortex-a72" \
             -C "${kroot}" M="$PWD" modules
           else
-          # Native x86_64
             make CC=clang -C "${kroot}" M="$PWD" modules
           fi;
           echo -e "\n$kernel_cpus: $kroot";
         }
         if ${{ inputs.module == 'true' }}; then
-          alias make='build_module';
+          alias cmake='build_module';
         else
-          alias make='build_alone';
+          alias cmake='build_alone';
         fi;
         if ${{ env.build_files == '1' }}; then
           echo -e "\nChecking gcc for default includes:" | process_input;
@@ -2268,24 +2258,21 @@ runs: # Uses default x86_64 / linux user machine
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]]; then
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            # make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ env.filename }} -j$(nproc) -k'" \
+              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && cmake ${{ env.filename }} -j$(nproc) -k'" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            # make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ env.filename }} -j$(nproc) -k'" \
+              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && cmake ${{ env.filename }} -j$(nproc) -k'" \
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            # make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
@@ -2302,7 +2289,11 @@ runs: # Uses default x86_64 / linux user machine
           if ${{ inputs.upload }}; then
             echo 'build_files=1' >> "${GITHUB_ENV}";     
           fi;
-          echo "Build test-run completed" | process_input;
+          if [[ -s "${project_log}" ]]; then
+            grep -we ' CC ' -we ' C++ ' "${project_log}" | grep -iv '\.s' | awk '{ print $2 }' | sed -E "s/\.o$/.$file_type/g" | sort > 'build-sources.txt'
+            cp build-sources.txt "${github}/build"
+          fi;
+          echo "Build test-run completed $SRCTREE" | process_input;
         else
           echo '::error::No cmake build files were found. Is (project: true) set?\n Exiting.....' | process_inputs;
         fi;
