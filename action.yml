@@ -641,7 +641,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
+          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross arm-linux-androideabi-4.9 >/dev/null 2>&1
         elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM jammy sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
@@ -657,7 +657,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
+          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross arm-linux-androideabi-4.9 >/dev/null 2>&1
         elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM focal sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
@@ -673,7 +673,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross >/dev/null 2>&1
+          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross arm-linux-androideabi-4.9 >/dev/null 2>&1
         fi;
         if [[ "${{ env.arch }}" == "arm"* ]]; then
           sudo dpkg --add-architecture i386 >/dev/null;
@@ -3415,18 +3415,18 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         if [[ -s "${filename2}" ]]; then
           filesize2=$(stat -c%s "${filename2}");
-          ansifilter -i "${filename2}" -o "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
+          ansifilter -i "${filename2}" -o "${filename0}" && echo "file_found=2" >> "${GITHUB_ENV}";
           mv -f "${filename0}" "${filename2}" && echo -e "\nLogFile: ${{ env.filename }} [\033[1mansifilter\033[0m] cleaned";
           if (( filesize2 > min_size_bytes )); then
-            split -d -C 10M "${filename2}" 'part_' && echo -e "\nLogFile: ${{ env.filename }} file split completed" && echo "file2_parted=1" >> "${GITHUB_ENV}";
+            split -d -C 10M "${filename2}" 'part_' && echo -e "\nLogFile: ${{ env.filename }} file split completed" && echo "file2_parted=2" >> "${GITHUB_ENV}";
           fi;
         fi;
         if [[ -s "${filename3}" ]]; then
           filesize3=$(stat -c%s "${filename3}");
-          ansifilter -i "${filename3}" -o "${filename0}" && echo "file_found=1" >> "${GITHUB_ENV}";
+          ansifilter -i "${filename3}" -o "${filename0}" && echo "file_found=3" >> "${GITHUB_ENV}";
           mv -f "${filename0}" "${filename3}" && echo -e "\nLogFile: ${{ env.filename }} [\033[1mansifilter\033[0m] cleaned";
           if (( filesize3 > min_size_bytes )); then
-            split -d -C 10M "${filename3}" 'part_' && echo -e "\nLogFile: ${{ env.filename }} file split completed" && echo "file3_parted=1" >> "${GITHUB_ENV}";
+            split -d -C 10M "${filename3}" 'part_' && echo -e "\nLogFile: ${{ env.filename }} file split completed" && echo "file3_parted=3" >> "${GITHUB_ENV}";
           fi;
         fi;
         echo '';
@@ -3551,7 +3551,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Uploading ${{ env.filename }} Error Report Artifacts
-      if: inputs.report == 'true' && env.filename != '' && env.data_file == '1' && env.file3_parted == '1'
+      if: inputs.report == 'true' && env.filename != '' && env.data_file == '3' && env.file3_parted == '3'
       uses: actions/upload-artifact@v6
       with:
         name: ${{ env.filename }}_split_data.log.zip
@@ -3560,7 +3560,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Uploading ${{ env.filename }} Error Report Artifacts
-      if: inputs.report == 'true' && env.filename != '' && env.file_found == '1' && env.file2_parted == '1'
+      if: inputs.report == 'true' && env.filename != '' && env.file_found == '2' && env.file2_parted == '2'
       uses: actions/upload-artifact@v6
       with:
         name: ${{ env.filename }}_split_error.log.zip
@@ -3569,7 +3569,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Report Artifacts
-      if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true' && env.file1_parted == '1'
+      if: inputs.report == 'true' && inputs.project == 'true' && env.file_found == '1' && env.file1_parted == '1'
       uses: actions/upload-artifact@v6
       with:
         name: ${{ env.github_repository }}_split_project.log.zip
@@ -3634,7 +3634,7 @@ runs: # Uses default x86_64 / linux user machine
           local text="$1";
           echo -e "${text}"
         }
-        auther='By: \033[2m\033[3mGerrard Johnson\033[0m';
+        auther='By: \033[4m\033[3mGerrard Johnson\033[0m';
         texta="######################";
         textb="#\033[1m\033[32m CHECK FILE EXITING \033[0m#";
         textc="######################";
