@@ -483,7 +483,7 @@ runs: # Uses default x86_64 / linux user machine
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         github="${GITHUB_WORKSPACE}";
-        sudo mkdir -p "${HOME}/.local/bin" && export PATH="${HOME}/.local/bin:${PATH}";
+        mkdir -p "${HOME}/.local/bin" && export PATH="${HOME}/.local/bin:${PATH}";
         if [[ ! $(which python3) ]]; then
           sudo aptitude -yq install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
