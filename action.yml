@@ -372,7 +372,7 @@ runs: # Uses default x86_64 / linux user machine
         sudo mkdir -p /usr/local/bin /usr/local/lib/android/sdk
         sudo chmod -R 0755 "${{ github.action_path }}/scripts";
         mkdir -p "${HOME}/.local/bin";
-        echo "export PATH=${PATH}:${HOME}/.local/bin" | sudo tee -a ~/.bashrc >/dev/null;
+        echo "export PATH=$PATH:$(go env GOPATH)/bin" | sudo tee -a ~/.bashrc >/dev/null;
         if ${{ inputs.version != '' }} && [[ $(which clang-tidy-18) ]]; then
           sudo apt-get remove -yq clang-tidy-18 >/dev/null;
         fi;
@@ -599,9 +599,9 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ ! $(which checkmake) ]]; then
           echo '';
-          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" 2>&1 >/dev/null && echo -e "\n${text8}\n" || echo -e '::error::No checkmake installed Exiting';
+          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" && echo -e "\n${text8}\n" || echo -e '::error::No checkmake installed Exiting';
           sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
-          [[ ! $(which checkmake) ]] && echo -e '::error::No checkmake install was found';
+          [[ ! $(which checkmake) ]] && echo -e '::notice::No checkmake install was found yet!';
         fi;
         if ${{ env.filename != '' }} || ${{ inputs.pattern != '' }}; then
           if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
