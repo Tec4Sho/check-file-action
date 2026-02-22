@@ -298,7 +298,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Set up Go 1.26
-      if: env.filename != ''
+      if: inputs.filename != '' || inputs.filetype != '' || inputs.build > '0'
       uses: actions/setup-go@v2
       with:
         go-version: '1.26'
@@ -372,7 +372,9 @@ runs: # Uses default x86_64 / linux user machine
         sudo mkdir -p /usr/local/bin /usr/local/lib/android/sdk
         sudo chmod -R 0755 "${{ github.action_path }}/scripts";
         mkdir -p "${HOME}/.local/bin";
-        echo "export PATH=$PATH:$(go env GOPATH)/bin" | sudo tee -a ~/.bashrc >/dev/null;
+        if [[ $(command -v go) ]]; then
+          echo "export PATH=$PATH:$(go env GOPATH)/bin" | sudo tee -a ~/.bashrc >/dev/null;
+        fi;
         if ${{ inputs.version != '' }} && [[ $(which clang-tidy-18) ]]; then
           sudo apt-get remove -yq clang-tidy-18 >/dev/null;
         fi;
@@ -495,7 +497,7 @@ runs: # Uses default x86_64 / linux user machine
           sudo mkdir -p '/usr/local/bin';
           echo "/usr/local/bin" >> "${GITHUB_PATH}";
           python3 -m pip install --upgrade cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################" || echo -e '::error::No cmake pip installed for project checks';
-          sudo cp -pf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
+          sudo cp -vpf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
         fi;
         if [[ ! $(which bc) ]]; then
           sudo aptitude -yq install bc 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nbc dependencies installed\n####################" || echo -e '::error::No bc installed for project file amount checks';
@@ -617,13 +619,17 @@ runs: # Uses default x86_64 / linux user machine
           fi;
         fi;
         if [[ -d '/usr/local/bin' ]]; then
-          echo '/usr/local/bin' | sudo tee -a "${GITHUB_PATH}";
+          echo '/usr/local/bin' >> "${GITHUB_PATH}";
         fi;
         if [[ -d "${HOME}/.local/bin" ]]; then
-          echo "${HOME}/.local/bin" | sudo tee -a "${GITHUB_PATH}";
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}";
         fi;
         if [[ -d "${HOME}/codechecker/build/CodeChecker/bin" ]]; then
-          echo "${HOME}/codechecker/build/CodeChecker/bin" | sudo tee -a "${GITHUB_PATH}";
+          echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
+        fi;
+        toolchain=$(find -type d -name 'toolchains' -print);
+        if [[ -n "$toolchain" ]]; then
+          ls -ShApX "$toolchain";
         fi;
         if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources ####\n";
@@ -643,7 +649,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross arm-linux-androideabi-4.9 >/dev/null 2>&1
+          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\narm dependencies installed\n####################\n"; 
         elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM jammy sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
@@ -659,7 +665,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross arm-linux-androideabi-4.9 >/dev/null 2>&1
+          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\narm dependencies installed\n####################\n";
         elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM focal sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
@@ -675,7 +681,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross arm-linux-androideabi-4.9 >/dev/null 2>&1
+          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\narm dependencies installed\n####################\n";
         fi;
         if [[ "${{ env.arch }}" == "arm"* ]]; then
           sudo dpkg --add-architecture i386 >/dev/null;
@@ -1009,23 +1015,21 @@ runs: # Uses default x86_64 / linux user machine
                 while IFS= read -r include; do
                   if [[ "${include}" == *.[ch]* ]] && [[ ! "${processed[$include]}" ]]; then
                     processed["$include"]=1
-                    shopt -s extglob
-                    path1="${include##+(*./)}";
+                    path1="${include##*./}";
                     path2="${path1##[:]*}";
                     path3="${path2%'\n'}";
                     path4="${path3%\\}";
-                    clean_path="${path4%/*}";
-                    file1="${include##+(*./)}";
+                    clean_path="${path4}";
+                    file1="${include##*./}";
                     file2="${file1##[:]*}";
                     file3="${file2%'\n'}";
                     file4="${file3%\\}";
                     clean_file="${file4##*/}";
                     if [[ ${include} == *"/"* ]]; then
-                      header=$(fdfind -c auto "${abs}" -p -t f -g "**/${path4##+(*./)}" "${{ env.base }}" --search-path "${file%/*}");  
+                      header=$(fdfind "${abs}" -p -t f -g "**/${clean_path4##*./}" "${{ env.base }}");  
                     else
-                      header=$(fdfind -c auto "${abs}" -p -t f "${clean_file##+(*./)}" "${file%/*}");
+                      header=$(fdfind "${abs}" -p -t f -g "**/${clean_file}" "${file%/*}");
                     fi;
-                    shopt -u extglob
                     if [[ -n "${header}" ]]; then
                       while IFS= read -r includes; do
                         count2=$((include_count++));
@@ -1103,23 +1107,21 @@ runs: # Uses default x86_64 / linux user machine
               includes_found=true
               echo -e "\n\tinclude source: ${include_source}" | process_input;
               if [[ "${include_source}" == *.[h]* ]]; then
-                shopt -s extglob
                 path1="${include_source##+(*./)}";
                 path2="${path1##[:]*}";
                 path3="${path2%'\n'}";
                 path4="${path3%\\}";
-                clean_path="${path4%/*}";
+                clean_path="${path4}";
                 file1="${include_source##+(*./)}";
                 file2="${file1##[:]*}";
                 file3="${file2%'\n'}";
                 file4="${file3%\\}";
                 clean_file="${file4##*/}";
                 if [[ ${include_source} == *"/"* ]]; then
-                  header=$(fdfind -p "${abs}" -t f -g "**/${path4##+(*./)}" "${{ env.base }}");
+                  header=$(fdfind -p "${abs}" -t f -g "**/${clean_path##*./}" "${{ env.base }}");
                 else
-                  header=$(fdfind -p "${abs}" -t f "${clean_file##+(*./)}" "${{ env.base }}");
+                  header=$(fdfind -p "${abs}" -t f -g "**/${clean_file}" "${{ env.base }}");
                 fi;
-                shopt -u extglob
                 includes_missing=false
                 if [[ -n "${header}" ]]; then
                   while IFS= read -r includes; do
@@ -3514,77 +3516,122 @@ runs: # Uses default x86_64 / linux user machine
           ${{ env.build }}/bin/*
         name: Build For ${{ github.repository }} Repository.
         tag_name: ${{ github.run_id }}
+      env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
+        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+        DEBIAN_FRONTEND: noninteractive
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Report Checks
       if: inputs.analyzer == '4' && inputs.project == 'true' && inputs.repair == 'true' && env.build_files == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.github_repository }}_reports.zip
+        name: ${{ env.github_repository }}_reports
         path: reports
+      env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
+        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+        DEBIAN_FRONTEND: noninteractive
       continue-on-error: true
 
     - name: Uploading Build Files Artifacts
       if: inputs.upload == 'true' && inputs.project == 'true' && env.build_files == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.github_repository }}_build.zip
+        name: ${{ env.github_repository }}_build
         path: build
         include-hidden-files: true
+      env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
+        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+        DEBIAN_FRONTEND: noninteractive
       continue-on-error: true
 
     - name: Uploading ${{ env.filename }} Error Report Artifact
       if: inputs.report == 'true' && env.filename != '' && env.file_found == '2' && env.data_file == '0'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.filename }}_error.log.zip
+        name: ${{ env.filename }}_error.log
         path: ${{ env.filename }}_error.log
         include-hidden-files: true
+      env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
+        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+        DEBIAN_FRONTEND: noninteractive
       continue-on-error: true
 
     - name: Uploading ${{ env.filename }} Data Report Artifact
       if: inputs.report == 'true' && env.filename != '' && env.file_found == '3' && env.data_file == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.filename }}_data.log.zip
+        name: ${{ env.filename }}_data.log
         path: ${{ env.filename }}_data.log
         include-hidden-files: true
+      env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
+        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+        DEBIAN_FRONTEND: noninteractive
       continue-on-error: true
 
     - name: Uploading ${{ env.github_repository }} Project Report Artifact
       if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true' && env.file_found == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.github_repository }}_project.log.zip
+        name: ${{ env.github_repository }}_project.log
         path: ${{ env.github_repository }}_project.log
         include-hidden-files: true
+      env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
+        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+        DEBIAN_FRONTEND: noninteractive
       continue-on-error: true
 
     - name: Uploading ${{ env.filename }} Error Report Artifacts
       if: inputs.report == 'true' && env.filename != '' && env.data_file == '3' && env.file3_parted == '3'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.filename }}_split_data.log.zip
+        name: ${{ env.filename }}_split_data.log
         path: part_*
         include-hidden-files: true
+      env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
+        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+        DEBIAN_FRONTEND: noninteractive
       continue-on-error: true
 
     - name: Uploading ${{ env.filename }} Error Report Artifacts
       if: inputs.report == 'true' && env.filename != '' && env.file_found == '2' && env.file2_parted == '2'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.filename }}_split_error.log.zip
+        name: ${{ env.filename }}_split_error.log
         path: part_*
         include-hidden-files: true
+      env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
+        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+        DEBIAN_FRONTEND: noninteractive
       continue-on-error: true
 
     - name: Uploading ${{ github.repository }} Project Report Artifacts
       if: inputs.report == 'true' && inputs.project == 'true' && env.file_found == '1' && env.file1_parted == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.github_repository }}_split_project.log.zip
+        name: ${{ env.github_repository }}_split_project.log
         path: part_*
         include-hidden-files: true
+      env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
+        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
+        PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
+        DEBIAN_FRONTEND: noninteractive
       continue-on-error: true
 
     - name: Delete Files
