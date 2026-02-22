@@ -1856,7 +1856,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: NULL Errors Fixer
-      if: inputs.project == 'true' && emv.filename != '' && inputs.fix == 'true' && inputs.pattern == ''
+      if: inputs.project == 'true' && env.filename != '' && inputs.fix == 'true' && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
