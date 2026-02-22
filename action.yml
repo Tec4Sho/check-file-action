@@ -483,6 +483,7 @@ runs: # Uses default x86_64 / linux user machine
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         github="${GITHUB_WORKSPACE}";
+        sudo mkdir -p "${HOME}/.local/bin" && export PATH="${HOME}/.local/bin:${PATH}";
         if [[ ! $(which python3) ]]; then
           sudo aptitude -yq install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
@@ -596,9 +597,9 @@ runs: # Uses default x86_64 / linux user machine
           echo -e '\ncheckmake.ini file missing, needed for checkmake to function properly\n';
         fi;
         if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ ! $(which checkmake) ]]; then
-          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" >/dev/null && echo -e "\n${text8}\n" || echo -e '::error::No checkmake installed Exiting';
+          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" 2>&1 >/dev/null && echo -e "\n${text8}\n" || echo -e '::error::No checkmake installed Exiting';
           sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
-          [[ ! $(which checkmake) ]] && exit 1
+          [[ ! $(which checkmake) ]] && echo -e '::error::No checkmake install was found';
         fi;
         if ${{ env.filename != '' }} || ${{ inputs.pattern != '' }}; then
           if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
