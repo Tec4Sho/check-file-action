@@ -3515,7 +3515,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Uploading ${{ env.filename }} Error Report Artifact
-      if: inputs.report == 'true' && env.filename != '' && env.file_found == '1' && env.data_file == '0'
+      if: inputs.report == 'true' && env.filename != '' && env.file_found == '2' && env.data_file == '0'
       uses: actions/upload-artifact@v6
       with:
         name: ${{ env.filename }}_error.log.zip
@@ -3524,7 +3524,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Uploading ${{ env.filename }} Data Report Artifact
-      if: inputs.report == 'true' && env.filename != '' && env.file_found == '1' && env.data_file == '1'
+      if: inputs.report == 'true' && env.filename != '' && env.file_found == '3' && env.data_file == '1'
       uses: actions/upload-artifact@v6
       with:
         name: ${{ env.filename }}_data.log.zip
@@ -3533,7 +3533,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Uploading ${{ env.github_repository }} Project Report Artifact
-      if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true'
+      if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true' && env.file_found == '1'
       uses: actions/upload-artifact@v6
       with:
         name: ${{ env.github_repository }}_project.log.zip
