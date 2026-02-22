@@ -617,13 +617,13 @@ runs: # Uses default x86_64 / linux user machine
           fi;
         fi;
         if [[ -d '/usr/local/bin' ]]; then
-          echo '/usr/local/bin' >> "${GITHUB_PATH}";
+          echo '/usr/local/bin' | sudo tee -a "${GITHUB_PATH}";
         fi;
         if [[ -d "${HOME}/.local/bin" ]]; then
-          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}";
+          echo "${HOME}/.local/bin" | sudo tee -a "${GITHUB_PATH}";
         fi;
         if [[ -d "${HOME}/codechecker/build/CodeChecker/bin" ]]; then
-          echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
+          echo "${HOME}/codechecker/build/CodeChecker/bin" | sudo tee -a "${GITHUB_PATH}";
         fi;
         if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources ####\n";
