@@ -297,11 +297,11 @@ runs: # Uses default x86_64 / linux user machine
         SKIP_JDK_VERSION_CHECK: true
       continue-on-error: true
 
-    - name: Set up Go 1.25.3
+    - name: Set up Go 1.26
       if: env.filename != ''
       uses: actions/setup-go@v2
       with:
-        go-version: '1.25.3'
+        go-version: '1.26'
       continue-on-error: true
 
     - name: Setup An Clang Clean
@@ -429,7 +429,6 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.pattern != '' || env.filename != '' || inputs.project != 'false'
       run: |
         source ~/.bashrc
-        set +e;
         linux_distro1="24.04";
         linux_distro2="22.04";
         linux_distro3="20.04";
@@ -601,7 +600,7 @@ runs: # Uses default x86_64 / linux user machine
           echo '';
           go install "github.com/checkmake/checkmake/cmd/checkmake@latest" && echo -e "\n${text8}\n" || echo -e '::error::No checkmake installed Exiting';
           sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
-          [[ ! $(which checkmake) ]] && echo -e '::notice::No checkmake install was found yet!';
+          [[ ! $(~/go/bin/checkmake --version) ]] && echo -e '::notice::No checkmake install was found yet!';
         fi;
         if ${{ env.filename != '' }} || ${{ inputs.pattern != '' }}; then
           if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
@@ -2793,7 +2792,7 @@ runs: # Uses default x86_64 / linux user machine
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         file='checkmake.ini';
-        path='/home/runner/checkmake.ini';
+        ini_path="${HOME}/checkmake.ini";
         github="${GITHUB_WORKSPACE}";
         repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
         error_log="${github}/${{ env.filename }}_error.log";
@@ -2844,7 +2843,7 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         makefile_count=1
         if [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n "${files}" ]]; then
-          if [[ ${path} ]]; then
+          if [[ -e "${ini_path}" ]]; then
             echo -e "\n####################\ncheckmake.ini found in system continuing ...\n####################" | process_input;
           fi;
           if ${{ env.dirname != '' }}; then
@@ -2877,12 +2876,12 @@ runs: # Uses default x86_64 / linux user machine
                 batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${file}" | process_input;
               fi;
             fi;
-            echo -e "\n####################\nCHECKMAKE ANALYZING $(basename ${file}) FOR ERROR(S) ($count4)\n####################\n" | process_input;
+            echo -e "\n####################\nCHECKMAKE ANALYZING ${file##*/} FOR ERRORS ($count4)\n####################\n" | process_input;
             checkmake "${file}" 2>&1 | process_input || error="$?";
             if [[ -s "${error_log}" ]] && [[ ! $(grep -zPo "(?s)${file}.*?error" "${error_log}") ]]; then
               echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND ${file}\n####################" | process_input;
             else
-              echo -e "\n####################\n\033[1mCHECK-FILE\033[0m FOUND ERROR(S)\n####################" | process_input;
+              echo -e "\n####################\n\033[1mCHECK-FILE\033[0m FOUND ERRORS\n####################" | process_input;
               errors=true
             fi;
             if ${{ inputs.number > '0' }}; then
