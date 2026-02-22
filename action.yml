@@ -1437,7 +1437,7 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.project == 'true' && inputs.pattern == ''
       run: |
         source ~/.bashrc
-        set +e
+        set +e && echo '';
         start_time="${SECONDS}";
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
@@ -1459,7 +1459,6 @@ runs: # Uses default x86_64 / linux user machine
           cd "${{ env.dirname }}";
           cmakelist="${{ github.action_path }}/CMakeLists.txt";
           [[ ! -f 'CMakeLists.txt' ]] && cp -v "${cmakelist}" . 2>/dev/null;
-          echo '';
         fi;
         process_input() {
           while IFS= read -r output; do
@@ -1666,7 +1665,7 @@ runs: # Uses default x86_64 / linux user machine
             fi;
           fi;
           if [[ -d 'build' ]] && ${{ env.dirname != '' }} && ${{ inputs.repository == 'false' }}; then
-            cp -Rf build ${github}/
+            cp -Rf build ${github}/ && echo -e "\n####################\n\tbuild content copied to github workspace\n####################" | process_input;
           fi;
           if [[ "${user_compile_json}" == 'true' ]]; then
             echo -e "\n####################\n\t${compile_json} was found successfully...\n####################" | process_input;
@@ -1962,7 +1961,7 @@ runs: # Uses default x86_64 / linux user machine
           done;
         }
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
-          cd "${{ env.dirname }}" && echo -e "User Current Directory;  ${{ env.dirname }}\n" | process_input;
+          cd "${{ env.dirname }}" && echo -e "\033[1mUser Current Directory\033[0m:  ${{ env.dirname }}\n" | process_input;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
           compile_json='compile_commands.json';
@@ -1972,7 +1971,7 @@ runs: # Uses default x86_64 / linux user machine
           codechecker=$(fdfind -a -p -t f -1 'codechecker.yaml' "${github}");
           compile_json=$(fdfind -a -p -t f -1 'compile_commands.json' "${github}");
         fi;
-        envsetup=$(fdfind -c auto -p -t f -1 'envsetup.sh' "${github}");
+        envsetup=$(fdfind -a -p -t f -1 'envsetup.sh' "${github}");
         if ${{ env.check_build == 'false' }}; then
           echo 'check_build=false' >> "${GITHUB_ENV}";
         fi;
@@ -1986,17 +1985,15 @@ runs: # Uses default x86_64 / linux user machine
         echo "filetype=${file_type}" >> "${GITHUB_ENV}";
         if ${{ env.build_files == '1' }} && ${{ inputs.build == '1' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################\n' | process_input;
-          sudo bash -c 'source ~/.bashrc';
           export TERM=dumb
           if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
-            sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
+            source /home/runner/codechecker/venv/bin/activate
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
           if [[ -e "${codechecker}" ]] && [[ "${envsetup}" ]]; then
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
@@ -2005,7 +2002,6 @@ runs: # Uses default x86_64 / linux user machine
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
@@ -2013,7 +2009,6 @@ runs: # Uses default x86_64 / linux user machine
               2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
@@ -2035,14 +2030,12 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         if ${{ env.build_files == '1' }} && ${{ inputs.build == '2' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tCodeChecker building compile_commands.json from project sources...(json-run -2)\n####################\n' | process_input;
-          sudo bash -c 'source ~/.bashrc';
           export TERM=dumb
           if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
-            sudo bash -c 'source /home/runner/codechecker/venv/bin/activate';
+            source /home/runner/codechecker/venv/bin/activate;
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
           CodeChecker log --build "make -nB -j$(nproc)" --output "${compile_json}" 2>&1 | process_input || echo -e "\n::notice::CodeChecker log exit-code ($?)" | process_input;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -aiF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
@@ -2059,8 +2052,6 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         if ${{ env.build_files == '1' }} && ${{ inputs.build == '3' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tDeheader analyze sources includes on build...(dry-run -3)\n####################\n' | process_input;
-          sudo bash -c 'source ~/.bashrc'
-          make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
           deheader -v -r -m "make -nB -j$(nproc)" 2>&1 | process_input || echo -e "\n::notice::deheader check exit-code ($?)" | process_input;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -aiF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
@@ -2077,9 +2068,7 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         if ${{ env.build_files == '1' }} && ${{ inputs.build == '4' }} && ${{ env.build_error == 'false' }}; then
           echo -e '\n####################\n\tDeheader analyze & repair sources includes on build...(test-run -4)\n####################\n' | process_input;
-          sudo bash -c 'source ~/.bashrc'
           [[ "${envsetup}" ]] && echo -e "Sources: ${envsetup}\n" || echo '::error::No envsetup.sh file to source for lunch mode exiting';
-          make defconfig 2>&1 | process_input || echo -e "\n::notice::make defconfig exit-code ($?)" | process_input;
           deheader -v -r -m "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && make ${{ env.filename }} -j$(nproc) -k'" 2>&1 | process_input || echo -e "\n::notice::deheader build exit-code ($?)" | process_input;
           if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -aiF 'Process completed with exit code' "${project_log}") ]]; then
             echo 'check_build=false' >> "${GITHUB_ENV}";
@@ -2132,7 +2121,7 @@ runs: # Uses default x86_64 / linux user machine
           done;
         }
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
-          cd "${{ env.dirname }}" && echo -e "User Current Directory;  ${{ env.dirname }}\n" | process_input;
+          cd "${{ env.dirname }}" && echo -e "\033[1mUser Current Directory\033[0m:  ${{ env.dirname }}\n" | process_input;
           codechecker=$(fdfind -p -a -t f -1 'codechecker.yaml' "${github}");
           compile_json=$(fdfind -p -a -t f -1 'compile_commands.json' "${github}");
         fi;
@@ -2158,11 +2147,11 @@ runs: # Uses default x86_64 / linux user machine
           local current_dir="${lds_file%/*}";
           local kroot=""; 
           while [[ "$current_dir" != "$GITHUB_WORKSPACE" && "$current_dir" != "/" ]]; do
-          if [[ -f "$current_dir/Makefile" && -d "$current_dir/include" ]]; then
-            kroot="$current_dir";
-            break;
-          fi;
-          current_dir="${current_dir%/*}";
+            if [[ -f "$current_dir/Makefile" && -d "$current_dir/include" ]]; then
+              kroot="$current_dir";
+              break;
+            fi;
+            current_dir="${current_dir%/*}";
           done;
           if [[ -z "$kroot" ]]; then
             echo "::error::Found LDS but could not find Kernel Root (Makefile).";
@@ -2171,7 +2160,9 @@ runs: # Uses default x86_64 / linux user machine
           echo "Detected LDS: $lds_file";
           echo "SRCTREE=$kroot" >> "$GITHUB_ENV";
           echo "LDS_PATH=$lds_file" >> "$GITHUB_ENV";
-          export "$kroot";
+          export LDS_PATH="$lds_file";
+          export SRCTREE="$kroot";
+          export kroot="$current_dir";
         }
         build_alone() {
           local llvm_version="${{ inputs.release }}";
@@ -2246,8 +2237,11 @@ runs: # Uses default x86_64 / linux user machine
           echo | gcc -v -E - 2>&1 | awk '/#include <...> search starts here:/{flag=1;next} /End of search list./{flag=0} flag' | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
           echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################\n' |  process_input;
           export TERM=dumb
+          export -f build_module build_alone
+          export MAKEFILE_NAME="${{ inputs.makefile }}";
+          export FILENAME="${{ env.filename }}";
           if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
-            sudo bash -c 'source /home/runner/codechecker/venv/bin/activate'
+            source /home/runner/codechecker/venv/bin/activate
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
@@ -2255,54 +2249,58 @@ runs: # Uses default x86_64 / linux user machine
             make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
+            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k"
             CodeChecker check \
-              --config "${codechecker}" \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && build_module ${{ env.filename }} -j$(nproc) -k'" \
-              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+              --build "bash -c \"$BUILD_CMD\"" 2>&1 | process_input;
+            CHECK_EXIT=${PIPESTATUS[0]}
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
+            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k"
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && build_module ${{ env.filename }} -j$(nproc) -k'" \
-              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+              --build "bash -c \"$BUILD_CMD\"" 2>&1 | process_input;
+            CHECK_EXIT=${PIPESTATUS[0]}
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" \
-              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
-          elif [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]]; then
+              --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" 2>&1 | process_input;
+              CHECK_EXIT=${PIPESTATUS[0]}
+          fi;
+          if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'false' }}; then
             make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
+            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k"
             CodeChecker check \
-              --config "${codechecker}" \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && build_alone ${{ env.filename }} -j$(nproc) -k'" \
-              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+              --build "bash -c \"$BUILD_CMD\"" 2>&1 | process_input;
+            CHECK_EXIT=${PIPESTATUS[0]}
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
+            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k"
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c 'source ${envsetup} && lunch ${{ inputs.makefile }} && build_alone ${{ env.filename }} -j$(nproc) -k'" \
-              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+              --build "bash -c \"$BUILD_CMD\"" 2>&1 | process_input;
+            CHECK_EXIT=${PIPESTATUS[0]}
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" \
-              2>&1 | process_input || echo -e "\n::notice::CodeChecker check exit-code ($?)" | process_input;
+              --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" 2>&1 | process_input;
+              CHECK_EXIT=${PIPESTATUS[0]}
           fi;
-          if [[ "${PIPESTATUS[0]}" == '1' ]] || [[ -s "${project_log}" ]] && [[ $(grep -aiF 'Process completed with exit code' "${project_log}") ]]; then
+          if [[ "$CHECK_EXIT" == "1" ]] || { [[ -s "${project_log}" ]] && grep -aiFq 'Process completed with exit code' "${project_log}"; }; then
+            echo -e "\n::notice::CodeChecker check exit-code ($CHECK_EXIT)" | process_input;
             echo 'check_build=false' >> "${GITHUB_ENV}";
-          elif [[ -s "${project_log}" ]] && [[ $(grep -aF 'error:' "${project_log}") ]]; then
+          elif [[ -s "${project_log}" ]] && grep -aiFq 'error:' "${project_log}"; then
             echo -e "\n::notice::Errors found building project files!" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
           elif [[ -s "${project_log}" ]]; then
             echo -e "\n::notice::No errors found building project files!" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
@@ -2311,8 +2309,8 @@ runs: # Uses default x86_64 / linux user machine
             echo 'build_files=1' >> "${GITHUB_ENV}";     
           fi;
           if [[ -s "${project_log}" ]]; then
-            grep -we ' CC ' -we ' C++ ' "${project_log}" | grep -iv '\.s' | awk '{ print $2 }' | sed -E "s/\.o$/.$file_type/g" | sort > 'build-sources.txt'
-            cp build-sources.txt "${github}/build"
+            grep -we ' CC ' -we ' C++ ' "${project_log}" | grep -iv '\.s' | awk '{ print $2 }' | sed -E "s/\.o$/.$file_type/g" | sort > 'build-source-files.txt'
+            [[ -s 'build-source-files.txt' ]] && cp build-source-files.txt "${github}/build";
           fi;
           echo "Build test-run completed $SRCTREE" | process_input;
         else
