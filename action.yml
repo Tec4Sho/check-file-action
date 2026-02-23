@@ -796,6 +796,9 @@ runs: # Uses default x86_64 / linux user machine
         text10a="#####################";
         text10b="Searching ${{ inputs.dirpath }} directory first for ${{ env.filename }} match(s)";
         text10c="#####################";
+        text10d="#####################";
+        text10e="Setting ${{ inputs.dirpath }} base directory for ${{ env.filename }} test build";
+        text10f="#####################";
         text11a="#####################";
         text11b="#\033[1m\033[32m CHECK FILE ACTION \033[0m#";
         text11c="#####################";
@@ -864,10 +867,14 @@ runs: # Uses default x86_64 / linux user machine
           text "${text9b}";
           text "${text9c}";
         fi;
-        if ${{ inputs.dirpath != '' }} && ${{ env.filename != '' }}; then
+        if ${{ inputs.dirpath != '' }} && ${{ env.filename != '' }} && ${{ inputs.build == '0' }}; then
           text "\n${text10a}";
           text "${text10b}";
           text "${text10c}";
+        elif ${{ inputs.dirpath != '' }} && ${{ env.filename != '' }} && ${{ inputs.build > '0' }}; then
+          text "\n${text10d}";
+          text "${text10e}";
+          text "${text10f}";
         fi;
         if ${{ inputs.project == 'true' }} && ${{ env.filename != '' }} && ${{ inputs.analyzer > '0' }}; then
           text "::warning:: project:true and filename:set both enabled auto sets analyzer:0 to disable\nTo remove this warning use ( analyzer: 0 )\n";
