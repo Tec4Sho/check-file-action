@@ -31,13 +31,11 @@ install_llvm() {
 llvm_version() {
   llvm_version="$(llvm-config --version)";
   if [[ $(printf '%s\n%s' "${llvm_version}" "${version}" | sort -V | head -n1) == "${llvm_version}" ]] && [[ "${llvm_version}" != "${version}" ]]; then
-    echo -e "\nExpected LLVM major version: ${version}, but got default version: ${llvm_version}" >&2
-    exit 0
+    echo -e "\nExpected LLVM major version: ${version}, system used LLVM minor version: ${llvm_version}" >&2
   elif [[ "${llvm_version}" == "${version}" ]]; then
     echo -e "\nUpdated LLVM major version: ${llvm_version}" 2>&1;
   elif [[ "${llvm_version%%.*}" != "${version}" ]]; then
-    echo -e "\nExpected LLVM major version: ${version}, but got version: ${llvm_version}" >&2
-    exit 0
+    echo -e "\nExpected LLVM major version: ${version}, system uses LLVM minor version: ${llvm_version}" >&2
   else
     echo -e "\nUpdated LLVM major version: ${llvm_version}" 2>&1;
   fi;
