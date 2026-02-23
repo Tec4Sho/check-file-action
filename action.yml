@@ -307,7 +307,6 @@ runs: # Uses default x86_64 / linux user machine
     - name: Setup An Clang Clean
       if: inputs.project == 'true' || inputs.filename != '' || inputs.filetype != ''
       run: |
-        echo '';
         set +e
         source ~/.bashrc
         file_name="${{ env.filename }}";
@@ -392,8 +391,8 @@ runs: # Uses default x86_64 / linux user machine
         sudo add-apt-repository -y universe >/dev/null;
         sudo add-apt-repository -y restricted >/dev/null;
         sudo add-apt-repository -y multiverse >/dev/null;
-        sudo apt-get -yq update 2>&1 >/dev/null | sed '/Running/,/host./d';
-        sudo apt-get -yq install aptitude 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\naptitude dependencies installed\n####################" || echo -e '::error::No aptitude installer for installing packages';
+        sudo apt-get -yq update 2>&1 >/dev/null | sed -E '/Running/,/host./d';
+        sudo apt-get -yq install aptitude 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\naptitude dependencies installed\n####################\n" || echo -e '::error::No aptitude installer for installing packages';
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
       shell: bash
       continue-on-error: false
@@ -619,7 +618,7 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ ! $(which checkmake) ]]; then
           echo '';
-          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" && echo -e "\n${text8}\n" || echo -e '::error::No checkmake installed Exiting';
+          go install "github.com/checkmake/checkmake/cmd/checkmake@latest" && echo -e "\n${text8}" || echo -e '::error::No checkmake installed Exiting';
           sudo cp -f "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
           [[ ":$PATH:" != *":$(go env GOPATH)/bin:"* ]] && \
             echo 'export PATH="${PATH}:$(go env GOPATH)/bin"' | tee -a ~/.bashrc >/dev/null && \
@@ -660,7 +659,7 @@ runs: # Uses default x86_64 / linux user machine
           ls -ShApX "$toolchain";
         fi;
         if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
-          echo -e "\n#### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources ####\n";
+          echo -e "\n##### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources #####";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null <<EOF
         Types: deb
@@ -677,7 +676,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "\n####################\narm dependencies installed\n####################\n"; 
+          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "####################\narm dependencies installed\n####################"; 
         elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM jammy sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
@@ -693,7 +692,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "\n####################\narm dependencies installed\n####################\n";
+          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "####################\narm dependencies installed\n####################";
         elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM focal sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
@@ -709,7 +708,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "####################\narm dependencies installed\n####################\n";
+          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "####################\narm dependencies installed\n####################";
         fi;
         if [[ "${{ env.arch }}" == "arm"* ]]; then
           sudo dpkg --add-architecture i386 >/dev/null;
@@ -2909,8 +2908,8 @@ runs: # Uses default x86_64 / linux user machine
                 batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${file}" | process_input;
               fi;
             fi;
-            echo -e "\n####################\nCHECKMAKE ANALYZING ${file##*/} FOR ERRORS ( $count4 )\n####################\n" | process_input;
-            checkmake "${file}" | process_input || error="$?";
+            echo -e "\n####################\nCHECKMAKE ANALYZING ${file##*/} FOR ERRORS ( $count4 )\n####################" | process_input;
+            checkmake "${file}" 2>&1 | process_input || error="$?";
             if [[ -s "${error_log}" ]] && grep -Eq "Target[[:space:]]+${file}" "${error_log}"; then
               echo -e "\n####################\n\033[1mCHECK-FILE\033[0m FOUND ERRORS\n####################" | process_input;
               errors=true
@@ -3175,7 +3174,7 @@ runs: # Uses default x86_64 / linux user machine
               ls -ShApX "${file%/*}" | gawk '{ printf "    %s\n", $0; }' | process_input;
               if ${{ inputs.number > '0' }}; then
                 if [[ "${{ inputs.number }}" -eq "${count}" ]]; then
-                  echo -e "\nFile checking auto stopped at: ${count} / ${file##*/}\n" | process_input;
+                  echo -e "\nFile checking auto stopped at: ${count} / ${file##*/}" | process_input;
                   break;
                 fi;
               fi;
@@ -3724,7 +3723,7 @@ runs: # Uses default x86_64 / linux user machine
           local text="$1";
           echo -e "${text}"
         }
-        auther='By: \033[3m;2mGerrard Johnson\033[0m';
+        auther='By:\033[3m\033[2m Gerrard Johnson\033[0m';
         texta="######################";
         textb="#\033[1m\033[32m CHECK FILE EXITING \033[0m#";
         textc="######################";
