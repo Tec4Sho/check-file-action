@@ -510,6 +510,10 @@ runs: # Uses default x86_64 / linux user machine
         text7="####################\nshellcheck dependencies installed\n####################";
         text8="####################\ncheckmake dependencies installed\n####################";
         text9="####################\nbatcat dependencies installed\n####################";
+        linux_distro1="24.04";
+        linux_distro2="22.04";
+        linux_distro3="20.04";
+        linux_verison=$(lsb_release -r | awk '{ print $2; }');
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         github="${GITHUB_WORKSPACE}";
@@ -2879,7 +2883,7 @@ runs: # Uses default x86_64 / linux user machine
           else
             echo -e "\n####################\nWorkspace Folder: ${repository}\n####################" | process_input;
           fi;
-          echo -e "\n####################\nWorkspace Paths: ${PATH}\n####################" | process_input;
+          echo -e "\n####################\nBinary Paths: ${PATH}\n####################" | process_input;
           if ${{ inputs.content == 'true' }}; then
             number="${{ inputs.number }}";
             if ${{ inputs.number > '0' }}; then
@@ -2905,13 +2909,13 @@ runs: # Uses default x86_64 / linux user machine
                 batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${file}" | process_input;
               fi;
             fi;
-            echo -e "\n####################\nCHECKMAKE ANALYZING ${file##*/} FOR ERRORS ($count4)\n####################\n" | process_input;
+            echo -e "\n####################\nCHECKMAKE ANALYZING ${file##*/} FOR ERRORS ( $count4 )\n####################\n" | process_input;
             checkmake "${file}" | process_input || error="$?";
-            if [[ -s "${error_log}" ]] && grep -zPoq "(?s)${file}.*?error" "${error_log}"; then
+            if [[ -s "${error_log}" ]] && grep -Eq "Target[[:space:]]+${file}" "${error_log}"; then
               echo -e "\n####################\n\033[1mCHECK-FILE\033[0m FOUND ERRORS\n####################" | process_input;
               errors=true
             else
-              echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND ${file}\n####################" | process_input;
+              echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND ${file}\n####################" | process_input;
             fi;
             if ${{ inputs.number > '0' }}; then
               if [[ "${{ inputs.number }}" -eq "${count4}" ]]; then
