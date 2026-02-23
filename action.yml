@@ -692,7 +692,7 @@ runs: # Uses default x86_64 / linux user machine
             echo 'export PATH="${PATH}:${HOME}/codechecker/build/CodeChecker/bin"' | tee -a ~/.bashrc >/dev/null && \
           echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
         fi;
-        toolchain=$(find "$github" -type d \( -name 'toolchains' -o -name 'aarch64-linux-android' -o name 'arm-linux-androideabi' -o -name '*-linux-*' \) -print);
+        toolchain=$(find "$github" -type d \( -name 'toolchains' -o -name 'aarch64-linux-android' -o -name 'arm-linux-androideabi' -o -name '*-linux-*' \) -print);
         if [[ -n "$toolchain" ]]; then
           while IFS= read -r dir; do
             ls -ShApX "$dir";
