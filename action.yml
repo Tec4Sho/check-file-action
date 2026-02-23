@@ -2146,6 +2146,7 @@ runs: # Uses default x86_64 / linux user machine
         project_log="${github}/${repository}_project.log";
         build_fixes='build/fixes.yaml';
         check_build=false
+        check_exit=0
         file_type='c';
         envsetup=$(fdfind -p -a -t f -1 'envsetup.sh' "${github}");
         update=true
@@ -2299,22 +2300,22 @@ runs: # Uses default x86_64 / linux user machine
               --jobs "$(nproc)" \
               --print-steps \
               --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
-            CHECK_EXIT=${PIPESTATUS[0]}
-          elif [[ "${envsetup}" ]]; then
+            check_exit=${PIPESTATUS[0]}
+          elif [[ "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             BUILD_CMD="$FUNC_1; source ${envsetup} && export kroot=${kroot} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
               --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
-            CHECK_EXIT=${PIPESTATUS[0]}
-          else
+            check_exit=${PIPESTATUS[0]}
+          elif ${{ inputs.module == 'true' }}; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
               --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" 2>&1 | process_input;
-              CHECK_EXIT=${PIPESTATUS[0]}
+              check_exit=${PIPESTATUS[0]}
           fi;
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'false' }}; then
             # make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
@@ -2326,24 +2327,24 @@ runs: # Uses default x86_64 / linux user machine
               --jobs "$(nproc)" \
               --print-steps \
               --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
-            CHECK_EXIT=${PIPESTATUS[0]}
-          elif [[ "${envsetup}" ]]; then
+            check_exit=${PIPESTATUS[0]}
+          elif [[ "${envsetup}" ]] && ${{ inputs.module == 'false' }}; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             BUILD_CMD="$FUNC_2; source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
               --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
-            CHECK_EXIT=${PIPESTATUS[0]}
-          else
+            check_exit=${PIPESTATUS[0]}
+          elif ${{ inputs.module == 'false' }}; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
               --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" 2>&1 | process_input;
-              CHECK_EXIT=${PIPESTATUS[0]}
+              check_exit=${PIPESTATUS[0]}
           fi;
-          if [[ "$CHECK_EXIT" == "1" ]] || { [[ -s "${project_log}" ]] && grep -aiFq 'Process completed with exit code' "${project_log}"; }; then
+          if [[ "$check_exit" == "1" ]] || { [[ -s "${project_log}" ]] && grep -aiFq 'Process completed with exit code' "${project_log}"; }; then
             echo -e "\n::notice::CodeChecker check exit-code ($CHECK_EXIT)" | process_input;
             echo 'check_build=false' >> "${GITHUB_ENV}";
           elif [[ -s "${project_log}" ]] && grep -aiFq 'error:' "${project_log}"; then
@@ -2363,8 +2364,8 @@ runs: # Uses default x86_64 / linux user machine
           echo '::error::No cmake build files were found. Is (project: true) set?\n Exiting.....' | process_inputs;
         fi;
         echo '';
-        echo "USERINCLUDE=" >> "${GITHUB_ENV}"; 
-        echo "LINUXINCLUDE=" >> "${GITHUB_ENV}";
+        echo "USERINCLUDE=false" >> "${GITHUB_ENV}"; 
+        echo "LINUXINCLUDE=false" >> "${GITHUB_ENV}";
         seconds="$((SECONDS + start_time))";
         echo "seconds=${seconds}" >> "${GITHUB_ENV}";
       shell: bash
