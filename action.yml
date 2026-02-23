@@ -313,8 +313,8 @@ runs: # Uses default x86_64 / linux user machine
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         github="${GITHUB_WORKSPACE}";
-        repo=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
-        echo "github_repository=${repo}" >> "${GITHUB_ENV}";
+        repository=${{ github.event.repository.name }};
+        echo "github_repository=${repository}" >> "${GITHUB_ENV}";
         if ${{ inputs.filename != '' }}; then
           echo "filename=${{ inputs.filename }}" >> "${GITHUB_ENV}";
         else
@@ -344,7 +344,8 @@ runs: # Uses default x86_64 / linux user machine
         elif [[ "${arch}" == 'x86_64' ]]; then
           AUTO_ARCH="${TARGET_ARCH:-x86_64-pc-linux-gnu}";
           COMPILERS='gcc:g++:cc:c++';
-        fi;       
+        fi;
+        echo "BACKUP_PATH=$PATH" >> "${GITHUB_ENV}"
         echo "TARGET_ARCH=${AUTO_ARCH}" >> "${GITHUB_ENV}";
         echo "CC_LOGGER_GCC_LIKE=${COMPILERS}" >> "${GITHUB_ENV}";
         echo "release1=" >> "${GITHUB_ENV}";
@@ -376,9 +377,6 @@ runs: # Uses default x86_64 / linux user machine
         sudo mkdir -p /usr/local/bin /usr/local/lib/android/sdk
         sudo chmod -R 0755 "${{ github.action_path }}/scripts";
         mkdir -p "${HOME}/.local/bin";
-        if [[ $(command -v go) ]]; then
-          echo "export PATH=$PATH:$(go env GOPATH)/bin" | sudo tee -a ~/.bashrc >/dev/null;
-        fi;
         if ${{ inputs.version != '' }} && [[ $(which clang-tidy-18) ]]; then
           sudo apt-get remove -yq clang-tidy-18 >/dev/null;
         fi;
@@ -399,8 +397,6 @@ runs: # Uses default x86_64 / linux user machine
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
       shell: bash
       continue-on-error: false
-
-
     
     - name: Install LLVM and Clang
       if: runner.os == 'Linux' && inputs.pattern == '' && (inputs.project == 'true' || inputs.filename != '' || inputs.filetype != '')
@@ -493,7 +489,6 @@ runs: # Uses default x86_64 / linux user machine
           echo -e "\nCMake version $cmake_version upgrading to latest python cmake";
           sudo rm -f "$(which cmake)";
           sudo mkdir -p '/usr/local/bin';
-          echo "/usr/local/bin" >> "${GITHUB_PATH}";
           python3 -m pip install --upgrade cmake >/dev/null && echo -e "\n####################\ncmake pip dependencies installed\n####################" || echo -e '::error::No cmake pip installed for project checks';
           sudo cp -pf "${HOME}/.local/bin/cmake" '/usr/local/bin/';
         fi;
@@ -518,6 +513,7 @@ runs: # Uses default x86_64 / linux user machine
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         github="${GITHUB_WORKSPACE}";
+        repository=${{ github.event.repository.name }};
         if [[ ! $(which bc) ]]; then
           sudo aptitude -yq install bc 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nbc dependencies installed\n####################" || echo -e '::error::No bc installed for project file amount checks';
           [[ ! $(which bc) ]] && exit 1
@@ -620,9 +616,11 @@ runs: # Uses default x86_64 / linux user machine
         if [[ "${checkmake_src}" ]] && [[ -n $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ ! $(which checkmake) ]]; then
           echo '';
           go install "github.com/checkmake/checkmake/cmd/checkmake@latest" && echo -e "\n${text8}\n" || echo -e '::error::No checkmake installed Exiting';
-          sudo cp -vf "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
-          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}";
-          [[ ! $(~/go/bin/checkmake --version) ]] && echo -e '::notice::No checkmake install was found yet!';
+          sudo cp -f "${checkmake_src}" "${checkmake_des}" 2>/dev/null;
+          [[ ":$PATH:" != *":$(go env GOPATH)/bin:"* ]] && \
+            echo 'export PATH="${PATH}:$(go env GOPATH)/bin"' | tee -a ~/.bashrc >/dev/null && \
+            echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}";
+          [[ ! $(~/go/bin/checkmake --version) ]] && echo -e '::warning::No checkmake install was found yet!';
         fi;
         if ${{ env.filename != '' }} || ${{ inputs.pattern != '' }}; then
           if [[ $(which bat) ]] && [[ ! $(which batcat) ]]; then
@@ -639,12 +637,18 @@ runs: # Uses default x86_64 / linux user machine
           fi;
         fi;
         if [[ -d '/usr/local/bin' ]]; then
-          echo '/usr/local/bin' >> "${GITHUB_PATH}";
+          [[ ":$PATH:" != *":/usr/local/bin:"* ]] && \
+            echo 'export PATH="${PATH}:/usr/local/bin"' | tee -a ~/.bashrc >/dev/null && \
+            echo "/usr/local/bin" >> "${GITHUB_PATH}";
         fi;
         if [[ -d "${HOME}/.local/bin" ]]; then
-          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}";
+          [[ ":$PATH:" != *":${HOME}/.local/bin:"* ]] && \
+            echo 'export PATH="${PATH}:${HOME}/.local/bin"' | tee -a ~/.bashrc >/dev/null && \
+            echo "/home/runner/.local/bin" >> "${GITHUB_PATH}";
         fi;
         if [[ -d "${HOME}/codechecker/build/CodeChecker/bin" ]]; then
+          [[ ":$PATH:" != *":${HOME}/codechecker/build/CodeChecker/bin:"* ]] && \
+            echo 'export PATH="${PATH}:${HOME}/codechecker/build/CodeChecker/bin"' | tee -a ~/.bashrc >/dev/null && \
           echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
         fi;
         toolchain=$(find -type d -name 'toolchains' -print);
@@ -669,7 +673,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\narm dependencies installed\n####################\n"; 
+          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "\n####################\narm dependencies installed\n####################\n"; 
         elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM jammy sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
@@ -685,7 +689,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\narm dependencies installed\n####################\n";
+          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "\n####################\narm dependencies installed\n####################\n";
         elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n#### Copying ARM focal sources to /etc/apt/sources.list ####\n";
           sudo dpkg --add-architecture armhf
@@ -701,7 +705,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\narm dependencies installed\n####################\n";
+          sudo aptitude install -yq gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "####################\narm dependencies installed\n####################\n";
         fi;
         if [[ "${{ env.arch }}" == "arm"* ]]; then
           sudo dpkg --add-architecture i386 >/dev/null;
@@ -709,7 +713,9 @@ runs: # Uses default x86_64 / linux user machine
           echo "foreign-architectures: $(dpkg --print-foreign-architectures | tr '\n' ' ')";
           apt-cache policy | grep -E "o=Ubuntu|arch=" | gawk -F'b=' '!seen[$2]++ { print; }' | tr -d ' '
         fi;
-        sudo aptitude install -f -yq 2>&1 >/dev/null | sed '/Running/,/host./d';
+        sudo aptitude install -f -yq 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d';
+        PATH=$(echo -n "$PATH" | awk -v RS=: -v ORS=: '!x[$0]++' | sed 's/:$//')
+        echo 'export PATH="${PATH}"' | tee -a ~/.bashrc >/dev/null;
         echo '';
       shell: bash
       continue-on-error: false
@@ -719,7 +725,7 @@ runs: # Uses default x86_64 / linux user machine
       run: |
         echo '';
         repair_file='check-file-repaired.txt';
-        repo=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repo=${{ github.event.repository.name }};
         dirname="${{ inputs.dirname }}";
         text1a="####################";
         text1b="DEFAULT DIRECTORY (GITHUB ROOT)";
@@ -968,7 +974,7 @@ runs: # Uses default x86_64 / linux user machine
         start_time="${SECONDS}";
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repository=${{ github.event.repository.name }};
         project_log="${repository}_project.log";
         export LC_ALL=C
         export LS_COLORS=true
@@ -1217,7 +1223,7 @@ runs: # Uses default x86_64 / linux user machine
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         filetype="${{ inputs.filetype }}";
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repository=${{ github.event.repository.name }};
         project_log="${repository}_project.log";
         export LC_ALL=C
         export LS_COLORS
@@ -1336,7 +1342,7 @@ runs: # Uses default x86_64 / linux user machine
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         github="${GITHUB_WORKSPACE}";
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repository=${{ github.event.repository.name }};
         data_log="${github}/${{ env.filename }}_data.log";
         checked=false
         count=0
@@ -1463,7 +1469,7 @@ runs: # Uses default x86_64 / linux user machine
         start_time="${SECONDS}";
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repository=${{ github.event.repository.name }};
         github="${GITHUB_WORKSPACE}";
         project_log="${github}/${repository}_project.log";
         clang_sources='check-file-sources.txt';
@@ -1708,7 +1714,7 @@ runs: # Uses default x86_64 / linux user machine
         set +e
         start_time="${{ env.seconds }}";
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repository=${{ github.event.repository.name }};
         github="${GITHUB_WORKSPACE}";
         project_log="${github}/${repository}_project.log";
         clang_sources='check-file-sources.txt';
@@ -1885,6 +1891,7 @@ runs: # Uses default x86_64 / linux user machine
         start_time="${{ env.seconds }}";
         CMAKE_EXPORT_COMPILE_COMMANDS=ON
         CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
+        repository=${{ github.event.repository.name }};
         process_input() {
           while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
@@ -1960,7 +1967,7 @@ runs: # Uses default x86_64 / linux user machine
         ${{ inputs.internal == 'true' }} && C_INCLUDE_PATH="${LINUXINCLUDE// /} ${USERINCLUDE// /}" && CPLUS_INCLUDE_PATH="${LINUXINCLUDE// /} ${USERINCLUDE// /}";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repository=${{ github.event.repository.name }};
         github="${GITHUB_WORKSPACE}";
         project_log="${github}/${repository}_project.log";
         build_fixes='build/fixes.yaml';
@@ -2121,7 +2128,7 @@ runs: # Uses default x86_64 / linux user machine
         CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repository=${{ github.event.repository.name }};
         github="${GITHUB_WORKSPACE}";
         project_log="${github}/${repository}_project.log";
         build_fixes='build/fixes.yaml';
@@ -2359,7 +2366,7 @@ runs: # Uses default x86_64 / linux user machine
         file_type="${file_name##*.}";
         cppchecks='.cppcheck';
         github="${GITHUB_WORKSPACE}";
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repository=${{ github.event.repository.name }};
         error_log="${github}/${{ env.filename }}_error.log";
         checked=false; include_count=1; missing_count=1;
         countX=0; count1=0; count2=0; error=0; error1=0; error2=0;
@@ -2645,7 +2652,7 @@ runs: # Uses default x86_64 / linux user machine
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         github="${GITHUB_WORKSPACE}";
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repository=${{ github.event.repository.name }};
         error_log="${github}/${{ env.filename }}_error.log";
         checked=false
         count3=0
@@ -2815,7 +2822,7 @@ runs: # Uses default x86_64 / linux user machine
         ini_path="${HOME}/checkmake.ini";
         github="${GITHUB_WORKSPACE}";
         export PATH="$PATH";
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repository=${{ github.event.repository.name }};
         error_log="${github}/${{ env.filename }}_error.log";
         checked=false
         count4=0
@@ -2941,7 +2948,7 @@ runs: # Uses default x86_64 / linux user machine
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         github="${GITHUB_WORKSPACE}";
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repository=${{ github.event.repository.name }};
         data_log="${github}/${{ env.filename }}_data.log";
         count5=0
         process_input() {
@@ -3182,7 +3189,7 @@ runs: # Uses default x86_64 / linux user machine
         set +e
         start_time="${{ env.seconds }}";
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
-        repository=$(echo ${{ github.repository }} | cut -d'/' -f 2-);
+        repository=${{ github.event.repository.name }};
         github="${GITHUB_WORKSPACE}";
         data_log="${github}/${{ env.filename }}_data.log";
         error_log="${github}/${{ env.filename }}_error.log";
@@ -3536,10 +3543,10 @@ runs: # Uses default x86_64 / linux user machine
         files: |
           ${{ inputs.dirname }}/out/target/**/*.zip
           ${{ env.build }}/bin/*
-        name: Build For ${{ github.repository }} Repository.
+        name: Build For ${{ github.event.repository.name }} Repository.
         tag_name: ${{ github.run_id }}
       env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
-        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        PATH: ${{ env.BACKUP_PATH }}
         LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
         PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
         DEBIAN_FRONTEND: noninteractive
@@ -3549,10 +3556,10 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.analyzer == '4' && inputs.project == 'true' && inputs.repair == 'true' && env.build_files == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.github_repository }}_reports
+        name: ${{ github.event.repository.name }}_reports
         path: reports
       env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
-        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        PATH: ${{ env.BACKUP_PATH }}
         LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
         PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
         DEBIAN_FRONTEND: noninteractive
@@ -3562,11 +3569,11 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.upload == 'true' && inputs.project == 'true' && env.build_files == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.github_repository }}_build
+        name: ${{ github.event.repository.name }}_build
         path: build
         include-hidden-files: true
       env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
-        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        PATH: ${{ env.BACKUP_PATH }}
         LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
         PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
         DEBIAN_FRONTEND: noninteractive
@@ -3580,7 +3587,7 @@ runs: # Uses default x86_64 / linux user machine
         path: ${{ env.filename }}_error.log
         include-hidden-files: true
       env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
-        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        PATH: ${{ env.BACKUP_PATH }}
         LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
         PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
         DEBIAN_FRONTEND: noninteractive
@@ -3594,21 +3601,21 @@ runs: # Uses default x86_64 / linux user machine
         path: ${{ env.filename }}_data.log
         include-hidden-files: true
       env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
-        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        PATH: ${{ env.BACKUP_PATH }}
         LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
         PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
         DEBIAN_FRONTEND: noninteractive
       continue-on-error: true
 
-    - name: Uploading ${{ env.github_repository }} Project Report Artifact
+    - name: Uploading ${{ github.event.repository.name }} Project Report Artifact
       if: inputs.report == 'true' && inputs.project == 'true' && env.check_build == 'true' && env.file_found == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.github_repository }}_project.log
-        path: ${{ env.github_repository }}_project.log
+        name: ${{ github.event.repository.name }}_project.log
+        path: ${{ github.event.repository.name }}_project.log
         include-hidden-files: true
       env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
-        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        PATH: ${{ env.BACKUP_PATH }}
         LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
         PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
         DEBIAN_FRONTEND: noninteractive
@@ -3622,7 +3629,7 @@ runs: # Uses default x86_64 / linux user machine
         path: part_*
         include-hidden-files: true
       env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
-        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        PATH: ${{ env.BACKUP_PATH }}
         LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
         PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
         DEBIAN_FRONTEND: noninteractive
@@ -3636,7 +3643,7 @@ runs: # Uses default x86_64 / linux user machine
         path: part_*
         include-hidden-files: true
       env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
-        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        PATH: ${{ env.BACKUP_PATH }}
         LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
         PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
         DEBIAN_FRONTEND: noninteractive
@@ -3646,11 +3653,11 @@ runs: # Uses default x86_64 / linux user machine
       if: inputs.report == 'true' && inputs.project == 'true' && env.file_found == '1' && env.file1_parted == '1'
       uses: actions/upload-artifact@v6
       with:
-        name: ${{ env.github_repository }}_split_project.log
+        name: ${{ github.event.repository.name }}_split_project.log
         path: part_*
         include-hidden-files: true
       env: # Revert to standard paths so LLVM-ARM doesn't break the Node.js logic       
-        PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+        PATH: ${{ env.BACKUP_PATH }}
         LD_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu
         PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig
         DEBIAN_FRONTEND: noninteractive
@@ -3713,7 +3720,7 @@ runs: # Uses default x86_64 / linux user machine
           local text="$1";
           echo -e "${text}"
         }
-        auther='By: \033[4m\033[3mGerrard Johnson\033[0m';
+        auther='By: \033[3m;2mGerrard Johnson\033[0m';
         texta="######################";
         textb="#\033[1m\033[32m CHECK FILE EXITING \033[0m#";
         textc="######################";
