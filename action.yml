@@ -930,12 +930,12 @@ runs: # Uses default x86_64 / linux user machine
             KBUILD_OPT="-I${srctree}/include";
           fi;
           LINUXINCLUDE="-I/usr/src/linux-headers-$(uname -r)/include";
-          USERINCLUDE="-include ${srctree}/include/linux/kconfig.h";
+          USERINCLUDE="-I${srctree}/arch/${hdr_arch}/include/uapi";
           ${{ inputs.content == 'true' }} && echo -e "\nUSERINCLUDE: ${USERINCLUDE// /}" && echo -e "\nLINUXINCLUDE: ${LINUXINCLUDE// /}";
         fi;
-        if ${{ inputs.project == 'true' }} && ${{ inputs.internal == 'true' }} && ${{ env.arch == 'arm' }} && [[ -n "${LLVM_ARM_PATH}" ]]; then
-          echo -e "\nLLVM_ARM_PATH: ${LLVM_ARM_PATH}";
-          echo -e "LLVM_ARM_TOOLCHAIN: ${LLVM_ARM_TOOLCHAIN}\n";
+        if ${{ inputs.project == 'true' }} && ${{ inputs.internal == 'true' }} && ${{ env.arch == 'arm' }} && [[ -n "${LLVM_PATH}" ]]; then
+          echo -e "\nLLVM_ARM_PATH: ${LLVM_PATH}";
+          echo -e "LLVM_ARM_TOOLCHAIN: ${LLVM_TOOLCHAIN}\n";
         fi;
         echo "USERINCLUDE=${USERINCLUDE}" >> "${GITHUB_ENV}";
         echo "LINUXINCLUDE=${LINUXINCLUDE}" >> "${GITHUB_ENV}";
@@ -956,6 +956,8 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         config=$(find "${{ env.base }}" -type f -path '*/config/*' -name 'kernel.release' | grep . || sudo find "/usr/src" -xdev -type f -name 'kernel.release' -print);
         if [[ "${config}" ]] && ${{ inputs.content == 'true' }}; then
+          export PATH="$PATH";
+          echo -e "\n####################\nSystem Binary Paths: ${PATH}\n####################" | process_input;
           echo -e "\nLINUXKERNEL RELEASES:";
           sudo less $(echo -n ${config});
           release1="$(sudo less $(echo -n ${config}) | awk 'NR==1')";
@@ -1913,9 +1915,10 @@ runs: # Uses default x86_64 / linux user machine
         else
           path='--relative-path';
         fi;
+        file_type="${{ inputs.filetype }}";
         file_count=1
         count=0
-        if ${{ inputs.database == 'true' }} && [[ "${file_type}" == sh ]]; then
+        if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
@@ -1927,7 +1930,7 @@ runs: # Uses default x86_64 / linux user machine
             files=$(grep -sE "${{ inputs.dirpath }}/.${regex}" "${{ env.database }}" | grep . || grep -sE "${regex}" "${{ env.database }}");
             echo -e "\n####################\nDatabase File Extension: ${{ env.filename }}\n####################" | process_input;
           fi;
-        elif [[ "${file_type}" == sh ]]; then
+        elif [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
@@ -1939,12 +1942,19 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n####################\nFile Extension: ${{ env.filename }}\n####################" | process_input;
           fi;
         fi;
-        if [[ -n "${files}" ]]; then
+        if [[ -n "${files}" ]] && [[ "${file_type}" == [cth]* ]]; then
         echo -e "\n####################\nMutli instances of NULL in source files cleaning\n####################\n";
         while IFS= read -r file; do
           count=$((file_count++));
-          echo -e "Checking ${file##*/} / ${count}";
-          sed -i -n 's/\(= NULL\)\{2,\}/= NULL/gp' "${file}";
+          echo -e "\n\033[1mChecking\033[0m ${file##*/} / ${count}";
+          cp "${file}" "${file}.bak";
+          sed -i 's/\(= NULL\)\{2,\}/= NULL/g' "${file}";
+          if ! cmp -s "${file}" "${file}.bak"; then
+            echo -e "\n\033[31mChanges made multiple [ null = null ] removed:\033[0m ${file}";
+          else
+            echo -e "\n\033[32mNo changes made multiple [ null = null ] not found\033[0m";
+          fi;
+          rm "${file}.bak"; 
           if ${{ inputs.number > '0' }}; then
             if [[ "${{ inputs.number }}" -eq "${count}" ]]; then
               echo -e "\nFile checking auto stopped at: ${count} / ${file##*/}" | process_input;
@@ -2187,14 +2197,14 @@ runs: # Uses default x86_64 / linux user machine
           done;
           if [[ -z "$kroot" ]]; then
             echo "::error::Found LDS but could not find Kernel Root (Makefile).";
-            exit 0
+            kroot="$current_dir";
           fi;
           echo "Detected LDS: $lds_file";
           echo "SRCTREE=$kroot" >> "$GITHUB_ENV";
           echo "LDS_PATH=$lds_file" >> "$GITHUB_ENV";
           export LDS_PATH="$lds_file";
-          export SRCTREE="$kroot";
-          export kroot="$current_dir";
+          export SRCTREE="$current_dir";
+          export kroot="$kroot";
         }
         build_alone() {
           local llvm_version="${{ inputs.release }}";
@@ -2268,32 +2278,35 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           echo | gcc -v -E - 2>&1 | awk '/#include <...> search starts here:/{flag=1;next} /End of search list./{flag=0} flag' | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
           echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################\n' |  process_input;
-          export TERM=dumb
-          export -f build_module build_alone
-          export MAKEFILE_NAME="${{ inputs.makefile }}";
-          export FILENAME="${{ env.filename }}";
           if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
             source /home/runner/codechecker/venv/bin/activate
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
+          export kroot="${kroot}";
+          export TERM=dumb
+          export MAKEFILE_NAME="${{ inputs.makefile }}";
+          export FILENAME="${{ env.filename }}";
+          FUNC_1=$(declare -f build_module);
+          FUNC_2=$(declare -f build_alone);
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
-            make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
+            # make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k"
+            BUILD_CMD="$FUNC_1; source ${envsetup} && export kroot=${kroot} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
+              --config "${codechecker}" \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c \"$BUILD_CMD\"" 2>&1 | process_input;
+              --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
             CHECK_EXIT=${PIPESTATUS[0]}
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k"
+            BUILD_CMD="$FUNC_1; source ${envsetup} && export kroot=${kroot} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c \"$BUILD_CMD\"" 2>&1 | process_input;
+              --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
             CHECK_EXIT=${PIPESTATUS[0]}
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
@@ -2304,22 +2317,23 @@ runs: # Uses default x86_64 / linux user machine
               CHECK_EXIT=${PIPESTATUS[0]}
           fi;
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'false' }}; then
-            make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
+            # make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k"
+            BUILD_CMD="$FUNC_2; source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
+              --config "${codechecker}" \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c \"$BUILD_CMD\"" 2>&1 | process_input;
+              --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
             CHECK_EXIT=${PIPESTATUS[0]}
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k"
+            BUILD_CMD="$FUNC_2; source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c \"$BUILD_CMD\"" 2>&1 | process_input;
+              --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
             CHECK_EXIT=${PIPESTATUS[0]}
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
@@ -2616,8 +2630,8 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             fi;
           done <<< "${files[@]}";
-          [[ "${includes_missing}" == 'true' ]] && echo -e "\n::notice::Total number of include file(s) missing is: ${countX}" | process_input && unset missing;
-          echo -e "\n::notice::Total number of ${{ env.filename }} file(s) checked is: ${count1}" | process_input;
+          [[ "${includes_missing}" == 'true' ]] && echo -e "\n::notice::Total number of include files missing is: ${countX}" | process_input && unset missing;
+          echo -e "\n::notice::Total number of ${{ env.filename }} files checked is: ${count1}" | process_input;
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${error}" > '0' ]]; then
@@ -2794,7 +2808,7 @@ runs: # Uses default x86_64 / linux user machine
           elif [[ "${error}" > '0' ]]; then
             echo -e "::notice::shellcheck ( ${error} )" | process_input;
           fi;
-          echo -e "\n::notice:: Total number of ${{ env.filename }} file(s) checked is: ${count3}" | process_input;
+          echo -e "\n::notice:: Total number of ${{ env.filename }} files checked is: ${count3}" | process_input;
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${errors}" ]]; then
@@ -2882,7 +2896,6 @@ runs: # Uses default x86_64 / linux user machine
           else
             echo -e "\n####################\nWorkspace Folder: ${repository}\n####################" | process_input;
           fi;
-          echo -e "\n####################\nBinary Paths: ${PATH}\n####################" | process_input;
           if ${{ inputs.content == 'true' }}; then
             number="${{ inputs.number }}";
             if ${{ inputs.number > '0' }}; then
@@ -2923,7 +2936,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             fi;
           done <<< "${files[@]}";
-          echo -e "\n::notice:: Total number of ${{ env.filename }} file(s) checked is: ${count4}" | process_input;
+          echo -e "\n::notice:: Total number of ${{ env.filename }} files checked is: ${count4}" | process_input;
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           if [[ "${error}" > '0' ]]; then
             echo -e "::notice::checkmake ( ${error} )" | process_input;
@@ -3035,7 +3048,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             fi;
           done <<< "${files[@]}";
-          echo -e "\n::notice:: Total number of ${{ env.filename }} file(s) checked is: ${count5}" | process_input;
+          echo -e "\n::notice:: Total number of ${{ env.filename }} files checked is: ${count5}" | process_input;
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           echo "data_file=1" >> "${GITHUB_ENV}";
           seconds="$((SECONDS + start_time))";
