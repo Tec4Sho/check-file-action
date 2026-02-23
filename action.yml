@@ -2342,13 +2342,19 @@ runs: # Uses default x86_64 / linux user machine
           export ALLOW_MISSING_DEPENDENCIES=true
           export MAKEFILE_NAME="${{ inputs.makefile }}";
           export FILENAME="${{ env.filename }}";
-          FUNC_1=$(declare -f build_module);
+        cat <<EOF > /tmp/build_env.sh
+        $(declare -f build_module)
+        export kroot="${kroot}"
+        export ALLOW_MISSING_DEPENDENCIES=true
+        export MAKEFILE_NAME="${{ inputs.makefile }}"
+        export FILENAME="${{ env.filename }}"
+        EOF
           FUNC_2=$(declare -f build_alone);
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
             make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            BUILD_CMD="$FUNC_1; source ${envsetup} && export kroot=${kroot} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k";
+            BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
@@ -2357,7 +2363,7 @@ runs: # Uses default x86_64 / linux user machine
             check_exit=${PIPESTATUS[0]}
           elif [[ "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            BUILD_CMD="$FUNC_1; source ${envsetup} && export kroot=${kroot} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k";
+            BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
@@ -2371,11 +2377,19 @@ runs: # Uses default x86_64 / linux user machine
               --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" 2>&1 | process_input;
               check_exit=${PIPESTATUS[0]}
           fi;
+        [[ -e /tmp/build_env.sh ]] && rm /tmp/build_env.sh
+        cat <<EOF > /tmp/build_env.sh
+        $(declare -f build_alone)
+        export kroot="${kroot}"
+        export ALLOW_MISSING_DEPENDENCIES=true
+        export MAKEFILE_NAME="${{ inputs.makefile }}"
+        export FILENAME="${{ env.filename }}"
+        EOF
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'false' }}; then
             make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            BUILD_CMD="$FUNC_2; source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k";
+            BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
@@ -2384,7 +2398,7 @@ runs: # Uses default x86_64 / linux user machine
             check_exit=${PIPESTATUS[0]}
           elif [[ "${envsetup}" ]] && ${{ inputs.module == 'false' }}; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            BUILD_CMD="$FUNC_2; source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k";
+            BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
@@ -2417,6 +2431,7 @@ runs: # Uses default x86_64 / linux user machine
         else
           echo '::error::No cmake build files were found. Is (project: true) set?\n Exiting.....' | process_inputs;
         fi;
+        [[ -e /tmp/build_env.sh ]] && rm -v /tmp/build_env.sh
         echo '';
         echo "USERINCLUDE=false" >> "${GITHUB_ENV}"; 
         echo "LINUXINCLUDE=false" >> "${GITHUB_ENV}";
