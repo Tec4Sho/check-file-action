@@ -337,21 +337,24 @@ runs: # Uses default x86_64 / linux user machine
           echo "arch=${{ inputs.arch }}" >> "${GITHUB_ENV}";
           arch="${{ inputs.arch }}";
         fi;
+        TOOLCHAIN='';
         AUTO_ARCH="${TARGET_ARCH}";
         COMPILERS='clang:clang++:gcc:g++:cc:c++';
         if ${{ inputs.linux == 'false' }}; then
           if [[ "${arch}" == 'arm' || "${arch}" == 'aarch32' || "${arch}" == 'armv7'* || "${arch}" == 'armeabi'* ]]; then
-          # Use androideabi for Android; use arm-none-eabi ONLY for bare-metal
+            TOOLCHAIN=$(find "$github" -path '*/toolchains/*' -type d -name 'arm-linux-androideabi' -print);
             AUTO_ARCH="${TARGET_ARCH:-arm-linux-androideabi}";
             COMPILERS='gcc:g++:arm-linux-androideabi-gcc:arm-linux-androideabi-g++';
           elif [[ "${arch}" == 'arm64' || "${arch}" == 'aarch64' || "${arch}" == 'armv8'* || "${arch}" == 'armeabi-v8a' ]]; then
+            TOOLCHAIN=$(find "$github" -path '*/toolchains/*' -type d -name 'aarch64-linux-android' -print);
             AUTO_ARCH="${TARGET_ARCH:-aarch64-linux-android}";
             COMPILERS='gcc:g++:aarch64-linux-android-gcc:aarch64-linux-android-g++';
           elif [[ "${arch}" == 'x86_64' ]]; then
-          # Use -linux-android for Android, -pc-linux-gnu for Desktop Linux
+            TOOLCHAIN=$(find "$github" -path '*/toolchains/*' -type d -name 'x86_64-linux-android' -print);
             AUTO_ARCH="${TARGET_ARCH:-x86_64-linux-android}";
             COMPILERS='gcc:g++:x86_64-linux-android-gcc:x86_64-linux-android-g++';
           elif [[ "${arch}" == 'x86' || "${arch}" == 'i686' || "${arch}" == 'i386' ]]; then
+            TOOLCHAIN=$(find "$github" -path '*/toolchains/*' -type d -name 'i686-linux-android' -print);
             AUTO_ARCH="${TARGET_ARCH:-i686-linux-android}";
             COMPILERS='gcc:g++:i686-linux-android-gcc:i686-linux-android-g++';
           fi;
@@ -380,6 +383,7 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         echo "BACKUP_PATH=$PATH" >> "${GITHUB_ENV}";
         echo "K_ARCH=${K_ARCH}" >> "${GITHUB_ENV}";
+        echo "SYSROOT=${TOOLCHAIN}" >> "${GITHUB_ENV}";
         echo "TARGET_ARCH=${AUTO_ARCH}" >> "${GITHUB_ENV}";
         echo "CC_LOGGER_GCC_LIKE=${COMPILERS}" >> "${GITHUB_ENV}";
         echo "release1=" >> "${GITHUB_ENV}";
@@ -402,6 +406,7 @@ runs: # Uses default x86_64 / linux user machine
         echo 'include_missing=false' >> "${GITHUB_ENV}";
         echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
         echo "dirname=${{ inputs.dirname }}" >> "${GITHUB_ENV}";
+        echo "export SYSROOT=${TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export K_ARCH=${K_ARCH}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export TARGET_ARCH=${AUTO_ARCH}" | sudo tee -a ~/.bashrc >/dev/null;
         echo "export CC_LOGGER_GCC_LIKE=${COMPILERS}" | sudo tee -a ~/.bashrc >/dev/null;
@@ -615,16 +620,16 @@ runs: # Uses default x86_64 / linux user machine
             exit 1
           fi;
         fi;
+        if ${{ inputs.project == 'true' }} && ${{ inputs.analyzer == 3 }} && [[ ! $(which tqdm) ]]; then
+          python3 -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
+          [[ ! $(which tqdm) ]] && exit 1
+        fi;
         if ${{ inputs.project == 'true' }} && ${{ inputs.build > '2' }} && [[ ! $(which deheader) ]]; then
           sudo aptitude -yq install deheader 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\ndeheader dependencies installed\n####################" || echo -e '::error::No deheader installed for project includes check';
           [[ ! $(which deheader) ]] && exit 1
         fi;
         if ${{ inputs.project == 'true' }} && [[ ! $(dpkg -s build-essential 2>/dev/null) ]]; then
           sudo aptitude -yq install build-essential device-tree-compiler 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nbuild-essential dependencies installed\n####################" || echo -e '::error::No build-essential installed for project build';
-        fi;
-        if ${{ inputs.project == 'true' }} && ${{ inputs.analyzer == 3 }} && [[ ! $(which tqdm) ]]; then
-          python3 -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
-          [[ ! $(which tqdm) ]] && exit 1
         fi;
         if [[ ! $(which rg) ]]; then
           sudo aptitude -yq install ripgrep 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
@@ -692,14 +697,8 @@ runs: # Uses default x86_64 / linux user machine
             echo 'export PATH="${PATH}:${HOME}/codechecker/build/CodeChecker/bin"' | tee -a ~/.bashrc >/dev/null && \
           echo "${HOME}/codechecker/build/CodeChecker/bin" >> "${GITHUB_PATH}";
         fi;
-        toolchain=$(find "$github" -type d \( -name 'toolchains' -o -name 'aarch64-linux-android' -o -name 'arm-linux-androideabi' -o -name '*-linux-*' \) -print);
-        if [[ -n "$toolchain" ]]; then
-          while IFS= read -r dir; do
-            ls -ShApX "$dir";
-          done <<< "$toolchain";
-        fi;
         if [[ "${linux_verison}" == "${linux_distro1}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
-          echo -e "\n##### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources #####";
+          echo -e "\n##### Copying ARM noble sources to /etc/apt/sources.list.d/ubuntu.sources #####\n";
           sudo dpkg --add-architecture armhf
         sudo tee /etc/apt/sources.list.d/ubuntu.sources > /dev/null <<EOF
         Types: deb
@@ -2184,8 +2183,10 @@ runs: # Uses default x86_64 / linux user machine
         source ~/.bashrc
         set +e
         start_time="${{ env.seconds }}";
-        CMAKE_EXPORT_COMPILE_COMMANDS=ON
-        CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
+        export CMAKE_EXPORT_COMPILE_COMMANDS=ON
+        export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
+        export CLANG_TRIPLE=arm-linux-gnueabihf-
+        export SYSROOT="${SYSROOT}";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
         repository=${{ github.event.repository.name }};
@@ -2262,18 +2263,21 @@ runs: # Uses default x86_64 / linux user machine
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
             make CC=clang \
             CXX=clang++ \
-            CFLAGS="--target=arm-linux-androideabi -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=/usr/arm-linux-androideabi" \
-            LDFLAGS="--target=arm-linux-androideabi --sysroot=/usr/arm-linux-androideabi"
+            CLANG_TRIPLE=arm-linux-gnueabihf- \
+            CFLAGS="--target=arm-linux-androideabi -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${SYSROOT}" \
+            LDFLAGS="--target=arm-linux-androideabi --sysroot=$SYSROOT"
           elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a53' ]]; then
             make CC=clang \
             CXX=clang++ \
-            CFLAGS="--target=aarch64-linux-android -mcpu=cortex-a53 --sysroot=/usr/aarch64-linux-android" \
-            LDFLAGS="--target=aarch64-linux-android --sysroot=/usr/aarch64-linux-android"
+            CLANG_TRIPLE=aarch64-linux-gnu- \
+            CFLAGS="--target=aarch64-linux-android -mcpu=cortex-a53 --sysroot=${SYSROOT}" \
+            LDFLAGS="--target=aarch64-linux-android --sysroot=$SYSROOT"
           elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a72' ]]; then
             make CC=clang \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
             CXX=clang++ \
-            CFLAGS="--target=aarch64-linux-android -mcpu=cortex-a72 --sysroot=/usr/aarch64-linux-gnu" \
-            LDFLAGS="--target=aarch64-linux-android --sysroot=/usr/aarch64-linux-android"
+            CFLAGS="--target=aarch64-linux-android -mcpu=cortex-a72 --sysroot=${SYSROOT}" \
+            LDFLAGS="--target=aarch64-linux-android --sysroot=$SYSROOT"
           else
             make CC=clang \
             CXX=clang++
@@ -2286,6 +2290,7 @@ runs: # Uses default x86_64 / linux user machine
           [[ -z $kernel_cpus ]] && make
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
             make ARCH=arm \
+            CLANG_TRIPLE=arm-linux-gnueabihf- \
             CROSS_COMPILE=arm-linux-androideabi- \
             LLVM=1 \
             LLVM_IAS=1 \
@@ -2295,6 +2300,7 @@ runs: # Uses default x86_64 / linux user machine
             -C "${kroot}" M="$PWD" modules
           elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a53' ]]; then
             make ARCH=arm64 \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-android- \
             LLVM=1 \
             LLVM_IAS=1 \
@@ -2304,6 +2310,7 @@ runs: # Uses default x86_64 / linux user machine
             -C "${kroot}" M="$PWD" modules
           elif [[ "$arch_target" =~ ^(arm64|aarch64) ]]&& [[ "$kernel_cpus" == 'cortex-a72' ]]; then
             make ARCH=arm64 \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-android- \
             LLVM=1 \
             LLVM_IAS=1 \
@@ -2315,7 +2322,6 @@ runs: # Uses default x86_64 / linux user machine
             make CC=clang -C "${kroot}" M="$PWD" modules
           fi;
         }
-        export CLANG_TRIPLE=arm-linux-gnu-
         find_vendor_kernel "${{ env.arch }}";
         if ${{ env.build_files == '1' }}; then
           echo -e "\nChecking gcc for default includes:" | process_input;
@@ -2331,8 +2337,8 @@ runs: # Uses default x86_64 / linux user machine
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          export kroot="${kroot}";
           export TERM=dumb
+          export kroot="${kroot}";
           export ALLOW_MISSING_DEPENDENCIES=true
           export MAKEFILE_NAME="${{ inputs.makefile }}";
           export FILENAME="${{ env.filename }}";
