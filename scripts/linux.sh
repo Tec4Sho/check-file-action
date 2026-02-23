@@ -51,5 +51,4 @@ echo -e "\n\033[32mLLVM\033[0m ${LLVM_VERSION} \033[32mhas been installed to\033
 echo "export LLVM_VERSION=${LLVM_VERSION}" | sudo tee -a ~/.bashrc >/dev/null;
 echo "export LLVM_PATH=${LLVM_PATH}" | sudo tee -a ~/.bashrc >/dev/null;
 echo "export PATH=${PATH}" | sudo tee -a ~/.bashrc >/dev/null;
-echo "PATH=${PATH}" >> "${GITHUB_PATH}";
 echo "LLVM_PATH=${LLVM_PATH}" >> "${GITHUB_ENV}";
