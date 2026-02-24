@@ -340,6 +340,7 @@ runs: # Uses default x86_64 / linux user machine
         TOOLCHAIN='';
         AUTO_ARCH="${{ inputs.arch }}";
         COMPILERS='clang:clang++:gcc:g++:cc:c++';
+        SRCTREE="$GITHUB_WORKSPACE" >> "$GITHUB_ENV";
         find_vendor_kernel() {
           local target_arch=$1
           echo "Searching for $target_arch module linker script...";
@@ -376,7 +377,7 @@ runs: # Uses default x86_64 / linux user machine
         }
         if ${{ inputs.linux == 'false' }}; then
           find_vendor_kernel "$AUTO_ARCH";
-          if [[ "${arch}" == 'arm' || "${arch}" == 'aarch32' || "${arch}" == 'armv7'* || "${arch}" == 'armeabi'* ]]; then
+          if [[ "${arch}" == 'arm' || "${arch}" == 'aarch32' || "${arch}" == 'armv7'* || "${arch}" == 'armeabi' || "${arch}" == 'armeabi-v7a' ]]; then
             TOOLCHAIN=$(find "$github" -path '*/toolchains/*' -type d -name 'arm-linux-androideabi' -print);
             AUTO_ARCH="${TARGET_ARCH:-arm-linux-androideabi}";
             COMPILERS='gcc:g++:arm-linux-androideabi-gcc:arm-linux-androideabi-g++';
@@ -403,11 +404,11 @@ runs: # Uses default x86_64 / linux user machine
           # 64-bit ARM (Server/PC)
             AUTO_ARCH="${TARGET_ARCH:-aarch64-linux-gnu}";
             K_ARCH="arm64";
-           COMPILERS='gcc:g++:aarch64-linux-gnu-gcc:aarch64-linux-gnu-g++';
+            COMPILERS='gcc:g++:aarch64-linux-gnu-gcc:aarch64-linux-gnu-g++';
           elif [[ "${arch}" == 'x86_64' || "${arch}" == 'amd64' ]]; then
           # Standard 64-bit PC
             AUTO_ARCH="${TARGET_ARCH:-x86_64-linux-gnu}";
-            K_ARCH="x86";
+            K_ARCH="x86_64";
             COMPILERS='gcc:g++:cc:c++';
           elif [[ "${arch}" == 'i686' || "${arch}" == 'i386' || "${arch}" == 'x86' ]]; then
           # 32-bit PC
@@ -455,10 +456,10 @@ runs: # Uses default x86_64 / linux user machine
         sudo chmod -R 0755 "${{ github.action_path }}/scripts";
         mkdir -p "${HOME}/.local/bin";
         if ${{ inputs.version != '' }} && [[ $(which clang-tidy-18) ]]; then
-          sudo apt-get remove -yq clang-tidy-18 >/dev/null;
+          sudo apt-get remove -yqq clang-tidy-18 >/dev/null;
         fi;
         if ${{ inputs.version != '' }} && [[ $(which clang-18) ]]; then
-          sudo apt-get remove -yq clang-18 llvm-18 >/dev/null 2>&1;
+          sudo apt-get remove -yqq clang-18 llvm-18 >/dev/null 2>&1;
         fi;
         if ${{ inputs.version != '' }}; then
           sudo update-alternatives --remove-all clang >/dev/null 2>&1
@@ -469,8 +470,8 @@ runs: # Uses default x86_64 / linux user machine
         sudo add-apt-repository -y universe >/dev/null;
         sudo add-apt-repository -y restricted >/dev/null;
         sudo add-apt-repository -y multiverse >/dev/null;
-        sudo apt-get -yq update 2>&1 >/dev/null | sed -E '/Running/,/host./d';
-        sudo apt-get -yq install aptitude 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\naptitude dependencies installed\n####################\n" || echo -e '::error::No aptitude installer for installing packages';
+        sudo apt-get -yqq update 2>&1 >/dev/null | sed -E '/Running/,/host./d';
+        sudo apt-get -yqq install aptitude 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\naptitude dependencies installed\n####################\n" || echo -e '::error::No aptitude installer for installing packages';
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
       shell: bash
       continue-on-error: false
@@ -520,15 +521,15 @@ runs: # Uses default x86_64 / linux user machine
         linux_distro3="20.04";
         linux_verison=$(lsb_release -r | awk '{ print $2; }');
         if ${{ inputs.project == 'true' }} && [[ ! $(which cmake) ]]; then
-          sudo aptitude -yq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
+          sudo aptitude -yqq install cmake make 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ncmake dependencies installed\n####################" || echo -e '::error::No cmake installed for project build';        
           [[ ! $(which cmake) ]] && exit 1
         fi;
         if [[ ! $(which clang) ]]; then
-          sudo aptitude -yq install clang 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nclang dependencies installed\n####################" || echo -e '::error::No clang installed for repo updates';
+          sudo aptitude -yqq install clang 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nclang dependencies installed\n####################" || echo -e '::error::No clang installed for repo updates';
           [[ ! $(which clang) ]] && exit 1
         fi;
         if [[ ! $(which python3) ]]; then
-          sudo aptitude -yq install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
+          sudo aptitude -yqq install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
           [[ ! $(which python3) ]] && exit 1
         fi;
         cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{ print $3; }');
@@ -542,12 +543,12 @@ runs: # Uses default x86_64 / linux user machine
           [[ -e "${HOME}/.local/bin/run-clang-tidy" ]] && sudo mv -f "${HOME}/.local/bin/run-clang-tidy" '/usr/bin/run-clang-tidy';
           [[ ! $(which clang-tidy) ]] && exit 1
         fi;
-        [[ ! $(which make) ]] && sudo aptitude install -yq make >/dev/null && echo -e "\n####################\nmake dependencies installed\n####################";
+        [[ ! $(which make) ]] && sudo aptitude install -yqq make >/dev/null && echo -e "\n####################\nmake dependencies installed\n####################";
         if ${{ inputs.project == 'true' }}; then
           if [[ $(printf '%s\n%s' "${cmake_version}" "${cmake_required_version}" | sort -V | head -n1) == "${cmake_version}" ]] && [[ "${cmake_version}" != "${cmake_required_version}" ]] && ${{ inputs.project }}; then
             echo -e "\nCurrent CMake version (${cmake_version}) is older than ${cmake_required_version}. Updating....";
-            sudo apt-get remove --purge -yq cmake 2>&1 >/dev/null | sed '/Running/,/host./d'
-            sudo aptitude install -yq ca-certificates gpg wget 2>&1 >/dev/null | sed '/Running/,/host./d'
+            sudo apt-get remove --purge -yqq cmake 2>&1 >/dev/null | sed '/Running/,/host./d'
+            sudo aptitude install -yqq ca-certificates gpg wget 2>&1 >/dev/null | sed '/Running/,/host./d'
             sudo bash -c "$(sudo wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null)";
             if [[ "${linux_verison}" == "${linux_distro1}" ]]; then
               echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | sudo tee -a /etc/apt/sources.list.d/kitware.list >/dev/null;
@@ -596,21 +597,21 @@ runs: # Uses default x86_64 / linux user machine
         github="${GITHUB_WORKSPACE}";
         repository=${{ github.event.repository.name }};
         if [[ ! $(which bc) ]]; then
-          sudo aptitude -yq install bc 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nbc dependencies installed\n####################" || echo -e '::error::No bc installed for project file amount checks';
+          sudo aptitude -yqq install bc 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\nbc dependencies installed\n####################" || echo -e '::error::No bc installed for project file amount checks';
           [[ ! $(which bc) ]] && exit 1
         fi;
         if ${{ inputs.project == 'true' }} && [[ ! $(which update-ca-certificates) ]]; then
-          sudo aptitude -yq install ca-certificates 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text3}" || echo 'No ca-certificates installed effects can vary';
+          sudo aptitude -yqq install ca-certificates 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text3}" || echo 'No ca-certificates installed effects can vary';
         fi;
         if [[ ! $(which gawk) ]]; then
-          sudo aptitude -yq install gawk 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "####################\ngawk dependencies installed\n####################" || echo -e "\n::error::No gawk installed in linux exiting";
+          sudo aptitude -yqq install gawk 2>&1 >/dev/null | sed '/Running/,/host./d' && echo -e "\n####################\ngawk dependencies installed\n####################" || echo -e "\n::error::No gawk installed in linux exiting";
         fi;
         if ${{ inputs.project == 'true' }} && (${{ inputs.source == '4' }} || [[ -e 'check-file-compile.txt' ]]); then
           go build ${{ github.action_path }}/scripts/cmakebar.go && echo -e "\n####################\ncmakebar dependencies installed\n####################" || echo -e '::error::No cmakebar installed for project checks';
           [[ -e "cmakebar" ]] && sudo cp -f 'cmakebar' '/usr/local/bin/'
         fi;
         if [[ ! $(which git) ]]; then
-          sudo aptitude -yq install git git-core 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text0}" || echo -e '::error::No git installed for repo updates';
+          sudo aptitude -yqq install git git-core 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text0}" || echo -e '::error::No git installed for repo updates';
           [[ ! $(which git) ]] && exit 1
         fi;
         if ${{ inputs.analyzer == '1' }} && ${{ inputs.project == 'true' }} && [[ $(which run-clang-tidy) ]]; then
@@ -626,24 +627,24 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         if ${{ inputs.project == 'true' }} && ${{ inputs.analyzer == '3' }} && [[ ! $(which clangd-tidy) ]]; then
           python3 -m pip install --upgrade clangd-tidy >/dev/null && echo -e "\n####################\nclangd-tidy dependencies installed\n####################" || echo -e '::error::No clangd-tidy installed for project checks';
-          sudo aptitude -yq install clangd 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\nclangd pip dependencies installed\n####################" || echo -e '::error::No clangd pip installed for project checks';
+          sudo aptitude -yqq install clangd 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\nclangd pip dependencies installed\n####################" || echo -e '::error::No clangd pip installed for project checks';
           if [[ ! $(which clangd-tidy) ]]; then
             exit 1
           fi;
         fi;
         if ${{ inputs.project == 'true' }} && [[ ! $(apt list linux-headers-generic >/dev/null 2>&1) ]]; then
-          sudo aptitude -yq install linux-headers-generic 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nDependencies $(apt list linux-headers-generic 2>/dev/null)\n####################" || echo -e "::warning::No linux-headers-generic installed for project build";
+          sudo aptitude -yqq install linux-headers-generic 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\nDependencies $(apt list linux-headers-generic 2>/dev/null)\n####################" || echo -e "::warning::No linux-headers-generic installed for project build";
         fi;
         if [[ ! $(which fdfind) ]]; then
-          sudo aptitude -yq install fd-find 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nfdfind dependencies installed\n####################" || echo -e '::error::No fdfind installed for file searches';
+          sudo aptitude -yqq install fd-find 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\nfdfind dependencies installed\n####################" || echo -e '::error::No fdfind installed for file searches';
           [[ ! $(which fdfind) ]] && exit 1
         fi;
         if [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && ${{ inputs.repair == 'true' }} && ${{ env.filename != '' }}; then
-          sudo aptitude -yq install gcc g++ 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
+          sudo aptitude -yqq install gcc g++ 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\ngcc g++ dependencies installed\n####################" || echo -e '::error::No gcc or g++ installed for repo updates';
           [[ ! $(which gcc) ]] || [[ ! $(which g++) ]] && exit 1
         fi;
         if (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.build == '5' }}) && [[ ! $(which CodeChecker) ]]; then
-          sudo aptitude -yq install python3-pip python3-venv 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
+          sudo aptitude -yqq install python3-pip python3-venv 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\npython3-pip dependencies installed\n####################" || echo -e '::error::No python3-pip installed for project checks';
           python3 -m pip install --upgrade codechecker >/dev/null && echo -e "\n####################\ncodechecker dependencies installed\n####################" || echo -e '::error::No codechecker installed for project checks';
           sudo mkdir -p "${HOME}/codechecker/venv/include";
           sudo mkdir -p "${HOME}/codechecker/venv/bin";
@@ -660,31 +661,31 @@ runs: # Uses default x86_64 / linux user machine
           [[ ! $(which tqdm) ]] && exit 1
         fi;
         if ${{ inputs.project == 'true' }} && ${{ inputs.build > '2' }} && [[ ! $(which deheader) ]]; then
-          sudo aptitude -yq install deheader 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\ndeheader dependencies installed\n####################" || echo -e '::error::No deheader installed for project includes check';
+          sudo aptitude -yqq install deheader 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\ndeheader dependencies installed\n####################" || echo -e '::error::No deheader installed for project includes check';
           [[ ! $(which deheader) ]] && exit 1
         fi;
         if ${{ inputs.project == 'true' }} && [[ ! $(dpkg -s build-essential 2>/dev/null) ]]; then
-          sudo aptitude -yq install build-essential device-tree-compiler 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "####################\nbuild-essential dependencies installed\n####################" || echo -e '::error::No build-essential installed for project build';
+          sudo aptitude -yqq install build-essential device-tree-compiler 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n####################\nbuild-essential dependencies installed\n####################" || echo -e '::error::No build-essential installed for project build';
         fi;
         if [[ ! $(which rg) ]]; then
-          sudo aptitude -yq install ripgrep 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
+          sudo aptitude -yqq install ripgrep 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text1}" || echo -e '::error::No ripgrep installed for pattern matching';
           [[ ! $(which rg) ]] && exit 1
         fi;
         if ${{ inputs.report == 'true' }} && [[ ! $(which ansifilter) ]]; then
-          sudo aptitude -yq install ansifilter 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text2}";
+          sudo aptitude -yqq install ansifilter 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text2}";
           [[ ! $(which ansifilter) ]] && echo -e '::warning::No ansifilter installed for cleaning log report';
         fi;
         if [[ "${file_type}" == [cth]* ]] && [[ ! $(which cppcheck) ]]; then
-          sudo aptitude -yq install cppcheck 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text4}" || echo -e '::error::No cppcheck installed Exiting';
+          sudo aptitude -yqq install cppcheck 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text4}" || echo -e '::error::No cppcheck installed Exiting';
           [[ ! $(which cppcheck) ]] && exit 1
         fi;
         if [[ "${file_type}" == sh ]] && ${{ inputs.repair == 'true' }} && [[ ! $(which shellharden) ]]; then
           sudo wget -qO 'shellharden.tar.gz' 'https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-gnu.tar.gz' >/dev/null;
-          sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e "${text6}" || echo -e '::error::No shellharden installed Exiting';
+          sudo tar xf 'shellharden.tar.gz' -C '/usr/local/bin' 'shellharden' && rm -vrf 'shellharden.tar.gz' && echo -e "\n${text6}" || echo -e '::error::No shellharden installed Exiting';
           [[ ! $(which shellharden) ]] && exit 1 || echo -e "\nLocation: $(which shellharden)";
         fi;
         if [[ "${file_type}" == sh ]] && [[ ! $(which shellcheck) ]]; then
-          sudo aptitude -yq install shellcheck 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text7}" || echo -e '::error::No shellcheck installed Exiting';
+          sudo aptitude -yqq install shellcheck 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text7}" || echo -e '::error::No shellcheck installed Exiting';
           [[ ! $(which shellcheck) ]] && exit 1 || echo -e "\nLocation: $(which shellcheck)";
         fi;
         checkmake_src='checkmake.ini';
@@ -711,7 +712,7 @@ runs: # Uses default x86_64 / linux user machine
             echo 'export BAT_THEME=ansi' | sudo tee -a ~/.bashrc >/dev/null;
             echo "export BAT_CONFIG_PATH=${github}/bat.conf" | sudo tee -a ~/.bashrc >/dev/null;
           elif [[ ! $(which batcat) ]]; then
-            sudo aptitude -yq install bat 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "${text9}" || echo -e '::error::No batcat installed Exiting';
+            sudo aptitude -yqq install bat 2>&1 >/dev/null | sed -E '/Running/,/host./d' && echo -e "\n${text9}" || echo -e '::error::No batcat installed Exiting';
             [[ ! $(which batcat) ]] && exit 1
             echo 'export BAT_THEME=ansi' | sudo tee -a ~/.bashrc >/dev/null;
             echo "export BAT_CONFIG_PATH=${github}/bat.conf" | sudo tee -a ~/.bashrc >/dev/null;
@@ -750,7 +751,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq flex bison libssl-dev gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "####################\narm dependencies installed\n####################"; 
+          sudo aptitude install -yqq flex bison libssl-dev gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "####################\narm dependencies installed\n####################\n"; 
         elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n########## Copying ARM jammy sources to /etc/apt/sources.list ##########\n";
           sudo dpkg --add-architecture armhf
@@ -766,7 +767,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq flex bison libssl-dev gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "####################\narm dependencies installed\n####################";
+          sudo aptitude install -yqq flex bison libssl-dev gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "####################\narm dependencies installed\n####################\n";
         elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n########## Copying ARM focal sources to /etc/apt/sources.list ##########\n";
           sudo dpkg --add-architecture armhf
@@ -782,7 +783,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -yq flex bison libssl-dev gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "####################\narm dependencies installed\n####################";
+          sudo aptitude install -yqq flex bison libssl-dev gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' && echo -e "####################\narm dependencies installed\n####################\n";
         fi;
         if [[ "${{ env.arch }}" == "arm"* ]]; then
           sudo dpkg --add-architecture i386 >/dev/null;
@@ -790,9 +791,9 @@ runs: # Uses default x86_64 / linux user machine
           echo "foreign-architectures: $(dpkg --print-foreign-architectures | tr '\n' ' ')";
           apt-cache policy | grep -E "o=Ubuntu|arch=" | gawk -F'b=' '!seen[$2]++ { print; }' | tr -d ' '
         fi;
-        sudo aptitude install -f -yq 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d';
+        sudo aptitude install -f -yqq 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d';
         PATH=$(echo -n "$PATH" | awk -v RS=: -v ORS=: '!x[$0]++' | sed 's/:$//')
-        echo 'export PATH="${PATH}"' | tee -a ~/.bashrc >/dev/null;
+        echo "export PATH=${PATH}" | tee -a ~/.bashrc >/dev/null;
         echo '';
       shell: bash
       continue-on-error: false
