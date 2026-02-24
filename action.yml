@@ -2238,7 +2238,10 @@ runs: # Uses default x86_64 / linux user machine
           local current_dir="${lds_file%/*}";
           local kroot=""; 
           while [[ "$current_dir" != "$GITHUB_WORKSPACE" && "$current_dir" != "/" ]]; do
-            if [[ -f "$current_dir/Makefile" && -d "$current_dir/include" ]]; then
+            if [[ -f "$current_dir/Makefile" && -d "${current_dir}/include" ]]; then
+              kroot="$current_dir";
+              break;
+            elif [[ -f "$current_dir/Makefile" && -d "${current_dir%/*}/include" ]]; then
               kroot="$current_dir";
               break;
             fi;
@@ -2249,6 +2252,7 @@ runs: # Uses default x86_64 / linux user machine
             kroot="$current_dir";
           fi;
           echo "Detected LDS: $lds_file";
+          echo "Kernel Directory: $kroot";
           echo "SRCTREE=$kroot" >> "$GITHUB_ENV";
           echo "LDS_PATH=$lds_file" >> "$GITHUB_ENV";
           export LDS_PATH="$lds_file";
@@ -2349,7 +2353,6 @@ runs: # Uses default x86_64 / linux user machine
         export MAKEFILE_NAME="${{ inputs.makefile }}"
         export FILENAME="${{ env.filename }}"
         EOF
-          FUNC_2=$(declare -f build_alone);
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
             make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             echo -e "Sources: ${envsetup}";
