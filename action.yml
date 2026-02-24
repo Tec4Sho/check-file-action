@@ -2298,7 +2298,7 @@ runs: # Uses default x86_64 / linux user machine
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
           local kroot="${{ env.SRCTREE }}";
-          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')      
+          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }');
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
             make ARCH=arm \
             CLANG_TRIPLE=arm-linux-gnueabihf- \
@@ -2348,19 +2348,20 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
           export TERM=dumb
-          export kroot="${kroot}";
           export ALLOW_MISSING_DEPENDENCIES=true
           export MAKEFILE_NAME="${{ inputs.makefile }}";
           export FILENAME="${{ env.filename }}";
+          export TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_SCREEN_HEIGHT" | awk '{ print $3; }')
+          export TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_SCREEN_WIDTH" | awk '{ print $3; }')
         cat <<EOF > /tmp/build_env.sh
         $(declare -f build_module)
-        export kroot="${kroot}"
         export ALLOW_MISSING_DEPENDENCIES=true
         export MAKEFILE_NAME="${{ inputs.makefile }}"
         export FILENAME="${{ env.filename }}"
         EOF
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
-            # make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
+            make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
+            make ARCH="${{ env.arch }}" modules_prepare
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
             BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k";
@@ -2389,13 +2390,11 @@ runs: # Uses default x86_64 / linux user machine
         [[ -e /tmp/build_env.sh ]] && rm /tmp/build_env.sh
         cat <<EOF > /tmp/build_env.sh
         $(declare -f build_alone)
-        export kroot="${kroot}"
         export ALLOW_MISSING_DEPENDENCIES=true
         export MAKEFILE_NAME="${{ inputs.makefile }}"
         export FILENAME="${{ env.filename }}"
         EOF
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'false' }}; then
-            # make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
             BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k";
