@@ -338,9 +338,44 @@ runs: # Uses default x86_64 / linux user machine
           arch="${{ inputs.arch }}";
         fi;
         TOOLCHAIN='';
-        AUTO_ARCH="${TARGET_ARCH}";
+        AUTO_ARCH="${{ inputs.arch }}";
         COMPILERS='clang:clang++:gcc:g++:cc:c++';
+        find_vendor_kernel() {
+          local target_arch=$1
+          echo "Searching for $target_arch module linker script...";
+          local lds_file=$(find $GITHUB_WORKSPACE -path "*/arch/$target_arch/*" -name "module.lds" | head -n 1);
+          if [[ -z "$lds_file" ]]; then
+           echo "module.lds not found. Searching for any .lds in arch/$target_arch..."
+            lds_file=$(find $GITHUB_WORKSPACE -path "*/arch/$target_arch/*" -name "*.lds" | head -n 1)
+          fi;
+          if [[ -z "$lds_file" ]]; then
+            echo "::error::Could not find a valid linker script for $target_arch.";
+          fi;
+          local current_dir="${lds_file%/*}";
+          local kroot=""; 
+          while [[ "$current_dir" != "$GITHUB_WORKSPACE" && "$current_dir" != "/" ]]; do
+            if [[ -f "$current_dir/Makefile" && -d "${current_dir}/include" ]]; then
+              kroot="$current_dir";
+              break;
+            elif [[ -f "$current_dir/Makefile" && -d "${current_dir%/*}/include" ]]; then
+              kroot="$current_dir";
+              break;
+            fi;
+            current_dir="${current_dir%/*}";
+          done;
+          if [[ -z "$kroot" ]]; then
+            echo "::error::Found LDS but could not find Kernel Root (Makefile).";
+            kroot="$current_dir";
+          fi;
+          echo "Detected LDS: $lds_file";
+          echo "Kernel Directory: $kroot";
+          echo "SRCTREE=$kroot" >> "$GITHUB_ENV";
+          echo "LDS_PATH=$lds_file" >> "$GITHUB_ENV";
+          echo "export LDS_PATH=$lds_file" | sudo tee -a ~/.bashrc >/dev/null;
+          echo "export SRCTREE=$kroot" | sudo tee -a ~/.bashrc >/dev/null;
+        }
         if ${{ inputs.linux == 'false' }}; then
+          find_vendor_kernel "$AUTO_ARCH";
           if [[ "${arch}" == 'arm' || "${arch}" == 'aarch32' || "${arch}" == 'armv7'* || "${arch}" == 'armeabi'* ]]; then
             TOOLCHAIN=$(find "$github" -path '*/toolchains/*' -type d -name 'arm-linux-androideabi' -print);
             AUTO_ARCH="${TARGET_ARCH:-arm-linux-androideabi}";
@@ -1003,7 +1038,7 @@ runs: # Uses default x86_64 / linux user machine
         config=$(find "${{ env.base }}" -type f -path '*/config/*' -name 'kernel.release' | grep . || sudo find "/usr/src" -xdev -type f -name 'kernel.release' -print);
         if [[ "${config}" ]] && ${{ inputs.content == 'true' }}; then
           export PATH="$PATH";
-          echo -e "\n####################\nSystem Binary Paths: ${PATH}\n####################" | process_input;
+          echo -e "\n####################\nSystem Binary Paths: ${PATH}\n####################";
           echo -e "\nLINUXKERNEL RELEASES:";
           sudo less $(echo -n ${config});
           release1="$(sudo less $(echo -n ${config}) | awk 'NR==1')";
@@ -2224,41 +2259,6 @@ runs: # Uses default x86_64 / linux user machine
         if ${{ inputs.filetype != '' }}; then
           file_type="${{ inputs.filetype }}";
         fi;
-        find_vendor_kernel() {
-          local target_arch=$1
-          echo "Searching for $target_arch module linker script...";
-          local lds_file=$(find $GITHUB_WORKSPACE -path "*/arch/$target_arch/*" -name "module.lds" | head -n 1);
-          if [[ -z "$lds_file" ]]; then
-           echo "module.lds not found. Searching for any .lds in arch/$target_arch..."
-            lds_file=$(find $GITHUB_WORKSPACE -path "*/arch/$target_arch/*" -name "*.lds" | head -n 1)
-          fi;
-          if [[ -z "$lds_file" ]]; then
-            echo "::error::Could not find a valid linker script for $target_arch.";
-          fi;
-          local current_dir="${lds_file%/*}";
-          local kroot=""; 
-          while [[ "$current_dir" != "$GITHUB_WORKSPACE" && "$current_dir" != "/" ]]; do
-            if [[ -f "$current_dir/Makefile" && -d "${current_dir}/include" ]]; then
-              kroot="$current_dir";
-              break;
-            elif [[ -f "$current_dir/Makefile" && -d "${current_dir%/*}/include" ]]; then
-              kroot="$current_dir";
-              break;
-            fi;
-            current_dir="${current_dir%/*}";
-          done;
-          if [[ -z "$kroot" ]]; then
-            echo "::error::Found LDS but could not find Kernel Root (Makefile).";
-            kroot="$current_dir";
-          fi;
-          echo "Detected LDS: $lds_file";
-          echo "Kernel Directory: $kroot";
-          echo "SRCTREE=$kroot" >> "$GITHUB_ENV";
-          echo "LDS_PATH=$lds_file" >> "$GITHUB_ENV";
-          export LDS_PATH="$lds_file";
-          export SRCTREE="$current_dir";
-          export kroot="$kroot";
-        }
         build_alone() {
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
@@ -2290,8 +2290,8 @@ runs: # Uses default x86_64 / linux user machine
         build_module() {
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
-          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')
-          [[ -z $kernel_cpus ]] && make
+          local kroot="${{ env.SRCTREE }}";
+          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')      
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
             make ARCH=arm \
             CLANG_TRIPLE=arm-linux-gnueabihf- \
@@ -2326,7 +2326,6 @@ runs: # Uses default x86_64 / linux user machine
             make CC=clang -C "${kroot}" M="$PWD" modules
           fi;
         }
-        find_vendor_kernel "${{ env.arch }}";
         if ${{ env.build_files == '1' }}; then
           echo -e "\nChecking gcc for default includes:" | process_input;
           if [[ ${{ inputs.filetype }} == [c] ]]; then
@@ -2354,7 +2353,7 @@ runs: # Uses default x86_64 / linux user machine
         export FILENAME="${{ env.filename }}"
         EOF
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
-            make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
+            # make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
             BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k";
@@ -2389,7 +2388,7 @@ runs: # Uses default x86_64 / linux user machine
         export FILENAME="${{ env.filename }}"
         EOF
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'false' }}; then
-            make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
+            # make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
             BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k";
