@@ -2269,8 +2269,8 @@ runs: # Uses default x86_64 / linux user machine
         build_alone() {
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
-          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }')
-          [[ -z $kernel_cpus ]] && make
+          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_CPU_VARIANT/ {print $NF; exit}' | grep -s . || false)
+          [[ -z $kernel_cpus ]] && kernel_cpus='generic';
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
             make CC=clang \
             CXX=clang++ \
@@ -2298,7 +2298,8 @@ runs: # Uses default x86_64 / linux user machine
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
           local kroot="${{ env.SRCTREE }}";
-          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_CPU_VARIANT" | awk '{ print $3; }');
+          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_CPU_VARIANT/ {print $NF; exit}' | grep -s . || false)
+          [[ -z $kernel_cpus ]] && kernel_cpus='generic';
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
             make ARCH=arm \
             CLANG_TRIPLE=arm-linux-gnueabihf- \
@@ -2330,7 +2331,7 @@ runs: # Uses default x86_64 / linux user machine
             KCFLAGS="-mcpu=cortex-a72" \
             -C "${kroot}" M="$PWD" modules
           else
-            make CC=clang -C "${kroot}" M="$PWD" modules
+            make KCFLAGS="-mcpu=$kernel_cpus" CC=clang -C "${kroot}" M="$PWD" modules
           fi;
         }
         if ${{ env.build_files == '1' }}; then
@@ -2351,8 +2352,9 @@ runs: # Uses default x86_64 / linux user machine
           export ALLOW_MISSING_DEPENDENCIES=true
           export MAKEFILE_NAME="${{ inputs.makefile }}";
           export FILENAME="${{ env.filename }}";
-          export TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_SCREEN_HEIGHT" | awk '{ print $3; }')
-          export TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f -name '*.mk' -print | xargs -r -n1000 grep -rsF -m 1 "TARGET_SCREEN_WIDTH" | awk '{ print $3; }')
+          export TW_THEME=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TW_THEME/ {print $NF; exit}' | grep -s . || false)
+          export TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_HEIGHT/ {print $NF; exit}' | grep -s . || false)
+          export TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_WIDTH/ {print $NF; exit}' | grep -s . || false)
         cat <<EOF > /tmp/build_env.sh
         $(declare -f build_module)
         export ALLOW_MISSING_DEPENDENCIES=true
@@ -2360,12 +2362,12 @@ runs: # Uses default x86_64 / linux user machine
         export FILENAME="${{ env.filename }}"
         EOF
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
-            export TW_THEME=landscape_hdpi
-            export TARGET_SCREEN_WIDTH=1920
-            export TARGET_SCREEN_HEIGHT=1080
+            source "${envsetup}" && echo -e "Source: ${envsetup}";
+            [[ -z "${TW_THEME}" ]] && export TW_THEME=landscape_hdpi
+            [[ -z "${TARGET_SCREEN_WIDTH}" ]] && export TARGET_SCREEN_WIDTH=1920
+            [[ -z "${TARGET_SCREEN_HEIGHT}" ]] && export TARGET_SCREEN_HEIGHT=1080
             make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             make ARCH="${{ env.arch }}" modules_prepare
-            echo -e "Sources: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
             BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
@@ -2398,7 +2400,7 @@ runs: # Uses default x86_64 / linux user machine
         export FILENAME="${{ env.filename }}"
         EOF
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'false' }}; then
-            echo -e "Sources: ${envsetup}";
+            echo -e "Source: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
             BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
