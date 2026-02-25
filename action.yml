@@ -2336,9 +2336,9 @@ runs: # Uses default x86_64 / linux user machine
         }
         if ${{ env.build_files == '1' }}; then
           echo -e "\nChecking gcc for default includes:" | process_input;
-          if [[ ${{ inputs.filetype }} == [c] ]]; then
+          if [[ ${{ inputs.filetype }} == [c] ]] && ${{ inputs.content == 'true' }}; then
             `gcc -print-prog-name=cc1` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
-          elif [[ ${{ inputs.filetype }} == [c]* ]]; then
+          elif [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.content == 'true' }}; then
             `gcc -print-prog-name=cc1plus` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
           fi;
           echo | gcc -v -E - 2>&1 | awk '/#include <...> search starts here:/{flag=1;next} /End of search list./{flag=0} flag' | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
@@ -2367,7 +2367,7 @@ runs: # Uses default x86_64 / linux user machine
             check_exit=${PIPESTATUS[0]}
           elif [[ "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k";
+            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
@@ -2408,21 +2408,21 @@ runs: # Uses default x86_64 / linux user machine
               check_exit=${PIPESTATUS[0]}
           fi;
           if [[ "$check_exit" == "1" ]] || { [[ -s "${project_log}" ]] && grep -aiFq 'Process completed with exit code' "${project_log}"; }; then
-            echo -e "\n::notice::CodeChecker check exit-code ($CHECK_EXIT)" | process_input;
+            echo -e "\n::notice::CodeChecker check exit-code ($check_exit)" | process_input;
             echo 'check_build=false' >> "${GITHUB_ENV}";
           elif [[ -s "${project_log}" ]] && grep -aiFq 'error:' "${project_log}"; then
-            echo -e "\n::notice::Errors found building project files!" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
+            echo -e "\n::notice::\033[31mErrors found building project files!\033[0m" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
           elif [[ -s "${project_log}" ]]; then
-            echo -e "\n::notice::No errors found building project files!" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
+            echo -e "\n::notice::\033[32mNo errors found building project files!\033[0m" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
           fi;
           if ${{ inputs.upload }}; then
             echo 'build_files=1' >> "${GITHUB_ENV}";     
           fi;
           if [[ -s "${project_log}" ]]; then
-            grep -we ' CC ' -we ' C++ ' "${project_log}" | grep -iv '\.s' | awk '{ print $2 }' | sed -E "s/\.o$/.$file_type/g" | sort > 'build-source-files.txt'
-            [[ -s 'build-source-files.txt' ]] && cp build-source-files.txt "${github}/build";
+            grep -awE ' CC | C\+\+ ' "${project_log}" | grep -aiv '\.s' | awk '{ print $2 }' | sed -E "s/\.o$/.$file_type/g" | sort > 'build-source-files.txt'
+            [[ -s 'build-source-files.txt' ]] && cp -v build-source-files.txt "${github}/build";
           fi;
-          echo "Build test-run completed" | process_input;
+          echo "\033[1mBuild test-run completed\033[0m" | process_input;
         else
           echo '::error::No cmake build files were found. Is (project: true) set?\n Exiting.....' | process_inputs;
         fi;
