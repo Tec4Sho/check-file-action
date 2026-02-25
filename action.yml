@@ -2355,21 +2355,10 @@ runs: # Uses default x86_64 / linux user machine
           export TW_THEME=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TW_THEME/ {print $NF; exit}' | grep -s . || false)
           export TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_HEIGHT/ {print $NF; exit}' | grep -s . || false)
           export TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_WIDTH/ {print $NF; exit}' | grep -s . || false)
-        cat <<EOF > /tmp/build_env.sh
-        $(declare -f build_module)
-        export ALLOW_MISSING_DEPENDENCIES=true
-        export MAKEFILE_NAME="${{ inputs.makefile }}"
-        export FILENAME="${{ env.filename }}"
-        EOF
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
             source "${envsetup}" && echo -e "Source: ${envsetup}";
-            [[ -z "${TW_THEME}" ]] && export TW_THEME=landscape_hdpi
-            [[ -z "${TARGET_SCREEN_WIDTH}" ]] && export TARGET_SCREEN_WIDTH=1920
-            [[ -z "${TARGET_SCREEN_HEIGHT}" ]] && export TARGET_SCREEN_HEIGHT=1080
-            make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
-            make ARCH="${{ env.arch }}" modules_prepare
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_module \$FILENAME -j\$(nproc) -k";
+            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
@@ -2392,13 +2381,6 @@ runs: # Uses default x86_64 / linux user machine
               --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" 2>&1 | process_input;
               check_exit=${PIPESTATUS[0]}
           fi;
-        [[ -e /tmp/build_env.sh ]] && rm /tmp/build_env.sh
-        cat <<EOF > /tmp/build_env.sh
-        $(declare -f build_alone)
-        export ALLOW_MISSING_DEPENDENCIES=true
-        export MAKEFILE_NAME="${{ inputs.makefile }}"
-        export FILENAME="${{ env.filename }}"
-        EOF
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'false' }}; then
             echo -e "Source: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
@@ -2440,11 +2422,10 @@ runs: # Uses default x86_64 / linux user machine
             grep -we ' CC ' -we ' C++ ' "${project_log}" | grep -iv '\.s' | awk '{ print $2 }' | sed -E "s/\.o$/.$file_type/g" | sort > 'build-source-files.txt'
             [[ -s 'build-source-files.txt' ]] && cp build-source-files.txt "${github}/build";
           fi;
-          echo "Build test-run completed $SRCTREE" | process_input;
+          echo "Build test-run completed" | process_input;
         else
           echo '::error::No cmake build files were found. Is (project: true) set?\n Exiting.....' | process_inputs;
         fi;
-        [[ -e /tmp/build_env.sh ]] && rm -v /tmp/build_env.sh
         echo '';
         echo "USERINCLUDE=false" >> "${GITHUB_ENV}"; 
         echo "LINUXINCLUDE=false" >> "${GITHUB_ENV}";
@@ -3512,7 +3493,8 @@ runs: # Uses default x86_64 / linux user machine
           if ${{ inputs.update }} && ${{ env.analyzer == '2' }}; then
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
           fi;
-          ${{ inputs.content == 'true' }} && echo -e "\n####################\n\tINSTALLED COMPILERS\n####################\n\n${compiler_list}" | process_input;
+          compilers=$(gcc -v --help 2> /dev/null | grep -iv deprecated | sed -n '/^ *-std=\([^<][^ ]\+\).*/ {s//\1/p}');
+          ${{ inputs.content == 'true' }} && echo -e "\n####################\n\tINSTALLED COMPILER LIST:\n####################\n\n${compiler_list}" | process_input || echo -e "\n####################\n\tINSTALLED COMPILERS:\n####################\n\n${compilers}";
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
           fi;
