@@ -2360,9 +2360,9 @@ runs: # Uses default x86_64 / linux user machine
         export FILENAME="${{ env.filename }}"
         EOF
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
-            export TW_THEME=portrait_hdpi
-            export TARGET_SCREEN_WIDTH=1080
-            export TARGET_SCREEN_HEIGHT=1920
+            export TW_THEME=landscape_hdpi
+            export TARGET_SCREEN_WIDTH=1920
+            export TARGET_SCREEN_HEIGHT=1080
             make ARCH="${{ env.arch }}" tb8163p3_bsp_defconfig
             make ARCH="${{ env.arch }}" modules_prepare
             echo -e "Sources: ${envsetup}";
