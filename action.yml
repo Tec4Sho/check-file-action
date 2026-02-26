@@ -347,7 +347,7 @@ runs: # Uses default x86_64 / linux user machine
           local dirname="${{ inputs.dirname }}";
           [[ "$dirname" != '' ]] && dirname="/${dirname}";
           echo -e "\nSearching for $target_arch module linker script...";
-          local compilier=$(find "${GITHUB_WORKSPACE}" -path "*/toolchains/*" -type f \( -name "*-gcc" -o -name "*-clang" \) -print);
+          local compilier=$(find "${GITHUB_WORKSPACE}" -path "*${dirname}/toolchains/*" \( -name "*gcc" -o -name "*clang" \) -print | grep . || find "${GITHUB_WORKSPACE}" -path "*/${target_arch}-linux-*/*" \( -name "*gcc" -o -name "*clang" \) -print | grep . || find "${GITHUB_WORKSPACE}" \( -name "*/${target_arch}-linux-*/*" -o -name "*-gcc" -o -name "*-clang" \) -print);
           local lds_file=$(find "$GITHUB_WORKSPACE" -path "*/arch/$target_arch/*" -name "module.lds" | head -n 1);
           if [[ -z "$lds_file" ]]; then
            echo "module.lds not found. Searching for any .lds in arch/$target_arch..."
