@@ -2362,7 +2362,7 @@ runs: # Uses default x86_64 / linux user machine
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
             source "${envsetup}" && echo -e "Source: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make clean && make \$FILENAME -j\$(nproc) --load-average=2 -k";
+            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make clean && /usr/bin/make -j$(( $(nproc) / 2 )) -l 2 -k \$FILENAME";
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
