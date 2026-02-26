@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 4.1.0) # Specifies the minimum required CMake ver
 
 set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "" FORCE)
 
+string(ASCII 13 CR)
+
 if(DEFINED GITHUB_PROJECT_NAME)
   set(PROJECT_NAME "${GITHUB_PROJECT_NAME}")
 else()
@@ -116,19 +118,75 @@ else()
   message(STATUS "Project Source: $ENV{github_source_dirs}")
 endif()
 
-if($ENV{github_absolute_path})
-  message(STATUS "Project Paths: Absolute Mode")
-  file(GLOB_RECURSE PROJECT_SRC_FILES "*.$ENV{filetype}")
-else()
-  message(STATUS "Project Paths: Relative Mode")
-  file(GLOB_RECURSE PROJECT_SRC_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "*.$ENV{filetype}")
-endif()
+set(CHECK_FILE_BUILD "${CMAKE_CURRENT_SOURCE_DIR}/build-source-files.txt")
+
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/build-source-files.txt" PROJECT_SRC_FILES)
+
+get_filename_component(build_compile_file ${CHECK_FILE_BUILD} NAME)
 
 list(SORT PROJECT_SRC_FILES)
 
 list(LENGTH PROJECT_SRC_FILES SOURCE_COUNT)
 
 message(STATUS "Source file count: ${SOURCE_COUNT}")
+
+if(EXISTS "${CHECK_FILE_BUILD}" AND IS_READABLE "${CHECK_FILE_BUILD}")
+  set(FILE_COUNT 0)
+  file(STRINGS "${CHECK_FILE_BUILD}" FILE_CONTENT)
+  file(READ "${CHECK_FILE_BUILD}" content_of_file)
+  if(NOT "${content_of_file}" STREQUAL "")
+    message(CHECK_START "Sources ${build_compile_file} found. Proceeding...")
+    add_executable("${PROJECT_NAME}")
+    foreach(FILE IN LISTS FILE_CONTENT)
+      get_filename_component(file ${FILE} NAME)
+      math(EXPR FILE_COUNT "${FILE_COUNT} + 1")
+      message(STATUS "Processing File: ${file}  ${FILE_COUNT}/${SOURCE_COUNT}")
+      message(STATUS "Target Name: ${PROJECT_NAME}")
+      message(STATUS "Source File: ${FILE}")
+      list(APPEND build_files ${FILE})
+    endforeach()
+    list(REMOVE_DUPLICATES build_files)
+    target_sources("${PROJECT_NAME}" PRIVATE "${build_files}")
+    set_target_properties("${PROJECT_NAME}" PROPERTIES 
+      C_STANDARD 90
+      C_STANDARD_REQUIRED ON
+      EXCLUDE_FROM_ALL TRUE
+    )
+    set(PROJECT_SRC_FILES "${build_files}")
+    option(PROJECT_AUTO_INCLUDE "Automatically include projects" OFF)
+    message(CHECK_PASS "Build Source Files: ${FILE_COUNT}/${SOURCE_COUNT} - Done")
+  else()
+    message(STATUS "${CHECK_FILE_BUILD} exists but is empty!")
+    add_executable("${PROJECT_NAME}")
+    file(GLOB_RECURSE PROJECT_SRC_FILES "*.$ENV{filetype}")
+    target_sources("${PROJECT_NAME}" PRIVATE "${PROJECT_SRC_FILES}")
+    file(GLOB_RECURSE INCLUDE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hh" "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp")
+    set(INCLUDE_DIRS "")
+    foreach(FILE ${INCLUDE_FILES})
+      get_filename_component(DIR ${FILE} DIRECTORY)
+      list(APPEND INCLUDE_DIRS ${DIR})
+    endforeach()
+    list(REMOVE_DUPLICATES INCLUDE_DIRS)
+    option(PROJECT_AUTO_INCLUDE "Automatically include projects" OFF)
+    target_include_directories("${PROJECT_NAME}" PRIVATE ${INCLUDE_DIRS})
+  endif()
+    set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON) # Useful/Needed for large list of include directories
+    message(STATUS "Project Includes: cmake added include directories. clang analyzing multiple includes [check 1]")
+elseif($ENV{github_absolute_path})
+  option(PROJECT_AUTO_INCLUDE "Automatically include projects" ON)
+  message(STATUS "Project Paths: Absolute Mode")
+  file(GLOB_RECURSE PROJECT_SRC_FILES "*.$ENV{filetype}")
+  list(SORT PROJECT_SRC_FILES)
+  list(LENGTH PROJECT_SRC_FILES SOURCE_COUNT)
+  message(STATUS "Source file count: ${SOURCE_COUNT}")
+else()
+  option(PROJECT_AUTO_INCLUDE "Automatically include projects" ON)
+  message(STATUS "Project Paths: Relative Mode")
+  file(GLOB_RECURSE PROJECT_SRC_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "*.$ENV{filetype}")
+  list(SORT PROJECT_SRC_FILES)
+  list(LENGTH PROJECT_SRC_FILES SOURCE_COUNT)
+  message(STATUS "Source file count: ${SOURCE_COUNT}")
+endif()
 
 if(DEFINED PROJECT_SRC_FILES)
   message(STATUS "Project Files: cmake added source files")
@@ -152,8 +210,6 @@ else()
   set(INCLUDE_SRC ON CACHE BOOL "false")
 endif()
 
-string(ASCII 13 CR)
-
 # Automatically find all header files recursively
 file(GLOB_RECURSE ALL_HEADERS CONFIGURE_DEPENDS "*.h")
 
@@ -165,7 +221,6 @@ set(CHECK_FILE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/check-file-sources.txt")
 set(CHECK_FILE_COMPILE "${CMAKE_CURRENT_SOURCE_DIR}/check-file-compile.txt")
 
 # Add the system, project include directory to your target. Comment to disable an add custom target_source & target_include_directories
-set(PROJECT_AUTO_INCLUDE "true")
 
 get_filename_component(compile_file ${CHECK_FILE_COMPILE} NAME)
 
@@ -219,7 +274,7 @@ if(EXISTS "${CHECK_FILE_COMPILE}" AND IS_READABLE "${CHECK_FILE_COMPILE}")
   endif()
     set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON) # Useful/Needed for large list of include directories
     message(STATUS "Project Includes: cmake added include directories. clang analyzing multiple includes [check 1]")
-elseif(DEFINED PROJECT_AUTO_INCLUDE)
+elseif(PROJECT_AUTO_INCLUDE)
   add_executable("${PROJECT_NAME}") # Creates an executable target named "MyProject" from source files
   target_sources("${PROJECT_NAME}" PRIVATE "${PROJECT_SRC_FILES}")
   if(IS_READABLE "${CHECK_FILE_SOURCES}" AND INCLUDE_SRC)
@@ -266,32 +321,51 @@ elseif(DEFINED PROJECT_AUTO_INCLUDE)
   set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
   set_target_properties("${PROJECT_NAME}" PROPERTIES C_STANDARD 90) 
 else()
-# Add your custom includes here after commenting # set(PROJECT_AUTO_INCLUDE "true") above
-  add_executable("${PROJECT_NAME}") # Creates an executable target named "MyProject" from source files
+# Add your custom includes here after commenting # option(PROJECT_AUTO_INCLUDE "ON") above
+  # add_executable("${PROJECT_NAME}") # Creates an executable target named "MyProject" from source files
   set(FILE_COUNT 0)
-  foreach(FILE ${PROJECT_SRC_FILES})
-    math(EXPR FILE_COUNT "${FILE_COUNT} + 1")
-    set(FILE_CONTENTS "")
-    file(READ "${FILE}" FILE_CONTENTS)
-    string(REGEX MATCHALL "#include[ \t]+\"([^\"]+)\"" MATCHED_HEADERS ${FILE_CONTEXTS})
+  set(TOTAL_INCLUDE_DIRS "")
+  message(CHECK_START "Scanning ${SOURCE_COUNT} kernel files for dependencies")
+  foreach(FILE IN LISTS PROJECT_SRC_FILES)
+    math(EXPR FILE_COUNT "${FILE_COUNT} + 1")    
+    # 1. Read the file
+    file(READ "${FILE}" FILE_CONTENTS)   
+    # 2. Correct Regex (Handles both "" and <>)
+    # This avoids the "double quote and bracket" mistake in your original
+    string(REGEX MATCHALL "#include[ \t]*[\"<]([^\">]+)[\">]" MATCHED_HEADERS "${FILE_CONTENTS}")   
     set(HEADER_LIST "")
-    foreach(MATCH ${MATCHED_HEADERS})
-      string(REGEX REPLACE "#include[ \t]+\"([^\"]+)\"" "\\1" HEADER_NAME "${MATCH}")
+    foreach(MATCH IN LISTS MATCHED_HEADERS)
+      string(REGEX REPLACE "#include[ \t]*[\"<]([^\">]+)[\">]" "\\1" HEADER_NAME "${MATCH}")
       list(APPEND HEADER_LIST "${HEADER_NAME}")
-    endforeach()
-    list(REMOVE_DUPLICATES HEADER_LIST)
-    foreach(file_path ${HEADER_LIST})
-      file(GLOB_RECURSE PROJECT_INCLUDES RELATIVE LIST_DIRECTORIES true "${file_path}")
-      list(APPEND include_dirs ${PROJECT_INCLUDES})
-    endforeach()
-    list(REMOVE_DUPLICATES include_dirs)
+    endforeach()    
+    if(HEADER_LIST)
+      list(REMOVE_DUPLICATES HEADER_LIST)
+    endif()
+    # 3. Locate the directories
+    foreach(h_file IN LISTS HEADER_LIST)
+      # Using FIND_PATH is often faster than GLOB_RECURSE for single files
+      find_path(H_DIR NAMES "${h_file}" HINTS ${YOUR_SEARCH_PATHS})
+        if(H_DIR)
+          list(APPEND TOTAL_INCLUDE_DIRS "${H_DIR}")
+          unset(H_DIR CACHE) # Required to let find_path run again in loop
+        endif()
+      endforeach()
+    # 4. Progress Reporting
+    get_filename_component(FNAME "${FILE}" NAME)
+    # \r (carriage return) only works in some terminals; STATUS is safer
+    message(STATUS "Processing ${FILE_COUNT}/${SOURCE_COUNT}: ${FNAME}")   
     target_sources("${PROJECT_NAME}" PRIVATE "${FILE}")
-    target_include_directories("${PROJECT_NAME}" PRIVATE "${include_dirs}")
-    get_filename_component(file ${FILE} NAME)
-    message(CHECK_START "\rProcessing ${FILE_COUNT}/${SOURCE_COUNT}: ${file}" )
   endforeach()
-  message(CHECK_PASS "Done")
-  message(STATUS "Project Includes: cmake added user defined include directories. clang analyzing includes added [check 8 custom]")
+  # 5. Apply all collected dirs once at the end (Massive performance gain)
+  list(REMOVE_DUPLICATES TOTAL_INCLUDE_DIRS)
+  target_include_directories("${PROJECT_NAME}" PRIVATE "${TOTAL_INCLUDE_DIRS}")
+  # 3. Finalize the check
+  if(FILE_COUNT EQUAL SOURCE_COUNT)
+    message(CHECK_PASS "Completed")
+  else()
+    message(CHECK_FAIL "Failed (only processed ${FILE_COUNT} files)")
+  endif()
+  message(STATUS "Project Includes: cmake added source include directories. build-source-files.txt includes added [check 8 custom]")
 endif()
 
 # .set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
