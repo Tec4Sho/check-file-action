@@ -347,7 +347,7 @@ runs: # Uses default x86_64 / linux user machine
           local dirname="${{ inputs.dirname }}";
           [[ "$dirname" != '' ]] && dirname="/${dirname}";
           echo -e "\nSearching for $target_arch module linker script...";
-          local compilier=$(find "${GITHUB_WORKSPACE}" -path "*${dirname}/toolchains/*" \( -name "*gcc" -o -name "*clang" \) -print | grep . || find "${GITHUB_WORKSPACE}" \( -path "*/${target_arch}-linux-androideabi/*" -o -path "*/${target_arch}-linux-android/*" -o -path "*/${target_arch}-linux-android/*" \) \( -name "*gcc" -o -name "*clang" \) -print | grep . || find "${GITHUB_WORKSPACE}" \( -name "*/${target_arch}-linux-*/*" -o -name "*-gcc" -o -name "*-clang" \) -print);
+          local compilier=$(find "${GITHUB_WORKSPACE}" -path "*${dirname}/prebuilts/*" -type f -name "*-gcc" -print);
           local lds_file=$(find "$GITHUB_WORKSPACE" -path "*/arch/$target_arch/*" -name "module.lds" | head -n 1);
           if [[ -z "$lds_file" ]]; then
            echo "module.lds not found. Searching for any .lds in arch/$target_arch..."
@@ -2424,7 +2424,7 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           if [[ -s "${project_log}" ]]; then
             grep -awE ' CC | C\+\+ ' "${project_log}" | grep -aiv '\.s' | awk '{ print $2 }' | sed -E "s/\.o$/.$file_type/g" | sort > 'build-source-files.txt'
-            [[ -s 'build-source-files.txt' ]] && echo -e "\n\033[33mBuild Source Files:\033[0m Can be added to your repo for cmake custom build \033[1mcompile_commands_json\033[0m file.\nLocation: $(cp -v build-source-files.txt "${github}/build)" | process_inputs;
+            [[ -s 'build-source-files.txt' ]] && echo -e "\n\033[33mBuild Source Files:\033[0m Can be added to your repo for cmake custom build \033[1mcompile_commands_json\033[0m file.\nLocation: $(cp -v build-source-files.txt ${github}/build)" | process_inputs;
             cp -f "${project_log}" "${github}/build";
           fi;
           echo -e "\n\033[1mBuild test-run completed\033[0m" | process_input;
