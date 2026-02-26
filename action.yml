@@ -2447,11 +2447,11 @@ runs: # Uses default x86_64 / linux user machine
         start_time="${{ env.seconds }}";
         include_count=1; include_total=1; file_count=1;
         clang_file='.clang-tidy';
-        repaired='check-file-repaired.txt';
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         cppchecks='.cppcheck';
         github="${GITHUB_WORKSPACE}";
+        repaired='check-file-repaired.txt'; Build_source=$(find "$github" -type f -name 'build-source-files.txt');
         repository=${{ github.event.repository.name }};
         error_log="${github}/${{ env.filename }}_error.log";
         checked=false; include_count=1; missing_count=1;
@@ -2532,6 +2532,11 @@ runs: # Uses default x86_64 / linux user machine
               { echo "${files}" 2>/dev/null; } | gawk '{ printf "    %s\n", $0; }' | process_input;
               echo -e "\e[4mTotal Files\e[0m: \033[1m$(echo "${files}" | wc -l)\033[0m" | gawk '{ printf "    %s\n", $0; }' | process_input;
             fi;
+          fi;
+          if [[ -f "$build_source" ]]; then
+            done="done < ${build_source[@]}";
+          else
+            done="done <<< ${files[@]}";
           fi;
           while IFS= read -r file; do
             search_path="${file}";
@@ -2698,7 +2703,7 @@ runs: # Uses default x86_64 / linux user machine
                 break;
               fi;
             fi;
-          done <<< "${files[@]}";
+          "$done";
           [[ "${includes_missing}" == 'true' ]] && echo -e "\n::notice::Total number of include files missing is: ${countX}" | process_input && unset missing;
           echo -e "\n::notice::Total number of ${{ env.filename }} files checked is: ${count1}" | process_input;
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
