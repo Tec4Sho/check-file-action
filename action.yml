@@ -344,8 +344,10 @@ runs: # Uses default x86_64 / linux user machine
         SRCTREE="$GITHUB_WORKSPACE" >> "$GITHUB_ENV";
         find_vendor_kernel() {
           local target_arch=$1
+          local dirname="${{ inputs.dirname }}";
+          [[ "$dirname" != '' ]] && dirname="/${dirname}";
           echo -e "\nSearching for $target_arch module linker script...";
-          local compilier=$(find "${GITHUB_WORKSPACE}" -path '*/toolchains/arm-linux-androideabi/*' -type f \( -name "*gcc" -o -name '*clang' \) -print);
+          local compilier=$(find "${GITHUB_WORKSPACE}" \( -path '*${dirname}/toolchains/${target_arch}-linux-android*/*' -o -path '*/${target_arch}-linux-android*/*' \) \( -name "*gcc" -o -name '*clang' \) -print);
           local lds_file=$(find "$GITHUB_WORKSPACE" -path "*/arch/$target_arch/*" -name "module.lds" | head -n 1);
           if [[ -z "$lds_file" ]]; then
            echo "module.lds not found. Searching for any .lds in arch/$target_arch..."
@@ -357,10 +359,10 @@ runs: # Uses default x86_64 / linux user machine
           local current_dir="${lds_file%/*}";
           local kroot=""; 
           while [[ "$current_dir" != "$GITHUB_WORKSPACE" && "$current_dir" != "/" ]]; do
-            if [[ -f "$current_dir/Makefile" && -d "${current_dir}/include" ]]; then
+            if [[ -f "${current_dir}/Makefile" && -d "${current_dir}/include" ]]; then
               kroot="$current_dir";
               break;
-            elif [[ -f "$current_dir/Makefile" && -d "${current_dir%/*}/include" ]]; then
+            elif [[ -f "${current_dir}/Makefile" && -d "${current_dir%/*}/include" ]]; then
               kroot="$current_dir";
               break;
             fi;
