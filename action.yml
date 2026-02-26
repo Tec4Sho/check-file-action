@@ -2411,10 +2411,10 @@ runs: # Uses default x86_64 / linux user machine
               --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" 2>&1 | process_input;
               check_exit=${PIPESTATUS[0]}
           fi;
-          if [[ "$check_exit" == "1" ]] || { [[ -s "${project_log}" ]] && grep -aiFq 'Process completed with exit code' "${project_log}"; }; then
+          if [[ -s "${project_log}" ]] && grep -aiFq 'Process completed with exit code' "${project_log}"; then
             echo -e "\n::notice::CodeChecker check exit-code ($check_exit)" | process_input;
             echo 'check_build=false' >> "${GITHUB_ENV}";
-          elif [[ -s "${project_log}" ]] && grep -aiFq 'error:' "${project_log}"; then
+          elif [[ "$check_exit" == "1" ]] || [[ -s "${project_log}" ]] && grep -aiFq 'error:' "${project_log}"; then
             echo -e "\n::notice::\033[31mErrors found building project files!\033[0m" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && echo 'build_error=true' >> "${GITHUB_ENV}" && check_build=true;
           elif [[ -s "${project_log}" ]]; then
             echo -e "\n::notice::\033[32mNo errors found building project files!\033[0m" | process_input && echo 'check_build=true' >> "${GITHUB_ENV}" && check_build=true;
@@ -2425,6 +2425,7 @@ runs: # Uses default x86_64 / linux user machine
           if [[ -s "${project_log}" ]]; then
             grep -awE ' CC | C\+\+ ' "${project_log}" | grep -aiv '\.s' | awk '{ print $2 }' | sed -E "s/\.o$/.$file_type/g" | sort > 'build-source-files.txt'
             [[ -s 'build-source-files.txt' ]] && cp -v build-source-files.txt "${github}/build";
+            cp -f "${project_log}" "${github}/build";
           fi;
           echo "\033[1mBuild test-run completed\033[0m" | process_input;
         else
