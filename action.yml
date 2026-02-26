@@ -193,6 +193,11 @@ inputs:
     type: string
     required: false
     default: 'x86_64'
+  list:
+    description: 'Path to Cmakelist.txt to use for building cmake project'
+    type: string
+    required: false
+    default: 'kernel/device/tb8163p3_bsp'
   root:
     description: 'Start search from linux-os root directory not just github_workspace for database'
     type: boolean
@@ -1582,8 +1587,17 @@ runs: # Uses default x86_64 / linux user machine
         fixed=false;
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}";
-          cmakelist="${{ github.action_path }}/CMakeLists.txt";
-          [[ ! -f 'CMakeLists.txt' ]] && cp -v "${cmakelist}" . 2>/dev/null;
+          user_path="${{ github.workspace }}/${{ inputs.list }}/CMakeLists.txt";
+          default_path="${{ github.action_path }}/CMakeLists.txt";
+          if [[ -f "$user_path" ]]; then
+            echo "✅ Found user CMakeLists.txt at: $user_path";
+            cp "${user_path}" .
+          elif [[ ! -f 'CMakeLists.txt' ]] && [[ -f "$default_path" ]]; then
+            echo "✅ Using action default CMakeLists.txt";
+            cp "${default_path}" .
+          elif [[ ! -f 'CMakeLists.txt' ]]; then
+            echo ";;warning;;⚠️ No default or user CMakeLists.txt at $user_path or $default_path cmake errors may arise.";
+          fi;
         fi;
         process_input() {
           while IFS= read -r output; do
