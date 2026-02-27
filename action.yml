@@ -2284,11 +2284,7 @@ runs: # Uses default x86_64 / linux user machine
           if [[ -n "$check_radio" ]]; then
             fdfind -p -a -t f 'check_radio_versions.py' "${github}" | while read -r script; do
               echo -e "\033[33mNeutralizing legacy script\033[0m: $script";
-        sudo bash -c "cat <<EOF > $script
-        import sys
-        # Neutralized for Python 3 compatibility
-        sys.exit(0)
-        EOF"
+              printf "#!/usr/bin/env python\nimport sys\nsys.exit(0)\n" | sudo tee "$script";
               sudo chmod +x "$script";
             done;
             echo -e "\033[32mLegacy scripts neutralized successfully.\033[0m";
