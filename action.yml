@@ -2697,28 +2697,15 @@ runs: # Uses default x86_64 / linux user machine
               fi;
               if ${{ inputs.recheck == 'true' }} && ${{ inputs.repair == 'true' }}; then
                 echo -e "\n\n####################\nCPPCHECK RE-ANALYZING FILE ( ${count1} )\n####################\n" | process_input;
-                cppcheck -j "$(nproc)" --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --quiet "${file}" 2>&1 | process_input || error="$?";
-                if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
-                  echo -e "\n####################\nRE\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
-                else
-                  echo -e "\n####################\nRE\033[1mCHECK-FILE:\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input;
-                  errors=true
-                fi;
+                [[ -e "$build_source" ]] && perform_analysis < "$build_source" || perform_analysis <<< "$files";
               fi;
               echo -e "\nFinished processing ${file}" | process_input;
               if ${{ inputs.number > '0' }}; then
-                if [[ "${{ inputs.number }}" -eq "${count1}" ]]; then
-                  echo -e "\nFile checking auto stopped at: ${count1} / ${file##*/}" | process_input;
-                  break;
-                fi;
+                [[ "${{ inputs.number }}" -eq "${count1}" ]] && echo -e "\nFile checking auto stopped at: ${count1} / ${file##*/}" | process_input && break;
               fi;      
             done;
           }
-          if [[ -e "$build_source" ]]; then
-            perform_analysis < "$build_source";
-          else
-            perform_analysis <<< "$files";
-          fi;
+          [[ -e "$build_source" ]] && perform_analysis < "$build_source" || perform_analysis <<< "$files";
           [[ "${includes_missing}" == 'true' ]] && echo -e "\n::notice::Total number of include files missing is: ${countX}" | process_input && unset missing;
           echo -e "\n::notice::Total number of ${{ env.filename }} files checked is: ${count1}" | process_input;
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
