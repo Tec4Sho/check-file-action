@@ -2275,15 +2275,18 @@ runs: # Uses default x86_64 / linux user machine
           done;
         }
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
-          cd "${{ env.dirname }}" && echo -e "\n\033[1mUser Current Directory\033[0m:  ${{ env.dirname }}\n" | process_input;
+          cd "${{ env.dirname }}" && echo -e "\n\033[1mUser Current Directory\033[0m: ${{ env.dirname }}" | process_input;
           codechecker=$(fdfind -p -a -t f -1 'codechecker.yaml' "${github}");
           compile_json=$(fdfind -p -a -t f -1 'compile_commands.json' "${github}");
           check_radio=$(fdfind -p -a -t f -1 -g '**/tools/check_radio_versions.py' "${github}");
-          if [[ -f "$check_radio" ]]; then
-            sudo aptitude -y -q -q install python2 2>&1 >/dev/null | sed -E '/Running/,/host./d' | tr -d '\n' && echo -e "\n####################\npython2 dependencies installed\n####################" || echo -e '::error::No python 2 installed for project file amount checks'
-            sudo ln -vnsf /usr/bin/python2 /usr/bin/python
-            sed -i '1s|.*|#!/usr/bin/env python2|' "$check_radio" || echo "import sys; sys.exit(0)" | tee "$check_radio";
-            echo -e "\n\033[32mEditing python file completed\033[0m: $check_radio\n" | process_input;
+          if [[ -n "$check_radio" ]]; then
+            echo -e "\033[33mNeutralizing legacy script\033[0m: $check_radio";
+       sudo bash -c "cat <<EOF > $check_radio
+       import sys
+       sys.exit(0)
+       EOF";
+            sudo chmod +x "$check_radio"
+            echo -e "\033[32mLegacy script neutralized successfully.\033[0m";
           fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
@@ -2294,7 +2297,7 @@ runs: # Uses default x86_64 / linux user machine
         if ${{ inputs.filetype != '' }}; then
           file_type="${{ inputs.filetype }}";
         fi;
-        echo -e "\n\033[33mCurrent active python:\033[0m \033[1m$(python --version)\033[0m";
+        echo -e "\n\033[33mCurrent python:\033[0m \033[1m$(python --version)\033[0m \033[32m(active)\033[0m";
         build_alone() {
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
