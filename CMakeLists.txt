@@ -118,65 +118,54 @@ else()
   message(STATUS "Project Source: $ENV{github_source_dirs}")
 endif()
 
-function(validate_kernel_header result_var candidate_path)
-    # Ensure the path is actually inside your kernel source tree
-    if(NOT candidate_path MATCHES "^${CMAKE_CURRENT_SOURCE_DIR}")
-        message(WARNING "Rejecting non-kernel path: ${candidate_path}")
-        set(${result_var} FALSE PARENT_SCOPE)
-    endif()
-endfunction()
+# 1. Find the file
+file(GLOB CHECK_FILE_PATH "build-source-files.txt")
 
-# 1. Locate the file anywhere in the current source tree to handle directory changes
-file(GLOB_RECURSE CHECK_FILE_PATH FOLLOW_SYMLINKS "${CMAKE_CURRENT_SOURCE_DIR}/build-source-files.txt")
-
+# 2. Start the logic if file is found
 if(EXISTS "${CHECK_FILE_PATH}" AND IS_READABLE "${CHECK_FILE_PATH}")
-  # Read names and immediately make them absolute
   file(STRINGS "${CHECK_FILE_PATH}" CHECK_BUILD)
-  get_filename_component(build_compile_file "${CHECK_FILE_PATH}" NAME)
   get_filename_component(CHECK_FILE_DIR "${CHECK_FILE_PATH}" DIRECTORY)
-  # Transform relative entries based on where the .txt was found
+  # Prepare the list
   list(TRANSFORM CHECK_BUILD PREPEND "${CHECK_FILE_DIR}/")
   list(REMOVE_DUPLICATES CHECK_BUILD)
   list(LENGTH CHECK_BUILD SOURCE_COUNT)
-  file(READ "${CHECK_FILE_PATH}" content_of_file)
-  if(NOT "${content_of_file}" STREQUAL "")
-    message(CHECK_START "Sources ${build_compile_file} found. Scanning ${SOURCE_COUNT} files...")
-    # Create target once
-    add_executable("${PROJECT_NAME}")    
-    set(FILE_COUNT 0)
-    set(TOTAL_INCLUDE_DIRS "")
-    foreach(FILE IN LISTS CHECK_BUILD)
-      if(EXISTS "${FILE}")
-        math(EXPR FILE_COUNT "${FILE_COUNT} + 1")
-        # 2. Dependency Scan
-        file(READ "${FILE}" FILE_CONTENTS)
-        string(REGEX MATCHALL "#include[ \t]*[\"<]([^\">]+)[\">]" MATCHED_HEADERS "${FILE_CONTENTS}")
-        foreach(MATCH IN LISTS MATCHED_HEADERS)
-          string(REGEX REPLACE "#include[ \t]*[\"<]([^\">]+)[\">]" "\\1" HEADER_NAME "${MATCH}")
-          # Find where the header lives relative to the kernel root
+  message(CHECK_START "Scanning ${SOURCE_COUNT} files...")
+  add_executable("${PROJECT_NAME}")
+  set(TOTAL_INCLUDE_DIRS "")
+  set(FILE_COUNT 0)
+  foreach(FILE IN LISTS CHECK_BUILD)
+    if(EXISTS "${FILE}" AND NOT IS_DIRECTORY "${FILE}")
+      math(EXPR FILE_COUNT "${FILE_COUNT} + 1")
+      # Reset local list for THIS file only
+      set(MATCHED_HEADERS "")
+      file(READ "${FILE}" FILE_CONTENTS)     
+      # Find all #include "..." or <...>
+      string(REGEX MATCHALL "#include[ \t]*[\"<]([^\">]+)[\">]" MATCHED_HEADERS "${FILE_CONTENTS}")
+      foreach(MATCH IN LISTS MATCHED_HEADERS)
+        string(REGEX REPLACE "#include[ \t]*[\"<]([^\">]+)[\">]" "\\1" HEADER_NAME "${MATCH}")       
+        # Simple memory cache (No PARENT_SCOPE needed)
+        if(NOT DEFINED "${HEADER_NAME}_LOCATED")
           find_path(H_DIR 
-            NAMES "${h_file}" 
-            HINTS 
-              "${CMAKE_CURRENT_SOURCE_DIR}/include" 
-              "${CMAKE_CURRENT_SOURCE_DIR}/arch/$ENV{arch}/include"
-              "${CMAKE_CURRENT_SOURCE_DIR}" # Fallback for local headers
-            VALIDATOR validate_kernel_header  # <--- Added Validator
+            NAMES "${HEADER_NAME}" 
+            HINTS "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}"
             NO_DEFAULT_PATH
           )
           if(H_DIR)
+            set("${HEADER_NAME}_LOCATED" "${H_DIR}")
             list(APPEND TOTAL_INCLUDE_DIRS "${H_DIR}")
-            unset(H_DIR CACHE)
           endif()
-        endforeach()
-        # 3. Add source to target
-        get_filename_component(FNAME "${FILE}" NAME)
-        message(STATUS "Processing [${FILE_COUNT}/${SOURCE_COUNT}]: ${FNAME}")   
-        target_sources("${PROJECT_NAME}" PRIVATE "${FILE}")
-      endif()
-    endforeach()
-    # 4. Finalize Target
+          unset(H_DIR CACHE)
+        endif()
+      endforeach()
+      get_filename_component(FNAME "${FILE}" NAME)
+      message(STATUS "Processing [${FILE_COUNT}/${SOURCE_COUNT}]: ${FNAME}")
+      target_sources("${PROJECT_NAME}" PRIVATE "${FILE}")
+    endif()
+  endforeach()
+  # Finalize the target
+  if(TOTAL_INCLUDE_DIRS)
     list(REMOVE_DUPLICATES TOTAL_INCLUDE_DIRS)
-    target_include_directories("${PROJECT_NAME}" PRIVATE "${TOTAL_INCLUDE_DIRS}")   
+    target_include_directories("${PROJECT_NAME}" PRIVATE "${TOTAL_INCLUDE_DIRS}")
     set_target_properties("${PROJECT_NAME}" PROPERTIES 
       C_STANDARD 90
       C_STANDARD_REQUIRED ON
@@ -186,7 +175,7 @@ if(EXISTS "${CHECK_FILE_PATH}" AND IS_READABLE "${CHECK_FILE_PATH}")
   endif() 
   set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON)
   option(PROJECT_AUTO_INCLUDE "Automatically include projects" OFF)
-# Fallback logic for Absolute/Relative/Missing modes
+  # Fallback logic for Absolute/Relative/Missing modes
 elseif($ENV{github_absolute_path})
   option(PROJECT_AUTO_INCLUDE "Automatically include projects" ON)
   message(STATUS "Project Paths: Absolute Mode")
