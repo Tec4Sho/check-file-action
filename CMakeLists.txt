@@ -120,6 +120,8 @@ endif()
 
 set(CHECK_FILE_BUILD "${CMAKE_CURRENT_SOURCE_DIR}/build-source-files.txt")
 
+file(GLOB_RECURSE PROJECT_SRC_FILES "build-source-files.txt")
+
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/build-source-files.txt" PROJECT_SRC_FILES)
 
 get_filename_component(build_compile_file ${CHECK_FILE_BUILD} NAME)
