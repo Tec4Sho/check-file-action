@@ -2492,20 +2492,7 @@ runs: # Uses default x86_64 / linux user machine
             fi;
           done;
         }
-        if [[ -f 'compile_commands.json' ]]; then
-          compile_json='compile_commands.json';
-        elif [[ -f 'build/compile_commands.json' ]]; then
-          compile_json='build/compile_commands.json';
-        else
-          compile_json='build/compile_commands.json';
-        fi;
-        mkdir -p build/cppcheck
-        build_dir='build/cppcheck';
-        if ${{ inputs.absolute == 'true' }}; then
-          path='--absolute-path';
-        else
-          path='--relative-path';
-        fi;
+        [[ -f compile_commands.json ]] && compile_json='compile_commands.json' || compile_json='build/compile_commands.json'; mkdir -p build/cppcheck; build_dir='build/cppcheck'; [[ "${{ inputs.absolute }}" == "true" ]] && path='--absolute-path' || path='--relative-path';
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [cth]* ]]; then
           if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
@@ -2627,22 +2614,22 @@ runs: # Uses default x86_64 / linux user machine
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- ${include_bases} 2>&1 | process_input || error2="$?";
                     if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") || ! $(grep -sE "Error while processing ${file//./\\.}" "${error_log}") ]]; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                      fixed=true
                     else
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                       errors=true
                     fi;
                     echo "${file} $(date)" >> "${repaired}";
-                    fixed=true
                   elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- ${include_bases} 2>&1 | process_input || error2="$?";
                     if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") || ! $(grep -sE "Error while processing ${file//./\\.}" "${error_log}") ]]; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                      fixed=true
                     else
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input;
                       errors=true
                     fi;
-                    fixed=true
                   fi;
                 else
                   echo -e "\n####################\nCPPCHECK INCLUDE FILES ANALYZER: ( ${count1} ) \n####################\n" | process_input;
@@ -2676,6 +2663,7 @@ runs: # Uses default x86_64 / linux user machine
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
                     if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") || ! $(grep -sE "Error while processing ${file//./\\.}" "${error_log}") ]]; then
                       echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                      fixed=true
                     else
                       echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                       errors=true
@@ -2687,11 +2675,11 @@ runs: # Uses default x86_64 / linux user machine
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
                     if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") || ! $(grep -sE "Error while processing ${file//./\\.}" "${error_log}") ]]; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                      fixed=true
                     else
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input;
                       errors=true
                     fi;
-                    fixed=true
                   fi;
                 else
                   echo -e "\n\n####################\nCPPCHECK FILE ANALYZER: ( ${count1} )\n####################\n" | process_input;
@@ -2735,18 +2723,16 @@ runs: # Uses default x86_64 / linux user machine
           echo -e "\n::notice::Total number of ${{ env.filename }} files checked is: ${count1}" | process_input;
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
-          if [[ "${error}" > '0' ]]; then
-            echo -e "::notice::cppcheck ( ${error} )" | process_input;
-          elif [[ "${error1}" > '0' ]]; then
-            echo -e "::notice::gcc/g++ ( ${error1} )" | process_input;
-          elif [[ "${error2}" > '0' ]]; then
-            echo -e "::notice::clang-tidy ( ${error2} )" | process_input;
+          if [[ "${error}" -gt 0 ]]; then
+            echo "::notice::cppcheck ( ${error} )" | process_input;
+          elif [[ "${error1}" -gt 0 ]]; then
+            echo "::notice::gcc/g++ ( ${error1} )" | process_input;
+          elif [[ "${error2}" -gt 0 ]]; then
+            echo "::notice::clang-tidy ( ${error2} )" | process_input;
           fi;
-          if [[ "${errors}" ]]; then
-            [[ $(grep -aiE 'fixit|fix-it' "${error_log}") ]] && echo "file_fixed=1" >> "${GITHUB_ENV}";
-          fi;
-          if [[ "${fixed}" ]]; then
-            echo "file_fixed=1" >> "${GITHUB_ENV}";
+          [[ "${errors}" == 'true' ]] && echo "file_error=1" >> "$GITHUB_ENV";
+          if [[ "${fixed}" == 'true' ]] && grep -qaiE 'fixit|fix-it' "${error_log}"; then
+            echo "file_fixed=1" >> "$GITHUB_ENV";
           fi;
           [[ -s "${error_log}" ]] && cp "${error_log}" build/
           seconds="$((SECONDS + start_time))";
