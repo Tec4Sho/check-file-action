@@ -344,7 +344,7 @@ else()
     # 3. Locate the directories
     foreach(h_file IN LISTS HEADER_LIST)
       # Using FIND_PATH is often faster than GLOB_RECURSE for single files
-      find_path(H_DIR NAMES "${h_file}" HINTS ${YOUR_SEARCH_PATHS})
+      find_path(H_DIR NAMES "${h_file}" HINTS ${CMAKE_CURRENT_SOURCE_DIR} NO_DEFAULT_PATH)
         if(H_DIR)
           list(APPEND TOTAL_INCLUDE_DIRS "${H_DIR}")
           unset(H_DIR CACHE) # Required to let find_path run again in loop
