@@ -2388,9 +2388,9 @@ runs: # Uses default x86_64 / linux user machine
           export TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_HEIGHT/ {print $NF; exit}' | grep -s . || false)
           export TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_WIDTH/ {print $NF; exit}' | grep -s . || false)
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
-            source "${envsetup}" && echo -e "Source: ${envsetup}";
+            echo -e "\nENVSetup: ${envsetup} found";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make clean && /usr/bin/make -j$(( $(nproc) / 2 )) -l 1 -k \$FILENAME";
+            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make clean && /usr/bin/make -j$(( $(nproc) / 2 )) -l 2 \$FILENAME";
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
