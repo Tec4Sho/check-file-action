@@ -766,7 +766,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -y -q -q flex bison libssl-dev gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' | tr -d '\n' && echo -e "####################\narm dependencies installed\n####################\n"; 
+          sudo aptitude install -y -q -q flex bison libssl-dev gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libelf-dev libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' | tr -d '\n' && echo -e "####################\narm dependencies installed\n####################\n"; 
         elif [[ "${linux_verison}" == "${linux_distro2}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n########## Copying ARM jammy sources to /etc/apt/sources.list ##########\n";
           sudo dpkg --add-architecture armhf
@@ -782,7 +782,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -y -q -q flex bison libssl-dev gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' | tr -d '\n' && echo -e "####################\narm dependencies installed\n####################\n";
+          sudo aptitude install -y -q -q flex bison libssl-dev gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libelf-dev libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' | tr -d '\n' && echo -e "####################\narm dependencies installed\n####################\n";
         elif [[ "${linux_verison}" == "${linux_distro3}" ]] && [[ "${{ env.arch }}" == "arm"* ]] && [[ -z "${{ inputs.pattern }}" ]]; then
           echo -e "\n########## Copying ARM focal sources to /etc/apt/sources.list ##########\n";
           sudo dpkg --add-architecture armhf
@@ -798,7 +798,7 @@ runs: # Uses default x86_64 / linux user machine
         EOF
           sudo rm -rf /var/lib/apt/lists/*
           sudo apt update >/dev/null 2>&1
-          sudo aptitude install -y -q -q flex bison libssl-dev gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' | tr -d '\n' && echo -e "####################\narm dependencies installed\n####################\n";
+          sudo aptitude install -y -q -q flex bison libssl-dev gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-armhf-cross gcc-multilib libc6-dev libgcc-s1 libelf-dev libc6-dev-arm64-cross 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' | tr -d '\n' && echo -e "####################\narm dependencies installed\n####################\n";
         fi;
         if [[ "${{ env.arch }}" == "arm"* ]]; then
           sudo dpkg --add-architecture i386 >/dev/null;
@@ -806,6 +806,7 @@ runs: # Uses default x86_64 / linux user machine
           echo "foreign-architectures: $(dpkg --print-foreign-architectures | tr '\n' ' ')";
           apt-cache policy | grep -E "o=Ubuntu|arch=" | gawk -F'b=' '!seen[$2]++ { print; }' | tr -d ' '
         fi;
+        echo -e "\n\033[35m\033[4mPython Version:\033[0m \033[1m$(python --version)\033[0m";
         sudo aptitude install -f -y -q -q 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' | tr -d '\n';
         PATH=$(echo -n "$PATH" | awk -v RS=: -v ORS=: '!x[$0]++' | sed 's/:$//')
         echo "export PATH=${PATH}" | tee -a ~/.bashrc >/dev/null;
@@ -2275,6 +2276,13 @@ runs: # Uses default x86_64 / linux user machine
           cd "${{ env.dirname }}" && echo -e "\n\033[1mUser Current Directory\033[0m:  ${{ env.dirname }}\n" | process_input;
           codechecker=$(fdfind -p -a -t f -1 'codechecker.yaml' "${github}");
           compile_json=$(fdfind -p -a -t f -1 'compile_commands.json' "${github}");
+          check_radio=$(fdfind -p -a -t f -1 -g '**/tools/check_radio_versions.py' "${github}");
+          if [[ -f "$check_radio" ]]; then
+            sed -i '1s|.*|#!/usr/bin/env python2|' "$check_radio";
+            echo -e "\n\033[32mEditing python file completed\033[0m: $check_radio\n" | process_input;
+          else
+            echo "import sys; sys.exit(0)" | tee build/make/tools/check_radio_versions.py 
+          fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
           compile_json='compile_commands.json';
@@ -2284,6 +2292,7 @@ runs: # Uses default x86_64 / linux user machine
         if ${{ inputs.filetype != '' }}; then
           file_type="${{ inputs.filetype }}";
         fi;
+        echo -e "\n\033[33mCurrent active python:\033[0m \033[1m$(python --version)\033[0m";
         build_alone() {
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
@@ -2376,7 +2385,7 @@ runs: # Uses default x86_64 / linux user machine
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
             source "${envsetup}" && echo -e "Source: ${envsetup}";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make clean && /usr/bin/make -j$(( $(nproc) / 2 )) -l 2 -k \$FILENAME";
+            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make clean && /usr/bin/make -j$(( $(nproc) / 2 )) -l 1 -k \$FILENAME";
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
