@@ -118,11 +118,11 @@ else()
   message(STATUS "Project Source: $ENV{github_source_dirs}")
 endif()
 
-set(CHECK_FILE_BUILD "${CMAKE_CURRENT_SOURCE_DIR}/build-source-files.txt")
+set(CHECK_FILE_BUILD "build-source-files.txt")
 
-file(GLOB_RECURSE PROJECT_SRC_FILES "build-source-files.txt")
+file(GLOB_RECURSE PROJECT_SRC_FILES "${CHECK_FILE_BUILD}")
 
-file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/build-source-files.txt" PROJECT_SRC_FILES)
+file(STRINGS "${PROJECT_SRC_FILES}" PROJECT_SRC_FILES)
 
 get_filename_component(build_compile_file ${CHECK_FILE_BUILD} NAME)
 
@@ -132,10 +132,10 @@ list(LENGTH PROJECT_SRC_FILES SOURCE_COUNT)
 
 message(STATUS "Source file count: ${SOURCE_COUNT}")
 
-if(EXISTS "${CHECK_FILE_BUILD}" AND IS_READABLE "${CHECK_FILE_BUILD}")
+if(EXISTS "${PROJECT_SRC_FILES}" AND IS_READABLE "${PROJECT_SRC_FILES}")
   set(FILE_COUNT 0)
-  file(STRINGS "${CHECK_FILE_BUILD}" FILE_CONTENT)
-  file(READ "${CHECK_FILE_BUILD}" content_of_file)
+  file(STRINGS "${PROJECT_SRC_FILES}" FILE_CONTENT)
+  file(READ "${PROJECT_SRC_FILES}" content_of_file)
   if(NOT "${content_of_file}" STREQUAL "")
     message(CHECK_START "Sources ${build_compile_file} found. Proceeding...")
     add_executable("${PROJECT_NAME}")
