@@ -487,6 +487,10 @@ runs: # Uses default x86_64 / linux user machine
         sudo add-apt-repository -y multiverse >/dev/null;
         sudo apt-get -y -q -q update 2>&1 >/dev/null | sed -E '/Running/,/host./d' | tr -d '\n';
         sudo apt-get -y -q -q install aptitude 2>&1 >/dev/null | sed -E '/Running/,/host./d' | tr -d '\n' && echo -e "\n####################\naptitude dependencies installed\n####################\n" || echo -e '::error::No aptitude installer for installing packages';
+        if [[ ! $(which python3) ]]; then
+          sudo aptitude -y -q -q install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' | tr -d '\n' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
+          [[ ! $(which python3) ]] && exit 1
+        fi;
         echo 'deb [trusted=yes] https://apt.gabe565.com /' | sudo tee -a /etc/apt/sources.list.d/gabe565.list >/dev/null;
       shell: bash
       continue-on-error: false
@@ -500,8 +504,9 @@ runs: # Uses default x86_64 / linux user machine
         if [[ -x "${{ github.action_path }}/scripts/linux.sh" ]]; then
           bash -c "${{ github.action_path }}/scripts/linux.sh";
           if ${{ inputs.project == 'true' }} && ${{ inputs.internal == 'true' }} && ${{ env.arch == 'arm' }}; then
+            source ~/.bashrc
             LLVM_VERSION="${{ inputs.version }}";
-            export USER LLVM_VERSION
+            export USER LLVM_VERSION LLVM_PATH
             bash -c "${{ github.action_path }}/scripts/linux-arm.sh";
           fi;
         fi;
@@ -515,10 +520,12 @@ runs: # Uses default x86_64 / linux user machine
     - id: output-path
       if: runner.os == 'Linux' && (inputs.project == 'true' || inputs.filename != '' || inputs.filetype != '')
       run: |
-        print('')
+        from __future__ import print_function
         import os
         with open(os.getenv("GITHUB_OUTPUT"), "a") as f:
-          print(f"llvm-path={os.getenv('LLVM_PATH')}", file=f)
+          print("llvm-path={}".format(os.getenv('LLVM_PATH')), file=f)
+      env:
+        LLVM_PATH: ${{ env.LLVM_PATH }}
       shell: python
       continue-on-error: true
 
@@ -542,10 +549,6 @@ runs: # Uses default x86_64 / linux user machine
         if [[ ! $(which clang) ]]; then
           sudo aptitude -y -q -q install clang 2>&1 >/dev/null | sed -E '/Running/,/host./d' | tr -d '\n' && echo -e "####################\nclang dependencies installed\n####################" || echo -e '::error::No clang installed for repo updates';
           [[ ! $(which clang) ]] && exit 1
-        fi;
-        if [[ ! $(which python3) ]]; then
-          sudo aptitude -y -q -q install python3 2>&1 >/dev/null | sed -E '/Running/,/host./d' | tr -d '\n' && echo -e "####################\npython3 dependencies installed\n####################" || echo -e '::error::No python3 installed for project checks';
-          [[ ! $(which python3) ]] && exit 1
         fi;
         cmake_version=$(cmake --version 2>/dev/null | grep version | awk '{ print $3; }');
         clang_version=$(clang --version 2>/dev/null | awk '{ print $4; }');
