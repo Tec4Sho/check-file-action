@@ -2247,11 +2247,10 @@ runs: # Uses default x86_64 / linux user machine
       if: contains(fromJSON('["arm", "arm64", "aarch64"]'), env.arch) && inputs.build == '5' && inputs.pattern == ''
       run: |
         source ~/.bashrc
-        set +e
         start_time="${{ env.seconds }}";
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
-        export CLANG_TRIPLE=arm-linux-gnueabihf-
+        export CLANG_TRIPLE=arm-linux-android-
         export SYSROOT="${SYSROOT}";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
