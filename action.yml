@@ -2281,10 +2281,10 @@ runs: # Uses default x86_64 / linux user machine
           check_radio=$(fdfind -p -a -t f -1 -g '**/tools/check_radio_versions.py' "${github}");
           if [[ -n "$check_radio" ]]; then
             echo -e "\033[33mNeutralizing legacy script\033[0m: $check_radio";
-       sudo bash -c "cat <<EOF > $check_radio
-       import sys
-       sys.exit(0)
-       EOF";
+        sudo bash -c "cat <<EOF > $check_radio
+        import sys
+        sys.exit(0)
+        EOF";
             sudo chmod +x "$check_radio"
             echo -e "\033[32mLegacy script neutralized successfully.\033[0m";
           fi;
