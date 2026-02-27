@@ -197,7 +197,7 @@ inputs:
     description: 'Path to Cmakelist.txt to use for building cmake project'
     type: string
     required: false
-    default: 'kernel/device/tb8163p3_bsp'
+    default: 'workspace/kernel/device/tb8163p3_bsp'
   root:
     description: 'Start search from linux-os root directory not just github_workspace for database'
     type: boolean
@@ -352,7 +352,7 @@ runs: # Uses default x86_64 / linux user machine
           local dirname="${{ inputs.dirname }}";
           [[ "$dirname" != '' ]] && dirname="/${dirname}";
           echo -e "\nSearching for $target_arch module linker script...";
-          local compilier=$(find "${GITHUB_WORKSPACE}" -path "*${dirname}/prebuilts/*" -type f -name "*-gcc" -print);
+          local compilier=$(find "$GITHUB_WORKSPACE" \( -path "*${dirname}/prebuilts/*" -o -path "*${dirname}/toolchain/*" \) -type f \( -name "*-gcc" -o -name "*-clang" \) -print);
           local lds_file=$(find "$GITHUB_WORKSPACE" -path "*/arch/$target_arch/*" -name "module.lds" | head -n 1);
           if [[ -z "$lds_file" ]]; then
            echo "module.lds not found. Searching for any .lds in arch/$target_arch..."
@@ -1586,20 +1586,6 @@ runs: # Uses default x86_64 / linux user machine
         include_source=false
         update=true
         fixed=false;
-        if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
-          cd "${{ env.dirname }}";
-          user_path="${{ github.workspace }}/${{ inputs.list }}/CMakeLists.txt";
-          default_path="${{ github.action_path }}/CMakeLists.txt";
-          if [[ -f "$user_path" ]]; then
-            echo "✅ Found user CMakeLists.txt at: $user_path";
-            cp "${user_path}" .
-          elif [[ ! -f 'CMakeLists.txt' ]] && [[ -f "$default_path" ]]; then
-            echo "✅ Using action default CMakeLists.txt";
-            cp "${default_path}" .
-          elif [[ ! -f 'CMakeLists.txt' ]]; then
-            echo ";;warning;;⚠️ No default or user CMakeLists.txt at $user_path or $default_path cmake errors may arise.";
-          fi;
-        fi;
         process_input() {
           while IFS= read -r output; do
             if ${{ inputs.output == '1' }}; then
@@ -1613,6 +1599,22 @@ runs: # Uses default x86_64 / linux user machine
             fi;
           done;
         }
+        if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
+          cd "${{ env.dirname }}";
+          build_source=$(fdfind -p -a -t f -1 'build-source-files.txt' "${{ env.base }}");
+          user_path="${{ github.workspace }}/${{ inputs.list }}/CMakeLists.txt";
+          default_path="${{ github.action_path }}/CMakeLists.txt";
+          if [[ -f "$user_path" ]]; then
+            echo "✅ Found user CMakeLists.txt at: $user_path" | process_input;
+            cp "${user_path}" .
+          elif [[ ! -f 'CMakeLists.txt' ]] && [[ -f "$default_path" ]]; then
+            echo "✅ Using action default CMakeLists.txt" | process_input;
+            cp "${default_path}" .
+          elif [[ ! -f 'CMakeLists.txt' ]]; then
+            echo ";;warning;;⚠️ No default or user CMakeLists.txt at $user_path or $default_path cmake errors may arise." | process_input;
+          fi;
+          [[ -f "${build_source}" ]] && cp "${build_source}" . && echo "✅ Build source files list found adding to cmake continuing ...." | process_input;
+        fi;
         if ${{ env.check_build == 'false' }}; then
           echo 'check_build=false' >> "${GITHUB_ENV}";
         fi;
@@ -2278,10 +2280,10 @@ runs: # Uses default x86_64 / linux user machine
           compile_json=$(fdfind -p -a -t f -1 'compile_commands.json' "${github}");
           check_radio=$(fdfind -p -a -t f -1 -g '**/tools/check_radio_versions.py' "${github}");
           if [[ -f "$check_radio" ]]; then
-            sed -i '1s|.*|#!/usr/bin/env python2|' "$check_radio";
+            sudo aptitude -y -q -q install python2 2>&1 >/dev/null | sed -E '/Running/,/host./d' | tr -d '\n' && echo -e "\n####################\npython2 dependencies installed\n####################" || echo -e '::error::No python 2 installed for project file amount checks'
+            sudo ln -vnsf /usr/bin/python2 /usr/bin/python
+            sed -i '1s|.*|#!/usr/bin/env python2|' "$check_radio" || echo "import sys; sys.exit(0)" | tee "$check_radio";
             echo -e "\n\033[32mEditing python file completed\033[0m: $check_radio\n" | process_input;
-          else
-            echo "import sys; sys.exit(0)" | tee build/make/tools/check_radio_versions.py 
           fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
@@ -2474,7 +2476,7 @@ runs: # Uses default x86_64 / linux user machine
         file_type="${file_name##*.}";
         cppchecks='.cppcheck';
         github="${GITHUB_WORKSPACE}";
-        repaired='check-file-repaired.txt'; build_source=$(find "$github" -type f -name 'build-source-files.txt');
+        repaired='check-file-repaired.txt'; build_source=$(find "$github" -type f -name 'build-source-files.txt' -print -quit);
         repository=${{ github.event.repository.name }};
         error_log="${github}/${{ env.filename }}_error.log";
         checked=false; include_count=1; missing_count=1;
