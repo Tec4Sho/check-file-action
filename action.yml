@@ -1781,7 +1781,7 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           if [[ -d 'build' ]]; then
             echo -e '\n####################\n\tbuild directory created continuing...\n####################\n' | process_input;
-            if ${{ inputs.content == 'false' }} && [[ "$(source_dirs)" ]] && [[ ! -f "${compile_json}" ]] && (${{ env.sources }} || [[ -e 'check-file-compile.txt' ]]); then
+            if ${{ inputs.content == 'false' }} && [[ "$(source_dirs)" ]] && [[ ! -f "${compile_json}" ]] && (${{ env.sources }} || [[ -e 'check-file-compile.txt' ]] || [[ -e 'build-source-files.txt' ]]); then
               echo "github_source_dirs=$(source_dirs)" >> "${GITHUB_ENV}";
               echo -e 'Cmake Sources: mode [1]\n';
               cmake -S . -DPROJECT_SRC_DIRS="$(source_dirs)" -DGITHUB_PROJECT_NAME="${repository}" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON build 2>&1 | cmakebar --replay --est true | process_input || echo "::error::( $? ) Missing or malformed CMakeList.txt!?" | process_input;
@@ -2494,10 +2494,10 @@ runs: # Uses default x86_64 / linux user machine
         }
         [[ -f compile_commands.json ]] && compile_json='compile_commands.json' || compile_json='build/compile_commands.json'; mkdir -p build/cppcheck; build_dir='build/cppcheck'; [[ "${{ inputs.absolute }}" == "true" ]] && path='--absolute-path' || path='--relative-path';
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [cth]* ]]; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
@@ -2506,10 +2506,10 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n####################\nDatabase File Extension: ${{ env.filename }}\n####################" | process_input;
           fi;
         elif [[ "${file_type}" == [cth]* ]]; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
@@ -2606,13 +2606,13 @@ runs: # Uses default x86_64 / linux user machine
                   echo -e "\n\033[1mcheck-file: ${count} include paths for \033[1m${file##*/}\033[0m added!" | process_input;
                 fi;
                 if ${{ inputs.repair == 'true' }}; then
-                  if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
+                  if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -qsF "${search_path}" "${repaired}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORED NOTHING TO REPAIR\n####################" | process_input;
                     echo -e "\n####################\nChecked on ${check_date}\nSkipping {file%/*}\n####################" | process_input;
                   elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
-                    echo -e "\n\n####################\nCLANG-TIDY ERRORS REPAIR ANALYZER: ( ${count1} )\n####################\n" | process_input;
+                    echo -e "\n####################\nCLANG-TIDY ERRORS REPAIR ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- ${include_bases} 2>&1 | process_input || error2="$?";
-                    if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") || ! $(grep -sE "Error while processing ${file//./\\.}" "${error_log}") ]]; then
+                    if [[ -s "${error_log}" ]] && [[ ! $(grep -qsE "Error while processing ${file//./\\.}") || ! $(grep -qsE "Error while processing .+${file//./\\.}" "${error_log}") ]]; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                       fixed=true
                     else
@@ -2621,9 +2621,9 @@ runs: # Uses default x86_64 / linux user machine
                     fi;
                     echo "${file} $(date)" >> "${repaired}";
                   elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
-                    echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
+                    echo -e "\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- ${include_bases} 2>&1 | process_input || error2="$?";
-                    if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") || ! $(grep -sE "Error while processing ${file//./\\.}" "${error_log}") ]]; then
+                    if [[ -s "${error_log}" ]] && [[ ! $(grep -qsE "Error while processing ${file//./\\.}") || ! $(grep -qsE "Error while processing .+${file//./\\.}" "${error_log}") ]]; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                       fixed=true
                     else
@@ -2638,30 +2638,30 @@ runs: # Uses default x86_64 / linux user machine
                   else
                     cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --showtime=file-total --suppress=missingIncludeSystem --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" --includes-file="${include_paths}" 2>&1 | process_input || error="$?";
                   fi;
-                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ ! $(grep -qsE "${file//./\\.}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   else
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS\n####################" | process_input;
                     errors=true
                   fi;
-                  if [[ -s "${error_log}" ]] && [[ $(grep -sE "${file//./\\.}.*Include file:" "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ $(grep -qsE "${file//./\\.}.*Include file:" "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
                     echo 'include_missing=true' >> "${GITHUB_ENV}";
                   fi;
-                  if [[ -s "${error_log}" ]] && [[ $(grep -sE '\[.*:[0-9]*\] #error' "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ $(grep -qsE '\[.*:[0-9]*\] #error' "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m INCLUDE FILE WITH ERRORS FOUND IN: ${file##*/}\n####################" | process_input;
                     echo 'include_missing=true' >> "${GITHUB_ENV}";
                   fi;
                 fi;
               else
                 if ${{ inputs.repair == 'true' }}; then
-                  if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
+                  if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && [[ $(grep -qsF "${search_path}" "${repaired}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORED NOTHING TO REPAIR\n####################" | process_input;
                     echo -e "\n####################\nChecked on ${check_date}\n\033[32mSkipping:\033[0m ${file}\n####################" | process_input;
                   elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
-                    if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") || ! $(grep -sE "Error while processing ${file//./\\.}" "${error_log}") ]]; then
+                    if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") || ! $(grep -qsE "Error while processing ${file//./\\.}" "${error_log}") ]]; then
                       echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                       fixed=true
                     else
@@ -2673,7 +2673,7 @@ runs: # Uses default x86_64 / linux user machine
                   elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
-                    if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") || ! $(grep -sE "Error while processing ${file//./\\.}" "${error_log}") ]]; then
+                    if [[ -s "${error_log}" ]] && [[ ! $(grep -qsE "Error while processing ${file//./\\.}") || ! $(grep -qsE "Error while processing .+${file//./\\.}" "${error_log}") ]]; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                       fixed=true
                     else
@@ -2684,9 +2684,9 @@ runs: # Uses default x86_64 / linux user machine
                 else
                   echo -e "\n\n####################\nCPPCHECK FILE ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingIncludeSystem --cppcheck-build-dir="${build_dir}" "${file}" 2>&1 | process_input || error="$?";
-                  if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ ! $(grep -qsE "${file//./\\.}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
-                  elif [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*Include file:" "${error_log}") ]]; then
+                  elif [[ -s "${error_log}" ]] && [[ ! $(grep -qsE "${file//./\\.}.*Include file:" "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
                     echo 'include_missing=true' >> "${GITHUB_ENV}";
                   else
@@ -2718,7 +2718,7 @@ runs: # Uses default x86_64 / linux user machine
             echo "::notice::clang-tidy ( ${error2} )" | process_input;
           fi;
           [[ "${errors}" == 'true' ]] && echo "file_error=1" >> "$GITHUB_ENV";
-          if [[ "${fixed}" == 'true' ]] && grep -qaiE 'fixit|fix-it' "${error_log}"; then
+          if [[ "${fixed}" == 'true' ]] && grep -qaiE 'fixes|fixit|fix-it' "${error_log}"; then
             echo "file_fixed=1" >> "$GITHUB_ENV";
           fi;
           [[ -s "${error_log}" ]] && cp "${error_log}" build/
@@ -2767,10 +2767,10 @@ runs: # Uses default x86_64 / linux user machine
           path='--relative-path';
         fi;
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == sh ]]; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
@@ -2779,10 +2779,10 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n####################\nDatabase File Extension: ${{ env.filename }}\n####################" | process_input;
           fi;
         elif [[ "${file_type}" == sh ]]; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
@@ -2825,7 +2825,7 @@ runs: # Uses default x86_64 / linux user machine
             fi;
             if ${{ inputs.repair == 'true' }}; then
               echo -e "\n####################\nSHELLCHECK REPAIR ${file##*/} ERRORS: ( ${count3} )\n####################" | process_input;
-              if ${{ inputs.stored == 'true' }} && ${{ inputs.update == 'true' }} && [[ $(grep -sF "${search_path}" "${repaired}") ]]; then
+              if ${{ inputs.stored == 'true' }} && ${{ inputs.update == 'true' }} && [[ $(grep -qsF "${search_path}" "${repaired}") ]]; then
                 echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORED NOTHING TO REPAIR\n####################" | process_input;
                 echo -e "\n####################\nRepaired on ${check_date}\nSkipping ${file##*/}\n####################" | process_input;
               elif ${{ inputs.stored == 'true' }} && ${{ inputs.update == 'true' }}; then
@@ -2937,10 +2937,10 @@ runs: # Uses default x86_64 / linux user machine
           path='--relative-path';
         fi;
         if ${{ inputs.database == 'true' }} && [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
@@ -2949,10 +2949,10 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n####################\nDatabase File Extension: ${{ env.filename }}\n####################" | process_input;
           fi;
         elif [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
@@ -3060,10 +3060,10 @@ runs: # Uses default x86_64 / linux user machine
           path='--relative-path';
         fi;
         if ${{ inputs.database == 'true' }}; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
@@ -3072,10 +3072,10 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n####################\nDatabase File Extension: ${{ env.filename }}\n####################" | process_input;
           fi;
         else
-          if [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "/" | grep . || sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file -g "**/${{ inputs.filename }}" "/");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -Eo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "/" | grep . || sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file -g "**/${{ inputs.filename }}" "/");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
