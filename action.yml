@@ -809,7 +809,7 @@ runs: # Uses default x86_64 / linux user machine
           echo "foreign-architectures: $(dpkg --print-foreign-architectures | tr '\n' ' ')";
           apt-cache policy | grep -E "o=Ubuntu|arch=" | gawk -F'b=' '!seen[$2]++ { print; }' | tr -d ' '
         fi;
-        echo -e "\n\033[35m\033[4mPython Version:\033[0m \033[1m$(python --version)\033[0m";
+        echo -e "\n\033[35m\033[4mPython Version:\033[0m \033[1m$(python --version 2>&1)\033[0m";
         sudo aptitude install -f -y -q -q 2>&1 >/dev/null | sed -E '/(Running|systemctl)/,/host./d' | tr -d '\n';
         PATH=$(echo -n "$PATH" | awk -v RS=: -v ORS=: '!x[$0]++' | sed 's/:$//')
         echo "export PATH=${PATH}" | tee -a ~/.bashrc >/dev/null;
@@ -2283,13 +2283,16 @@ runs: # Uses default x86_64 / linux user machine
           compile_json=$(fdfind -p -a -t f -1 'compile_commands.json' "${github}");
           check_radio=$(fdfind -p -a -t f -1 -g '**/tools/check_radio_versions.py' "${github}");
           if [[ -n "$check_radio" ]]; then
-            echo -e "\033[33mNeutralizing legacy script\033[0m: $check_radio";
-        sudo bash -c "cat <<EOF > $check_radio
+            fdfind -p -a -t f 'check_radio_versions.py' "${github}" | while read -r script; do
+              echo -e "\033[33mNeutralizing legacy script\033[0m: $script";
+        sudo bash -c "cat <<EOF > $script
         import sys
+        # Neutralized for Python 3 compatibility
         sys.exit(0)
-        EOF";
-            sudo chmod +x "$check_radio"
-            echo -e "\033[32mLegacy script neutralized successfully.\033[0m";
+        EOF"
+              sudo chmod +x "$script";
+            done;
+            echo -e "\033[32mLegacy scripts neutralized successfully.\033[0m";
           fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
@@ -2300,7 +2303,7 @@ runs: # Uses default x86_64 / linux user machine
         if ${{ inputs.filetype != '' }}; then
           file_type="${{ inputs.filetype }}";
         fi;
-        echo -e "\n\033[33mCurrent python:\033[0m \033[1m$(python --version)\033[0m \033[32m(active)\033[0m";
+        echo -e "\n\033[33mCurrent python:\033[0m \033[1m$(python --version 2>&1)\033[0m \033[32m(active)\033[0m";
         build_alone() {
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
@@ -2384,6 +2387,8 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
           export TERM=dumb
+          export HOSTCFLAGS="-fcommon";
+          export HOSTCXXFLAGS="-fcommon";
           export ALLOW_MISSING_DEPENDENCIES=true
           export MAKEFILE_NAME="${{ inputs.makefile }}";
           export FILENAME="${{ env.filename }}";
@@ -2393,7 +2398,7 @@ runs: # Uses default x86_64 / linux user machine
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
             echo -e "\nENVSetup: ${envsetup} found";
             echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make clean && /usr/bin/make -j$(( $(nproc) / 2 )) -l 2 \$FILENAME";
+            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make clean && export HOSTCFLAGS='-fcommon' && export HOSTCXXFLAGS='-fcommon' && /usr/bin/make -j$(( $(nproc) / 2 )) -l 2 \$FILENAME";
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
