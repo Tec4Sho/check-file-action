@@ -1104,17 +1104,13 @@ runs: # Uses default x86_64 / linux user machine
         include_count_file='include-count-file.txt';
         github="${GITHUB_WORKSPACE}";
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${project_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${project_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${project_log}" ;; # Show in console AND save
+            2) cat >> "${project_log}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ inputs.absolute == 'true' }}; then
           abs='--absolute-path';
@@ -1348,17 +1344,13 @@ runs: # Uses default x86_64 / linux user machine
         github="${GITHUB_WORKSPACE}";
         export LC_ALL=C.UTF-8
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${project_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${project_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${project_log}" ;; # Show in console AND save
+            2) cat >> "${project_log}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ inputs.include == 'true' }}; then
           ${{ inputs.internal == 'true' }} && export I="${LINUXINCLUDE} ${USERINCLUDE}" || export I="-isystem/usr/src/linux-headers-$(uname -r)/include -I/usr/src/linux-headers-$(uname -r)";
@@ -1454,17 +1446,13 @@ runs: # Uses default x86_64 / linux user machine
         count=0
         file_count=1
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${data_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${data_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${data_log}" ;; # Show in console AND save
+            2) cat >> "${data_log}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ inputs.absolute == 'true' }}; then
           path='--absolute-path';
@@ -1590,17 +1578,13 @@ runs: # Uses default x86_64 / linux user machine
         update=true
         fixed=false;
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${project_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${project_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${project_log}" ;; # Show in console AND save
+            2) cat >> "${project_log}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}";
@@ -1849,17 +1833,13 @@ runs: # Uses default x86_64 / linux user machine
           cd "${{ env.dirname }}";
         fi;
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${project_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${project_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${project_log}" ;; # Show in console AND save
+            2) cat >> "${project_log}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ env.check_build == 'false' }}; then
           echo 'check_build=false' >> "${GITHUB_ENV}";
@@ -2010,17 +1990,13 @@ runs: # Uses default x86_64 / linux user machine
         CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
         repository=${{ github.event.repository.name }};
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${error_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${error_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${project_log}" ;; # Show in console AND save
+            2) cat >> "${project_log}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ inputs.absolute == 'true' }}; then
           path='--absolute-path';
@@ -2102,17 +2078,13 @@ runs: # Uses default x86_64 / linux user machine
         fixed=false
         count=0
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${project_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${project_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${project_log}" ;; # Show in console AND save
+            2) cat >> "${project_log}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}" && echo -e "\n\033[1mUser Current Directory\033[0m:  ${{ env.dirname }}\n" | process_input;
@@ -2264,17 +2236,13 @@ runs: # Uses default x86_64 / linux user machine
         envsetup=$(fdfind -p -a -t f -1 'envsetup.sh' "${github}");
         update=true
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${project_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${project_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${project_log}" ;; # Show in console AND save
+            2) cat >> "${project_log}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}" && echo -e "\n\033[1mUser Current Directory\033[0m: ${{ env.dirname }}" | process_input;
@@ -2391,9 +2359,9 @@ runs: # Uses default x86_64 / linux user machine
           export TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_HEIGHT/ {print $NF; exit}' | grep -s . || false)
           export TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_WIDTH/ {print $NF; exit}' | grep -s . || false)
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
-            echo -e "\nENVSetup: ${envsetup} found";
-            echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make clean && export HOSTCFLAGS='-fcommon' && export HOSTCXXFLAGS='-fcommon' && /usr/bin/make -j$(( $(nproc) / 2 )) -l 2 \$FILENAME";
+            echo -e "\ENVSETUP FILE: ${envsetup} found" | process_input;
+            echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing...\n" | process_input;
+            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make clean && export HOSTCFLAGS='-fcommon' && export HOSTCXXFLAGS='-fcommon' && /usr/bin/make -j$(( $(nproc) / 2 )) -l 2 KCFLAGS='-w' \$FILENAME"
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
@@ -2488,17 +2456,13 @@ runs: # Uses default x86_64 / linux user machine
         checked=false; include_count=1; missing_count=1;
         countX=0; count1=0; count2=0; error=0; error1=0; error2=0;
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${error_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${error_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${error_log}" ;; # Show in console AND save
+            2) cat >> "${error_log}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         [[ -f compile_commands.json ]] && compile_json='compile_commands.json' || compile_json='build/compile_commands.json'; mkdir -p build/cppcheck; build_dir='build/cppcheck'; [[ "${{ inputs.absolute }}" == "true" ]] && path='--absolute-path' || path='--relative-path';
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [cth]* ]]; then
@@ -2620,23 +2584,23 @@ runs: # Uses default x86_64 / linux user machine
                   elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                     echo -e "\n####################\nCLANG-TIDY ERRORS REPAIR ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- ${include_bases} 2>&1 | process_input || error2="$?";
-                    if [[ -s "${error_log}" ]] && [[ ! $(grep -qsE "Error while processing ${file//./\\.}") || ! $(grep -qsE "Error while processing .+${file//./\\.}" "${error_log}") ]]; then
-                      echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
-                      fixed=true
-                    else
+                    if [[ -s "${error_log}" ]] && [[ $(grep -qsE "Error while processing ${file//./\\.}") || $(grep -qsE "Error while processing .+${file//./\\.}" "${error_log}") ]]; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                       errors=true
+                    else
+                      echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                      fixed=true
                     fi;
                     echo "${file} $(date)" >> "${repaired}";
                   elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                     echo -e "\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- ${include_bases} 2>&1 | process_input || error2="$?";
-                    if [[ -s "${error_log}" ]] && [[ ! $(grep -qsE "Error while processing ${file//./\\.}") || ! $(grep -qsE "Error while processing .+${file//./\\.}" "${error_log}") ]]; then
-                      echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
-                      fixed=true
-                    else
+                    if [[ -s "${error_log}" ]] && [[ $(grep -qsE "Error while processing ${file//./\\.}") || $(grep -qsE "Error while processing .+${file//./\\.}" "${error_log}") ]]; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input;
                       errors=true
+                    else
+                      echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                      fixed=true
                     fi;
                   fi;
                 else
@@ -2646,11 +2610,11 @@ runs: # Uses default x86_64 / linux user machine
                   else
                     cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --showtime=file-total --suppress=missingIncludeSystem --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" --includes-file="${include_paths}" 2>&1 | process_input || error="$?";
                   fi;
-                  if [[ -s "${error_log}" ]] && [[ ! $(grep -qsE "${file//./\\.}.*error:" "${error_log}") ]]; then
-                    echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
-                  else
+                  if [[ -s "${error_log}" ]] && [[ $(grep -qsE "${file//./\\.}.*error:" "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS\n####################" | process_input;
                     errors=true
+                  else
+                    echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   fi;
                   if [[ -s "${error_log}" ]] && [[ $(grep -qsE "${file//./\\.}.*Include file:" "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
@@ -2669,37 +2633,37 @@ runs: # Uses default x86_64 / linux user machine
                   elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
-                    if [[ -s "${error_log}" ]] && [[ ! $(grep -sE "${file//./\\.}.*error:" "${error_log}") || ! $(grep -qsE "Error while processing ${file//./\\.}" "${error_log}") ]]; then
-                      echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
-                      fixed=true
-                    else
-                      echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
+                    if [[ -s "${error_log}" ]] && [[ $(grep -qsE "Error while processing ${file//./\\.}") || $(grep -qsE "Error while processing .+${file//./\\.}" "${error_log}") ]]; then
+                      echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                       errors=true
+                    else
+                      echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                      fixed=true
                     fi;
                     echo "${file} $(date)" >> "${repaired}";
                     fixed=true
                   elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                     echo -e "\n\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
-                    if [[ -s "${error_log}" ]] && [[ ! $(grep -qsE "Error while processing ${file//./\\.}") || ! $(grep -qsE "Error while processing .+${file//./\\.}" "${error_log}") ]]; then
-                      echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
-                      fixed=true
-                    else
+                    if [[ -s "${error_log}" ]] && [[ $(grep -qsE "Error while processing ${file//./\\.}") || $(grep -qsE "Error while processing .+${file//./\\.}" "${error_log}") ]]; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input;
                       errors=true
+                    else
+                      echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                      fixed=true
                     fi;
                   fi;
                 else
                   echo -e "\n\n####################\nCPPCHECK FILE ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingIncludeSystem --cppcheck-build-dir="${build_dir}" "${file}" 2>&1 | process_input || error="$?";
-                  if [[ -s "${error_log}" ]] && [[ ! $(grep -qsE "${file//./\\.}.*error:" "${error_log}") ]]; then
-                    echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
-                  elif [[ -s "${error_log}" ]] && [[ ! $(grep -qsE "${file//./\\.}.*Include file:" "${error_log}") ]]; then
+                  if [[ -s "${error_log}" ]] && [[ $(grep -qsE "${file//./\\.}.*error:" "${error_log}") ]]; then
+                    echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS\n####################" | process_input;
+                    errors=true
+                  elif [[ -s "${error_log}" ]] && [[ $(grep -qsE "${file//./\\.}.*Include file:" "${error_log}") ]]; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
                     echo 'include_missing=true' >> "${GITHUB_ENV}";
                   else
-                    echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS\n####################" | process_input;
-                    errors=true
+                    echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   fi;
                 fi;
               fi;
@@ -2709,7 +2673,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
               echo -e "\nFinished processing ${file}" | process_input;
               if ${{ inputs.number > '0' }}; then
-                [[ "${{ inputs.number }}" -eq "${count1}" ]] && echo -e "\nFile checking auto stopped at: ${count1} / ${file##*/}" | process_input && break;
+                if [[ "${{ inputs.number }}" -eq "${count1}" ]]; then echo -e "\nFile checking auto stopped at: ${count1} / ${file##*/}" | process_input; break; fi;
               fi;      
             done;
           }
@@ -2757,17 +2721,13 @@ runs: # Uses default x86_64 / linux user machine
         count3=0
         error=0
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${error_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${error_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${error_log}" ;; # Show in console AND save
+            2) cat >> "${error_log}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ inputs.absolute == 'true' }}; then
           path='--absolute-path';
@@ -2927,17 +2887,13 @@ runs: # Uses default x86_64 / linux user machine
         count4=0
         error=0
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${error_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${error_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${error_log}" ;; # Show in console AND save
+            2) cat >> "${error_log}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ inputs.absolute == 'true' }}; then
           path='--absolute-path';
@@ -3050,17 +3006,13 @@ runs: # Uses default x86_64 / linux user machine
         data_log="${github}/${{ env.filename }}_data.log";
         count5=0
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${data_log}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${data_log}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${data_log}" ;; # Show in console AND save
+            2) cat >> "${data_log}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ inputs.absolute == 'true' }}; then
           path='--absolute-path';
@@ -3238,22 +3190,18 @@ runs: # Uses default x86_64 / linux user machine
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}";
         file_path='check_file_paths.txt';
-        logfile="${{ env.filename }}_error.log"
+        log_file="${{ env.filename }}_error.log"
         [[ -e "${{ env.filename }}_data.log" ]] && logfile="${{ env.filename }}_data.log";
         file_count=1
         count=0
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${logfile}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${logfile}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${log_file}" ;; # Show in console AND save
+            2) cat >> "${log_file}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ inputs.absolute == 'true' }}; then
           path='--absolute-path';
@@ -3311,17 +3259,13 @@ runs: # Uses default x86_64 / linux user machine
         fixed=false
         count=1
         process_input() {
-          while IFS= read -r output; do
-            if ${{ inputs.output == '1' }}; then
-              echo -e "${output}" | tee -a "${log_file}";
-            elif ${{ inputs.output == '2' }}; then
-              echo -e "${output}" >> "${log_file}";
-            elif ${{ inputs.output == '3' }}; then
-              echo -e "${output}";
-            elif ${{ inputs.output == '4' }}; then
-              echo -e "${output}" >/dev/null;
-            fi;
-          done;
+          case "${{ inputs.output }}" in
+            1) tee -a "${log_file}" ;; # Show in console AND save
+            2) cat >> "${log_file}" ;;  # Save only (append)
+            3) cat ;;                   # Show in console only
+            4) cat >/dev/null ;;        # Completely silent
+            *) cat ;;                   # Default fallback
+          esac
         }
         if ${{ inputs.absolute == 'true' }}; then
           abs='--absolute-path';
