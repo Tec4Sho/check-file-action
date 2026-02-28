@@ -25,118 +25,7 @@ string(ASCII 13 CR)
 	endif()
 	
 # For arm 32 an 64 bit builds using inputs.arch=arm
-if($ENV{linux})
-	if($ENV{arch} STREQUAL "arm")
-	# These MUST come before the project() call
-	  set(CMAKE_SYSTEM_NAME Linux)
-	  set(CMAKE_SYSTEM_PROCESSOR arm)
-	  set(ARM_TRIPLE arm-linux-gnueabihf)
-	  set(ARM_SYSROOT /usr/${ARM_TRIPLE})
-	# Set the flags for the compilers
-	  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-	  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-	# Set the flags for the linker
-	  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-	  set(CMAKE_C_COMPILER_FORCED TRUE)
-	  set(CMAKE_CXX_COMPILER_FORCED TRUE)
-	  set(CMAKE_C_COMPILER clang)
-	  set(CMAKE_CXX_COMPILER clang++)
-	  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
-	  message(STATUS "Project Arch: $ENV{arch}")
-	endif()
-	if($ENV{arch} STREQUAL "arm64")
-	# These MUST come before the project() call
-	  set(CMAKE_SYSTEM_NAME Linux)
-	  set(CMAKE_SYSTEM_PROCESSOR arm64)
-	  set(ARM_TRIPLE aarch64-unknown-linux-gnu)
-	  set(ARM_SYSROOT /usr/${ARM_TRIPLE})
-	# Set the flags for the compilers
-	  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-	  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-	# Set the flags for the linker
-	  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-	  set(CMAKE_C_COMPILER_FORCED TRUE)
-	  set(CMAKE_CXX_COMPILER_FORCED TRUE)
-	  set(CMAKE_C_COMPILER clang)
-	  set(CMAKE_CXX_COMPILER clang++)
-	  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
-	  message(STATUS "Project Arch: $ENV{arch}")
-	endif()
-	target_compile_definitions("${PROJECT_NAME}" PRIVATE 
-	    __KERNEL__ 
-	    LINUX 
-	    MODULE 
-	    KBUILD_MODNAME="${PROJECT_NAME}"
-	    ARCH_$ENV{arch}
-	)
-	target_compile_options("${PROJECT_NAME}" PRIVATE
-	    -ffreestanding
-	    -fno-builtin
-	    -fno-stack-protector
-	    -mno-red-zone
-	    -O2 # Kernels typically require at least -O1 for inline functions to work
-	)
-else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-pic")
-	if($ENV{arch} STREQUAL "arm")
-	# These MUST come before the project() call
-	  set(CMAKE_SYSTEM_NAME Linux)
-	  set(CMAKE_SYSTEM_PROCESSOR arm)
-	  set(ARM_TRIPLE arm-linux-android)
-	  set(ARM_SYSROOT ${GITHUB_WORKSPACE}/workspace/prebuilts/${ARM_TRIPLE})
-	# Set the flags for the compilers
-	  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-	  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-	# Set the flags for the linker
-	  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-	  set(CMAKE_C_COMPILER_FORCED TRUE)
-	  set(CMAKE_CXX_COMPILER_FORCED TRUE)
-	  set(CMAKE_C_COMPILER clang)
-	  set(CMAKE_CXX_COMPILER clang++)
-	  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
-	  target_compile_options("${PROJECT_NAME}" PRIVATE
-	    -ffreestanding
-	    -fno-stack-protector
-	    -fstack-protector-strong
-	    -fsanitize=shadow-call-stack
-	    -ftrivial-auto-var-init=pattern
-	    --target=arm-linux-android
-	  )
-	  message(STATUS "Project Arch: $ENV{arch}")
-	endif()
-	if($ENV{arch} STREQUAL "arm64")
-	# These MUST come before the project() call
-	  set(CMAKE_SYSTEM_NAME Linux)
-	  set(CMAKE_SYSTEM_PROCESSOR arm64)
-	  set(ARM_TRIPLE aarch64-linux-android)
-	  set(ARM_SYSROOT ${GITHUB_WORKSPACE}/workspace/prebuilts/${ARM_TRIPLE})
-	# Set the flags for the compilers
-	  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-	  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-	# Set the flags for the linker
-	  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-	  set(CMAKE_C_COMPILER_FORCED TRUE)
-	  set(CMAKE_CXX_COMPILER_FORCED TRUE)
-	  set(CMAKE_C_COMPILER clang)
-	  set(CMAKE_CXX_COMPILER clang++)
-	  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
-	  target_compile_options("${PROJECT_NAME}" PRIVATE
-	    -ffreestanding
-	    -fno-stack-protector
-	    -fstack-protector-strong
-	    -fsanitize=shadow-call-stack
-	    -ftrivial-auto-var-init=pattern
-	    --target=aarch64-linux-android
-	  )
-	  message(STATUS "Project Arch: $ENV{arch}")
-	endif()
-	target_compile_definitions("${PROJECT_NAME}" PRIVATE 
-	    __KERNEL__ 
-	    LINUX 
-	    CONFIG_ANDROID
-	    KBUILD_MODNAME="${PROJECT_NAME}"
-	)
-endif()
+
 # ... many examples of user defined project settings for C/C++ ... #
 
 project("${PROJECT_NAME}" VERSION 1.0 LANGUAGES C)
@@ -388,6 +277,119 @@ elseif(PROJECT_AUTO_INCLUDE)
   endif()
   set_target_properties("${PROJECT_NAME}" PROPERTIES LINKER_LANGUAGE C)
   message(STATUS "Project Builder: cmake added source files an include directories. build-source-files.txt scan complete [check 8 custom build]")
+endif()
+
+if($ENV{linux})
+	if($ENV{arch} STREQUAL "arm")
+	# These MUST come before the project() call
+	  set(CMAKE_SYSTEM_NAME Linux)
+	  set(CMAKE_SYSTEM_PROCESSOR arm)
+	  set(ARM_TRIPLE arm-linux-gnueabihf)
+	  set(ARM_SYSROOT /usr/${ARM_TRIPLE})
+	# Set the flags for the compilers
+	  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	# Set the flags for the linker
+	  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_C_COMPILER_FORCED TRUE)
+	  set(CMAKE_CXX_COMPILER_FORCED TRUE)
+	  set(CMAKE_C_COMPILER clang)
+	  set(CMAKE_CXX_COMPILER clang++)
+	  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+	  message(STATUS "Project Arch: $ENV{arch}")
+	endif()
+	if($ENV{arch} STREQUAL "arm64")
+	# These MUST come before the project() call
+	  set(CMAKE_SYSTEM_NAME Linux)
+	  set(CMAKE_SYSTEM_PROCESSOR arm64)
+	  set(ARM_TRIPLE aarch64-unknown-linux-gnu)
+	  set(ARM_SYSROOT /usr/${ARM_TRIPLE})
+	# Set the flags for the compilers
+	  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	# Set the flags for the linker
+	  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_C_COMPILER_FORCED TRUE)
+	  set(CMAKE_CXX_COMPILER_FORCED TRUE)
+	  set(CMAKE_C_COMPILER clang)
+	  set(CMAKE_CXX_COMPILER clang++)
+	  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+	  message(STATUS "Project Arch: $ENV{arch}")
+	endif()
+	target_compile_definitions("${PROJECT_NAME}" PRIVATE 
+	    __KERNEL__ 
+	    LINUX 
+	    MODULE 
+	    KBUILD_MODNAME="${PROJECT_NAME}"
+	    ARCH_$ENV{arch}
+	)
+	target_compile_options("${PROJECT_NAME}" PRIVATE
+	    -ffreestanding
+	    -fno-builtin
+	    -fno-stack-protector
+	    -mno-red-zone
+	    -O2 # Kernels typically require at least -O1 for inline functions to work
+	)
+else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-pic")
+	if($ENV{arch} STREQUAL "arm")
+	# These MUST come before the project() call
+	  set(CMAKE_SYSTEM_NAME Linux)
+	  set(CMAKE_SYSTEM_PROCESSOR arm)
+	  set(ARM_TRIPLE arm-linux-android)
+	  set(ARM_SYSROOT ${GITHUB_WORKSPACE}/workspace/prebuilts/${ARM_TRIPLE})
+	# Set the flags for the compilers
+	  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	# Set the flags for the linker
+	  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_C_COMPILER_FORCED TRUE)
+	  set(CMAKE_CXX_COMPILER_FORCED TRUE)
+	  set(CMAKE_C_COMPILER clang)
+	  set(CMAKE_CXX_COMPILER clang++)
+	  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+	  target_compile_options("${PROJECT_NAME}" PRIVATE
+	    -ffreestanding
+	    -fno-stack-protector
+	    -fstack-protector-strong
+	    -fsanitize=shadow-call-stack
+	    -ftrivial-auto-var-init=pattern
+	    --target=arm-linux-android
+	  )
+	  message(STATUS "Project Arch: $ENV{arch}")
+	endif()
+	if($ENV{arch} STREQUAL "arm64")
+	# These MUST come before the project() call
+	  set(CMAKE_SYSTEM_NAME Linux)
+	  set(CMAKE_SYSTEM_PROCESSOR arm64)
+	  set(ARM_TRIPLE aarch64-linux-android)
+	  set(ARM_SYSROOT ${GITHUB_WORKSPACE}/workspace/prebuilts/${ARM_TRIPLE})
+	# Set the flags for the compilers
+	  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	# Set the flags for the linker
+	  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_C_COMPILER_FORCED TRUE)
+	  set(CMAKE_CXX_COMPILER_FORCED TRUE)
+	  set(CMAKE_C_COMPILER clang)
+	  set(CMAKE_CXX_COMPILER clang++)
+	  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+	  target_compile_options("${PROJECT_NAME}" PRIVATE
+	    -ffreestanding
+	    -fno-stack-protector
+	    -fstack-protector-strong
+	    -fsanitize=shadow-call-stack
+	    -ftrivial-auto-var-init=pattern
+	    --target=aarch64-linux-android
+	  )
+	  message(STATUS "Project Arch: $ENV{arch}")
+	endif()
+	target_compile_definitions("${PROJECT_NAME}" PRIVATE 
+	    __KERNEL__ 
+	    LINUX 
+	    CONFIG_ANDROID
+	    KBUILD_MODNAME="${PROJECT_NAME}"
+	)
 endif()
 
 # .set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
