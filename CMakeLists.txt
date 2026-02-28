@@ -119,62 +119,62 @@ else()
 endif()
 
 # 1. Find the file
-#file(GLOB CHECK_FILE_PATH "build-source-files.txt")
-
-set(CHECK_FILE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build-source-files.txt")
+# file(GLOB CHECK_FILE_PATH "build-source-files.txt")
+# set(CHECK_FILE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build-source-files.txt")
 
 # 2. Start the logic if file is found
-if(EXISTS "${CHECK_FILE_PATH}" AND IS_READABLE "${CHECK_FILE_PATH}")
-  file(STRINGS "${CHECK_FILE_PATH}" CHECK_BUILD)
-  get_filename_component(CHECK_FILE_DIR "${CHECK_FILE_PATH}" DIRECTORY)
-  # Prepare the list
-  # list(TRANSFORM CHECK_BUILD PREPEND "${CHECK_FILE_DIR}/")
-  list(REMOVE_DUPLICATES CHECK_BUILD)
-  list(LENGTH CHECK_BUILD SOURCE_COUNT)
-  message(CHECK_START "Scanning ${SOURCE_COUNT} files...")
+# 1. Locate the .txt Anchor
+find_file(CHECK_FILE_PATH 
+  NAMES "build-source-files.txt"
+  PATHS "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}" "$ENV{GITHUB_WORKSPACE}"
+  NO_DEFAULT_PATH
+)
+
+if(CHECK_FILE_PATH)
+  # This is the 'Live Root' for this specific machine
+  get_filename_component(LIVE_ROOT "${CHECK_FILE_PATH}" DIRECTORY)
+  file(STRINGS "${CHECK_FILE_PATH}" RELATIVE_ENTRIES)
   add_executable("${PROJECT_NAME}")
   set(TOTAL_INCLUDE_DIRS "")
-  set(FILE_COUNT 0)
-  foreach(FILE IN LISTS CHECK_BUILD)
-    if(FILE)
-      math(EXPR FILE_COUNT "${FILE_COUNT} + 1")
-      # Reset local list for THIS file only
-      set(MATCHED_HEADERS "")
-      file(READ "${FILE}" FILE_CONTENTS)     
-      # Find all #include "..." or <...>
-      string(REGEX MATCHALL "#include[ \t]*[\"<]([^\">]+)[\">]" MATCHED_HEADERS "${FILE_CONTENTS}")
+  foreach(REL_PATH IN LISTS RELATIVE_ENTRIES)
+    # 2. CREATE LIVE ABSOLUTE PATH (For CMake to read/check)
+    set(ABS_FILE "${LIVE_ROOT}/${REL_PATH}")
+    if(EXISTS "${ABS_FILE}")
+      # 3. SCAN HEADERS (Using the Absolute Path)
+      file(READ "${ABS_FILE}" FILE_CONTENTS)
+      string(REGEX MATCHALL "#include[ \t]*[\"<]([^\">]+)[\">]" MATCHED_HEADERS "${FILE_CONTENTS}")     
       foreach(MATCH IN LISTS MATCHED_HEADERS)
-        string(REGEX REPLACE "#include[ \t]*[\"<]([^\">]+)[\">]" "\\1" HEADER_NAME "${MATCH}")       
-        # Simple memory cache (No PARENT_SCOPE needed)
-        if(NOT DEFINED "${HEADER_NAME}_LOCATED")
-          find_path(H_DIR 
-            NAMES "${HEADER_NAME}" 
-            HINTS "${CMAKE_CURRENT_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}"
-            NO_DEFAULT_PATH
-          )
-          if(H_DIR)
-            set("${HEADER_NAME}_LOCATED" "${H_DIR}")
-            list(APPEND TOTAL_INCLUDE_DIRS "${H_DIR}")
-          endif()
+        string(REGEX REPLACE "#include[ \t]*[\"<]([^\">]+)[\">]" "\\1" HEADER_NAME "${MATCH}")      
+        # Use LIVE_ROOT to find the directory on disk
+        find_path(H_DIR NAMES "${HEADER_NAME}" 
+          HINTS "${LIVE_ROOT}/include" "${LIVE_ROOT}/arch/$ENV{arch}/include"
+          NO_DEFAULT_PATH
+        )
+        if(H_DIR)
+          # 4. STRIP OFF THE LIVE ROOT (Make the include dir relative again)
+          file(RELATIVE_PATH REL_INC "${LIVE_ROOT}" "${H_DIR}")
+          list(APPEND TOTAL_INCLUDE_DIRS "${REL_INC}")
           unset(H_DIR CACHE)
         endif()
       endforeach()
-      get_filename_component(FNAME "${FILE}" NAME)
-      message(STATUS "Processing [${FILE_COUNT}/${SOURCE_COUNT}]: ${FNAME}")
-      target_sources("${PROJECT_NAME}" PRIVATE "${FILE}")
+      # 5. USE RELATIVE PATH FOR TARGET (Best for Clang-Tidy portability)
+      # We tell CMake the file is at REL_PATH, and set the working dir to LIVE_ROOT
+      target_sources("${PROJECT_NAME}" PRIVATE "${REL_PATH}")
     endif()
   endforeach()
-  # Finalize the target
+  # Apply Relative Includes
   if(TOTAL_INCLUDE_DIRS)
     list(REMOVE_DUPLICATES TOTAL_INCLUDE_DIRS)
     target_include_directories("${PROJECT_NAME}" PRIVATE "${TOTAL_INCLUDE_DIRS}")
-    set_target_properties("${PROJECT_NAME}" PROPERTIES 
-      C_STANDARD 90
-      C_STANDARD_REQUIRED ON
-      EXCLUDE_FROM_ALL TRUE
-    )    
-    message(CHECK_PASS "Done: ${FILE_COUNT} files processed.")
-  endif() 
+  endif()
+  # Set the Working Directory so Clang finds the Relative Paths
+  set_target_properties("${PROJECT_NAME}" PROPERTIES 
+    C_STANDARD 90
+    C_STANDARD_REQUIRED ON
+    EXCLUDE_FROM_ALL TRUE
+    # This ensures Clang looks for 'arch/...' starting from the LIVE_ROOT
+    WORKING_DIRECTORY "${LIVE_ROOT}" 
+  )
   set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON)
   option(PROJECT_AUTO_INCLUDE "Automatically include projects" OFF)
   # Fallback logic for Absolute/Relative/Missing modes
