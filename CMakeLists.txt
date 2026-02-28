@@ -4,65 +4,139 @@ set(CMAKE_CONFIGURATION_TYPES "Debug" CACHE STRING "" FORCE)
 
 string(ASCII 13 CR)
 
-if(DEFINED GITHUB_PROJECT_NAME)
-  set(PROJECT_NAME "${GITHUB_PROJECT_NAME}")
-else()
-  set(PROJECT_NAME "$ENV{github_repository}")
-endif()
-
-if($ENV{github_build_project})
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
-  message(STATUS "Project Build: clang tools analyze test build")
-  message(STATUS "CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
-else()
-  add_compile_options(
-    "-Wall" "-Wpedantic" "-Wextra" "-fexceptions" "-std=c90"
-    "$<$<CONFIG:DEBUG>:-O0;-ferror-limit=0;-Wno-error=unused-command-line-argument;-Qunused-arguments>"
-  )
-  set(C_FLAGS "${C_FLAGS} -O1 -ferror-limit=0 -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
-  message(STATUS "Project Build: clang tools analyze only")
-  message(STATUS "C_FLAGS: ${C_FLAGS}")
-endif()
-
+	if(DEFINED GITHUB_PROJECT_NAME)
+	  set(PROJECT_NAME "${GITHUB_PROJECT_NAME}")
+	else()
+	  set(PROJECT_NAME "$ENV{github_repository}")
+	endif()
+	
+	if($ENV{github_build_project})
+	  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall -Werror -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
+	  message(STATUS "Project Build: clang tools analyze test build")
+	  message(STATUS "CMAKE_C_FLAGS: ${CMAKE_C_FLAGS}")
+	else()
+	  add_compile_options(
+	    "-Wall" "-Wpedantic" "-Wextra" "-fexceptions" "-std=c90"
+	    "$<$<CONFIG:DEBUG>:-O0;-ferror-limit=0;-Wno-error=unused-command-line-argument;-Qunused-arguments>"
+	  )
+	  set(C_FLAGS "${C_FLAGS} -O1 -ferror-limit=0 -Wno-error=unused-command-line-argument -Qunused-arguments -std=c90")
+	  message(STATUS "Project Build: clang tools analyze only")
+	  message(STATUS "C_FLAGS: ${C_FLAGS}")
+	endif()
+	
 # For arm 32 an 64 bit builds using inputs.arch=arm
-if($ENV{arch} STREQUAL "arm")
-# These MUST come before the project() call
-  set(CMAKE_SYSTEM_NAME Linux)
-  set(CMAKE_SYSTEM_PROCESSOR arm)
-  set(ARM_TRIPLE arm-linux-gnueabihf)
-  set(ARM_SYSROOT /usr/${ARM_TRIPLE})
-# Set the flags for the compilers
-  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-# Set the flags for the linker
-  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-  set(CMAKE_C_COMPILER_FORCED TRUE)
-  set(CMAKE_CXX_COMPILER_FORCED TRUE)
-  set(CMAKE_C_COMPILER clang)
-  set(CMAKE_CXX_COMPILER clang++)
-  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
-  message(STATUS "Project Arch: $ENV{arch}")
+if($ENV{linux})
+	if($ENV{arch} STREQUAL "arm")
+	# These MUST come before the project() call
+	  set(CMAKE_SYSTEM_NAME Linux)
+	  set(CMAKE_SYSTEM_PROCESSOR arm)
+	  set(ARM_TRIPLE arm-linux-gnueabihf)
+	  set(ARM_SYSROOT /usr/${ARM_TRIPLE})
+	# Set the flags for the compilers
+	  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	# Set the flags for the linker
+	  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_C_COMPILER_FORCED TRUE)
+	  set(CMAKE_CXX_COMPILER_FORCED TRUE)
+	  set(CMAKE_C_COMPILER clang)
+	  set(CMAKE_CXX_COMPILER clang++)
+	  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+	  message(STATUS "Project Arch: $ENV{arch}")
+	endif()
+	if($ENV{arch} STREQUAL "arm64")
+	# These MUST come before the project() call
+	  set(CMAKE_SYSTEM_NAME Linux)
+	  set(CMAKE_SYSTEM_PROCESSOR arm64)
+	  set(ARM_TRIPLE aarch64-unknown-linux-gnu)
+	  set(ARM_SYSROOT /usr/${ARM_TRIPLE})
+	# Set the flags for the compilers
+	  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	# Set the flags for the linker
+	  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_C_COMPILER_FORCED TRUE)
+	  set(CMAKE_CXX_COMPILER_FORCED TRUE)
+	  set(CMAKE_C_COMPILER clang)
+	  set(CMAKE_CXX_COMPILER clang++)
+	  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+	  message(STATUS "Project Arch: $ENV{arch}")
+	endif()
+	target_compile_definitions("${PROJECT_NAME}" PRIVATE 
+	    __KERNEL__ 
+	    LINUX 
+	    MODULE 
+	    KBUILD_MODNAME="${PROJECT_NAME}"
+	    ARCH_$ENV{arch}
+	)
+	target_compile_options("${PROJECT_NAME}" PRIVATE
+	    -ffreestanding
+	    -fno-builtin
+	    -fno-stack-protector
+	    -mno-red-zone
+	    -O2 # Kernels typically require at least -O1 for inline functions to work
+	)
+else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-pic")
+	if($ENV{arch} STREQUAL "arm")
+	# These MUST come before the project() call
+	  set(CMAKE_SYSTEM_NAME Linux)
+	  set(CMAKE_SYSTEM_PROCESSOR arm)
+	  set(ARM_TRIPLE arm-linux-android)
+	  set(ARM_SYSROOT ${GITHUB_WORKSPACE}/workspace/prebuilts/${ARM_TRIPLE})
+	# Set the flags for the compilers
+	  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	# Set the flags for the linker
+	  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_C_COMPILER_FORCED TRUE)
+	  set(CMAKE_CXX_COMPILER_FORCED TRUE)
+	  set(CMAKE_C_COMPILER clang)
+	  set(CMAKE_CXX_COMPILER clang++)
+	  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+	  target_compile_options("${PROJECT_NAME}" PRIVATE
+	    -ffreestanding
+	    -fno-stack-protector
+	    -fstack-protector-strong
+	    -fsanitize=shadow-call-stack
+	    -ftrivial-auto-var-init=pattern
+	    --target=arm-linux-android
+	  )
+	  message(STATUS "Project Arch: $ENV{arch}")
+	endif()
+	if($ENV{arch} STREQUAL "arm64")
+	# These MUST come before the project() call
+	  set(CMAKE_SYSTEM_NAME Linux)
+	  set(CMAKE_SYSTEM_PROCESSOR arm64)
+	  set(ARM_TRIPLE aarch64-linux-android)
+	  set(ARM_SYSROOT ${GITHUB_WORKSPACE}/workspace/prebuilts/${ARM_TRIPLE})
+	# Set the flags for the compilers
+	  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	# Set the flags for the linker
+	  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
+	  set(CMAKE_C_COMPILER_FORCED TRUE)
+	  set(CMAKE_CXX_COMPILER_FORCED TRUE)
+	  set(CMAKE_C_COMPILER clang)
+	  set(CMAKE_CXX_COMPILER clang++)
+	  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+	  target_compile_options("${PROJECT_NAME}" PRIVATE
+	    -ffreestanding
+	    -fno-stack-protector
+	    -fstack-protector-strong
+	    -fsanitize=shadow-call-stack
+	    -ftrivial-auto-var-init=pattern
+	    --target=aarch64-linux-android
+	  )
+	  message(STATUS "Project Arch: $ENV{arch}")
+	endif()
+	target_compile_definitions("${PROJECT_NAME}" PRIVATE 
+	    __KERNEL__ 
+	    LINUX 
+	    CONFIG_ANDROID
+	    KBUILD_MODNAME="${PROJECT_NAME}"
+	)
 endif()
-
-if($ENV{arch} STREQUAL "arm64")
-# These MUST come before the project() call
-  set(CMAKE_SYSTEM_NAME Linux)
-  set(CMAKE_SYSTEM_PROCESSOR arm64)
-  set(ARM_TRIPLE aarch64-unknown-linux-gnu)
-  set(ARM_SYSROOT /usr/${ARM_TRIPLE})
-# Set the flags for the compilers
-  set(CMAKE_C_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-  set(CMAKE_CXX_FLAGS "--target=${ARM_TRIPLE} -mcpu=cortex-a53 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-# Set the flags for the linker
-  set(CMAKE_EXE_LINKER_FLAGS "--target=${ARM_TRIPLE} --sysroot=${ARM_SYSROOT}" CACHE STRING "" FORCE)
-  set(CMAKE_C_COMPILER_FORCED TRUE)
-  set(CMAKE_CXX_COMPILER_FORCED TRUE)
-  set(CMAKE_C_COMPILER clang)
-  set(CMAKE_CXX_COMPILER clang++)
-  set(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
-  message(STATUS "Project Arch: $ENV{arch}")
-endif()
-
 # ... many examples of user defined project settings for C/C++ ... #
 
 project("${PROJECT_NAME}" VERSION 1.0 LANGUAGES C)
@@ -123,59 +197,46 @@ endif()
 # set(CHECK_FILE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build-source-files.txt")
 
 # 2. Start the logic if file is found
-# 1. Locate the .txt Anchor
-find_file(CHECK_FILE_PATH 
-  NAMES "build-source-files.txt"
-  PATHS "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}" "$ENV{GITHUB_WORKSPACE}"
-  NO_DEFAULT_PATH
-)
+# 1. Anchor strictly to the Workspace Root
+set(G_ROOT "$ENV{GITHUB_WORKSPACE}")
+set(CHECK_FILE_NAME "build-source-files.txt")
 
-if(CHECK_FILE_PATH)
-  # This is the 'Live Root' for this specific machine
-  get_filename_component(LIVE_ROOT "${CHECK_FILE_PATH}" DIRECTORY)
-  file(STRINGS "${CHECK_FILE_PATH}" RELATIVE_ENTRIES)
+# 2. Find the artifact in the current dir (where you copied it)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${CHECK_FILE_NAME}")
+  file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/${CHECK_FILE_NAME}" PROJECT_SRC_FILES)
+  # Create the Target
   add_executable("${PROJECT_NAME}")
-  set(TOTAL_INCLUDE_DIRS "")
-  foreach(REL_PATH IN LISTS RELATIVE_ENTRIES)
-    # 2. CREATE LIVE ABSOLUTE PATH (For CMake to read/check)
-    set(ABS_FILE "${LIVE_ROOT}/${REL_PATH}")
-    if(EXISTS "${ABS_FILE}")
-      # 3. SCAN HEADERS (Using the Absolute Path)
-      file(READ "${ABS_FILE}" FILE_CONTENTS)
-      string(REGEX MATCHALL "#include[ \t]*[\"<]([^\">]+)[\">]" MATCHED_HEADERS "${FILE_CONTENTS}")     
-      foreach(MATCH IN LISTS MATCHED_HEADERS)
-        string(REGEX REPLACE "#include[ \t]*[\"<]([^\">]+)[\">]" "\\1" HEADER_NAME "${MATCH}")      
-        # Use LIVE_ROOT to find the directory on disk
-        find_path(H_DIR NAMES "${HEADER_NAME}" 
-          HINTS "${LIVE_ROOT}/include" "${LIVE_ROOT}/arch/$ENV{arch}/include"
-          NO_DEFAULT_PATH
-        )
-        if(H_DIR)
-          # 4. STRIP OFF THE LIVE ROOT (Make the include dir relative again)
-          list(APPEND TOTAL_INCLUDE_DIRS "${H_DIR}")
-          unset(H_DIR CACHE)
-        endif()
-      endforeach()
-      # 5. USE RELATIVE PATH FOR TARGET (Best for Clang-Tidy portability)
-      # We tell CMake the file is at REL_PATH, and set the working dir to LIVE_ROOT
-      target_sources("${PROJECT_NAME}" PRIVATE "${REL_PATH}")
+  set(FILE_COUNT 0)
+  message(CHECK_START "Generating portable database for ${PROJECT_NAME}")
+  foreach(REL_FILE IN LISTS PROJECT_SRC_FILES)
+    # 3. Use Workspace + Relative path to verify it exists on the runner
+    set(LIVE_FILE "${G_ROOT}/${REL_FILE}")
+    if(EXISTS "${LIVE_FILE}")
+      math(EXPR FILE_COUNT "${FILE_COUNT} + 1") 
+      # Add to target using the Workspace-anchored path
+      # This ensures compile_commands.json is valid for the Clang scan step
+      target_sources("${PROJECT_NAME}" PRIVATE "${LIVE_FILE}") 
+      message(STATUS "Added [${FILE_COUNT}]: ${REL_FILE}")
     endif()
   endforeach()
-  # Apply Relative Includes
-  if(TOTAL_INCLUDE_DIRS)
-    list(REMOVE_DUPLICATES TOTAL_INCLUDE_DIRS)
-    target_include_directories("${PROJECT_NAME}" PRIVATE "${TOTAL_INCLUDE_DIRS}")
-  endif()
-  # Set the Working Directory so Clang finds the Relative Paths
+  # 4. Add ONLY the Standard Kernel Include Tree (No Scanning)
+  # This provides the base headers without the risk of 'missing' local folders
+  target_include_directories("${PROJECT_NAME}" PRIVATE 
+    "${G_ROOT}/include"
+    "${G_ROOT}/include/uapi"
+    "${G_ROOT}/arch/$ENV{arch}/include"
+    "${G_ROOT}/arch/$ENV{arch}/include/uapi"
+  )
   set_target_properties("${PROJECT_NAME}" PROPERTIES 
     C_STANDARD 90
     C_STANDARD_REQUIRED ON
     EXCLUDE_FROM_ALL TRUE
-    # This ensures Clang looks for 'arch/...' starting from the LIVE_ROOT
-    WORKING_DIRECTORY "${LIVE_ROOT}" 
+    WORKING_DIRECTORY "${GITHUB_WORKSPACE}" 
   )
-  set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES ON)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+  set(CMAKE_C_USE_RESPONSE_FILE_FOR_INCLUDES OFF)
   option(PROJECT_AUTO_INCLUDE "Automatically include projects" OFF)
+  message(CHECK_PASS "Done: ${FILE_COUNT} files anchored to ${G_ROOT}")
   # Fallback logic for Absolute/Relative/Missing modes
 elseif($ENV{github_absolute_path})
   option(PROJECT_AUTO_INCLUDE "Automatically include projects" ON)
@@ -194,9 +255,11 @@ else()
 endif()
 
 if(DEFINED PROJECT_SRC_FILES)
-  message(STATUS "Project Files: cmake added source files")
+  message(STATUS "Project Files: cmake added project source files")
 elseif($ENV{github_source_files})
-  message(STATUS "Project Files: cmake found source files")
+  message(STATUS "Project Files: cmake found project source files")
+elseif(CHECK_FILE_PATH)
+  message(STATUS "Project Files: cmake found build source files")
 else()
   message(STATUS "Project Files: cmake added no files")
 endif()
