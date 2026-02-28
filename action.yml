@@ -3358,8 +3358,8 @@ runs: # Uses default x86_64 / linux user machine
           if [[ -n "${clang_error1}" ]] && [[ "${clang_error1:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${clang_error1} errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
           fi;
-          if [[ -n "${clang_error2}" ]] && [[ "${clang_error2:-0}" > '0' ]] && ${{ inputs.build > '0' }}; then
-            echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found \033[31m${clang_error2}\033[0m errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
+          if [[ -n "${clang_error2}" ]] && [[ "${clang_error2:-0}" > '0' ]]; then
+            echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m recheck found \033[31m${clang_error2}\033[0m errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
           fi;
           if [[ -n "${clang_failed}" ]] && [[ "${clang_failed:-0}" > '0' ]]; then
             echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m found ${clang_failed}️ fails in all files checked during build. [Hints] This means your [\033[1mBuild failed\033[0m] from possible errors.\n####################" | process_input;
