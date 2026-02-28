@@ -136,7 +136,7 @@ if(EXISTS "${CHECK_FILE_PATH}" AND IS_READABLE "${CHECK_FILE_PATH}")
   set(TOTAL_INCLUDE_DIRS "")
   set(FILE_COUNT 0)
   foreach(FILE IN LISTS CHECK_BUILD)
-    if(EXISTS "${FILE}" AND NOT IS_DIRECTORY "${FILE}")
+    if(FILE)
       math(EXPR FILE_COUNT "${FILE_COUNT} + 1")
       # Reset local list for THIS file only
       set(MATCHED_HEADERS "")
