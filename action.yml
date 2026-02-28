@@ -2258,12 +2258,12 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           fdfind -p -a -e "py" "${github}" | xargs sudo sed -i '1s|.*|#!/usr/bin/env python2|' && echo -e "\033[32mAll legacy scripts neutralized successfully.\033[0m";
           # Find the Makefile in the parent directory (hdmitx) and comment out the mt8163 line
-          PARENT_MAKEFILE=$(fdfind -p -a -t f -g -1 "**/hdmitx/Makefile" "${github}")
-          if [[ -f "$PARENT_MAKEFILE" ]]; then
-            echo -e "\033[33mFixing HDMI Linker recursion in\033[0m: $PARENT_MAKEFILE";
-            # Comment out the line that forces the mt8163 subdirectory to be linked
-            sudo sed -i 's/^obj-.* += mt8163/\# Fixed: obj-y += mt8163/g' "$PARENT_MAKEFILE";
-            echo -e "\033[32mHDMI link error suppressed.\033[0m";
+          # Target the Makefile INSIDE the mt8163 directory
+          SUB_MAKEFILE=$(fdfind -p -a -t f -g -1 "**/hdmitx/mt8163/Makefile" "${github}")
+          if [[ -f "$SUB_MAKEFILE" ]]; then
+            echo -e "\033[33mFixing MTK Recursive Path Typo in\033[0m: $SUB_MAKEFILE";
+            # This prevents 'mt8163' from looking for another 'mt8163' folder inside itself
+            sudo sed -i 's|obj-y += mt8163/||g' "$SUB_MAKEFILE";
           fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
