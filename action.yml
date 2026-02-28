@@ -2287,8 +2287,8 @@ runs: # Uses default x86_64 / linux user machine
               printf "#!/usr/bin/env python\nimport sys\nsys.exit(0)\n" | sudo tee "$script";
               sudo chmod +x "$script";
             done;
-            echo -e "\033[32mLegacy scripts neutralized successfully.\033[0m";
           fi;
+          fdfind -p -a -e "py" "${github}" | xargs sudo sed -i '1s|.*|#!/usr/bin/env python2|' && echo -e "\033[32mLegacy scripts neutralized successfully.\033[0m";
         fi;
         if [[ -f 'compile_commands.json' ]]; then
           compile_json='compile_commands.json';
