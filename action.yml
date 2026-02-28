@@ -2256,7 +2256,15 @@ runs: # Uses default x86_64 / linux user machine
               sudo chmod +x "$script";
             done;
           fi;
-          fdfind -p -a -e "py" "${github}" | xargs sudo sed -i '1s|.*|#!/usr/bin/env python2|' && echo -e "\033[32mLegacy scripts neutralized successfully.\033[0m";
+          fdfind -p -a -e "py" "${github}" | xargs sudo sed -i '1s|.*|#!/usr/bin/env python2|' && echo -e "\033[32mAll legacy scripts neutralized successfully.\033[0m";
+          # Find the Makefile in the parent directory (hdmitx) and comment out the mt8163 line
+          PARENT_MAKEFILE=$(fdfind -p -a -t f -g -1 "**/hdmitx/Makefile" "${github}")
+          if [[ -f "$PARENT_MAKEFILE" ]]; then
+            echo -e "\033[33mFixing HDMI Linker recursion in\033[0m: $PARENT_MAKEFILE";
+            # Comment out the line that forces the mt8163 subdirectory to be linked
+            sudo sed -i 's/^obj-.* += mt8163/\# Fixed: obj-y += mt8163/g' "$PARENT_MAKEFILE";
+            echo -e "\033[32mHDMI link error suppressed.\033[0m";
+          fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
           compile_json='compile_commands.json';
