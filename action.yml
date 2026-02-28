@@ -2522,7 +2522,6 @@ runs: # Uses default x86_64 / linux user machine
              cppchecks='all';
           fi;
           perform_analysis() {
-            local log_content=$(cat "${error_log}");
             if ${{ inputs.content == 'true' }}; then
               number="${{ inputs.number }}";
               if ${{ inputs.number > '0' }}; then
@@ -2545,9 +2544,9 @@ runs: # Uses default x86_64 / linux user machine
               if ${{ inputs.content == 'true' }}; then
                 echo -e "\n####################\n\tFILE CONTENT: ( ${count1} )\n####################\n" | process_input;
                 if [[ -e 'bat.conf' ]]; then
-                  batcat "${file}" | process_input
+                  batcat "${file}" | process_input;
                 else
-                  batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${file}" | process_input
+                  batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${file}" | process_input;
                 fi;
               fi;
               if ${{ inputs.include == 'true' }}; then
@@ -2562,9 +2561,9 @@ runs: # Uses default x86_64 / linux user machine
                     clean_path="${include##*./}";
                     clean_file="${include##*/}";        
                     if [[ "${include}" == *"/"* && "${clean_path}" != "/" ]]; then
-                      header=$(fdfind -j "$(nproc)" "${path}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}")
+                      header=$(fdfind -j "$(nproc)" "${path}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}");
                     elif [[ -n "${clean_file}" ]]; then
-                      header=$(fdfind -j "$(nproc)" "${path}" -p -t f -g "**/${clean_file//./\\.}" "${{ env.base }}")
+                      header=$(fdfind -j "$(nproc)" "${path}" -p -t f -g "**/${clean_file//./\\.}" "${{ env.base }}");
                     fi;
                     if [[ -n "${header}" ]]; then
                       while IFS= read -r includes; do
@@ -2593,7 +2592,7 @@ runs: # Uses default x86_64 / linux user machine
                   [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '/\/include\// s|/[^/]+$||' | awk '!seen[$0]++' | xargs);
                 fi;
                 if [[ -s 'temp-file' ]]; then
-                  count=$(gawk 'NF > 0 { count++; } END { print count + 0; }' "${include_paths}")
+                  count=$(gawk 'NF > 0 { count++; } END { print count + 0; }' "${include_paths}");
                   echo -e "\n\033[1mcheck-file: ${count} include paths for \033[1m${file##*/}\033[0m added!" | process_input;
                 fi;
                 if ${{ inputs.repair == 'true' }}; then
@@ -2603,7 +2602,7 @@ runs: # Uses default x86_64 / linux user machine
                   elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                     echo -e "\n####################\nCLANG-TIDY ERRORS REPAIR ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- ${include_bases} 2>&1 | process_input || error2="$?";
-                    if [[ -s "${error_log}" ]] && [[ "$log_content" == *"Error while processing $file"* ]]; then
+                    if [[ -s "${error_log}" ]] && grep -qsE "Error while processing (${file//./\\.})|(.+${file//./\\.})" "${error_log}"; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                       errors=true
                     else
@@ -2614,7 +2613,7 @@ runs: # Uses default x86_64 / linux user machine
                   elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                     echo -e "\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- ${include_bases} 2>&1 | process_input || error2="$?";
-                    if [[ -s "${error_log}" ]] && [[ "$log_content" == *"Error while processing $file"* ]]; then
+                    if [[ -s "${error_log}" ]] && grep -qsE "Error while processing (${file//./\\.})|(.+${file//./\\.})" "${error_log}"; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input;
                       errors=true
                     else
@@ -2629,7 +2628,7 @@ runs: # Uses default x86_64 / linux user machine
                   else
                     cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --showtime=file-total --suppress=missingIncludeSystem --suppress=checkersReport --cppcheck-build-dir="${build_dir}" "${file}" --includes-file="${include_paths}" 2>&1 | process_input || error="$?";
                   fi;
-                  if [[ -s "${error_log}" ]] && [[ "$log_content" == *"$file"*error:* ]]; then
+                  if [[ -s "${error_log}" ]] && grep -qsE "${file//./\\.}.*error:" "${error_log}"; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS\n####################" | process_input;
                     errors=true
                   else
@@ -2652,7 +2651,7 @@ runs: # Uses default x86_64 / linux user machine
                   elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                     echo -e "\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
-                    if [[ -s "${error_log}" ]] && [[ "$log_content" == *"Error while processing $file"* ]]; then
+                    if [[ -s "${error_log}" ]] && grep -qsE "Error while processing (${file//./\\.})|(.+${file//./\\.})" "${error_log}"; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                       errors=true
                     else
@@ -2664,7 +2663,7 @@ runs: # Uses default x86_64 / linux user machine
                   elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                     echo -e "\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                     clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes 2>&1 | process_input || error2="$?";
-                    if [[ -s "${error_log}" ]] && [[ "$log_content" == *"Error while processing $file"* ]]; then
+                    if [[ -s "${error_log}" ]] && grep -qsE "Error while processing (${file//./\\.})|(.+${file//./\\.})" "${error_log}"; then
                       echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input;
                       errors=true
                     else
@@ -2675,14 +2674,15 @@ runs: # Uses default x86_64 / linux user machine
                 else
                   echo -e "\n####################\nCPPCHECK FILE ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   cppcheck -j "$(nproc)" -l 2 --verbose --force --enable="${cppchecks}" --report-progress --suppress=checkersReport --suppress=missingIncludeSystem --cppcheck-build-dir="${build_dir}" "${file}" 2>&1 | process_input || error="$?";
-                  if [[ -s "${error_log}" ]] && [[ "$log_content" == *"$file"*error:* ]]; then
+                  if [[ -s "${error_log}" ]] && grep -qsE "${file//./\\.}.*error:" "${error_log}"; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS\n####################" | process_input;
                     errors=true
-                  elif [[ -s "${error_log}" ]] && [[ "$log_content" == *"$file"*Include file:* ]]; then
+                  else
+                    echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
+                  fi;
+                  if [[ -s "${error_log}" ]] && grep -qsE "${file//./\\.}.*Include file:" "${error_log}"; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
                     echo 'include_missing=true' >> "${GITHUB_ENV}";
-                  else
-                    echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   fi;
                 fi;
               fi;
@@ -2821,7 +2821,7 @@ runs: # Uses default x86_64 / linux user machine
               elif ${{ inputs.stored == 'true' }} && ${{ inputs.update == 'true' }}; then
                 echo -e "\n\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
                 shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || error="$?";
-                if [[ -s "${error_log}" ]] && grep -zPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}"; then
+                if [[ -s "${error_log}" ]] && grep -qzPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}"; then
                   echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                   errors=true
                 else
@@ -2832,7 +2832,7 @@ runs: # Uses default x86_64 / linux user machine
               elif ${{ inputs.stored == 'false' }} || ${{ inputs.update == 'false' }}; then
                 echo -e "\n####################\nSHELLHARDEN ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
                 shellharden --syntax-suggest --transform "${file}" 2>&1 | process_input || error="$?";
-                if [[ -s "${error_log}" ]] && grep -zPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}"; then
+                if [[ -s "${error_log}" ]] && grep -qzPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}"; then
                   echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                   errors=true
                 else
@@ -2843,7 +2843,7 @@ runs: # Uses default x86_64 / linux user machine
             else
               echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
               shellcheck --norc --external-sources --enable=all --severity=style --color=always "${file}" 2>&1 | process_input || error="$?";
-              if [[ -s "${error_log}" ]] && grep -zPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}"; then
+              if [[ -s "${error_log}" ]] && grep -qzPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}"; then
                 echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                 errors=true
               else
@@ -2853,7 +2853,7 @@ runs: # Uses default x86_64 / linux user machine
             if ${{ inputs.recheck == 'true' }}; then
               echo -e "\n####################\nSHELLCHECK ANALYZING ${file##*/} FOR ERRORS: ( ${count3} )\n####################" | process_input;
               shellcheck "${file}" 2>&1 | process_input || error="$?";
-              if [[ -s "${error_log}" ]] && grep -zPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}"; then
+              if [[ -s "${error_log}" ]] && grep -qzPo "(?s)${file##*///./\\.}.*?\(error\)" "${error_log}"; then
                 echo -e "\n####################\n\033[1mCHECK-FILE\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input;
                 errors=true
               else
@@ -2968,7 +2968,6 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\e[4mTotal Files\e[0m: \033[1m$(echo "${files}" | wc -l)\033[0m" | gawk '{ printf "    %s\n", $0; }' | process_input;
             fi;
           fi;
-          log_data=$(<"$error_log")
           while IFS= read -r file; do
             count4=$((makefile_count++));
             echo "${file}" >> 'check_file_paths.txt';
