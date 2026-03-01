@@ -2524,7 +2524,9 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           perform_analysis() {
             local files
+            local aarch
             files=$(cat);
+            aarch="${{ env.arch }}";
             if ${{ inputs.content == 'true' }}; then
               number="${{ inputs.number }}";
               if ${{ inputs.number > '0' }}; then
@@ -2570,7 +2572,7 @@ runs: # Uses default x86_64 / linux user machine
                     fi;
                     if [[ -n "${header}" ]]; then
                       while IFS= read -r includes; do
-                        [[ "$includes" =~ ^arch/ && ! "$includes" =~ ^arch/arm/ ]] && continue
+                        [[ "$includes" =~ ^arch/ && ! "$includes" =~ ^arch/$aarch/ ]] && continue
                         count2=$((include_count++))
                         echo -e "\n\033[32mSOURCE FILE: \033[0m\033[1m( #include ${includes##*/} )\033[0m\033[32m LOCATED!\033[0m  [ ${count2} ✅ ]\n\033[33mFILE LOCATION:\033[0m ${includes}" | process_input;
                         [[ "$includes" == */linux/* ]] && includes="${includes%/linux/*}" || { [[ "$includes" == */asm/* ]] && includes="${includes%/asm/*}" || includes="${includes%/*/*}"; }
