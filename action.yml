@@ -2559,7 +2559,7 @@ runs: # Uses default x86_64 / linux user machine
                 declare -A missing
                 echo -n > 'temp-file';        
                 include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[">]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);       
-                [[ -n "${include_source}" ]] && echo -e "\n\033[1mTotal header objectives found\033[0m:\n${include_source}" | gawk '{ printf "    \033[4m%s\033[0m\n", $0; }' | process_input;
+                [[ -n "${include_source}" ]] && echo -e "\n\033[35mTOTAL HEADERS\033[0m:\n\033[1m${include_source}\033[0m" | gawk '{ printf "    \033[4m%s\033[0m\n", $0; }' | process_input;
                 while IFS= read -r include; do
                   [[ -z "$include" ]] && continue
                   if [[ "${include}" == *.[ch]* ]]; then
