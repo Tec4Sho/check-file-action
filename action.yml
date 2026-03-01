@@ -1162,7 +1162,7 @@ runs: # Uses default x86_64 / linux user machine
                       while IFS= read -r includes; do
                         count2=$((include_count++));
                         count3=$((include_total++));
-                        echo "${includes%/*}" >> "${include1}";
+                        echo "${includes%/*/*}" >> "${include1}";
                         echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${includes}" | process_input;
                       done <<< "${header}";
                       includes_found=true
@@ -1255,7 +1255,7 @@ runs: # Uses default x86_64 / linux user machine
                   while IFS= read -r includes; do
                     count2=$((include_count++));
                     count3=$((include_total++));
-                    echo "${includes%/*}" >> "${include1}";
+                    echo "${includes%/*/*}" >> "${include1}";
                     echo -e "\n\033[33mSource file include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ✅ ]\n\n\033[32mREAL FILE LOCATION:\033[0m ${includes}" | process_input;
                   done <<< "${header}";
                 elif [[ -n "${processed[$include_source]}" ]]; then
@@ -3160,7 +3160,7 @@ runs: # Uses default x86_64 / linux user machine
                     fi;
                   fi;
                   echo -e "\n####################\n::notice::PATTERN MATCHED SEARCHING COMPLETED SUCCESSFULLY! ✅\n####################";
-                done <<< "${content1[@]}";
+                done <<< "${content1}";
               fi;
             else
               echo -e "\n####################\n::warning::SEARCHING COMPLETED PATTERN NOT FOUND: ${{ inputs.pattern }} ❌\n####################";
@@ -3192,7 +3192,7 @@ runs: # Uses default x86_64 / linux user machine
                   fi;
                 fi;
                 echo -e "\n####################\n::notice::PATTERN MATCHED SEARCHING COMPLETED SUCCESSFULLY! ✅\n####################";
-              done <<< "${content2[@]}";
+              done <<< "${content2}";
             fi;
           else
             echo -e "\n####################\n::warning::SEARCHING COMPLETED PATTERN NOT FOUND: ${{ inputs.pattern }} ❌\n####################";
@@ -3340,54 +3340,54 @@ runs: # Uses default x86_64 / linux user machine
           missing_count=0
           file_count=0
           filetype="${{ env.filename }}";
-          if [[ -n "${clang_information}" ]] && [[ "${clang_information:-0}" > '0' ]] && ${{ inputs.analyzer == '3' }}; then
+          if (( clang_information > 0 )) && ${{ inputs.analyzer == '3' }}; then
             echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m added ${clang_information}️ information notes on ${file_type} files checked. [Hints] Information addresses key issues that may have error fixes available.\n####################" | process_input;
           fi;
-          if [[ -n "${clang_warnings}" ]] && [[ "${clang_warnings:-0}" > '0' ]]; then
+          if (( clang_warnings > 0 )); then
             echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m found ${clang_warnings}️ warnings in ${file_type} files checked. [Hints] Try using [\033[1mwarnings-as-errors\033[0m] for possible errors.\n####################" | process_input;
           fi;
-          if [[ -n "${codechecker_defects}" ]] && [[ "${codechecker_defects:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
+          if (( codechecker_defects > 0 )) && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
             echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m checked ${codechecker_defects} ${file_type} files with defects. [Hints] Check require for those files.\n####################" | process_input;
           fi;
-          if [[ -n "${codechecker_no_defects}" ]] && [[ "${codechecker_no_defects:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
+          if (( codechecker_no_defects > 0 )) && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
             echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE:\033[0m checked ${codechecker_no_defects} ${file_type} files without defects. [Hints] No check require for those files.\n####################" | process_input;
           fi;
-          if [[ -n "${codechecker_success}" ]] && [[ "${codechecker_success:-0}" > '0' ]] && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
+          if (( codechecker_success > 0 )) && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
             echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE:\033[0m checked ${codechecker_success} ${file_type} files successfully without issues. [Hints] No check require for those files.\n####################" | process_input;
           fi;
-          if [[ -n "${clang_error1}" ]] && [[ "${clang_error1:-0}" > '0' ]]; then
+          if (( clang_error1 > 0 )); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${clang_error1} errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
           fi;
-          if [[ -n "${clang_error2}" ]] && [[ "${clang_error2:-0}" > '0' ]]; then
+          if (( clang_error2 > 0 )); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m recheck found \033[31m${clang_error2}\033[0m errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
           fi;
-          if [[ -n "${clang_failed}" ]] && [[ "${clang_failed:-0}" > '0' ]]; then
+          if (( clang_failed > 0 )); then
             echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m found ${clang_failed}️ fails in all files checked during build. [Hints] This means your [\033[1mBuild failed\033[0m] from possible errors.\n####################" | process_input;
           fi;
-          if [[ -n "${clang_fixit1}" ]] && [[ "${clang_fixit1:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
+          if (( clang_fixit1 > 0 )) && (${{ inputs.analyzer > '0' }} || ${{ env.file_fixed =='1' }}); then
             echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE:\033[0m applied ${clang_fixit1} fix-its to ${file_type} files checked. [Hints] Try using [update: true] for updating your remote repository with the fixes.\n####################" | process_input;
             fixed=true
           fi;
-          if [[ -n "${clang_fixit2}" ]] && [[ "${clang_fixit2:-0}" > '0' ]] && ${{ inputs.analyzer > '0' }}; then
+          if (( clang_fixit2 > 0 )) && (${{ inputs.analyzer > '0' }} || ${{ env.file_fixed == '1' }}); then
             echo -e "\n####################\n::notice::✅ ${clang_fixit2} To ${file_type} files checked. [Hints] Try using (update: true) for updating your remote repository with any fixed files.\n####################" | process_input;
             fixed=true
           fi;
-          if [[ -n "${clang_notes}" ]] && [[ "${clang_notes:-0}" > '0' ]]; then
+          if (( clang_notes > 0 )); then
             echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m added ${clang_notes} notes on ${file_type} files checked. [Hints] Notes are fix suggestions for files that should be addressed before compiling.\n####################" | process_input;
           fi;
-          if [[ -f "${build_fixes}" ]] && [[ "${clang_replacements:-0}" > '0' ]]; then
+          if [[ -f "${build_fixes}" ]] && (( clang_replacements > 0 )); then
             echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE:\033[0m applied ${clang_replacements} clang replacement fixes for ${file_type} files checked. [Hints] Clang export fixes are stored in build/fixes.yaml for download. Try using different (analyzer: 1, 2, or 4) for more possible error fixes.\n####################" | process_input;
           fi;
-          if [[ -n "${deheader_removed}" ]] && [[ "${deheader_removed:-0}" > '0' ]] && ${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}; then
+          if (( deheader_removed > 0 )) && ${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}; then
             echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE:\033[0m removed ${deheader_removed} extra inclusions in ${file_type} file(s) checked. [Hints] Try manually removing any extra includes in files before compiling.\n####################" | process_input;
             fixed=true
           fi;
-          if [[ -n "${deheader_duplicates}" ]] && [[ "${deheader_duplicates:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
+          if (( deheader_duplicates > 0 )) && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${deheader_duplicates} duplicates or colliding inclusions in ${file_type} files checked. [Hints] Try using [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
           elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
-          if [[ -n "${clang_files_missing}" ]] && [[ "${clang_files_missing:-0}" > '0' ]]; then
+          if (( clang_files_missing > 0 )); then
             echo -e "\n####################\n::notice::❌ \033[1mCHECK-FILE:\033[0m discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
             [[ -n "${clang_files_list1}" ]] && echo -e "\n####################\nMISSING USER FILES LIST:\n####################\n\n${clang_files_list1}" | process_input && echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m AUTO LOCATE FILE MATCHES IN: ${{ env.base }}/${{ env.dirname }}\n####################\n" | process_input;
             declare -A missing
@@ -3416,7 +3416,7 @@ runs: # Uses default x86_64 / linux user machine
                   while IFS= read -r includes; do
                     located_count=$((located_count + 1));
                     echo -e "\n\033[32mUserInclude Source ${missing_file} Location:\033[0m ${includes}  [\033[1m ${located_count} / ✅ \033[0m]" | process_input;
-                    echo "${includes%/*}" >> 'check-file-includes.txt';
+                    echo "${includes%/*/*}" >> 'check-file-includes.txt';
                   done <<< "${locate[@]}";
                   includes_found=true
                 elif [[ -n "${missing[$missing_file]}" ]]; then
@@ -3429,7 +3429,7 @@ runs: # Uses default x86_64 / linux user machine
                   echo -e "\n\033[31mCannot locate missing user include file\033[0m ${missing_file}  [ ${missing_count} / ❌ ]" | process_input;
                 fi;
               fi;             
-            done <<< "${clang_files_list1[@]}";
+            done <<< "${clang_files_list1}";
             unset missing;
             declare -A missing
             [[ -n "${clang_files_list2}" ]] && echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input && echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m AUTO LOCATE FILE MATCHES IN: ${{ env.base }}/${{ env.dirname }}\n####################\n" | process_input;
@@ -3456,7 +3456,7 @@ runs: # Uses default x86_64 / linux user machine
                   while IFS= read -r includes; do
                     located_count=$((located_count + 1));
                     echo -e "\n\033[32mSystemInclude Source ${missing_file} Location:\033[0m ${includes}  [ $located_count / ✅ ]" | process_input;
-                    echo "${includes%/*}" >> 'check-file-includes.txt';
+                    echo "${includes%/*/*}" >> 'check-file-includes.txt';
                   done <<< "${locate[@]}";
                   includes_found=true
                 elif [[ -n "${missing[$missing_file]}" ]]; then
@@ -3469,7 +3469,7 @@ runs: # Uses default x86_64 / linux user machine
                   echo -e "\n\033[31mCannot locate missing system include file\033[0m ${missing_file}  [ $missing_count / ❌ ]" | process_input;
                 fi;
               fi;             
-            done <<< "${clang_files_list2[@]}";
+            done <<< "${clang_files_list2}";
             unset missing;
             if [[ -s "${source_include_list}" ]]; then
               gawk '{ for (i=1;i<=NF;i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print $i; } } }' "${log_file}" | gawk '{ for (i=1;i<=NF;i++) print $i; }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "\.\..*\.${filetype}$" | gawk -v ext="${filetype}" '$0 ~ "."ext"$" { if (seen[$0]++) next; print; next; } { print; }' | gawk -v ext="${filetype}" '$0 ~ "\\."ext { delete seen; print; next; } !seen[$0]++' > "${source_include_list}" || echo "::notice::File ${source_include_list##*/} was not created!!!" | process_input;
