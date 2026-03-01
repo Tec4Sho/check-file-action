@@ -3336,7 +3336,7 @@ runs: # Uses default x86_64 / linux user machine
           clang_error2=$(grep -saiEc 'error:|#error' "${log_file}");
           clang_failed=$(grep -saiFc 'failed:' "${log_file}");
           clang_fixit1=$(grep -saiEc 'fixit|fix-its' "${log_file}");
-          clang_fixit2=$(grep -saiF 'clang-tidy applied' "${log_file}");
+          clang_fixit2=$(grep -saEo 'clang-tidy applied [1-9]' "${log_file}" | cut -d ' ' -f3 | gawk '{ sum += $1 } END { print sum; }');
           clang_notes=$(grep -saiFc 'note:' "${log_file}");
           located_count=0
           missing_count=0
