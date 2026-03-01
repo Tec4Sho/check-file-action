@@ -2571,9 +2571,9 @@ runs: # Uses default x86_64 / linux user machine
                     if [[ -n "${header}" ]]; then
                       while IFS= read -r includes; do
                         count2=$((include_count++))
-                        echo -e "\n\033[33mSource file #include \033[0m\033[1m( ${includes##*/} )\033[0m\033[33m is located!\033[0m  [ ${count2} / ✅ ]\n\033[32mFILE LOCATION:\033[0m ${includes}" | process_input;
+                        echo -e "\n\033[32mSOURCE FILE: \033[0m\033[1m( #include ${includes##*/} )\033[0m\033[33m LOCATED!\033[0m  [ ${count2} ✅ ]\n\033[33mFILE LOCATION:\033[0m ${includes}" | process_input;
                         [[ "$includes" == */linux/* ]] && includes="${includes%/linux/*}" || { [[ "$includes" == */asm/* ]] && includes="${includes%/asm/*}" || includes="${includes%/*/*}"; }
-                        echo -e "\n\033[34mINCLUDE PATH:\033[0m ${includes}" | process_input;
+                        echo -e "\033[34mINCLUDE PATH:\033[0m ${includes}" | process_input;
                         include_bases+="-I${includes} ";
                         echo "${includes}" >> 'temp-file';
                       done <<< "${header}";
@@ -2582,7 +2582,7 @@ runs: # Uses default x86_64 / linux user machine
                       includes_missing=true     
                     else
                       includes_missing=true; missing["${include}"]=1
-                      countX=$((include_missing++)); echo -e "\n::notice::\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[31m is missing!?\033[0m  [ ${countX} / ❌ ]" | process_input;
+                      countX=$((include_missing++)); echo -e "\n::notice::\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[31m is missing!?\033[0m  [ ${countX} ❌ ]" | process_input;
                     fi;
                   fi;
                 done <<< "${include_source}";
