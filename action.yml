@@ -3328,8 +3328,18 @@ runs: # Uses default x86_64 / linux user machine
           clang_replacements=$(grep -saF 'Replacements:' "${build_fixes}" | grep -vc '[\[\]]');
           clang_information=$(grep -saiFc 'information:' "${log_file}");
           clang_files_missing=$(grep -saEc 'file not found|Include file' "${log_file}");
-          
-          # Universal checkup for both user or system branches
+          if ${{ env.include_missing == 'true' }}; then
+            eval "$(gawk '/Include file:/ {
+              if ($0 ~ /"/) { split($0, a, "\""); u = u a[2] " "; } 
+              else if ($0 ~ /</) { split($0, a, /[<>]/); s = s a[2] " "; } 
+            } END { printf "clang_files_list1=\"%s\"; clang_files_list2=\"%s\";", u, s; }' "${log_file}")";
+          else
+            eval "$(gawk -F"'" '/file not found/ {
+              err=$2; getline; 
+              if ($0 ~ /#include[[:space:]]+"/) { split($0, a, "\""); u = u a[2] " "; }
+              else if ($0 ~ /#include[[:space:]]+</) { split($0, a, /[<>]/); s = s a[2] " "; }
+            } END { printf "clang_files_list1=\"%s\"; clang_files_list2=\"%s\";", u, s; }' "${log_file}")";
+          fi;
           clang_files_list1=$(echo "$clang_files_list1" | xargs -n1 | sort -u);
           clang_files_list2=$(echo "$clang_files_list2" | xargs -n1 | sort -u);
           clang_warnings=$(gawk '/[0-9]+ warnings? generated/ { sum += $1 } END { print sum + 0 }' "${log_file}");
@@ -3399,42 +3409,42 @@ runs: # Uses default x86_64 / linux user machine
               declare -A located
               found=false
               while IFS= read -r missing_file; do
-	            if [[ "${missing_file}" == *.[ch]* ]]; then
-	              file_count=$((file_count + 1));
-	              echo -e "\n#################### Locating missing \033[1m${missing_file}\033[0m file ( ${file_count} ) ####################" | process_input;
-	              path1="${missing_file//\'/}";
-	              path2="${path1##[:]*}";
-	              path3="${path2%'\n'}";
-	              path4="${path3%\\}";
-	              clean_path="${path4##*./}";
-	              file1="${missing_file//\'/}";
-	              file2="${file1##[:]*}";
-	              file3="${file2%'\n'}";
-	              file4="${file3%\\}";
-	              clean_file="${file4##*/}";
-	              if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
-	                locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}");
-	              elif [[ -n "${clean_file}" ]]; then
-	                locate=$(fdfind "${abs}" -p -t f -g "**/${clean_file//./\\.}" "${{ env.base }}");
-	              fi;
-	              if [[ -n "${locate}" ]]; then            
-	                while IFS= read -r includes; do
-	                  located_count=$((located_count + 1));
-	                  echo -e "\n\033[32mUserInclude Source ${missing_file} Location:\033[0m ${includes}  [\033[1m ${located_count} / ✅ \033[0m]" | process_input;
-	                  [[ "$includes" == */linux/* ]] && includes="${includes%/linux/*}" || { [[ "$includes" == */asm/* ]] && includes="${includes%/asm/*}" || includes="${includes%/*/*}"; }
-	                  echo "${includes}" >> 'check-file-includes.txt';
-	                done <<< "${locate[@]}";
-	                includes_found=true
-	              elif [[ -n "${missing[$missing_file]}" ]]; then
-	                includes_found=false
-	                echo -e "\n\033[33mUserInclude Source file \033[0m( ${missing_file} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
-	              else
-	                includes_found=false
-	                missing["$missing_file"]=1
-	                missing_count=$((missing_count + 1));
-	                echo -e "\n\033[31mCannot locate missing user include file\033[0m ${missing_file}  [ ${missing_count} / ❌ ]" | process_input;
-	              fi;
-	            fi;             
+                if [[ "${missing_file}" == *.[ch]* ]]; then
+                  file_count=$((file_count + 1));
+                  echo -e "\n#################### Locating missing \033[1m${missing_file}\033[0m file ( ${file_count} ) ####################" | process_input;
+                  path1="${missing_file//\'/}";
+                  path2="${path1##[:]*}";
+                  path3="${path2%'\n'}";
+                  path4="${path3%\\}";
+                  clean_path="${path4##*./}";
+                  file1="${missing_file//\'/}";
+                  file2="${file1##[:]*}";
+                  file3="${file2%'\n'}";
+                  file4="${file3%\\}";
+                  clean_file="${file4##*/}";
+                  if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
+                    locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}");
+                  elif [[ -n "${clean_file}" ]]; then
+                    locate=$(fdfind "${abs}" -p -t f -g "**/${clean_file//./\\.}" "${{ env.base }}");
+                  fi;
+                  if [[ -n "${locate}" ]]; then            
+                    while IFS= read -r includes; do
+                      located_count=$((located_count + 1));
+                      echo -e "\n\033[32mUserInclude Source ${missing_file} Location:\033[0m ${includes}  [\033[1m ${located_count} / ✅ \033[0m]" | process_input;
+                      [[ "$includes" == */linux/* ]] && includes="${includes%/linux/*}" || { [[ "$includes" == */asm/* ]] && includes="${includes%/asm/*}" || includes="${includes%/*/*}"; }
+                      echo "${includes}" >> 'check-file-includes.txt';
+                    done <<< "${locate[@]}";
+                    includes_found=true
+                  elif [[ -n "${missing[$missing_file]}" ]]; then
+                    includes_found=false
+                    echo -e "\n\033[33mUserInclude Source file \033[0m( ${missing_file} )\033[33m already listed missing!\033[0m  [\033[1m skipped \033[0m]" | process_input;
+                  else
+                    includes_found=false
+                    missing["$missing_file"]=1
+                    missing_count=$((missing_count + 1));
+                    echo -e "\n\033[31mCannot locate missing user include file\033[0m ${missing_file}  [ ${missing_count} / ❌ ]" | process_input;
+                  fi;
+                fi;             
               done <<< "${clang_files_list1}";
               unset missing;
               declare -A missing
