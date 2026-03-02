@@ -455,7 +455,7 @@ runs: # Uses default x86_64 / linux user machine
         echo 'build_cache=false' >> "${GITHUB_ENV}";
         echo 'check_build=false' >> "${GITHUB_ENV}";
         echo 'database=database' >> "${GITHUB_ENV}";
-        echo 'include_missing=false' >> "${GITHUB_ENV}";
+        echo 'include_missing=0' >> "${GITHUB_ENV}";
         echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
         echo "dirname=${{ inputs.dirname }}" >> "${GITHUB_ENV}";
         echo "export SYSROOT=${TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
@@ -2559,7 +2559,7 @@ runs: # Uses default x86_64 / linux user machine
                 declare -A missing
                 echo -n > 'temp-file';        
                 include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[">]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);       
-                [[ -n "${include_source}" ]] && echo -e "\n####################\033[1m\033[35mTOTAL HEADERS:\033[0m####################\n\n${include_source}" | gawk '{ printf "    \033[4m%s\033[0m\n", $0; }' | process_input;
+                [[ -n "${include_source}" ]] && echo -e "\n#################### \033[1m\033[35m\033[4mTOTAL HEADERS:\033[0m ####################" | process_input && echo -e "\n${include_source}" | gawk '{ printf "          \033[42m%s\033[0m\n", $0; }' | process_input;
                 while IFS= read -r include; do
                   [[ -z "$include" ]] && continue
                   if [[ "${include}" == *.[ch]* ]]; then
@@ -2681,15 +2681,23 @@ runs: # Uses default x86_64 / linux user machine
                   else
                     echo -e "\n####################\n\033[1mCHECK-FILE\033[0m NO ERRORS FOUND: ${file##*/}\n####################" | process_input;
                   fi;
-                  if [[ -s "${error_log}" ]] && grep -qsE "${file//./\\.}.*Include file:" "${error_log}"; then
-                    echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
-                    echo 'include_missing=true' >> "${GITHUB_ENV}";
-                  fi;
                 fi;
               fi;
               if ${{ inputs.recheck == 'true' }} && ${{ inputs.repair == 'true' }}; then
                 echo -e "\n####################\nCPPCHECK RE-ANALYZING FILE ( ${count1} )\n####################\n" | process_input;
                 [[ -e "$build_source" ]] && perform_analysis < "$build_source" || perform_analysis <<< "$files";
+              fi;
+              if [[ -s "${error_log}" ]] && grep -qsE "${file//./\\.}.*Include file:" "${error_log}"; then
+                echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
+                echo 'include_missing=1' >> "${GITHUB_ENV}" && include_missing=true;
+              elif [[ -s "${error_log}" ]] && grep -qsE "${file//./\\.}.*file not found" "${error_log}"; then
+                echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
+                echo 'include_missing=2' >> "${GITHUB_ENV}" && include_missing=true;
+              elif [[ -s "${error_log}" ]] && grep -qPo "(?<=').*?(?=' file not found)" "${error_log}"; then
+                echo 'include_missing=2' >> "${GITHUB_ENV}" && include_missing=true;
+              fi;
+              if [[ -s "${error_log}" ]] && grep -qsE '\[.*:[0-9]*\] #error' "${error_log}"; then
+                echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m HEADER FILE WITH ERRORS FOUND IN: ${file##*/}\n####################" | process_input;
               fi;
               echo -e "\nFinished processing \033[1m${file}\033[0m" | process_input;
               if ${{ inputs.number > '0' }}; then
@@ -2697,15 +2705,7 @@ runs: # Uses default x86_64 / linux user machine
                   echo -e "\nFile checking auto stopped at: ${count1} / ${file##*/}" | process_input && break;
                 fi;
               fi;
-              if [[ -s "${error_log}" ]] && grep -qsE "${file//./\\.}.*Include file:|${file//./\\.}.*file not found" "${error_log}"; then
-                echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m INCLUDE FILE NOT FOUND IN: ${file##*/}\n####################" | process_input;
-                echo 'include_missing=true' >> "${GITHUB_ENV}";
-              fi;
-              if [[ -s "${error_log}" ]] && grep -qsE '\[.*:[0-9]*\] #error' "${error_log}"; then
-                echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m INCLUDE FILE WITH ERRORS FOUND IN: ${file##*/}\n####################" | process_input;
-              fi;
             done <<< "${files}";
-            [[ -s "${error_log}" ]] && grep -qPo "(?<=').*?(?=' file not found)" "${error_log}" && echo 'include_missing=true' >> "${GITHUB_ENV}" && include_missing=true;
           }
           [[ -e "$build_source" ]] && perform_analysis < "$build_source" || perform_analysis <<< "$files";
           [[ "${includes_missing}" == 'true' ]] && echo -e "\n::notice::Total number of include files missing is: ${countX}" | process_input && unset missing;
@@ -3321,33 +3321,26 @@ runs: # Uses default x86_64 / linux user machine
           deheader_duplicates=$(grep -aFc 'duplicates' "${log_file}");
           deheader_inclusion=$(grep -saFc 'inclusion' "${log_file}");
           deheader_removed=$(grep -saFc 'remove' "${log_file}");
-          codechecker_defects=$(gawk '/Found [0-9]+[[:space:]]+defects?/ { sum += $1 } END { print sum + 0 }' "${log_file}");
+          codechecker_defects=$(grep -sao 'Found [1-9] defect' "${log_file}" | cut -d ' ' -f2 | gawk '{ sum += $1 } END { print sum; }');
           codechecker_no_defects=$(grep -saFoc 'Found no defects' "${log_file}");
           codechecker_success=$(grep -saFc 'successfully' "${log_file}");
           codechecker_errors=$(grep -saFc 'Error while processing' "${log_file}");
           clang_replacements=$(grep -saF 'Replacements:' "${build_fixes}" | grep -vc '[\[\]]');
           clang_information=$(grep -saiFc 'information:' "${log_file}");
           clang_files_missing=$(grep -saEc 'file not found|Include file' "${log_file}");
-          if ${{ env.include_missing == 'true' }}; then
-            eval "$(gawk '/Include file:/ {
-              if ($0 ~ /"/) { split($0, a, "\""); u = u a[2] " "; } 
-              else if ($0 ~ /</) { split($0, a, /[<>]/); s = s a[2] " "; } 
-            } END { printf "clang_files_list1=\"%s\"; clang_files_list2=\"%s\";", u, s; }' "${log_file}")";
-          else
-            eval "$(gawk -F"'" '/file not found/ {
-              err=$2; getline; 
-              if ($0 ~ /#include[[:space:]]+"/) { split($0, a, "\""); u = u a[2] " "; }
-              else if ($0 ~ /#include[[:space:]]+</) { split($0, a, /[<>]/); s = s a[2] " "; }
-            } END { printf "clang_files_list1=\"%s\"; clang_files_list2=\"%s\";", u, s; }' "${log_file}")";
+          if ${{ env.include_missing == '1' }}; then
+            clang_files_list1=$(grep -saEo 'Include file:[[:space:]]+["].*["]' "${log_file}" | awk '{ print $3 }' | tr -d '"' | sort -u);
+            clang_files_list2=$(grep -saEo 'Include file:[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $3 }' | tr -d '<>' | sort -u);
+          elif ${{ env.include_missing == '2' }}; then
+            clang_files_list1=$(grep -saEo '| #include[[:space:]]+["].*["]' "${log_file}" | awk '{ print $2 }' | tr -d '"' | sort -u);
+            clang_files_list2=$(grep -saEo '| #include[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
           fi;
-          clang_files_list1=$(echo "$clang_files_list1" | xargs -n1 | sort -u);
-          clang_files_list2=$(echo "$clang_files_list2" | xargs -n1 | sort -u);
-          clang_warnings=$(gawk '/[0-9]+[[:space:]]+warnings? generated/ { sum += $1 } END { print sum + 0 }' "${log_file}");
-          clang_error1=$(gawk '/[0-9]+[[:space:]]+[Ee]rrors? generated/ { sum += $1 } END { print sum + 0 }' "${log_file}");
+          clang_warnings=$(grep -saEo '[1-9] warnings generated|1 warning generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
+          clang_error1=$(grep -saEo '[1-9] errors generated|1 error generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
           clang_error2=$(grep -saiEc 'error:|#error' "${log_file}");
-          clang_failed=$(grep -saiFc 'failed:' "${log_file}");
-          clang_fixit1=$(grep -saiEc 'fixit|fix-its' "${log_file}");
-          clang_error1=$(gawk '/clang-tidy applied+[[:space:]]+[0-9]+/ { sum += $1 } END { print sum + 0 }' "${log_file}");
+          clang_failed=$(grep -saiEc 'failed:|failed' "${log_file}");
+          clang_fixit1=$(grep -saiEc 'fixes|fixit|fix-its' "${log_file}");
+          clang_fixit2=$(grep -saiF 'clang-tidy applied' "${log_file}");
           clang_notes=$(grep -saiFc 'note:' "${log_file}");
           located_count=0
           missing_count=0
@@ -3400,8 +3393,8 @@ runs: # Uses default x86_64 / linux user machine
           elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
-          score=$(gawk -v e1="$clang_error1" -v e2="$clang_error2" -v w="$clang_warnings" -v d="$codechecker_defects" -v f="$clang_fixit1" -v r="$clang_replacements" 'BEGIN {
-            s = 100 - (e1*10) - (e2*10) - (d*5) - (w*2) + (f*2) + (r*2);
+          score=$(gawk -v e1="$clang_error1" -v e2="$clang_error2" -v w="$clang_warnings" -v d="$clang_failed" -v f1="$clang_fixit1" -v f2="$clang_fixit2" -v r="$clang_replacements" 'BEGIN {
+            s = 100 - (e1*10) - (e2*10) - (d*5) - (w*2) + (f1*2) + (f2*2) + (r*2);
             if (s > 100) s = 100; if (s < 0) s = 0;
             if (s >= 90) g="A ✅"; else if (s >= 80) g="B ⚠️"; else if (s >= 70) g="C ⚠️"; else if (s >= 60) g="D 🚫"; else g="F ❌";
             print g " (" s "/100)"
