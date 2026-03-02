@@ -3328,18 +3328,7 @@ runs: # Uses default x86_64 / linux user machine
           clang_replacements=$(grep -saF 'Replacements:' "${build_fixes}" | grep -vc '[\[\]]');
           clang_information=$(grep -saiFc 'information:' "${log_file}");
           clang_files_missing=$(grep -saEc 'file not found|Include file' "${log_file}");
-          if ${{ env.include_missing == 'true' }}; then
-            eval "$(gawk '/Include file:/ { # Cppcheck Parser: Grabs "Include file:" regardless of quotes or brackets
-              if ($0 ~ /"/) { split($0, a, "\""); u = u a[2] " "; } 
-              else if ($0 ~ /</) { split($0, a, /[<>]/); s = s a[2] " "; } 
-            } END { printf "clang_files_list1=\"%s\"; clang_files_list2=\"%s\";", u, s; }' "${log_file}")";
-          else
-            eval "$(gawk -F"'" '/file not found/ { # Clang-tidy Parser: Context-locked to lines following "file not found"
-              err=$2; getline; 
-              if ($0 ~ /#include[[:space:]]+"/) { split($0, a, "\""); u = u a[2] " "; }
-              else if ($0 ~ /#include[[:space:]]+</) { split($0, a, /[<>]/); s = s a[2] " "; }
-            } END { printf "clang_files_list1=\"%s\"; clang_files_list2=\"%s\";", u, s; }' "${log_file}")";
-          fi;
+          
           # Universal checkup for both user or system branches
           clang_files_list1=$(echo "$clang_files_list1" | xargs -n1 | sort -u);
           clang_files_list2=$(echo "$clang_files_list2" | xargs -n1 | sort -u);
