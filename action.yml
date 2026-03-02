@@ -447,6 +447,7 @@ runs: # Uses default x86_64 / linux user machine
         echo 'includes=false' >> "${GITHUB_ENV}"
         echo "rsp=${{ inputs.rsp }}" >> "${GITHUB_ENV}";
         echo 'sources=false' >> "${GITHUB_ENV}";
+        echo 'file_count=0' >> "${GITHUB_ENV}";
         echo 'file_fixed=0' >> "${GITHUB_ENV}";
         echo 'file_found=0' >> "${GITHUB_ENV}";
         echo 'file_error=0' >> "${GITHUB_ENV}";
@@ -2559,7 +2560,7 @@ runs: # Uses default x86_64 / linux user machine
                 declare -A missing
                 echo -n > 'temp-file';        
                 include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[">]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);       
-                [[ -n "${include_source}" ]] && echo -e "\n#################### \033[1m\033[35m\033[4mTOTAL HEADERS:\033[0m ####################" | process_input && echo -e "\n${include_source}" | gawk '{ printf "          \033[42m%s\033[0m\n", $0; }' | process_input;
+                [[ -n "${include_source}" ]] && echo -e "\n####################:\033[1m\033[35m\033[4mTOTAL HEADERS\033[0m:####################" | process_input && echo -e "\n${include_source}" | gawk '{ printf "                    %s\n", $0; }' | process_input;
                 while IFS= read -r include; do
                   [[ -z "$include" ]] && continue
                   if [[ "${include}" == *.[ch]* ]]; then
@@ -2696,7 +2697,7 @@ runs: # Uses default x86_64 / linux user machine
           }
           [[ -e "$build_source" ]] && perform_analysis < "$build_source" || perform_analysis <<< "$files";
           [[ "${includes_missing}" == 'true' ]] && echo -e "\n::notice::Total number of include files missing is: ${countX}" | process_input && unset missing;
-          echo -e "\n::notice::Total number of ${{ env.filename }} files checked is: ${count1}" | process_input;
+          echo -e "\n::notice::Total number of ${{ env.filename }} files checked is: ${count1}" | process_input && echo "file_count=${count1}" >> "$GITHUB_ENV";
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${error}" -gt 0 ]]; then
@@ -2865,7 +2866,7 @@ runs: # Uses default x86_64 / linux user machine
           elif [[ "${error}" > '0' ]]; then
             echo -e "::notice::shellcheck ( ${error} )" | process_input;
           fi;
-          echo -e "\n::notice:: Total number of ${{ env.filename }} files checked is: ${count3}" | process_input;
+          echo -e "\n::notice:: Total number of ${{ env.filename }} files checked is: ${count3}" | process_input && echo "file_count=${count3}" >> "$GITHUB_ENV";
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${errors}" ]]; then
@@ -2989,7 +2990,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             fi;
           done <<< "${files}";
-          echo -e "\n::notice:: Total number of ${{ env.filename }} files checked is: ${count4}" | process_input;
+          echo -e "\n::notice:: Total number of ${{ env.filename }} files checked is: ${count4}" | process_input && echo "file_count=${count4}" >> "$GITHUB_ENV";
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           if [[ "${error}" > '0' ]]; then
             echo -e "::notice::checkmake ( ${error} )" | process_input;
@@ -3097,7 +3098,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
             fi;
           done <<< "${files}";
-          echo -e "\n::notice:: Total number of ${{ env.filename }} files checked is: ${count5}" | process_input;
+          echo -e "\n::notice:: Total number of ${{ env.filename }} files checked is: ${count5}" | process_input && echo "file_count=${count5}" >> "$GITHUB_ENV";
           echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
           echo "data_file=1" >> "${GITHUB_ENV}";
           seconds="$((SECONDS + start_time))";
@@ -3268,6 +3269,8 @@ runs: # Uses default x86_64 / linux user machine
           cp "$project_log" build/
         fi;
         source_include_list='check-file-includes.txt';
+        checked_file_count="${{ env.file_count }}";
+        [[ "$checked_file_count" -eq '0' ]] && checked_file_count=100
         check_build=false
         file_type='c';
         update=true
@@ -3378,8 +3381,8 @@ runs: # Uses default x86_64 / linux user machine
           elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
-          score=$(gawk -v e1="$clang_error1" -v e2="$clang_error2" -v w="$clang_warnings" -v d="$clang_failed" -v f1="$clang_fixit1" -v f2="$clang_fixit2" -v r="$clang_replacements" 'BEGIN {
-            s = 100 - (e1*10) - (e2*10) - (d*5) - (w*2) + (f1*2) + (f2*2) + (r*2);
+          score=$(gawk -v e1="$clang_error1" -v e2="$clang_error2" -v w="$clang_warnings" -v d="$clang_failed" -v f1="$clang_fixit1" -v f2="$clang_fixit2" -v r="$clang_replacements" -v f="$checked_file_count" 'BEGIN {
+            s = f - (e1*1) - (e2*1) - (d*5) - (w*1) + (f1*2) + (f2*2) + (r*2);
             if (s > 100) s = 100; if (s < 0) s = 0;
             if (s >= 90) g="A ✅"; else if (s >= 80) g="B ⚠️"; else if (s >= 70) g="C ⚠️"; else if (s >= 60) g="D 🚫"; else g="F ❌";
             print g " (" s "/100)"
@@ -3387,12 +3390,11 @@ runs: # Uses default x86_64 / linux user machine
           echo -e "\n########################################\n::notice::🏆 \033[1mCHECK-FILE FINAL GRADE:\033[0m \033[1;32m${score}\033[0m\n########################################\n" | process_input;
           if (( clang_files_missing > 0 )); then
             echo -e "\n####################\n::notice::❌ \033[1mCHECK-FILE:\033[0m discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
+            declare -A missing
+            found=false
             if [[ -n "${clang_files_list1}" ]]; then 
               echo -e "\n####################\nMISSING USER FILES LIST:\n####################\n\n${clang_files_list1}" | process_input;
               echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m AUTO LOCATE FILE MATCHES IN: ${{ env.base }}/${{ env.dirname }}\n####################\n" | process_input;
-              declare -A missing
-              declare -A located
-              found=false
               while IFS= read -r missing_file; do
                 if [[ "${missing_file}" == *.[ch]* ]]; then
                   file_count=$((file_count + 1));
@@ -3431,8 +3433,6 @@ runs: # Uses default x86_64 / linux user machine
                   fi;
                 fi;             
               done <<< "${clang_files_list1}";
-              unset missing;
-              declare -A missing
             fi;
             if [[ -n "${clang_files_list2}" ]]; then
               echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input;
@@ -3475,8 +3475,8 @@ runs: # Uses default x86_64 / linux user machine
                   fi;
                 fi;             
               done <<< "${clang_files_list2}";
-              unset missing;
             fi;
+            unset missing;
             if [[ -s "${source_include_list}" ]]; then
               gawk '{ for (i=1;i<=NF;i++) { if ($i ~ /\.(c|cc|cpp|c\+\+|h|hh|hpp|h\+\+)/) { print $i; } } }' "${log_file}" | gawk '{ for (i=1;i<=NF;i++) print $i; }' | sed -E 's/\/[^/]*\.(h|hh|hpp|h\+\+)$//g' | grep -E '^(/[^/[:space:]]*)+/?$' | sed -E 's|(/[.][.]/?)+$||' | grep -vE "\.\..*\.${filetype}$" | gawk -v ext="${filetype}" '$0 ~ "."ext"$" { if (seen[$0]++) next; print; next; } { print; }' | gawk -v ext="${filetype}" '$0 ~ "\\."ext { delete seen; print; next; } !seen[$0]++' > "${source_include_list}" || echo "::notice::File ${source_include_list##*/} was not created!!!" | process_input;
               [[ -s "${source_include_list}" ]] && cp -f "${source_include_list}" 'build/' && echo -e "\n\033[32mCopied ${source_include_list} to build for uploading if needed.\033[0m ✅" | process_input;
@@ -3793,11 +3793,11 @@ runs: # Uses default x86_64 / linux user machine
           local text="$1";
           echo -e "${text}"
         }
-        auther='By:\033[3m\033[2m Gerrard Johnson\033[0m';
+        aurther="By: \033[4m\033[3mGerrard Johnson\033[0m";
         texta="######################";
         textb="#\033[1m\033[32m CHECK FILE EXITING \033[0m#";
         textc="######################";
-        text "${auther}\n";
+        text "${aurther}\n";
         text "${texta}";
         text "${textb}";
         text "${textc}\n";
