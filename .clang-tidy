@@ -1,12 +1,12 @@
 ---
-Checks:                '-*,clang-analyzer-*,-clang-analyzer-cplusplus*,-clang-analyzer-osx*'
+Checks:                '-*,clang-analyzer-*,-clang-analyzer-cplusplus*,-clang-analyzer-osx*,-clang-analyzer-core*'
 WarningsAsErrors:      ''
 HeaderFileExtensions:         ['', 'h','hh','hpp','hxx']
 ImplementationFileExtensions: ['c','cc','cpp','cxx']
-HeaderFilterRegex:     '.*'
+HeaderFilterRegex: '^$(realpath .)/.*'
 InheritParentConfig:   true
 User:                  user
-SystemHeaders:         true
+SystemHeaders:         false
 UseColor:              true
 FormatStyle:           none
 CheckOptions:
@@ -18,4 +18,20 @@ CheckOptions:
     value:           CamelCase
   - key:             modernize-pass-by-value.IncludeStyle
     value:           llvm
+ExtraArgs:
+  - -D__KERNEL__
+  - -DKBUILD_STR(s)=#s
+  - -target
+  - arm-linux-androideabi
+  - -m32
+  - -Wno-implicit-function-declaration  # Fixes 'fls' and bitop errors
+  - -Wno-int-conversion                 # Common in kernel pointer math
+  - -Wno-unused-value                   # Kernels use many 'dummy' macros
+  - -Wno-format-security                # Kernels often use custom printk
+  - -Wno-invalid-token-paste            # Silences glue() macro errors
+  - -fno-ms-extensions                  # Ensure standard C behavior
+  - -fno-builtin                      # Kernel defines its own versions of built-ins
+  - -nostdinc                         # Prevents picking up host machine headers
+  - -Wno-unknown-attributes            # Kernels use many custom GCC attributes Clang ignores
+  - -Wno-missing-prototypes
 ...
