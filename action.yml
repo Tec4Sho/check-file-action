@@ -3321,7 +3321,7 @@ runs: # Uses default x86_64 / linux user machine
           deheader_duplicates=$(grep -aFc 'duplicates' "${log_file}");
           deheader_inclusion=$(grep -saFc 'inclusion' "${log_file}");
           deheader_removed=$(grep -saFc 'remove' "${log_file}");
-          codechecker_defects=$(gawk '/Found [0-9]+ defects?/ { sum += $1 } END { print sum + 0 }' "${log_file}");
+          codechecker_defects=$(gawk '/Found [0-9]+[[:space:]]+defects?/ { sum += $1 } END { print sum + 0 }' "${log_file}");
           codechecker_no_defects=$(grep -saFoc 'Found no defects' "${log_file}");
           codechecker_success=$(grep -saFc 'successfully' "${log_file}");
           codechecker_errors=$(grep -saFc 'Error while processing' "${log_file}");
@@ -3342,12 +3342,12 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           clang_files_list1=$(echo "$clang_files_list1" | xargs -n1 | sort -u);
           clang_files_list2=$(echo "$clang_files_list2" | xargs -n1 | sort -u);
-          clang_warnings=$(gawk '/[0-9]+ warnings? generated/ { sum += $1 } END { print sum + 0 }' "${log_file}");
-          clang_error1=$(gawk '/[0-9]+ errors? generated/ { sum += $1 } END { print sum + 0 }' "${log_file}");
+          clang_warnings=$(gawk '/[0-9]+[[:space:]]+warnings? generated/ { sum += $1 } END { print sum + 0 }' "${log_file}");
+          clang_error1=$(gawk '/[0-9]+[[:space:]]+[Ee]rrors? generated/ { sum += $1 } END { print sum + 0 }' "${log_file}");
           clang_error2=$(grep -saiEc 'error:|#error' "${log_file}");
           clang_failed=$(grep -saiFc 'failed:' "${log_file}");
           clang_fixit1=$(grep -saiEc 'fixit|fix-its' "${log_file}");
-          clang_error1=$(gawk '/clang-tidy applied [0-9]+/ { sum += $1 } END { print sum + 0 }' "${log_file}");
+          clang_error1=$(gawk '/clang-tidy applied+[[:space:]]+[0-9]+/ { sum += $1 } END { print sum + 0 }' "${log_file}");
           clang_notes=$(grep -saiFc 'note:' "${log_file}");
           located_count=0
           missing_count=0
@@ -3400,6 +3400,13 @@ runs: # Uses default x86_64 / linux user machine
           elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
+          score=$(gawk -v e1="$clang_error1" -v e2="$clang_error2" -v w="$clang_warnings" -v d="$codechecker_defects" -v f="$clang_fixit1" -v r="$clang_replacements" 'BEGIN {
+            s = 100 - (e1*10) - (e2*10) - (d*5) - (w*2) + (f*2) + (r*2);
+            if (s > 100) s = 100; if (s < 0) s = 0;
+            if (s >= 90) g="A ✅"; else if (s >= 80) g="B ⚠️"; else if (s >= 70) g="C ⚠️"; else if (s >= 60) g="D 🚫"; else g="F ❌";
+            print g " (" s "/100)"
+          }');
+          echo -e "\n########################################\n::notice::🏆 \033[1mCHECK-FILE FINAL GRADE:\033[0m \033[1;32m${score}\033[0m\n########################################\n" | process_input;
           if (( clang_files_missing > 0 )); then
             echo -e "\n####################\n::notice::❌ \033[1mCHECK-FILE:\033[0m discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
             if [[ -n "${clang_files_list1}" ]]; then 
