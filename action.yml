@@ -3453,19 +3453,19 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\n####################\nMISSING SYSTEM FILES LIST:\n####################\n\n${clang_files_list2}" | process_input;
               echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m AUTO LOCATE FILE MATCHES IN: ${{ env.base }}/${{ env.dirname }}\n####################\n" | process_input;
               while IFS= read -r missing_file; do
-                if [[ "${missing_file}" == *.[ch]* ]]; then 
-	              file_count=$((file_count + 1));
-	              echo -e "\n#################### Locating missing \033[1m${missing_file}\033[0m file ( ${file_count} ) ####################" | process_input;
-	              path1="${missing_file//\'/}";
-	              path2="${path1##[:]*}";
-	              path3="${path2%'\n'}";
-	              path4="${path3%\\}";
-	              clean_path="${path4##*./}";
-	              file1="${missing_file//\'/}";
-	              file2="${file1##[:]*}";
-	              file3="${file2%'\n'}";
-	              file4="${file3%\\}";
-	              clean_file="${file4##*/}"; 
+                if [[ "${missing_file}" == *.[ch]* ]]; then
+                  file_count=$((file_count + 1));
+                  echo -e "\n#################### Locating missing \033[1m${missing_file}\033[0m file ( ${file_count} ) ####################" | process_input;
+                  path1="${missing_file//\'/}";
+                  path2="${path1##[:]*}";
+                  path3="${path2%'\n'}";
+                  path4="${path3%\\}";
+                  clean_path="${path4##*./}";
+                  file1="${missing_file//\'/}";
+                  file2="${file1##[:]*}";
+                  file3="${file2%'\n'}";
+                  file4="${file3%\\}";
+                  clean_file="${file4##*/}"; 
                   if [[ "${missing_file}" == *"/"* && "${clean_path}" != "/" ]]; then
                     locate=$(fdfind "${abs}" -p -t f -g "**/${clean_path//./\\.}" "${{ env.base }}");
                   elif [[ -n "${clean_file}" ]]; then
