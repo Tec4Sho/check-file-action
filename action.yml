@@ -3811,7 +3811,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Check Project Size
-      run: echo -e "\n\033[33mRepository Project Total Size:\033[0m \033[1m$(du ${{ env.base }} -shx)\033[0m\n";
+      run: echo ''; echo -e "\n\033[33mRepository Project Total Size:\033[0m \033[1m$(du ${{ env.base }} -shx)\033[0m\n";
       shell: bash
       continue-on-error: true
 
@@ -3821,11 +3821,13 @@ runs: # Uses default x86_64 / linux user machine
           local text="$1";
           echo -e "${text}"
         }
-        aurther="\nBy: \033[4m\033[3mGerrard Johnson\033[0m";
+        echoed=
+        aurther="By: \033[4m\033[3mGerrard Johnson\033[0m";
         texta="######################";
         textb="#\033[1m\033[32m CHECK FILE EXITING \033[0m#";
         textc="######################";
-        text "${aurther}\n";
+        text "${echoed}";
+        text "\n${aurther}\n";
         text "${texta}";
         text "${textb}";
         text "${textc}\n";
