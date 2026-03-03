@@ -3396,7 +3396,7 @@ runs: # Uses default x86_64 / linux user machine
           score_data=$(gawk -v e="$clang_error1" -v w="$clang_warnings" -v f="$clang_failed" \
             -v c="$checked_file_count" -v total="$expected_file_count" 'BEGIN {
             if (c == 0) { print "0.00 💀 (No Files)"; exit; }    
-            error_units = (e * 10) + (w * 2) + (f * 20);
+            error_units = e + (w - 2) + (f * 2);
             density = error_units / c;
             quality_score = 100 - (density * 10);
             if (quality_score < 0) quality_score = 0;
@@ -3414,7 +3414,7 @@ runs: # Uses default x86_64 / linux user machine
             else                        { rank="FAILED"; icon="💀"; }
             printf "%.2f %s (%s)", final_score, icon, rank;
           }')
-          echo "\003[1mChecked Files Final Grade\033[0m: $score_data";
+          echo -e "\n\003[1mChecked Files Final Grade\033[0m: $score_data";
           if (( clang_files_missing > 0 )); then
             echo -e "\n####################\n::notice::❌ \033[1mCHECK-FILE:\033[0m discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
             declare -A missing
@@ -3811,23 +3811,24 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Check Project Size
-      run: echo ''; echo -e "\n\033[33mRepository Project Total Size:\033[0m \033[1m$(du ${{ env.base }} -shx)\033[0m\n";
+      run: |
+        echo ''; 
+        echo -e "\033[33mRepository Project Total Size:\033[0m \033[1m$(du ${{ env.base }} -shx)\033[0m\n";
       shell: bash
       continue-on-error: true
 
     - name: Exiting
       run: |
+        echo '';
         text() {
           local text="$1";
-          echo -e "${text}"
+          echo -e "${text}";
         }
-        echoed=
         aurther="By: \033[4m\033[3mGerrard Johnson\033[0m";
         texta="######################";
         textb="#\033[1m\033[32m CHECK FILE EXITING \033[0m#";
         textc="######################";
-        text "${echoed}";
-        text "\n${aurther}\n";
+        text "${aurther}\n";
         text "${texta}";
         text "${textb}";
         text "${textc}\n";
