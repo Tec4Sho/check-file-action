@@ -457,6 +457,7 @@ runs: # Uses default x86_64 / linux user machine
         echo 'check_build=false' >> "${GITHUB_ENV}";
         echo 'database=database' >> "${GITHUB_ENV}";
         echo 'include_missing=0' >> "${GITHUB_ENV}";
+        echo 'expected_file_count=0' >> "${GITHUB_ENV}";
         echo "update=${{ inputs.update }}" >> "${GITHUB_ENV}";
         echo "dirname=${{ inputs.dirname }}" >> "${GITHUB_ENV}";
         echo "export SYSROOT=${TOOLCHAIN}" | sudo tee -a ~/.bashrc >/dev/null;
@@ -2523,6 +2524,7 @@ runs: # Uses default x86_64 / linux user machine
           else
              cppchecks='all';
           fi;
+          echo "expected_file_count=$(echo "${files}" | grep -c '[^[:space:]]')" >> "$GITHUB_ENV"
           perform_analysis() {
             local files
             local aarch
@@ -2792,6 +2794,7 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\e[4mTotal Files\e[0m: \033[1m$(echo "${files}" | wc -l)\033[0m" | gawk '{ printf "    %s\n", $0; }' | process_input;
             fi;
           fi;
+          echo "expected_file_count=$(echo "${files}" | grep -c '[^[:space:]]')" >> "$GITHUB_ENV"
           while IFS= read -r file; do
             search_path="${file}";
             check_date=$(grep -Fs "${search_path}" "${repaired}" | cut -d' ' -f 2-);
@@ -2962,6 +2965,7 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\e[4mTotal Files\e[0m: \033[1m$(echo "${files}" | wc -l)\033[0m" | gawk '{ printf "    %s\n", $0; }' | process_input;
             fi;
           fi;
+          echo "expected_file_count=$(echo "${files}" | grep -c '[^[:space:]]')" >> "$GITHUB_ENV";
           while IFS= read -r file; do
             count4=$((makefile_count++));
             echo "${file}" >> 'check_file_paths.txt';
@@ -3078,6 +3082,7 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\e[4mTotal Files\e[0m: \033[1m$(echo "${files}" | wc -l)\033[0m" | gawk '{ printf "    %s\n", $0; }' | process_input;
             fi;
           fi;
+          echo "expected_file_count=$(echo "${files}" | grep -c '[^[:space:]]')" >> "$GITHUB_ENV";
           while IFS= read -r file; do
             count5=$((file_count++));
             echo "${file}" >> 'check_file_paths.txt';
@@ -3271,6 +3276,7 @@ runs: # Uses default x86_64 / linux user machine
         source_include_list='check-file-includes.txt';
         checked_file_count="${{ env.file_count }}";
         [[ "$checked_file_count" -eq '0' ]] && checked_file_count=100
+        expected_file_count="${{ env.expected_file_count }}";
         check_build=false
         file_type='c';
         update=true
@@ -3386,13 +3392,29 @@ runs: # Uses default x86_64 / linux user machine
           elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
-          score=$(gawk -v e="$clang_error1" -v w="$clang_warnings" -v n="$clang_notes" -v f="$clang_failed" -v f1="$clang_fixit1" -v f2="$clang_fixit2" -v r="$clang_replacements" -v ne="$no_error" -v c="$checked_file_count" 'BEGIN {
-            s = (c*10) - (e*1) - (w*1) - (n*1) - (f*1) + (f1*2) + (f2*2) + (r*2) + (ne*2);
-            if (s > 100) s = 100; if (s < 0) s = 0;
-            if (s >= (c*10)) g="A ✅"; else if (s >= (c*5)) g="B ⚠️"; else if (s >= (c*2)) g="C ⚠️"; else if (s >= c) g="D 🚫"; else g="F ❌";
-            print g " (" s "/" (c*10) ")"
-          }');
-          echo -e "\n########################################\n::notice::🏆 \033[1mCHECK-FILE FINAL GRADE:\033[0m \033[1;32m${score}\033[0m\n########################################\n" | process_input;
+          # Variables required: e (errors), w (warnings), f (failed compilations), c (checked files), total (expected files) 1. Error Density Logic (Scales for 1 to 20,000 files)
+          score_data=$(gawk -v e="$clang_error1" -v w="$clang_warnings" -v f="$clang_failed" \
+            -v c="$checked_file_count" -v total="$expected_file_count" 'BEGIN {
+            if (c == 0) { print "0.00 💀 (No Files)"; exit; }    
+            error_units = (e * 10) + (w * 2) + (f * 20);
+            density = error_units / c;
+            quality_score = 100 - (density * 10);
+            if (quality_score < 0) quality_score = 0;
+            completion_rate = c / total;
+            final_score = quality_score * completion_rate;
+            if ((f / c) > 0.15) final_score = 0;
+            # 5. Icon/Rank System
+            rank = "NONE";
+            icon = "⚪";
+            if (final_score >= 95)      { rank="S-TIER"; icon="💎"; }
+            else if (final_score >= 85) { rank="A-RANK"; icon="🥇"; }
+            else if (final_score >= 70) { rank="B-RANK"; icon="🥈"; }
+            else if (final_score >= 50) { rank="C-RANK"; icon="🥉"; }
+            else if (final_score > 0)   { rank="D-RANK"; icon="⚠️"; }
+            else                        { rank="FAILED"; icon="💀"; }
+            printf "%.2f %s (%s)", final_score, icon, rank;
+          }')
+          echo "\003[1mChecked Files Final Grade\033[0m: $score_data";
           if (( clang_files_missing > 0 )); then
             echo -e "\n####################\n::notice::❌ \033[1mCHECK-FILE:\033[0m discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
             declare -A missing
@@ -3789,20 +3811,17 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Check Project Size
-      run: |
-        echo '';
-        echo -e "\033[33mRepository Project Total Size:\033[0m \033[1m$(du ${{ env.base }} -shx)\033[0m\n";
+      run: echo -e "\n\033[33mRepository Project Total Size:\033[0m \033[1m$(du ${{ env.base }} -shx)\033[0m\n";
       shell: bash
       continue-on-error: true
 
     - name: Exiting
       run: |
-        echo '';
         text() {
           local text="$1";
           echo -e "${text}"
         }
-        aurther="By: \033[4m\033[3mGerrard Johnson\033[0m";
+        aurther="\nBy: \033[4m\033[3mGerrard Johnson\033[0m";
         texta="######################";
         textb="#\033[1m\033[32m CHECK FILE EXITING \033[0m#";
         textc="######################";
