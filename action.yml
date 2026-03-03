@@ -3414,7 +3414,7 @@ runs: # Uses default x86_64 / linux user machine
             else                        { rank="FAILED"; icon="💀"; }
             printf "%.2f %s (%s)", final_score, icon, rank;
           }')
-          echo -e "\n\003[1mChecked Files Final Grade\033[0m: $score_data";
+          echo -e "\nChecked Files Final Grade: $score_data";
           if (( clang_files_missing > 0 )); then
             echo -e "\n####################\n::notice::❌ \033[1mCHECK-FILE:\033[0m discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
             declare -A missing
