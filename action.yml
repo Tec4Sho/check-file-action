@@ -2560,7 +2560,7 @@ runs: # Uses default x86_64 / linux user machine
                 declare -A missing
                 echo -n > 'temp-file';        
                 include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[">]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);       
-                [[ -n "${include_source}" ]] && echo -e "\n################: \033[1m\033[35m\033[4mTOTAL HEADERS\033[0m :################" | process_input && echo -e "\n${include_source}" | gawk '{ printf "                %s\n", $0; }' | process_input;
+                [[ -n "${include_source}" ]] && echo -e "\n##############: \033[1m\033[35m\033[4mTOTAL INCLUDES\033[0m :##############" | process_input && echo -e "\n${include_source}" | gawk '{ printf "                %s\n", $0; }' | process_input;
                 while IFS= read -r include; do
                   [[ -z "$include" ]] && continue
                   if [[ "${include}" == *.[ch]* ]]; then
@@ -3330,11 +3330,15 @@ runs: # Uses default x86_64 / linux user machine
           clang_fixit1=$(grep -saiEc 'fixes|fixit|fix-its' "${log_file}");
           clang_fixit2=$(grep -saiF 'clang-tidy applied' "${log_file}");
           clang_notes=$(grep -saiFc 'note:' "${log_file}");
+          no_error=$(grep -saiFc 'NO ERRORS' "${log_file}");
           located_count=0
           missing_count=0
           located_arch=0
           file_count=0
           filetype="${{ env.filename }}";
+          if (( no_error > 0 )); then
+            echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m ${no_error}️ ${file_type} files checked without any errors. [Hints] When using store & update or cache option these wont be rescanned for errors\n####################" | process_input;
+          fi;
           if (( clang_information > 0 )) && ${{ inputs.analyzer == '3' }}; then
             echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m added ${clang_information}️ information notes on ${file_type} files checked. [Hints] Information addresses key issues that may have error fixes available.\n####################" | process_input;
           fi;
@@ -3382,11 +3386,11 @@ runs: # Uses default x86_64 / linux user machine
           elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
-          score=$(gawk -v e1="$clang_error1" -v e2="$clang_error2" -v w="$clang_warnings" -v d="$clang_failed" -v f1="$clang_fixit1" -v f2="$clang_fixit2" -v r="$clang_replacements" -v f="$checked_file_count" 'BEGIN {
-            s = f - (e1*1) - (e2*1) - (d*5) - (w*1) + (f1*2) + (f2*2) + (r*2);
+          score=$(gawk -v e="$clang_error1" -v w="$clang_warnings" -v n="$clang_notes" -v f="$clang_failed" -v f1="$clang_fixit1" -v f2="$clang_fixit2" -v r="$clang_replacements" -v ne="$no_error" -v c="$checked_file_count" 'BEGIN {
+            s = (c*10) - (e*1) - (w*1) - (n*1) - (f*1) + (f1*2) + (f2*2) + (r*2) + (ne*2);
             if (s > 100) s = 100; if (s < 0) s = 0;
-            if (s >= 90) g="A ✅"; else if (s >= 80) g="B ⚠️"; else if (s >= 70) g="C ⚠️"; else if (s >= 60) g="D 🚫"; else g="F ❌";
-            print g " (" s "/100)"
+            if (s >= (c*10)) g="A ✅"; else if (s >= (c*5)) g="B ⚠️"; else if (s >= (c*2)) g="C ⚠️"; else if (s >= c) g="D 🚫"; else g="F ❌";
+            print g " (" s "/" (c*10) ")"
           }');
           echo -e "\n########################################\n::notice::🏆 \033[1mCHECK-FILE FINAL GRADE:\033[0m \033[1;32m${score}\033[0m\n########################################\n" | process_input;
           if (( clang_files_missing > 0 )); then
@@ -3490,7 +3494,7 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
           fi;
           compilers=$(gcc -v --help 2> /dev/null | grep -iv deprecated | sed -n '/^ *-std=\([^<][^ ]\+\).*/ {s//\1/p}');
-          [[ "${located_count}" -gt 0 ]] && echo -e "\n####################\n\tFiles found using correct arch=${{ env.arch }}: ${located_count}\n####################" | process_input
+          [[ "${located_count}" -gt 0 ]] && echo -e "\n####################\n\tFiles found using correct ${{ env.arch }} arch: ${located_count}\n####################" | process_input
           ${{ inputs.content == 'true' }} && echo -e "\n####################\n\tINSTALLED COMPILER LIST:\n####################\n\n${compiler_list}" | process_input || echo -e "\n####################\n\tINSTALLED COMPILERS:\n####################\n\n${compilers}";
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
