@@ -2605,7 +2605,7 @@ runs: # Uses default x86_64 / linux user machine
                 fi;
                 if [[ -s 'temp-file' ]]; then
                   count=$(gawk 'NF > 0 { count++; } END { print count + 0; }' "${include_paths}");
-                  echo -e "\n\033[1mcheck-file: ${count} include paths for \033[1m${file##*/}\033[0m added!" | process_input;
+                  echo -e "\n\033[1mcheck-file: ${count} include paths for \033[1m${file##*/}\033[0m added!\n$includes_bases" | process_input;
                 fi;
                 if ${{ inputs.repair == 'true' }}; then
                   if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && grep -qsF "${search_path}" "${repaired}"; then
@@ -3396,14 +3396,14 @@ runs: # Uses default x86_64 / linux user machine
           score_data=$(gawk -v e="$clang_error1" -v w="$clang_warnings" -v f="$clang_failed" \
             -v c="$checked_file_count" -v total="$expected_file_count" 'BEGIN {
             if (c == 0) { print "0.00 💀 (No Files)"; exit; }    
-            error_units = e + (w - 2) + (f * 2);
+            if (c > 100)      { error_units = (e * 2) + (w / 4) + (f * 5); }
+            else                        { error_units = e + (w / 2) + (f * 2); }
             density = error_units / c;
-            quality_score = 100 - (density * 10);
+            quality_score = 100 - density;
             if (quality_score < 0) quality_score = 0;
             completion_rate = c / total;
             final_score = quality_score * completion_rate;
             if ((f / c) > 0.15) final_score = 0;
-            # 5. Icon/Rank System
             rank = "NONE";
             icon = "⚪";
             if (final_score >= 95)      { rank="S-TIER"; icon="💎"; }
@@ -3414,7 +3414,7 @@ runs: # Uses default x86_64 / linux user machine
             else                        { rank="FAILED"; icon="💀"; }
             printf "%.2f %s (%s)", final_score, icon, rank;
           }')
-          echo -e "\nChecked Files Final Grade: $score_data";
+          echo -e "\n::notice::Checked Files Final Grade: $score_data";
           if (( clang_files_missing > 0 )); then
             echo -e "\n####################\n::notice::❌ \033[1mCHECK-FILE:\033[0m discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
             declare -A missing
