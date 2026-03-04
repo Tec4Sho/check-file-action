@@ -2356,7 +2356,7 @@ runs: # Uses default x86_64 / linux user machine
             mkdir -p "$DYN_OUT";
             BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
               export KCFLAGS='-w' && \
-              make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS olddefconfig && \
+              make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
               make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS $FILENAME";
             export BUILD_CMD
             CodeChecker check \
