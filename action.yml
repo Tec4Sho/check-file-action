@@ -2435,7 +2435,7 @@ runs: # Uses default x86_64 / linux user machine
       shell: bash
       continue-on-error: true
 
-    - name: Check & Repair CC/C++
+    - name: Check Includes & Repair CC/C++
       if: env.filename != '' && inputs.build == '0' && inputs.source != '4' && inputs.pattern == '' && inputs.include == 'true'
       run: |
         source ~/.bashrc
@@ -2569,11 +2569,11 @@ runs: # Uses default x86_64 / linux user machine
               if ${{ inputs.absolute == 'true' }}; then
                 clean_file="${file#/*/*/*/*/*/}";
                 [[ -s 'temp-file' ]] && sed -E '/\/include\// s|/[^/]+$||' temp-file | sed -E 's|^(/[^/]*){5}/||' | sort -u > "${include_paths}" && cp "${include_paths}" build/
-                [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '\/include\/(uapi|generated)$/! s|(-I.*/include)/[^/]+$|\1|' | awk '!seen[$0]++' | xargs)
+                [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '\/include\/(uapi|generated)$/! s|(-I.*/include)/[^/]+$|\1|' | awk '!seen[$0]++' | xargs echo);
               else
                 clean_file="${file#*./}";
                 [[ -s 'temp-file' ]] && sed -E '/\/include\// s|/[^/]+$||' temp-file | sort -u > "${include_paths}" && cp "${include_paths}" build/
-                [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '\/include\/(uapi|generated)$/! s|(-I.*/include)/[^/]+$|\1|' | awk '!seen[$0]++' | xargs)
+                [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '\/include\/(uapi|generated)$/! s|(-I.*/include)/[^/]+$|\1|' | awk '!seen[$0]++' | xargs echo);
               fi;
               if [[ -s 'temp-file' ]]; then
                 count=$(gawk 'NF > 0 { count++; } END { print count + 0; }' "${include_paths}");
