@@ -2566,15 +2566,16 @@ runs: # Uses default x86_64 / linux user machine
                   fi;
                 fi;
               done <<< "${include_source}";
-              [[ "$includes_missing" == 'true' ]] && echo 'include_missing=true' >> "${GITHUB_ENV}"; echo -e "\n\033[1m${file##*/}\033[0m \033[32mtotal header files found:\033[0m \033[1m${count2}\033[0m" | process_input;
+              [[ "$includes_missing" == 'true' ]] && echo 'include_missing=true' >> "${GITHUB_ENV}";
+              echo -e "\n\033[1m${file##*/}\033[0m \033[32mtotal header files found:\033[0m \033[1m${count2}\033[0m" | process_input;
               if ${{ inputs.absolute == 'true' }}; then
                 clean_file="${file#/*/*/*/*/*/}";
                 [[ -s 'temp-file' ]] && sed -E '/\/include\// s|/[^/]+$||' temp-file | sed -E 's|^(/[^/]*){5}/||' | sort -u > "${include_paths}" && cp "${include_paths}" build/
-                [[ -n $"includes_bases" ]] && includes_base=$(echo "$includes_bases" | xargs -n1 | sed -E '\/include\/(uapi|generated)$/! s|(-I.*/include)/[^/]+$|\1|' | awk '!seen[$0]++' | xargs echo);
+                [[ -n $"includes_bases" ]] && includes_base=$(echo "$includes_bases" | xargs -n1 | sed -E '\/include\/(uapi|generated)$/! s|(-I.*/include)/[^/]+$|\1|' | gawk '!seen[$0]++' | xargs echo);
               else
                 clean_file="${file#*./}";
                 [[ -s 'temp-file' ]] && sed -E '/\/include\// s|/[^/]+$||' temp-file | sort -u > "${include_paths}" && cp "${include_paths}" build/
-                [[ -n $"includes_bases" ]] && includes_base=$(echo "$includes_bases" | xargs -n1 | sed -E '\/include\/(uapi|generated)$/! s|(-I.*/include)/[^/]+$|\1|' | awk '!seen[$0]++' | xargs echo);
+                [[ -n $"includes_bases" ]] && includes_base=$(echo "$includes_bases" | xargs -n1 | sed -E '\/include\/(uapi|generated)$/! s|(-I.*/include)/[^/]+$|\1|' | gawk '!seen[$0]++' | xargs echo);
               fi;
               if [[ -s 'temp-file' ]]; then
                 count=$(gawk 'NF > 0 { count++; } END { print count + 0; }' "${include_paths}");
@@ -3448,12 +3449,12 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           clang_warnings=$(grep -saEo '[1-9] warnings generated|1 warning generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
           clang_error1=$(grep -saEo '[1-9] errors generated|1 error generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
-          clang_error2=$(grep -saiEc 'error:|#error' "${log_file}");
-          clang_failed=$(grep -saiFc 'failed' "${log_file}");
+          clang_error2=$(grep -saEc 'error:|#error' "${log_file}");
+          clang_failed=$(grep -saEc 'Failed|FAILED|build failed' "${log_file}");
           clang_fixit1=$(grep -saiEc 'fixes|fixit|fix-its' "${log_file}");
           clang_fixit2=$(grep -saEo 'clang-tidy applied [1-9]' "${log_file}" | cut -d ' ' -f3 | gawk '{ sum += $1 } END { print sum; }');
           clang_notes=$(grep -saoFc 'note:' "${log_file}");
-          no_error=$(grep -saiFc 'NO ERRORS' "${log_file}");
+          no_error=$(grep -saFc 'NO ERRORS' "${log_file}");
           located_count=0
           missing_count=0
           located_arch=0
@@ -3509,7 +3510,6 @@ runs: # Uses default x86_64 / linux user machine
           elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
-          # Variables required: e (errors), w (warnings), f (failed compilations), c (checked files), total (expected files) 1. Error Density Logic (Scales for 1 to 20,000 files)
           score_data=$(gawk -v e="$clang_error2" -v w="$clang_warnings" -v f="$clang_failed" \
             -v c="$checked_file_count" -v total="$expected_file_count" 'BEGIN {
             if (total == 0) { total = c; } # Prevent division by zero
