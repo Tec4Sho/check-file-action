@@ -2441,16 +2441,16 @@ runs: # Uses default x86_64 / linux user machine
         source ~/.bashrc
         set +e
         start_time="${{ env.seconds }}";
-        include_count=1; include_total=1; file_count=1;
         clang_file='.clang-tidy'; 
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}"; 
         cppchecks='.cppcheck';
         github="${GITHUB_WORKSPACE}";
-        repaired='check-file-repaired.txt'; build_source=$(find "$github" -type f -name 'build-source-files.txt' -print -quit);
+        repaired='check-file-repaired.txt'; 
+        build_source=$(find "$github" -type f -name 'build-source-files.txt' -print -quit);
         repository=${{ github.event.repository.name }};
         error_log="${github}/${{ env.filename }}_error.log";
-        checked=false; include_total=1; include_count=1; missing_count=1; countX=0; count1=0; count2=0; error=0; error1=0; error2=0;
+        checked=false; include_total=1; include_count=1; include_missing=1; file_count=1; countX=0; count1=0; count2=0; error=0; error1=0; error2=0;
         process_input() {
           case "${{ inputs.output }}" in
             1) tee -a "${error_log}" ;; # Show in console AND save
@@ -2460,7 +2460,8 @@ runs: # Uses default x86_64 / linux user machine
             *) cat ;;                   # Default fallback
           esac
         }
-        [[ -f compile_commands.json ]] && compile_json='compile_commands.json' || compile_json='build/compile_commands.json'; mkdir -p build/cppcheck; build_dir='build/cppcheck'; [[ "${{ inputs.absolute }}" == "true" ]] && path='--absolute-path' || path='--relative-path';
+        [[ -f compile_commands.json ]] && compile_json='compile_commands.json' || compile_json='build/compile_commands.json'; mkdir -p build/cppcheck; build_dir='build/cppcheck'; 
+        [[ "${{ inputs.absolute }}" == "true" ]] && path='--absolute-path' || path='--relative-path';
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [cth]* ]]; then
           if [[ "${{ inputs.filename }}" =~ ^[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+$ ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
@@ -2561,7 +2562,7 @@ runs: # Uses default x86_64 / linux user machine
                   else
                     includes_missing=true; missing["${include}"]=1
                     countX=$((include_missing++)); 
-                    echo -e "\n::notice::\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[31m is missing!?\033[0m  [ ${countX} ❌ ]" | process_input;
+                    echo -e "\n\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[31m is missing!?\033[0m  [ ${countX} ❌ ]" | process_input;
                   fi;
                 fi;
               done <<< "${include_source}";
@@ -2669,7 +2670,7 @@ runs: # Uses default x86_64 / linux user machine
         source ~/.bashrc
         set +e
         start_time="${{ env.seconds }}";
-        include_count=1; include_total=1; file_count=1;
+        file_count=1;
         clang_file='.clang-tidy'; 
         file_name="${{ env.filename }}";
         file_type="${file_name##*.}"; 
@@ -2678,7 +2679,7 @@ runs: # Uses default x86_64 / linux user machine
         repaired='check-file-repaired.txt'; build_source=$(find "$github" -type f -name 'build-source-files.txt' -print -quit);
         repository=${{ github.event.repository.name }};
         error_log="${github}/${{ env.filename }}_error.log";
-        checked=false; include_total=1; include_count=1; missing_count=1; countX=0; count1=0; count2=0; error=0; error1=0; error2=0;
+        checked=false; countX=0; count1=0; count2=0; error=0; error1=0; error2=0;
         process_input() {
           case "${{ inputs.output }}" in
             1) tee -a "${error_log}" ;; # Show in console AND save
@@ -2688,7 +2689,9 @@ runs: # Uses default x86_64 / linux user machine
             *) cat ;;                   # Default fallback
           esac
         }
-        [[ -f compile_commands.json ]] && compile_json='compile_commands.json' || compile_json='build/compile_commands.json'; mkdir -p build/cppcheck; build_dir='build/cppcheck'; [[ "${{ inputs.absolute }}" == "true" ]] && path='--absolute-path' || path='--relative-path';
+        [[ -f compile_commands.json ]] && compile_json='compile_commands.json' || compile_json='build/compile_commands.json'; 
+        mkdir -p build/cppcheck; build_dir='build/cppcheck'; 
+        [[ "${{ inputs.absolute }}" == "true" ]] && path='--absolute-path' || path='--relative-path';
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == [cth]* ]]; then
           if [[ "${{ inputs.filename }}" =~ ^[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+$ ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
@@ -3532,7 +3535,7 @@ runs: # Uses default x86_64 / linux user machine
           }')
           echo -e "\n::notice::Checked Files Final Grade: $score_data";
           if (( clang_files_missing > 0 )); then
-            echo -e "\n####################\n::notice::❌ \033[1mCHECK-FILE:\033[0m discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there yet not included an/or duplicate missing files. Check missing files list for exact files!!!\n####################" | process_input;
+            echo -e "\n####################\n::notice::❌ \033[1mCHECK-FILE:\033[0m discovered ${clang_files_missing} calls to missing include files in all ${file_type} file(s) checked. [Hints] Files may be there but not included in /arch/${{ env.arch }}/ an look for duplicate missing file calls too. Check missing files list for exact file locations!!!\n####################" | process_input;
             declare -A missing
             found=false
             if [[ -n "${clang_files_list1}" ]]; then 
