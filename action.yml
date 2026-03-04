@@ -2534,7 +2534,7 @@ runs: # Uses default x86_64 / linux user machine
               declare -A missing
               echo -n > 'temp-file';        
               include_source=$( { rg --sort=path --trim -o '^#include[[:space:]]+[<"].*[">]' "${file}" 2>/dev/null || true; } | gawk '{print $2}' | tr -d '<">' | sort -u);       
-              [[ -n "${include_source}" ]] && echo -e "\n####################\n\033[1m\033[35m\033[4mTOTAL INCLUDES\033[0m\n####################\n" | process_input && echo -e "\n${include_source}" | gawk '{ printf "  %s\n", $0; }' | process_input;
+              [[ -n "${include_source}" ]] && echo -e "\n####################\n\033[1m\033[35m\033[4mTOTAL INCLUDES\033[0m\n####################" | process_input && echo -e "\n${include_source}" | gawk '{ printf "  %s\n", $0; }' | process_input;
               while IFS= read -r include; do
                 [[ -z "$include" ]] && continue
                 if [[ "${include}" == *.[ch]* ]]; then
@@ -2560,7 +2560,8 @@ runs: # Uses default x86_64 / linux user machine
                     includes_missing=true     
                   else
                     includes_missing=true; missing["${include}"]=1
-                    countX=$((include_missing++)); echo -e "\n::notice::\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[31m is missing!?\033[0m  [ ${countX} ❌ ]" | process_input;
+                    countX=$((include_missing++)); 
+                    echo -e "\n::notice::\033[31mSource file #include \033[0m( ${clean_file##*./} )\033[31m is missing!?\033[0m  [ ${countX} ❌ ]" | process_input;
                   fi;
                 fi;
               done <<< "${include_source}";
@@ -2568,11 +2569,11 @@ runs: # Uses default x86_64 / linux user machine
               if ${{ inputs.absolute == 'true' }}; then
                 clean_file="${file#/*/*/*/*/*/}";
                 [[ -s 'temp-file' ]] && sed -E '/\/include\// s|/[^/]+$||' temp-file | sed -E 's|^(/[^/]*){5}/||' | sort -u > "${include_paths}" && cp "${include_paths}" build/
-                [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '\/include\/(uapi|generated)$/! s|(-I.*/include)/[^/]+$|\1 |' | awk '!seen[$0]++' | xargs)
+                [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '\/include\/(uapi|generated)$/! s|(-I.*/include)/[^/]+$|\1|' | awk '!seen[$0]++' | xargs)
               else
                 clean_file="${file#*./}";
                 [[ -s 'temp-file' ]] && sed -E '/\/include\// s|/[^/]+$||' temp-file | sort -u > "${include_paths}" && cp "${include_paths}" build/
-                [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '\/include\/(uapi|generated)$/! s|(-I.*/include)/[^/]+$|\1 |' | awk '!seen[$0]++' | xargs)
+                [[ -n $"includes_bases" ]] && includes_bases=$(echo "$includes_bases" | xargs -n1 | sed -E '\/include\/(uapi|generated)$/! s|(-I.*/include)/[^/]+$|\1|' | awk '!seen[$0]++' | xargs)
               fi;
               if [[ -s 'temp-file' ]]; then
                 count=$(gawk 'NF > 0 { count++; } END { print count + 0; }' "${include_paths}");
@@ -3526,7 +3527,7 @@ runs: # Uses default x86_64 / linux user machine
             else if (final_score >= 50) { rank="C-RANK"; icon="🥉"; }
             else if (final_score > 0)   { rank="D-RANK"; icon="⚠️"; }
             else                        { rank="FAILED"; icon="💀"; }
-            if (c < total) { icon = "👻"; } # Use a different icon for incomplete runs
+            if (total > c) { icon = "👻"; } # Use a different icon for incomplete runs
             printf "%.2f %s (%s)", final_score, icon, rank;
           }')
           echo -e "\n::notice::Checked Files Final Grade: $score_data";
@@ -3606,7 +3607,7 @@ runs: # Uses default x86_64 / linux user machine
                       echo -e "\n\033[32mSystemInclude Source ${missing_file} Location:\033[0m ${includes}  [ $located_count / ✅ ]" | process_input;
                       [[ "$includes" == */linux/* ]] && includes="${includes%/linux/*}" || { [[ "$includes" == */asm/* ]] && includes="${includes%/asm/*}" || includes="${includes%/*/*}"; }
                       echo "${includes}" >> 'check-file-includes.txt';
-                      [[ "$includes" =~ "/$arch/" ]] && located_arch=$((located_arch + 1));
+                      [[ "$includes" == *"/$arch/"* ]] && located_arch=$((located_arch + 1));
                     done <<< "${locate[@]}";
                     includes_found=true
                   elif [[ -n "${missing[$missing_file]}" ]]; then
@@ -3631,7 +3632,7 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\nPARAMETERS: $(rm -vf ${clang_file} 2>/dev/null)" | process_input;
           fi;
           compilers=$(gcc -v --help 2> /dev/null | grep -iv deprecated | sed -n '/^ *-std=\([^<][^ ]\+\).*/ {s//\1/p}');
-          [[ "${located_count}" -gt 0 ]] && echo -e "\n####################\n\tFiles found using correct ${{ env.arch }} arch: ${located_count}\n####################" | process_input
+          [[ "${located_count}" -gt 0 ]] && echo -e "\n####################\n\tFiles found during scan: ${located_count}\n\tFiles with correct [\033[32m${{ env.arch }}\033[0m] arch: ${located_arch}\n####################" | process_input;
           ${{ inputs.content == 'true' }} && echo -e "\n####################\n\tINSTALLED COMPILER LIST:\n####################\n\n${compiler_list}" | process_input || echo -e "\n####################\n\tINSTALLED COMPILERS:\n####################\n\n${compilers}";
           if [[ "${fixed}" ]]; then
             echo "file_fixed=1" >> "${GITHUB_ENV}";
