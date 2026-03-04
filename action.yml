@@ -2442,16 +2442,13 @@ runs: # Uses default x86_64 / linux user machine
         set +e
         start_time="${{ env.seconds }}";
         include_count=1; include_total=1; file_count=1;
-        clang_file='.clang-tidy';
-        file_name="${{ env.filename }}";
-        file_type="${file_name##*.}";
-        cppchecks='.cppcheck';
+        clang_file='.clang-tidy'; file_name="${{ env.filename }}";
+        file_type="${file_name##*.}"; cppchecks='.cppcheck';
         github="${GITHUB_WORKSPACE}";
         repaired='check-file-repaired.txt'; build_source=$(find "$github" -type f -name 'build-source-files.txt' -print -quit);
         repository=${{ github.event.repository.name }};
         error_log="${github}/${{ env.filename }}_error.log";
-        checked=false; include_count=1; missing_count=1;
-        countX=0; count1=0; count2=0; error=0; error1=0; error2=0;
+        checked=false; include_count=1; missing_count=1; countX=0; count1=0; count2=0; error=0; error1=0; error2=0;
         process_input() {
           case "${{ inputs.output }}" in
             1) tee -a "${error_log}" ;; # Show in console AND save
@@ -2500,12 +2497,10 @@ runs: # Uses default x86_64 / linux user machine
           else
              cppchecks='all';
           fi;
-          echo "expected_file_count=$(echo "${files}" | grep -c '[^[:space:]]')" >> "$GITHUB_ENV"
           perform_analysis() {
-            local files
-            local aarch
+            local files aarch
             files=$(cat);
-            aarch="${{ env.arch }}";
+            aarch="${{ env.arch }}"; echo "expected_file_count=$(echo "${files}" | grep -c '[^[:space:]]')" >> "$GITHUB_ENV";
             if ${{ inputs.content == 'true' }}; then
               number="${{ inputs.number }}";
               if ${{ inputs.number > '0' }}; then
@@ -2523,7 +2518,7 @@ runs: # Uses default x86_64 / linux user machine
               check_date=$(grep -sF "${search_path}" "${repaired}" | cut -d' ' -f 2-)
               count1=$((file_count++))    
               echo "${file}" >> 'check_file_paths.txt'
-              echo -e "\n####################\n\tFILE PATH: ( ${count1} )\n####################\n" | process_input
+              echo -e "\n####################\n\tFILE PATH: ( ${count1} )\n####################\n" | process_input;
               echo "${file%/*}" | process_input;
               if ${{ inputs.content == 'true' }}; then
                 echo -e "\n####################\n\tFILE CONTENT: ( ${count1} )\n####################\n" | process_input;
@@ -2676,8 +2671,7 @@ runs: # Uses default x86_64 / linux user machine
           [[ -e "$build_source" ]] && perform_analysis < "$build_source" || perform_analysis <<< "$files";
           [[ "${includes_missing}" == 'true' ]] && echo -e "\n::notice::Total number of include files missing is: ${countX}" | process_input && unset missing;
           echo -e "\n::notice::Total number of ${{ env.filename }} files checked is: ${count1}" | process_input && echo "file_count=${count1}" >> "$GITHUB_ENV";
-          echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input;
-          echo "file_found=1" >> "${GITHUB_ENV}";
+          echo -e "\n\033[1mScanning Completed!\033[0m\n\033[32mCheck-File-Action Exiting!\033[0m\n ..........\n" | process_input && echo "file_found=1" >> "${GITHUB_ENV}";
           if [[ "${error}" -gt 0 ]]; then
             echo "::notice::cppcheck ( ${error} )" | process_input;
           elif [[ "${error1}" -gt 0 ]]; then
