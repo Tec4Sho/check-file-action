@@ -2259,13 +2259,19 @@ runs: # Uses default x86_64 / linux user machine
             done;
           fi;
           fdfind -p -a -e "py" "${github}" | xargs sudo sed -i '1s|.*|#!/usr/bin/env python2|' && echo -e "\033[32mAll legacy scripts neutralized successfully.\033[0m";
-          # Find the Makefile in the parent directory (hdmitx) and comment out the mt8163 line
-          # Target the Makefile INSIDE the mt8163 directory
-          SUB_MAKEFILE=$(fdfind -p -a -t f -g -1 "**/hdmitx/mt8163/Makefile" "${github}")
-          if [[ -f "$SUB_MAKEFILE" ]]; then
-            echo -e "\033[33mFixing MTK Recursive Path Typo in\033[0m: $SUB_MAKEFILE";
+          lcm_src=$(fdfind -p -a -t d -g -1 "**imgsensor/src/mt8163" "${github}");
+          lcm_com=$(fdfind -p -a -t d -g -1 "**imgsensor/src/common/v1" "${github}");
+          if [[ -d "$lcm_src" ]] && [[ -d "$lcm_com" ]]; then
+            cd "${lcm_src}";
+            ln -vsf $lcm_com/s5k2l7_mipi_raw s5k2l7_mipi_raw
+            ln -vsf $lcm_com/hi556_mipi_raw hi556_mipi_raw
+            cd "${github}/${{ env.dirname }}";
+          fi; 
+          makefile=$(fdfind -p -a -t f -g -1 "**/hdmitx/mt8163/Makefile" "${github}");
+          if [[ -e "$makefile" ]]; then
+            echo -e "\033[33mFixing MTK Recursive Path Typo in\033[0m: $makefile";
             # This prevents 'mt8163' from looking for another 'mt8163' folder inside itself
-            sudo sed -i 's|obj-y += mt8163/||g' "$SUB_MAKEFILE";
+            sudo sed -i 's|obj-y += mt8163/||g' "$makefile";
           fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
