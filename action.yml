@@ -2363,7 +2363,7 @@ runs: # Uses default x86_64 / linux user machine
               --config "${codechecker}" \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
+              --build "bash -c '$BUILD_CMD'" 2>&1 | process_input || check_exit=${PIPESTATUS[0]};
             check_exit=${PIPESTATUS[0]}
           elif [[ "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
