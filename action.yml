@@ -2277,34 +2277,6 @@ runs: # Uses default x86_64 / linux user machine
           file_type="${{ inputs.filetype }}";
         fi;
         echo -e "\n\033[33mCurrent python:\033[0m \033[1m$(python --version 2>&1)\033[0m \033[32m(active)\033[0m";
-        build_alone() {
-          local llvm_version="${{ inputs.release }}";
-          local arch_target="${{ env.arch }}";
-          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_CPU_VARIANT/ {print $NF; exit}' | grep -s . || false)
-          [[ -z $kernel_cpus ]] && kernel_cpus='generic';
-          if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
-            make CC=clang \
-            CXX=clang++ \
-            CLANG_TRIPLE=arm-linux-gnueabihf- \
-            CFLAGS="--target=arm-linux-androideabi -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard --sysroot=${SYSROOT}" \
-            LDFLAGS="--target=arm-linux-androideabi --sysroot=$SYSROOT"
-          elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a53' ]]; then
-            make CC=clang \
-            CXX=clang++ \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CFLAGS="--target=aarch64-linux-android -mcpu=cortex-a53 --sysroot=${SYSROOT}" \
-            LDFLAGS="--target=aarch64-linux-android --sysroot=$SYSROOT"
-          elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a72' ]]; then
-            make CC=clang \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CXX=clang++ \
-            CFLAGS="--target=aarch64-linux-android -mcpu=cortex-a72 --sysroot=${SYSROOT}" \
-            LDFLAGS="--target=aarch64-linux-android --sysroot=$SYSROOT"
-          else
-            make CC=clang \
-            CXX=clang++
-          fi;
-        }
         build_module() {
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
@@ -2312,39 +2284,37 @@ runs: # Uses default x86_64 / linux user machine
           local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_CPU_VARIANT/ {print $NF; exit}' | grep -s . || false)
           [[ -z $kernel_cpus ]] && kernel_cpus='generic';
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
-            make ARCH=arm \
+            export ARCH=arm \
             CLANG_TRIPLE=arm-linux-gnueabihf- \
             CROSS_COMPILE=arm-linux-androideabi- \
             LLVM=1 \
             LLVM_IAS=1 \
             CC="clang --target=arm-linux-androideabi" \
             LD="clang --target=arm-linux-androideabi -fuse-ld=lld" \
-            KCFLAGS="-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard" \
-            -C "${kroot}" M="$PWD" modules
+            KCFLAGS="-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard";
           elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a53' ]]; then
-            make ARCH=arm64 \
+            export ARCH=arm64 \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-android- \
             LLVM=1 \
             LLVM_IAS=1 \
             CC="clang --target=aarch64-linux-android" \
             LD="ld.lld" \
-            KCFLAGS="-mcpu=cortex-a53" \
-            -C "${kroot}" M="$PWD" modules
+            KCFLAGS="-mcpu=cortex-a53";
           elif [[ "$arch_target" =~ ^(arm64|aarch64) ]]&& [[ "$kernel_cpus" == 'cortex-a72' ]]; then
-            make ARCH=arm64 \
+            export ARCH=arm64 \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-android- \
             LLVM=1 \
             LLVM_IAS=1 \
             CC="clang --target=aarch64-linux-android" \
             LD="ld.lld" \
-            KCFLAGS="-mcpu=cortex-a72" \
-            -C "${kroot}" M="$PWD" modules
+            KCFLAGS="-mcpu=cortex-a72";
           else
-            make KCFLAGS="-mcpu=$kernel_cpus" CC=clang -C "${kroot}" M="$PWD" modules
+            export KCFLAGS="-mcpu=$kernel_cpus" CC=clang;
           fi;
-        }
+          echo -e "\n\033[32mbuild module vars exported\033[0m" | process_input;
+        } 2>/dev/null
         if ${{ env.build_files == '1' }}; then
           echo -e "\nChecking gcc for default includes:" | process_input;
           if [[ ${{ inputs.filetype }} == [c] ]] && ${{ inputs.content == 'true' }}; then
@@ -2371,18 +2341,24 @@ runs: # Uses default x86_64 / linux user machine
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
             echo -e "\ENVSETUP FILE: ${envsetup} found" | process_input;
             echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing...\n" | process_input;
+            build_module 
             # 1. Source and Lunch first to populate the variables /KERNEL_OBJ TARGET_OUT_INTERMEDIATES
             source ${envsetup} && lunch $MAKEFILE_NAME
             [[ ! -n "$(get_build_var TARGET_ARCH)" ]] && DYN_ARCH="${{ env.arch }}" || DYN_ARCH=$(get_build_var TARGET_ARCH);
             DYN_CROSS=$(get_build_var TARGET_KERNEL_CROSS_COMPILE_PREFIX | xargs)
-            DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR) # Or find it via TARGET_PREBUILT_KERNEL
+            DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR)
+            if [[ -z "$DYN_KERNEL_SRC" ]]; then
+              PREBUILT_PATH=$(get_build_var TARGET_PREBUILT_KERNEL)
+              DYN_KERNEL_SRC=$(dirname "$PREBUILT_PATH")
+            fi;
+            DYN_KERNEL_SRC="${DYN_KERNEL_SRC:-.}";
             DYN_OUT=$(get_build_var OUT_DIR)
-            mkdir -p "$DYN_OUT"
-            # 3. The Portable Command
+            mkdir -p "$DYN_OUT";
             BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
               export KCFLAGS='-w' && \
               make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS olddefconfig && \
-              make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS $FILENAME"
+              make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS $FILENAME";
+            export BUILD_CMD
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
