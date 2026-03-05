@@ -2259,14 +2259,17 @@ runs: # Uses default x86_64 / linux user machine
             done;
           fi;
           fdfind -p -a -e "py" "${github}" | xargs sudo sed -i '1s|.*|#!/usr/bin/env python2|' && echo -e "\033[32mAll legacy scripts neutralized successfully.\033[0m" | process_input;
-          lcm_src=$(fdfind -p -a -t d -g -1 "**imgsensor/src/mt8163" "${github}");
-          lcm_com=$(fdfind -p -a -t d -g -1 "**imgsensor/src/common/v1" "${github}");
-          if [[ -d "$lcm_src" ]] && [[ -d "$lcm_com" ]]; then
-            cd "${lcm_src}";
-            ln -vsf ../common/v1/s5k2l7_mipi_raw s5k2l7_mipi_raw
-            ln -vsf ../common/v1/hi556_mipi_raw hi556_mipi_raw
-            cd "${github}/${{ env.dirname }}";
-          fi;
+          # Define the root of your kernel based on your log
+          K_ROOT="${github}/${{ env.dirname }}/kernel/alps/tb8163p3_bsp";
+          IMG_BASE="$K_ROOT/drivers/misc/mediatek/imgsensor/src";
+          # Create the mt8163 target folder if it doesn't exist
+          mkdir -p "$IMG_BASE/mt8163";
+          # Enter the directory and link relatively
+          cd "$IMG_BASE/mt8163" && echo -e "::notice::\033[33mManually Bridging Sensor Paths\033[0m" | process_input;
+          ln -vsf ../common/v1/s5k2l7_mipi_raw s5k2l7_mipi_raw
+          ln -vsf ../common/v1/hi556_mipi_raw hi556_mipi_raw
+          ls -l
+          cd "${github}/${{ env.dirname }}";
           version=$(fdfind -p -a -t f -g -1 "**/external/clang/clang-version-inc.py" "${github}")
           if [[ -e "$version" ]]; then
             sed -i 's/version.major/"9"/g' "$version"
@@ -2352,7 +2355,7 @@ runs: # Uses default x86_64 / linux user machine
           export TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_HEIGHT/ {print $NF; exit}' | grep -s . || false)
           export TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_WIDTH/ {print $NF; exit}' | grep -s . || false)
           if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
-            echo -e "\ENVSETUP FILE: ${envsetup} found" | process_input;
+            echo -e "\nENVSETUP FILE: ${envsetup} found" | process_input;
             echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing...\n" | process_input;
             build_module 
             # 1. Source and Lunch first to populate the variables /KERNEL_OBJ TARGET_OUT_INTERMEDIATES
@@ -2433,7 +2436,7 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           if [[ -s "${project_log}" ]]; then
             grep -awE ' CC | C\+\+ ' "${project_log}" | grep -aiv '\.s' | awk '{ print $2 }' | sed -E "s/\.o$/.$file_type/g" | sort > 'build-source-files.txt'
-            [[ -s 'build-source-files.txt' ]] && echo -e "\n\033[33mBuild Source Files:\033[0m Can be added to your repo for cmake custom build \033[1mcompile_commands_json\033[0m file.\nLocation: $(cp -v build-source-files.txt ${github}/build)" | process_inputs;
+            [[ -s 'build-source-files.txt' ]] && echo -e "\n\033[33mBuild Source Files:\033[0m Can be added to your repo for cmake custom build \033[1mcompile_commands_json\033[0m file.\nLocation: $(cp -v build-source-files.txt ${github}/build)" | process_input;
             cp -f "${project_log}" "${github}/build";
           fi;
           echo -e "\n\033[1mBuild test-run completed\033[0m" | process_input;
@@ -3527,7 +3530,7 @@ runs: # Uses default x86_64 / linux user machine
             -v c="$checked_file_count" -v total="$expected_file_count" 'BEGIN {
             if (total == 0) { total = c; } # Prevent division by zero
             if (c == 0)     { print "0.00 💀 (No Files)"; exit; }    
-            if (c > 200)    { error_units = (e * 2) + (w / 4) + (f * 5); }
+            if (c > 200)    { error_units = (e * 2) + (w / 4) + (f * 20); }
             else            { error_units = e + (w / 2) + (f * 2); }
             density = error_units / c;
             quality_score = 100 - density;
