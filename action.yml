@@ -2260,28 +2260,31 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           fdfind -p -a -e "py" "${github}" | xargs sudo sed -i '1s|.*|#!/usr/bin/env python2|' && echo -e "\033[32mAll legacy scripts neutralized successfully.\033[0m" | process_input;
           # Define the root of your kernel based on your log
-          K_ROOT="${github}/${{ env.dirname }}/kernel/alps/tb8163p3_bsp";
-          IMG_BASE="$K_ROOT/drivers/misc/mediatek/imgsensor/src";
+          k_root="${github}/${{ env.dirname }}/kernel/alps/tb8163p3_bsp";
+          img_base="$k_root/drivers/misc/mediatek/imgsensor/src";
           # Create the mt8163 target folder if it doesn't exist
-          mkdir -p "$IMG_BASE/mt8163";
+          mkdir -p "$img_base/mt8163";
           # Enter the directory and link relatively
-          cd "$IMG_BASE/mt8163" && echo -e "::notice::\033[33mManually Bridging Sensor Paths\033[0m" | process_input;
+          cd "$img_base/mt8163" && echo -e "::notice::\033[33mManually Bridging Sensor Paths\033[0m" | process_input;
           ln -vsf ../common/v1/s5k2l7_mipi_raw s5k2l7_mipi_raw
           ln -vsf ../common/v1/hi556_mipi_raw hi556_mipi_raw
-          ls -l
           cd "${github}/${{ env.dirname }}";
-          version=$(fdfind -p -a -t f -g -1 "**/external/clang/clang-version-inc.py" "${github}")
-          if [[ -e "$version" ]]; then
-            sed -i 's/version.major/"9"/g' "$version"
-            sed -i 's/version.minor/"0"/g' "$version"
-            sed -i 's/version.patch/"0"/g' "$version"
-            echo -e "\033[33mFixing python version mismatch\033[0m: $version" | process_input;
+          c_version=$(fdfind -p -a -t f -g -1 "**/external/clang/clang-version-inc.py" "${github}")
+          if [[ -e "$c_version" ]]; then
+            sed -i 's/version.major/"9"/g' "$c_version"
+            sed -i 's/version.minor/"0"/g' "$c_version"
+            sed -i 's/version.patch/"0"/g' "$c_version"
+            echo -e "\033[33mFixing python version mismatch\033[0m: $c_version" | process_input;
           fi;
-          makefile=$(fdfind -p -a -t f -g -1 "**/hdmitx/mt8163/Makefile" "${github}");
-          if [[ -e "$makefile" ]]; then
-            echo -e "\033[33mFixing MTK Recursive Path Typo in\033[0m: $makefile" | process_input;
-            # This prevents 'mt8163' from looking for another 'mt8163' folder inside itself
-            sudo sed -i 's|obj-y += mt8163/||g' "$makefile";
+          lcm_makefile=$(fdfind -p -a -t f -g -1 "**/lcm/CPT_CLAP070WP03XG_LVDS/Makefile" "${github}");
+          if [[ -e "$lcm_makefile" ]]; then
+            echo -e "\033[33mNeutralizing Ghost Makefile.custom in\033[0m: $lcm_makefile" | process_input;
+            sed -i 's/^include.*Makefile.custom/# &/' "$lcm_makefile"
+          fi;
+          hdmi_makefile=$(fdfind -p -a -t f -g -1 "**/hdmitx/mt8163/Makefile" "${github}");
+          if [[ -e "$hdmi_makefile" ]]; then
+            echo -e "\033[33mFixing MTK Recursive Path Typo in\033[0m: $hdmi_makefile" | process_input;
+            sudo sed -i 's|obj-y += mt8163/||g' "$hdmi_makefile";
           fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
