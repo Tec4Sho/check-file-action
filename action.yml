@@ -2574,7 +2574,18 @@ runs: # Uses default x86_64 / linux user machine
                       [[ "$includes" =~ "/arch/" && ! "$includes" =~ "/arch/$aarch/" ]] && continue
                       count2=$((include_count++)); total=$((include_total++)); includes_found=true;
                       echo -e "\n\033[32mSOURCE FILE: \033[0m\033[1m( #include ${includes##*/} )\033[0m\033[32m LOCATED!\033[0m  [ ${count2} ✅ ]\n\033[33mFILE LOCATION:\033[0m ${includes}" | process_input;
-                      [[ "$includes" == */linux/* ]] && includes="${includes%/linux/*}" || [[ "$includes" == */asm/* ]] && includes="${includes%/asm/*}" || [[ "$includes" == *"/$aarch" ]] && includes="${includes}/include" || includes="${includes%/*/*}";
+                      if [[ "$includes" == */linux/* ]]; then
+                        includes="${includes%/linux/*}"
+                      fi;
+                      if [[ "$includes" == */asm/* ]]; then
+                        includes="${includes%/asm/*}"
+                      fi;
+                      if [[ "$includes" == */$aarch ]]; then
+                        includes="${includes}/include"
+                      fi;
+                      if [[ "$includes" == *.h ]]; then
+                        includes="${includes%/*/*}"
+                      fi;
                       echo -e "\033[35mINCLUDE PATH:\033[0m ${includes}" | process_input;
                       include_bases+="-I${includes} ";
                       echo "${includes}" >> 'temp-file';
