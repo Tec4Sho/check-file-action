@@ -1108,11 +1108,11 @@ runs: # Uses default x86_64 / linux user machine
         process_input() {
           case "${{ inputs.output }}" in
             1) tee -a "${project_log}" ;; # Show in console AND save
-            2) cat >> "${project_log}" ;;  # Save only (append)
-            3) cat ;;                   # Show in console only
-            4) cat >/dev/null ;;        # Completely silent
-            *) cat ;;                   # Default fallback
-          esac
+            2) cat >> "${project_log}" ;;
+            3) cat ;;
+            4) cat >/dev/null ;; 
+            *) cat ;; 
+          esac;
         }
         if ${{ inputs.absolute == 'true' }}; then
           abs='--absolute-path';
@@ -1348,11 +1348,11 @@ runs: # Uses default x86_64 / linux user machine
         process_input() {
           case "${{ inputs.output }}" in
             1) tee -a "${project_log}" ;; # Show in console AND save
-            2) cat >> "${project_log}" ;;  # Save only (append)
-            3) cat ;;                   # Show in console only
-            4) cat >/dev/null ;;        # Completely silent
-            *) cat ;;                   # Default fallback
-          esac
+            2) cat >> "${project_log}" ;;
+            3) cat ;;
+            4) cat >/dev/null ;; 
+            *) cat ;; 
+          esac;
         }
         if ${{ inputs.include == 'true' }}; then
           ${{ inputs.internal == 'true' }} && export I="${LINUXINCLUDE} ${USERINCLUDE}" || export I="-isystem/usr/src/linux-headers-$(uname -r)/include -I/usr/src/linux-headers-$(uname -r)";
@@ -1582,11 +1582,11 @@ runs: # Uses default x86_64 / linux user machine
         process_input() {
           case "${{ inputs.output }}" in
             1) tee -a "${project_log}" ;; # Show in console AND save
-            2) cat >> "${project_log}" ;;  # Save only (append)
-            3) cat ;;                   # Show in console only
-            4) cat >/dev/null ;;        # Completely silent
-            *) cat ;;                   # Default fallback
-          esac
+            2) cat >> "${project_log}" ;;
+            3) cat ;;
+            4) cat >/dev/null ;; 
+            *) cat ;; 
+          esac;
         }
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}";
@@ -1837,11 +1837,11 @@ runs: # Uses default x86_64 / linux user machine
         process_input() {
           case "${{ inputs.output }}" in
             1) tee -a "${project_log}" ;; # Show in console AND save
-            2) cat >> "${project_log}" ;;  # Save only (append)
-            3) cat ;;                   # Show in console only
-            4) cat >/dev/null ;;        # Completely silent
-            *) cat ;;                   # Default fallback
-          esac
+            2) cat >> "${project_log}" ;;
+            3) cat ;;
+            4) cat >/dev/null ;; 
+            *) cat ;; 
+          esac;
         }
         if ${{ env.check_build == 'false' }}; then
           echo 'check_build=false' >> "${GITHUB_ENV}";
@@ -1994,11 +1994,11 @@ runs: # Uses default x86_64 / linux user machine
         process_input() {
           case "${{ inputs.output }}" in
             1) tee -a "${project_log}" ;; # Show in console AND save
-            2) cat >> "${project_log}" ;;  # Save only (append)
-            3) cat ;;                   # Show in console only
-            4) cat >/dev/null ;;        # Completely silent
-            *) cat ;;                   # Default fallback
-          esac
+            2) cat >> "${project_log}" ;;
+            3) cat ;;
+            4) cat >/dev/null ;; 
+            *) cat ;; 
+          esac;
         }
         if ${{ inputs.absolute == 'true' }}; then
           path='--absolute-path';
@@ -2082,11 +2082,11 @@ runs: # Uses default x86_64 / linux user machine
         process_input() {
           case "${{ inputs.output }}" in
             1) tee -a "${project_log}" ;; # Show in console AND save
-            2) cat >> "${project_log}" ;;  # Save only (append)
-            3) cat ;;                   # Show in console only
-            4) cat >/dev/null ;;        # Completely silent
-            *) cat ;;                   # Default fallback
-          esac
+            2) cat >> "${project_log}" ;;
+            3) cat ;;
+            4) cat >/dev/null ;; 
+            *) cat ;; 
+          esac;
         }
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}" && echo -e "\n\033[1mUser Current Directory\033[0m:  ${{ env.dirname }}\n" | process_input;
@@ -2240,11 +2240,11 @@ runs: # Uses default x86_64 / linux user machine
         process_input() {
           case "${{ inputs.output }}" in
             1) tee -a "${project_log}" ;; # Show in console AND save
-            2) cat >> "${project_log}" ;;  # Save only (append)
-            3) cat ;;                   # Show in console only
-            4) cat >/dev/null ;;        # Completely silent
-            *) cat ;;                   # Default fallback
-          esac
+            2) cat >> "${project_log}" ;;
+            3) cat ;;
+            4) cat >/dev/null ;; 
+            *) cat ;; 
+          esac;
         }
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}" && echo -e "\n\033[1mUser Current Directory\033[0m: ${{ env.dirname }}" | process_input;
@@ -2259,12 +2259,9 @@ runs: # Uses default x86_64 / linux user machine
             done;
           fi;
           fdfind -p -a -e "py" "${github}" | xargs sudo sed -i '1s|.*|#!/usr/bin/env python2|' && echo -e "\033[32mAll legacy scripts neutralized successfully.\033[0m" | process_input;
-          # Define the root of your kernel based on your log
           k_root="${github}/${{ env.dirname }}/kernel/alps/tb8163p3_bsp";
           img_base="$k_root/drivers/misc/mediatek/imgsensor/src";
-          # Create the mt8163 target folder if it doesn't exist
           mkdir -p "$img_base/mt8163";
-          # Enter the directory and link relatively
           cd "$img_base/mt8163" && echo -e "::notice::\033[33mManually Bridging Sensor Paths\033[0m" | process_input;
           ln -vsf ../common/v1/s5k2l7_mipi_raw s5k2l7_mipi_raw
           ln -vsf ../common/v1/hi556_mipi_raw hi556_mipi_raw
@@ -2286,6 +2283,13 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\033[33mFixing MTK Recursive Path Typo in\033[0m: $hdmi_makefile" | process_input;
             sudo sed -i 's|obj-y += mt8163/||g' "$hdmi_makefile";
           fi;
+          lcm_c_file=$(fdfind -p -a -t f -g -1 "**/lcm/CPT_CLAP070WP03XG_LVDS/CPT_CLAP070WP03XG_LVDS.c" "${github}");
+          if [[ -e "$lcm_c_file" ]]; then
+            echo -e "\033[33mRedirecting Legacy GPIO Header to mt-plat in\033[0m: $lcm_c_file" | process_input;
+            sed -i 's|<mach/mt_gpio.h>|<mt-plat/mt_gpio.h>|g' "$lcm_c_file";
+            sed -i 's|<mach/mt_typedefs.h>|<mt-plat/mt_typedefs.h>|g' "$lcm_c_file"
+            sed -i 's|<mach/mt_reg_base.h>|<mt-plat/mt_reg_base.h>|g' "$lcm_c_file"
+        fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
           compile_json='compile_commands.json';
