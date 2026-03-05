@@ -2253,23 +2253,30 @@ runs: # Uses default x86_64 / linux user machine
           check_radio=$(fdfind -p -a -t f -1 -g '**/tools/check_radio_versions.py' "${github}");
           if [[ -n "$check_radio" ]]; then
             fdfind -p -a -t f 'check_radio_versions.py' "${github}" | while read -r script; do
-              echo -e "\033[33mNeutralizing legacy script\033[0m: $script";
+              echo -e "\033[33mNeutralizing legacy script\033[0m: $script" | process_input;
               printf "#!/usr/bin/env python\nimport sys\nsys.exit(0)\n" | sudo tee "$script";
               sudo chmod +x "$script";
             done;
           fi;
-          fdfind -p -a -e "py" "${github}" | xargs sudo sed -i '1s|.*|#!/usr/bin/env python2|' && echo -e "\033[32mAll legacy scripts neutralized successfully.\033[0m";
+          fdfind -p -a -e "py" "${github}" | xargs sudo sed -i '1s|.*|#!/usr/bin/env python2|' && echo -e "\033[32mAll legacy scripts neutralized successfully.\033[0m" | process_input;
           lcm_src=$(fdfind -p -a -t d -g -1 "**imgsensor/src/mt8163" "${github}");
           lcm_com=$(fdfind -p -a -t d -g -1 "**imgsensor/src/common/v1" "${github}");
           if [[ -d "$lcm_src" ]] && [[ -d "$lcm_com" ]]; then
             cd "${lcm_src}";
-            ln -vsf $lcm_com/s5k2l7_mipi_raw s5k2l7_mipi_raw
-            ln -vsf $lcm_com/hi556_mipi_raw hi556_mipi_raw
+            ln -vsf ../common/v1/s5k2l7_mipi_raw s5k2l7_mipi_raw
+            ln -vsf ../common/v1/hi556_mipi_raw hi556_mipi_raw
             cd "${github}/${{ env.dirname }}";
-          fi; 
+          fi;
+          version=$(fdfind -p -a -t f -g -1 "**/external/clang/clang-version-inc.py" "${github}")
+          if [[ -e "$version" ]]; then
+            sed -i 's/version.major/"9"/g' "$version"
+            sed -i 's/version.minor/"0"/g' "$version"
+            sed -i 's/version.patch/"0"/g' "$version"
+            echo -e "\033[33mFixing python version mismatch\033[0m: $version" | process_input;
+          fi;
           makefile=$(fdfind -p -a -t f -g -1 "**/hdmitx/mt8163/Makefile" "${github}");
           if [[ -e "$makefile" ]]; then
-            echo -e "\033[33mFixing MTK Recursive Path Typo in\033[0m: $makefile";
+            echo -e "\033[33mFixing MTK Recursive Path Typo in\033[0m: $makefile" | process_input;
             # This prevents 'mt8163' from looking for another 'mt8163' folder inside itself
             sudo sed -i 's|obj-y += mt8163/||g' "$makefile";
           fi;
@@ -2282,7 +2289,7 @@ runs: # Uses default x86_64 / linux user machine
         if ${{ inputs.filetype != '' }}; then
           file_type="${{ inputs.filetype }}";
         fi;
-        echo -e "\n\033[33mCurrent python:\033[0m \033[1m$(python --version 2>&1)\033[0m \033[32m(active)\033[0m";
+        echo -e "\n\033[33mCurrent python:\033[0m \033[1m$(python --version 2>&1)\033[0m \033[32m(active)\033[0m" | process_input;
         build_module() {
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
@@ -2431,7 +2438,7 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           echo -e "\n\033[1mBuild test-run completed\033[0m" | process_input;
         else
-          echo '::error::No cmake build files were found. Is (project: true) set?\n Exiting.....' | process_inputs;
+          echo '::error::No cmake build files were found. Is (project: true) set?\n Exiting.....' | process_input;
         fi;
         echo '';
         echo "USERINCLUDE=false" >> "${GITHUB_ENV}"; 
