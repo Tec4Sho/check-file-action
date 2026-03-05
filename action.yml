@@ -2621,7 +2621,7 @@ runs: # Uses default x86_64 / linux user machine
                   echo -e "\n####################\nChecked on ${check_date}\nSkipping {file%/*}\n####################" | process_input;
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                   echo -e "\n####################\nCLANG-TIDY ERRORS REPAIR ANALYZER: ( ${count1} )\n####################\n" | process_input;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- ${includes_bases} 2>&1 | process_input || error2="$?";
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -v -E ${includes_bases} 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && grep -qsE "Error while processing (${file//./\\.})|(.+${file//./\\.})" "${error_log}"; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input; errors=true
                   else
@@ -2630,7 +2630,7 @@ runs: # Uses default x86_64 / linux user machine
                   echo "${file} $(date)" >> "${repaired}";
                 elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                   echo -e "\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
-                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- ${includes_bases} 2>&1 | process_input || error2="$?";
+                  clang-tidy "${file}" --config-file="${clang_file}" --fix-errors --fix-notes -- -v -E ${includes_bases} 2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && grep -qsE "Error while processing (${file//./\\.})|(.+${file//./\\.})" "${error_log}"; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input; errors=true
                   else
