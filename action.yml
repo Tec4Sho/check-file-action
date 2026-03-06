@@ -3570,8 +3570,8 @@ runs: # Uses default x86_64 / linux user machine
             -v c="$checked_file_count" -v total="$expected_file_count" 'BEGIN {
             if (total == 0) { total = c; } # Prevent division by zero
             if (c == 0)     { print "0.00 💀 (No Files)"; exit; }    
-            if (c > 200)    { error_units = (e * 2) + (w / 4) + (f * 20); }
-            else            { error_units = e + (w / 2) + (f * 2); }
+            if (c > 200)    { error_units = (e * 2) + (w / 4) + (f * 50); }
+            else            { error_units = e + (w / 2) + (f * 75); }
             density = error_units / c;
             quality_score = 100 - density;
             if (quality_score < 0) quality_score = 0;
@@ -3580,7 +3580,6 @@ runs: # Uses default x86_64 / linux user machine
             if ((f / c) > 0.15) final_score = 0;
             rank = "NONE";
             icon = "⚪";
-            if (total > c) { icon = "👻"; } # Use a different icon for incomplete runs
             if (final_score >= 95)      { rank="S-TIER"; icon="💎"; }
             else if (final_score >= 85) { rank="A-RANK"; icon="🥇"; }
             else if (final_score >= 70) { rank="B-RANK"; icon="🥈"; }
