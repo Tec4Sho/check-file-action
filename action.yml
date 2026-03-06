@@ -2614,6 +2614,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
               if ${{ inputs.repair == 'true' }}; then
                 if [[ -n "$include_bases" ]]; then
+                  [[ "${{ env.arch }}" == 'arm'* || "${{ env.arch }}" == 'aarch'* ]] && include_bases+="-isystem${{ env.LLVM_ARM_TOOLCHAIN }}/lib/clang/${{ inputs.version }}/include ";
                   count=$(echo "$include_bases" | grep -oE '\-(I|isystem)' | wc -l)
                   echo -e "\n\033[1mcheck-file: ${count} include paths for \033[1m${file##*/}\033[0m added!\nPaths: $include_bases" | process_input;
                 fi;
@@ -2623,11 +2624,7 @@ runs: # Uses default x86_64 / linux user machine
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                   echo -e "\n####################\nCLANG-TIDY ERRORS REPAIR ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix --fix-errors --fix-notes \
-                    -- ${include_bases} \
-                    -target arm-linux-androideabi \
-                    -nostdlibinc \
-                    -nobuiltininc \
-                    -Wno-everything -Wno-error \
+                    -- -target arm-linux-androideabi -nostdlibinc -nobuiltininc -Wno-everything -Wno-error ${include_bases} \
                     2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && grep -qsE "Error while processing (${file//./\\.})|(.+${file//./\\.})" "${error_log}"; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input; errors=true
@@ -2638,11 +2635,7 @@ runs: # Uses default x86_64 / linux user machine
                 elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                   echo -e "\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix --fix-errors --fix-notes \
-                    -- ${include_bases} \
-                    -target arm-linux-androideabi \
-                    -nostdlibinc \
-                    -nobuiltininc \
-                    -Wno-everything -Wno-error \
+                    -- -target arm-linux-androideabi -nostdlibinc -nobuiltininc -Wno-everything -Wno-error ${include_bases} \
                     2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && grep -qsE "Error while processing (${file//./\\.})|(.+${file//./\\.})" "${error_log}"; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input; errors=true
