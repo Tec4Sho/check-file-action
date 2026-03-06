@@ -2613,7 +2613,8 @@ runs: # Uses default x86_64 / linux user machine
               fi;
               if ${{ inputs.repair == 'true' }}; then
                 if [[ -n "$include_bases" ]]; then
-                  [[ "${{ env.arch }}" == 'arm'* || "${{ env.arch }}" == 'aarch'* ]] && include_bases+=" -isystem${{ env.LLVM_ARM_TOOLCHAIN }}/lib/clang/${{ inputs.release }}/include";
+                  version="${{ inputs.release }}";
+                  [[ "${{ env.arch }}" == 'arm'* || "${{ env.arch }}" == 'aarch'* ]] && include_bases+=" -isystem${{ env.LLVM_ARM_TOOLCHAIN }}/lib/clang/${version%%.*}/include";
                   count=$(echo "$include_bases" | grep -oE '\-(I|isystem)' | wc -l)
                   echo -e "\n\033[1mcheck-file: ${count} include paths for \033[1m${file##*/}\033[0m added!\nPaths: $include_bases" | process_input;
                 fi;
