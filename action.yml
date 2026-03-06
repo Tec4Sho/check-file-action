@@ -2581,10 +2581,10 @@ runs: # Uses default x86_64 / linux user machine
                       if [[ "$includes" == */asm/* ]]; then
                         includes="${includes%/asm/*}";
                       fi;
-                      if [[ "$includes" =~ "/arch/$aarch" ]]; then
+                      if [[ "$includes" == *"/arch/$aarch" ]]; then
                         includes="${includes}/include";
                       fi;
-                      if [[ "$includes" == *.h ]]; then
+                      if [[ "$includes" == *.[ch] ]]; then
                         includes="${includes%/*/*}";
                       fi;
                       echo -e "\033[35mINCLUDE PATH:\033[0m ${includes}" | process_input;
