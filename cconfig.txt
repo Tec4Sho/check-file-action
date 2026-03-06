@@ -1,0 +1,9 @@
+-target ${{ env.TARGET_ARCH }}
+-D__ASM_BITSPERLONG_H
+-D__BITS_PER_LONG=32
+-D__KERNEL__
+-nobuiltininc
+-nostdlibinc
+-Wno-everything 
+-Wno-error
+-m32

@@ -22,7 +22,7 @@ ExtraArgs:
   - -D__KERNEL__
   - -DKBUILD_STR(s)=#s
   - -target
-  - arm-linux-androideabi
+  - ${{ env.TARGET_ARCH }}
   - -m32
   - -Wno-implicit-function-declaration  # Fixes 'fls' and bitop errors
   - -Wno-int-conversion                 # Common in kernel pointer math
