@@ -2575,17 +2575,16 @@ runs: # Uses default x86_64 / linux user machine
                       [[ "$includes" =~ "/arch/" && ! "$includes" =~ "/arch/$aarch/" ]] && continue
                       count2=$((include_count++)); total=$((include_total++)); includes_found=true;
                       echo -e "\n\033[32mSOURCE FILE: \033[0m\033[1m( #include ${includes##*/} )\033[0m\033[32m LOCATED!\033[0m  [ ${count2} ✅ ]\n\033[33mFILE LOCATION:\033[0m ${includes}" | process_input;
-                      if [[ "$includes" == */linux/* ]]; then
-                        includes="${includes%/linux/*}";
-                      fi;
-                      if [[ "$includes" == */asm/* ]]; then
-                        includes="${includes%/asm/*}";
-                      fi;
-                      if [[ "$includes" == *"/arch/$aarch" ]]; then
-                        includes="${includes}/include";
-                      fi;
                       if [[ "$includes" == *.[ch] ]]; then
-                        includes="${includes%/*/*}";
+                        includes="${includes%/*}";
+                      fi;
+                      if [[ "$includes" == */linux || "$includes" == */asm || "$includes" == */crypto ]]; then
+                        includes="${includes%/*}";
+                      fi;
+                      if [[ "$includes" == */arch/$aarch ]]; then
+                        includes="${includes}/include";
+                      elif [[ "$includes" == */arch ]]; then
+                        includes="${includes}/$aarch/include";
                       fi;
                       echo -e "\033[35mINCLUDE PATH:\033[0m ${includes}" | process_input;
                       include_bases+="-isystem${includes} ";
@@ -2614,7 +2613,7 @@ runs: # Uses default x86_64 / linux user machine
               fi;
               if ${{ inputs.repair == 'true' }}; then
                 if [[ -n "$include_bases" ]]; then
-                  [[ "${{ env.arch }}" == 'arm'* || "${{ env.arch }}" == 'aarch'* ]] && include_bases+="-isystem${{ env.LLVM_ARM_TOOLCHAIN }}/lib/clang/${{ inputs.version }}/include ";
+                  [[ "${{ env.arch }}" == 'arm'* || "${{ env.arch }}" == 'aarch'* ]] && include_bases+=" -isystem${{ env.LLVM_ARM_TOOLCHAIN }}/lib/clang/${{ inputs.release }}/include";
                   count=$(echo "$include_bases" | grep -oE '\-(I|isystem)' | wc -l)
                   echo -e "\n\033[1mcheck-file: ${count} include paths for \033[1m${file##*/}\033[0m added!\nPaths: $include_bases" | process_input;
                 fi;
