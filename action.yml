@@ -2578,8 +2578,12 @@ runs: # Uses default x86_64 / linux user machine
                       if [[ "$includes" == *.[ch] ]]; then
                         includes="${includes%/*}";
                       fi;
-                      if [[ "$includes" == */linux || "$includes" == */asm || "$includes" == */crypto ]]; then
-                        includes="${includes%/*}";
+                      if [[ "$includes" == */linux/* ]]; then
+                        includes="${includes%/linux/*}";
+                      elif [[ "$includes" == */asm/* ]]; then
+                        includes="${includes%/asm/*}";
+                      elif [[ "$includes" == */crypto/* ]]; then
+                        includes="${includes%/crypto/*}";
                       fi;
                       if [[ "$includes" == */arch/$aarch ]]; then
                         includes="${includes}/include";
