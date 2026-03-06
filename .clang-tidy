@@ -3,10 +3,10 @@ Checks:                '-*,clang-analyzer-*,-clang-analyzer-cplusplus*,-clang-an
 WarningsAsErrors:      ''
 HeaderFileExtensions:         ['', 'h','hh','hpp','hxx']
 ImplementationFileExtensions: ['c','cc','cpp','cxx']
-HeaderFilterRegex: '^$(realpath .)/.*'
+HeaderFilterRegex: '.*'
 InheritParentConfig:   true
 User:                  user
-SystemHeaders:         false
+SystemHeaders:         true
 UseColor:              true
 FormatStyle:           none
 CheckOptions:
@@ -21,17 +21,13 @@ CheckOptions:
 ExtraArgs:
   - -D__KERNEL__
   - -DKBUILD_STR(s)=#s
-  - -target
-  - ${{ env.TARGET_ARCH }}
-  - -m32
-  - -Wno-implicit-function-declaration  # Fixes 'fls' and bitop errors
-  - -Wno-int-conversion                 # Common in kernel pointer math
-  - -Wno-unused-value                   # Kernels use many 'dummy' macros
-  - -Wno-format-security                # Kernels often use custom printk
-  - -Wno-invalid-token-paste            # Silences glue() macro errors
-  - -fno-ms-extensions                  # Ensure standard C behavior
-  - -fno-builtin                      # Kernel defines its own versions of built-ins
-  - -nostdinc                         # Prevents picking up host machine headers
-  - -Wno-unknown-attributes            # Kernels use many custom GCC attributes Clang ignores
+  - -Wno-implicit-function-declaration
+  - -Wno-int-conversion
+  - -Wno-unused-value
+  - -Wno-format-security
+  - -Wno-invalid-token-paste
+  - -fno-ms-extensions
+  - -fno-builtin
+  - -Wno-unknown-attributes
   - -Wno-missing-prototypes
 ...
