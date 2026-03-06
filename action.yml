@@ -2578,12 +2578,12 @@ runs: # Uses default x86_64 / linux user machine
                       if [[ "$includes" == *.[ch] ]]; then
                         includes="${includes%/*}";
                       fi;
-                      if [[ "$includes" == */linux/* ]]; then
-                        includes="${includes%/linux/*}";
-                      elif [[ "$includes" == */asm/* ]]; then
-                        includes="${includes%/asm/*}";
-                      elif [[ "$includes" == */crypto/* ]]; then
-                        includes="${includes%/crypto/*}";
+                      if [[ "$includes" == */linux/* || "$includes" == */linux ]]; then
+                        includes="${includes%/linux*}";
+                      elif [[ "$includes" == */asm/* || "$includes" == */asm ]]; then
+                        includes="${includes%/asm*}";
+                      elif [[ "$includes" == */crypto/* || "$includes" == */crypto ]]; then
+                        includes="${includes%/crypto*}";
                       fi;
                       if [[ "$includes" == */arch/$aarch ]]; then
                         includes="${includes}/include";
@@ -2625,8 +2625,9 @@ runs: # Uses default x86_64 / linux user machine
               if ${{ inputs.repair == 'true' }}; then
                 if [[ -n "$include_bases" ]]; then
                   version="${{ inputs.release }}";
-                  [[ "${{ env.arch }}" == 'arm'* || "${{ env.arch }}" == 'aarch'* ]] && include_bases+=" -isystem${{ env.LLVM_ARM_TOOLCHAIN }}/lib/clang/${version%%.*}/include";
-                  count=$(echo "$include_bases" | grep -oE '\-(I|isystem)' | wc -l)
+                  toolchain=${{ env.LLVM_TOOLCHAIN }};
+                  [[ "${{ env.arch }}" == 'arm'* || "${{ env.arch }}" == 'aarch'* ]] && include_bases+=" -isystem${toolchain%%:}/lib/clang/${version%%.*}/include";
+                  count=$(echo "$include_bases" | grep -oE '\-(I|isystem)' | wc -l); include_bases=$include_bases;
                   echo -e "\n\033[1mcheck-file: ${count} include paths for \033[1m${file##*/}\033[0m added!\nPaths: $include_bases" | process_input;
                 fi;
                 if ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }} && grep -qsF "${search_path}" "${repaired}"; then
