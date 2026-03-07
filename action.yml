@@ -3486,8 +3486,9 @@ runs: # Uses default x86_64 / linux user machine
         echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
         if [[ -s "${log_file}" ]] && ([[ "${check_build}" == 'true' ]] || [[ "${file_found}" == 'true' ]]); then
           echo -e "\n####################\n\t${log_file##*/} file found checking stats...\n####################" | process_input;
-          deheader_duplicates=$(grep -aFc 'duplicates' "${log_file}");
+          build_src_files_count=$(grep -aEc ' CC | C\+\+ ' "${log_file}");
           deheader_inclusion=$(grep -saFc 'inclusion' "${log_file}");
+          deheader_duplicates=$(grep -aFc 'duplicates' "${log_file}");
           deheader_removed=$(grep -saFc 'remove' "${log_file}");
           codechecker_defects=$(grep -saEo 'Found [1-9] defect' "${log_file}" | cut -d ' ' -f2 | gawk '{ sum += $1 } END { print sum; }');
           codechecker_no_defects=$(grep -saFoc 'Found no defects' "${log_file}");
@@ -3566,6 +3567,7 @@ runs: # Uses default x86_64 / linux user machine
           elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
+          (( build_src_files_count > 0 )) && checked_file_count=$build_src_files_count;
           score_data=$(gawk -v e="$clang_error2" -v w="$clang_warnings" -v f="$clang_failed" \
             -v c="$checked_file_count" -v total="$expected_file_count" 'BEGIN {
             if (total == 0) { total = c; } # Prevent division by zero
