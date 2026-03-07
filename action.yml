@@ -3567,13 +3567,14 @@ runs: # Uses default x86_64 / linux user machine
           elif [[ -n "${deheader_inclusion}" ]] && [[ "${deheader_inclusion:-0}" > '0' ]] && (${{ inputs.build == '3' }} || ${{ inputs.build == '4' }}); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
-          (( build_src_files_count > 0 )) && checked_file_count=$build_src_files_count;
+          (( build_src_files_count > 0 )) && echo -e "\nBuild source files count: $build_src_files_count" && checked_file_count=$build_src_files_count;
           score_data=$(gawk -v e="$clang_error2" -v w="$clang_warnings" -v f="$clang_failed" \
-            -v c="$checked_file_count" -v total="$expected_file_count" 'BEGIN {
+            -v c="$checked_file_count" -v total="$expected_file_count" -v b="$build_src_files_count" 'BEGIN {
             if (total == 0) { total = c; } # Prevent division by zero
-            if (c == 0)     { print "0.00 💀 (No Files)"; exit; }    
-            if (c > 200)    { error_units = (e * 2) + (w / 4) + (f * 50); }
-            else            { error_units = e + (w / 2) + (f * 75); }
+            if (c == 0)     { print "0.00 💀 (No Files)"; exit; }
+            if (b > 100)    { error_units = (e * 10) + (w / 4) + (f * 95); }
+            else if (c > 200)    { error_units = (e * 2) + (w / 4) + (f * 90); }
+            else            { error_units = e + (w / 2) + (f * 90); }
             density = error_units / c;
             quality_score = 100 - density;
             if (quality_score < 0) quality_score = 0;
