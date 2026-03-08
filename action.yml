@@ -3506,18 +3506,18 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           clang_warnings=$(grep -saEo '[1-9] warnings generated|1 warning generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
           clang_error1=$(grep -saEo '[1-9] errors generated|1 error generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
-          clang_error2=$(grep -saEc 'error:|#error' "${log_file}");
-          clang_failed=$(grep -saEc 'Failed|FAILED|build failed' "${log_file}");
-          clang_fixit1=$(grep -saiEc 'fixes|fixit|fix-its' "${log_file}");
-          clang_fixit2=$(grep -saEo 'clang-tidy applied [1-9]' "${log_file}" | cut -d ' ' -f3 | gawk '{ sum += $1 } END { print sum; }');
+          clang_error2=$(grep -saEc ': error:| #error' "${log_file}");
+          clang_failed=$(grep -saFc 'FAILED' "${log_file}");
+          clang_fixit1=$(grep -saEo 'clang-tidy applied [1-9]' "${log_file}" | cut -d ' ' -f3 | gawk '{ sum += $1 } END { print sum; }');
+          clang_fixit2=$(grep -saiEc 'fixes|fixit|fix-its' "${log_file}");
           clang_notes=$(grep -saoFc 'note:' "${log_file}");
-          no_error=$(grep -saFc 'NO ERRORS' "${log_file}");
+          no_file_error=$(grep -saFc 'NO ERRORS' "${log_file}");
           located_count=0
           missing_count=0
           located_arch=0
           file_count=0
           filetype="${{ env.filename }}";
-          if (( no_error > 0 )); then
+          if (( no_file_error > 0 )); then
             echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m ${no_error}️ ${file_type} files checked without any errors. [Hints] When using store & update or cache option these wont be rescanned for errors\n####################" | process_input;
           fi;
           if (( clang_information > 0 )) && ${{ inputs.analyzer == '3' }}; then
@@ -3544,12 +3544,12 @@ runs: # Uses default x86_64 / linux user machine
           if (( clang_failed > 0 )); then
             echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m found $clang_failed fails in all files checked during build. [Hints] This means your [\033[1mBuild failed\033[0m] from possible errors.\n####################" | process_input;
           fi;
-          if (( clang_fixit1 > 0 )) && (${{ inputs.analyzer > '0' }} || ${{ env.file_fixed =='1' }}); then
+          if (( clang_fixit1 > 0 )) && (${{ inputs.analyzer > '0' }} || ${{ env.file_fixed == '1' }}); then
             echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE:\033[0m applied ${clang_fixit1} fix-its to ${file_type} files checked. [Hints] Try using [update: true] for updating your remote repository with the fixes.\n####################" | process_input;
             fixed=true
           fi;
-          if (( clang_fixit2 > 0 )) && (${{ inputs.analyzer > '0' }} || ${{ env.file_fixed == '1' }}); then
-            echo -e "\n####################\n::notice::✅ ${clang_fixit2} To ${file_type} files checked. [Hints] Try using (update: true) for updating your remote repository with any fixed files.\n####################" | process_input;
+          if (( clang_fixit2 > 0 )); then
+            echo -e "\n####################\n::notice::✅ ${clang_fixit2} FIX-ITS found for ${file_type} files checked. [Hints] Try using (update: true) for updating your remote repository with any fixed files.\n####################" | process_input;
             fixed=true
           fi;
           if (( clang_notes > 0 )); then
