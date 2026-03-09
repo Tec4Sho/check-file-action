@@ -3486,7 +3486,7 @@ runs: # Uses default x86_64 / linux user machine
         echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
         if [[ -s "${log_file}" ]] && ([[ "${check_build}" == 'true' ]] || [[ "${file_found}" == 'true' ]]); then
           echo -e "\n####################\n\t${log_file##*/} file found checking stats...\n####################" | process_input;
-          ${{ inputs.build > '0' }} && build_src_files_count=$(grep -aEc ' CC | C\+\+ ' "${log_file}");
+          ${{ inputs.build > '0' }} && build_src_files_count=$(grep -awEoc ' CC | C\+\+ ' "${log_file}");
           deheader_inclusion=$(grep -saFc 'inclusion' "${log_file}");
           deheader_duplicates=$(grep -aFc 'duplicates' "${log_file}");
           deheader_removed=$(grep -saFc 'remove' "${log_file}");
@@ -3506,7 +3506,7 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           clang_warnings=$(grep -saEo '[1-9] warnings generated|1 warning generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
           clang_error1=$(grep -saEo '[1-9] errors generated|1 error generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
-          clang_error2=$(grep -saEc ': error:| #error' "${log_file}");
+          clang_error2=$(grep -saEc ': error:|#error |Error [1-9]' "${log_file}");
           clang_failed=$(grep -sac '^FAILED:' "${log_file}");
           clang_fixit1=$(grep -saEo 'clang-tidy applied [1-9]' "${log_file}" | cut -d ' ' -f3 | gawk '{ sum += $1 } END { print sum; }');
           clang_fixit2=$(grep -saiEc 'fixes|fixit|fix-its' "${log_file}");
@@ -3570,7 +3570,7 @@ runs: # Uses default x86_64 / linux user machine
           (( build_src_files_count > 0 )) && echo -e "\nBuild source files count: $build_src_files_count" && checked_file_count=$build_src_files_count;
           score_data=$(gawk -v e="$clang_error2" -v w="$clang_warnings" -v f="$clang_failed" \
             -v c="$checked_file_count" -v total="$expected_file_count" -v b="$build_src_files_count" 'BEGIN {
-            if (total == 0) { total = c; } # Prevent division by zero
+            if (total == 0) { total = c; }
             if (c == 0)     { print "0.00 💀 (No Files)"; exit; }
             if (b > 100)    { error_units = (e * 10) + (w / 4) + (f * 95); }
             else if (c > 200)    { error_units = (e * 5) + (w / 4) + (f * 90); }
