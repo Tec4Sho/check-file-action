@@ -3486,7 +3486,7 @@ runs: # Uses default x86_64 / linux user machine
         echo "filetype=${{ inputs.filetype }}" >> "${GITHUB_ENV}";
         if [[ -s "${log_file}" ]] && ([[ "${check_build}" == 'true' ]] || [[ "${file_found}" == 'true' ]]); then
           echo -e "\n####################\n\t${log_file##*/} file found checking stats...\n####################" | process_input;
-          build_src_files_count=$(grep -aEc ' CC | C\+\+ ' "${log_file}");
+          ${{ inputs.build > '0' }} && build_src_files_count=$(grep -aEc ' CC | C\+\+ ' "${log_file}");
           deheader_inclusion=$(grep -saFc 'inclusion' "${log_file}");
           deheader_duplicates=$(grep -aFc 'duplicates' "${log_file}");
           deheader_removed=$(grep -saFc 'remove' "${log_file}");
@@ -3507,7 +3507,7 @@ runs: # Uses default x86_64 / linux user machine
           clang_warnings=$(grep -saEo '[1-9] warnings generated|1 warning generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
           clang_error1=$(grep -saEo '[1-9] errors generated|1 error generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
           clang_error2=$(grep -saEc ': error:| #error' "${log_file}");
-          clang_failed=$(grep -saFc '^FAILED:' "${log_file}");
+          clang_failed=$(grep -sac '^FAILED:' "${log_file}");
           clang_fixit1=$(grep -saEo 'clang-tidy applied [1-9]' "${log_file}" | cut -d ' ' -f3 | gawk '{ sum += $1 } END { print sum; }');
           clang_fixit2=$(grep -saiEc 'fixes|fixit|fix-its' "${log_file}");
           clang_notes=$(grep -saoFc 'note:' "${log_file}");
@@ -3549,7 +3549,7 @@ runs: # Uses default x86_64 / linux user machine
             fixed=true
           fi;
           if (( clang_fixit2 > 0 )); then
-            echo -e "\n####################\n::notice::✅ ${clang_fixit2} FIX-ITS found for ${file_type} files checked. [Hints] Try using (update: true) for updating your remote repository with any fixed files.\n####################" | process_input;
+            echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE:\033[0m applied ${clang_fixit2} FIX-ITS to ${file_type} files checked. [Hints] Try using (update: true) for updating your remote repository with any fixed files.\n####################" | process_input;
             fixed=true
           fi;
           if (( clang_notes > 0 )); then
@@ -3573,7 +3573,7 @@ runs: # Uses default x86_64 / linux user machine
             if (total == 0) { total = c; } # Prevent division by zero
             if (c == 0)     { print "0.00 💀 (No Files)"; exit; }
             if (b > 100)    { error_units = (e * 10) + (w / 4) + (f * 95); }
-            else if (c > 200)    { error_units = (e * 2) + (w / 4) + (f * 90); }
+            else if (c > 200)    { error_units = (e * 5) + (w / 4) + (f * 90); }
             else            { error_units = e + (w / 2) + (f * 90); }
             density = error_units / c;
             quality_score = 100 - density;

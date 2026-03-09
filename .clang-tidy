@@ -4,9 +4,10 @@ WarningsAsErrors:      ''
 HeaderFileExtensions:         ['', 'h','hh','hpp','hxx']
 ImplementationFileExtensions: ['c','cc','cpp','cxx']
 HeaderFilterRegex: '.*'
+ExcludeHeaderFilterRegex: '(asm/(bitsperlong|errno|param|simd|types)\.h|assert\.h|linux/param\.h)'
 InheritParentConfig:   true
 User:                  user
-SystemHeaders:         true
+SystemHeaders:         false
 UseColor:              true
 FormatStyle:           none
 CheckOptions:
