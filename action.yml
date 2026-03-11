@@ -3572,7 +3572,7 @@ runs: # Uses default x86_64 / linux user machine
             -v c="$checked_file_count" -v total="$expected_file_count" -v b="$build_src_files_count" 'BEGIN {
             if (total == 0) { total = c; }
             if (c == 0)     { print "0.00 💀 (No Files)"; exit; }
-            if (b > 100)    { error_units = (e * 10) + (w / 4) + (f * 95); }
+            if (b > 100)    { error_units = (e * 10) + (w / 4) + (f * 500); }
             else if (c > 200)    { error_units = (e * 5) + (w / 4) + (f * 90); }
             else            { error_units = e + (w / 2) + (f * 90); }
             density = error_units / c;

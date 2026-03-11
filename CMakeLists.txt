@@ -108,9 +108,8 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${CHECK_FILE_NAME}")
       message(STATUS "Added [${FILE_COUNT}]: ${REL_FILE}")
     else()
       math(EXPR FILE_COUNT "${FILE_COUNT} + 1") 
-      # Add to target using the Workspace-anchored path
-      # This ensures compile_commands.json is valid for the Clang scan step
-      target_sources("${PROJECT_NAME}" PRIVATE "${REL_FILE}") 
+      file(REAL_PATH "${REL_FILE}" FILE_PATH)
+      target_sources("${PROJECT_NAME}" PRIVATE "${FILE_PATH}") 
       message(STATUS "Added [${FILE_COUNT}]: ${REL_FILE}")
     endif()
   endforeach()
