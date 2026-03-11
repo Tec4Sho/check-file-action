@@ -63,17 +63,22 @@ inputs:
     required: false
     default: ''
   project:
-    description: 'Fix Errors found while building project or check build only'
+    description: 'Find/fix issues when checking source files or build source while checking for errors'
     type: boolean
     required: false
     default: 'false'
+  android:
+    description: 'Android SDK version to use for project builds'
+    type: number
+    required: false
+    default: '9.0'
   version:
-    description: 'LLVM Clang vsrsion used for project'
+    description: 'LLVM Clang version to use for project checks'
     type: number
     required: false
     default: '21'
   release:
-    description: 'LLVM embeded-toolchain-arm version used for arm kernels only'
+    description: 'LLVM embeded-toolchain-arm version to use for arm project builds only'
     type: number
     required: false
     default: '19.1.1'
@@ -299,9 +304,11 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: Setup Android SDK
-      if: inputs.build == '1' || inputs.build == '2'
+      if: inputs.build == '1' || inputs.build == '5'
       uses: android-actions/setup-android@v3
       with:
+        packages: 'tools platform-tools'
+        cmdline-tools-version: ${{ inputs.android }}
         log-accepted-android-sdk-licenses: false
       env:
         SKIP_JDK_VERSION_CHECK: true
@@ -309,7 +316,7 @@ runs: # Uses default x86_64 / linux user machine
 
     - name: Set up Go 1.26
       if: inputs.filename != '' || inputs.filetype != '' || inputs.build > '0'
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v6
       with:
         go-version: '1.26'
       continue-on-error: true
