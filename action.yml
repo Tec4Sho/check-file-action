@@ -3513,7 +3513,7 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           clang_warnings=$(grep -saEo '[1-9] warnings generated|1 warning generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
           clang_error1=$(grep -saEo '[1-9] errors generated|1 error generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
-          clang_error2=$(grep -saEc ': error:|#error |Error [1-9]' "${log_file}");
+          clang_error2=$(grep -saEc ': error:|#error|Error [1-9]' "${log_file}");
           clang_failed=$(grep -sac '^FAILED:' "${log_file}");
           clang_fixit1=$(grep -saEo 'clang-tidy applied [1-9]' "${log_file}" | cut -d ' ' -f3 | gawk '{ sum += $1 } END { print sum; }');
           clang_fixit2=$(grep -saiEc 'fixes|fixit|fix-its' "${log_file}");
