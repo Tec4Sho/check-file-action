@@ -2645,7 +2645,7 @@ runs: # Uses default x86_64 / linux user machine
                 elif ${{ inputs.stored == 'true' }} && ${{ env.update == 'true' }}; then
                   echo -e "\n####################\nCLANG-TIDY ERRORS REPAIR ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix --fix-errors --fix-notes \
-                    -- ${cconfig} ${include_bases} \
+                    -- ${include_bases} -D__KERNEL__ \
                     2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && grep -qsE "Error while processing (${file//./\\.})|(.+${file//./\\.})" "${error_log}"; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m STORING FOUND ERRORS TO REPAIR\n####################" | process_input; errors=true
@@ -2656,7 +2656,7 @@ runs: # Uses default x86_64 / linux user machine
                 elif ${{ inputs.stored == 'false' }} || ${{ env.update == 'false' }}; then
                   echo -e "\n####################\nCLANG-TIDY FILES ANALYZER: ( ${count1} )\n####################\n" | process_input;
                   clang-tidy "${file}" --config-file="${clang_file}" --fix --fix-errors --fix-notes \
-                    -- ${cconfig} ${include_bases} \
+                    -- ${include_bases} -D__KERNEL__ \
                     2>&1 | process_input || error2="$?";
                   if [[ -s "${error_log}" ]] && grep -qsE "Error while processing (${file//./\\.})|(.+${file//./\\.})" "${error_log}"; then
                     echo -e "\n####################\n\033[1mCHECK-FILE:\033[0m FOUND ERRORS TO REPAIR\n####################" | process_input; errors=true
