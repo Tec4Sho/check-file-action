@@ -391,6 +391,8 @@ runs: # Uses default x86_64 / linux user machine
           export "LDS_PATH=$lds_file";
           echo "export LDS_PATH=$lds_file" | sudo tee -a ~/.bashrc >/dev/null;
           echo "export SRCTREE=$kroot" | sudo tee -a ~/.bashrc >/dev/null;
+          ln -vs $(pwd)/arch/${target_arch}/include/uapi/asm $(pwd)/include/uapi/asm
+          ln -vs $(pwd)/arch/${target_arch}/include/asm $(pwd)/include/asm
         }
         if ${{ inputs.linux == 'false' }}; then
           find_vendor_kernel "$ARCH";
