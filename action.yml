@@ -297,7 +297,7 @@ runs: # Uses default x86_64 / linux user machine
 
     - name: Install OpenJDK
       if: inputs.build == '1' || inputs.build == '5'
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         distribution: zulu
         java-version: 17
@@ -3830,7 +3830,7 @@ runs: # Uses default x86_64 / linux user machine
 
     - name: Uploading ${{ github.repository }} Project Build Release
       if: inputs.build > '5' && inputs.project == 'true' && env.build_files == '1' && inputs.repository == 'false'
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           ${{ inputs.dirname }}/out/target/**/*.zip
