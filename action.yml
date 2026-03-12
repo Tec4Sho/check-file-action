@@ -2600,7 +2600,7 @@ runs: # Uses default x86_64 / linux user machine
                         includes="${includes}/$aarch/include";
                       fi;
                       echo -e "\033[35mINCLUDE PATH:\033[0m ${includes}" | process_input;
-                      include_bases+="-isystem${includes} ";
+                      include_bases+="-I${includes} ";
                       echo "${includes}" >> 'temp-file';
                     done <<< "${header}";
                   elif [[ -n "${missing[$include]}" ]]; then
