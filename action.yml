@@ -352,7 +352,7 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         TOOLCHAIN='';
         AUTO_ARCH="${TARGET_ARCH}";
-        ARCH="${{ inputs.arch }}";
+        ARCH="${arch}";
         COMPILERS='clang:clang++:gcc:g++:cc:c++';
         SRCTREE="$GITHUB_WORKSPACE" >> "$GITHUB_ENV";
         find_vendor_kernel() {
@@ -387,14 +387,16 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           echo "Detected LDS: $lds_file";
           echo "Kernel Directory: $kroot";
-          echo "Toolchain Compilier: $compilier";
+          echo "Toolchain Compilier: ${compilier:-GNU}";
           export "SRCTREE=$kroot";
           export "LDS_PATH=$lds_file";
           echo "export LDS_PATH=$lds_file" | sudo tee -a ~/.bashrc >/dev/null;
           echo "export SRCTREE=$kroot" | sudo tee -a ~/.bashrc >/dev/null;
-          ln -vsf $(pwd)/arch/${target_arch}/include/uapi/asm $(pwd)/include/uapi/asm
-          ln -vsf $(pwd)/arch/${target_arch}/include/asm-generic $(pwd)/include/asm-generic
-          ln -vsf $(pwd)/include/asm-generic/preempt.h $(pwd)/arch/${target_arch}/include/asm/preempt.h
+          if [[ -d $(pwd)/include/asm-generic ]]; then
+            ln -vsf $(pwd)/include/uapi/asm $(pwd)/arch/${target_arch}/include/uapi/asm 2>/dev/null
+            ln -vsf $(pwd)/include/asm-generic $(pwd)/arch/${target_arch}/include/asm-generic 
+            ln -vsf $(pwd)/include/asm-generic/preempt.h $(pwd)/arch/${target_arch}/include/asm/preempt.h
+          fi;
         }
         if ${{ inputs.linux == 'false' }}; then
           find_vendor_kernel "$ARCH";
