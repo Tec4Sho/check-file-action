@@ -279,8 +279,6 @@ runs: # Uses default x86_64 / linux user machine
         restore-keys: |
           ${{ runner.os }}
         enableCrossOsArchive: true
-        env:
-          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       continue-on-error: true
 
     - name: Access repo info and branch
