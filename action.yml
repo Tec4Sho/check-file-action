@@ -193,6 +193,11 @@ inputs:
     type: boolean
     required: false
     default: true
+  nulls:
+    description: 'Use to fix multiple NUll errors in files that a dev or program editor currupted'
+    type: boolean 
+    required: false
+    default: 'false'
   arch:
     description: 'Arch to set for checking kernel project includes'
     type: string
@@ -210,11 +215,6 @@ inputs:
     default: 'false'
   rsp:
     description: 'Use cmake includes.C.rsp file for including many header paths in compile json file'
-    type: boolean 
-    required: false
-    default: 'false'
-  null:
-    description: 'Use to fix multiple NUll errors in files that a dev or program editor currupted'
     type: boolean 
     required: false
     default: 'false'
@@ -1997,7 +1997,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: NULL Errors Fixer
-      if: inputs.project == 'true' && env.filename != '' && inputs.null == 'true' && inputs.pattern == ''
+      if: inputs.project == 'true' && env.filename != '' && inputs.nulls == 'true' && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
