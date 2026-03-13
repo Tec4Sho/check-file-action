@@ -226,8 +226,6 @@ outputs:
 runs: # Uses default x86_64 / linux user machine
   using: composite
   steps:
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     - name: Linux Distro Check
       run: |
         echo '';
@@ -281,6 +279,8 @@ runs: # Uses default x86_64 / linux user machine
         restore-keys: |
           ${{ runner.os }}
         enableCrossOsArchive: true
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       continue-on-error: true
 
     - name: Access repo info and branch
@@ -314,6 +314,7 @@ runs: # Uses default x86_64 / linux user machine
         log-accepted-android-sdk-licenses: false
       env:
         SKIP_JDK_VERSION_CHECK: true
+        FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       continue-on-error: true
 
     - name: Set up Go 1.26
