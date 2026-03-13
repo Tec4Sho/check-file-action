@@ -213,7 +213,7 @@ inputs:
     type: boolean 
     required: false
     default: 'false'
-  fix:
+  null:
     description: 'Use to fix multiple NUll errors in files that a dev or program editor currupted'
     type: boolean 
     required: false
@@ -226,6 +226,8 @@ outputs:
 runs: # Uses default x86_64 / linux user machine
   using: composite
   steps:
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     - name: Linux Distro Check
       run: |
         echo '';
@@ -1996,7 +1998,7 @@ runs: # Uses default x86_64 / linux user machine
       continue-on-error: true
 
     - name: NULL Errors Fixer
-      if: inputs.project == 'true' && env.filename != '' && inputs.fix == 'true' && inputs.pattern == ''
+      if: inputs.project == 'true' && env.filename != '' && inputs.null == 'true' && inputs.pattern == ''
       run: |
         source ~/.bashrc
         set +e
