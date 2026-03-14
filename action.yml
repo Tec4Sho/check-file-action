@@ -2250,6 +2250,7 @@ runs: # Uses default x86_64 / linux user machine
         check_exit=0
         file_type='c';
         envsetup=$(fdfind -p -a -t f -1 'envsetup.sh' "${github}");
+        skip_txt=$(fdfind -p -a -t f -1 'skip.txt' "${github}");
         update=true
         process_input() {
           case "${{ inputs.output }}" in
@@ -2262,6 +2263,7 @@ runs: # Uses default x86_64 / linux user machine
         }
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}" && echo -e "\n\033[1mUser Current Directory\033[0m: ${{ env.dirname }}" | process_input;
+          [[ -e "$skip_txt" ]] && cp -f $skip_txt . || echo 'include/' > skip.txt
           codechecker=$(fdfind -p -a -t f -1 'codechecker.yaml' "${github}");
           compile_json=$(fdfind -p -a -t f -1 'compile_commands.json' "${github}");
           check_radio=$(fdfind -p -a -t f -1 -g '**/tools/check_radio_versions.py' "${github}");
