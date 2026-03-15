@@ -2231,7 +2231,7 @@ runs: # Uses default x86_64 / linux user machine
       shell: bash
       continue-on-error: true
 
-    - name: Build For Arm/Arm64 Devices
+    - name: Build For Android Arm/Arm64 Devices
       if: contains(fromJSON('["arm", "arm64", "aarch64"]'), env.arch) && inputs.build == '5' && inputs.pattern == ''
       run: |
         source ~/.bashrc
@@ -2303,8 +2303,8 @@ runs: # Uses default x86_64 / linux user machine
           if [[ -e "$lcm_c_file" ]]; then
             echo -e "\033[33mRedirecting Legacy GPIO Header to mt-plat in\033[0m: $lcm_c_file" | process_input;
             sed -i 's|<mach/mt_gpio.h>|<mt-plat/mt_gpio.h>|g' "$lcm_c_file";
-            sed -i 's|<mach/mt_typedefs.h>|<mt-plat/mt_typedefs.h>|g' "$lcm_c_file"
-            sed -i 's|<mach/mt_reg_base.h>|<mt-plat/mt_reg_base.h>|g' "$lcm_c_file"
+            sed -i 's|<mach/mt_typedefs.h>|<mt-plat/mt_typedefs.h>|g' "$lcm_c_file";
+            sed -i 's|<mach/mt_reg_base.h>|<mt-plat/mt_reg_base.h>|g' "$lcm_c_file";
         fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
@@ -2320,7 +2320,7 @@ runs: # Uses default x86_64 / linux user machine
           local llvm_version="${{ inputs.release }}";
           local arch_target="${{ env.arch }}";
           local kroot="${{ env.SRCTREE }}";
-          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_CPU_VARIANT/ {print $NF; exit}' | grep -s . || false)
+          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*'-o -path "*/${{ inputs.DEVICE_NAME }}/*" -o -path "*/${{ inputs.dirpath }}/*"  -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_CPU_VARIANT/ {print $NF; exit}' | grep -s . || false)
           [[ -z $kernel_cpus ]] && kernel_cpus='generic';
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
             export ARCH=arm \
@@ -2377,10 +2377,10 @@ runs: # Uses default x86_64 / linux user machine
           export TW_THEME=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TW_THEME/ {print $NF; exit}' | grep -s . || false)
           export TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_HEIGHT/ {print $NF; exit}' | grep -s . || false)
           export TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_WIDTH/ {print $NF; exit}' | grep -s . || false)
-          if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
+          if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]]; then
             echo -e "\nENVSETUP FILE: ${envsetup} found" | process_input;
             echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing...\n" | process_input;
-            build_module 
+            ${{ inputs.module == 'true' }} && build_module 
             # 1. Source and Lunch first to populate the variables /KERNEL_OBJ TARGET_OUT_INTERMEDIATES
             export TOP=$(pwd)
             source "${envsetup}" && lunch "$MAKEFILE_NAME";
@@ -2405,7 +2405,7 @@ runs: # Uses default x86_64 / linux user machine
               --print-steps \
               --build "bash -c '$BUILD_CMD'" 2>&1 | process_input || check_exit=${PIPESTATUS[0]};
             check_exit=${PIPESTATUS[0]}
-          elif [[ "${envsetup}" ]] && ${{ inputs.module == 'true' }}; then
+          elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make \$FILENAME -j\$(nproc) -k";
             CodeChecker check \
@@ -2413,33 +2413,7 @@ runs: # Uses default x86_64 / linux user machine
               --print-steps \
               --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
             check_exit=${PIPESTATUS[0]}
-          elif ${{ inputs.module == 'true' }}; then
-            echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            CodeChecker check \
-              --jobs "$(nproc)" \
-              --print-steps \
-              --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" 2>&1 | process_input;
-              check_exit=${PIPESTATUS[0]}
-          fi;
-          if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]] && ${{ inputs.module == 'false' }}; then
-            echo -e "Source: ${envsetup}";
-            echo -e "\n${codechecker} file was found continuing...\n" | process_input;
-            BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k";
-            CodeChecker check \
-              --config "${codechecker}" \
-              --jobs "$(nproc)" \
-              --print-steps \
-              --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
-            check_exit=${PIPESTATUS[0]}
-          elif [[ "${envsetup}" ]] && ${{ inputs.module == 'false' }}; then
-            echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            BUILD_CMD="source /tmp/build_env.sh && source ${envsetup} && lunch \$MAKEFILE_NAME && build_alone \$FILENAME -j\$(nproc) -k";
-            CodeChecker check \
-              --jobs "$(nproc)" \
-              --print-steps \
-              --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
-            check_exit=${PIPESTATUS[0]}
-          elif ${{ inputs.module == 'false' }}; then
+          else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
