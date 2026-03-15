@@ -3495,8 +3495,9 @@ runs: # Uses default x86_64 / linux user machine
             clang_files_list2=$(grep -saEo '| #include[[:space:]]+[<].*[>]' "${log_file}" | awk '{ print $2 }' | tr -d '<>' | sort -u);
           fi;
           clang_warnings=$(grep -saEo '[1-9] warnings generated|1 warning generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
+          make_errors=$(grep -saEo 'violations found \([0-9]+\)' "${log_file}" | grep -Eo '[0-9]+' | gawk '{ sum += $1 } END { print sum; }');
           clang_error1=$(grep -saEo '[1-9] errors generated|1 error generated' "${log_file}" | cut -d ' ' -f1 | gawk '{ sum += $1 } END { print sum; }');
-          clang_error2=$(grep -saEc ': error:|#error|Error [1-9]' "${log_file}");
+          clang_error2=$(grep -saEc ': error:|#error|Error [1-9]|^Error: ' "${log_file}");
           clang_failed=$(grep -sac '^FAILED:' "${log_file}");
           clang_fixit1=$(grep -saEo 'clang-tidy applied [1-9]' "${log_file}" | cut -d ' ' -f3 | gawk '{ sum += $1 } END { print sum; }');
           clang_fixit2=$(grep -saiEc 'fixes|fixit|fix-its' "${log_file}");
@@ -3524,6 +3525,9 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           if (( codechecker_success > 0 )) && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
             echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE:\033[0m checked ${codechecker_success} ${file_type} files successfully without issues. [Hints] No check require for those files.\n####################" | process_input;
+          fi;
+          if (( make_errors > 0 )); then
+            echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${make_errors} errors in ${file_type} files checked. [Hints] Try using any suggestions on possible error fixes.\n####################" | process_input;
           fi;
           if (( clang_error1 > 0 )); then
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${clang_error1} errors in ${file_type} files checked. [Hints] Try using a different [analyzer: 1, 2, or 4] for possible error fixes.\n####################" | process_input;
@@ -3558,9 +3562,10 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n####################\n::notice::🚫 \033[1mCHECK-FILE:\033[0m found ${deheader_inclusion} extra inclusions in ${file_type} files checked. [Hints] Try using (update: true) if headers were fixed to update remote repository.\n####################" | process_input;
           fi;
           (( build_src_files_count > 0 )) && echo -e "\nBuild source files count: $build_src_files_count" && checked_file_count=$build_src_files_count;
-          score_data=$(gawk -v e="$clang_error2" -v w="$clang_warnings" -v f="$clang_failed" \
+          score_data=$(gawk -v e="$clang_error2" -v w="$clang_warnings" -v f="$clang_failed" -v m="$make_errors" \
             -v c="$checked_file_count" -v total="$expected_file_count" -v b="$build_src_files_count" 'BEGIN {
             if (total == 0) { total = c; }
+            if (m > 0) { e = m; }
             if (c == 0)     { print "0.00 💀 (No Files)"; exit; }
             if (b > 200)    { error_units = (e * 10) + (w / 4) + (f * 500); }
             else if (c > 200)    { error_units = (e * 5) + (w / 4) + (f * 100); }
