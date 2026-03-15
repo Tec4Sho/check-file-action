@@ -368,7 +368,7 @@ runs: # Uses default x86_64 / linux user machine
             lds_file=$(find "$GITHUB_WORKSPACE" -path "*/arch/$target_arch/*" -name "*.lds" | head -n 1)
           fi;
           if [[ -z "$lds_file" ]]; then
-            echo "::error::Could not find a valid linker script for $target_arch.";
+            echo "::notice::Could not find a valid linker script for $target_arch. [Hint] setting ( linux: true ) \033[1mremoves this message\033[0m!!!";
           fi;
           local current_dir="${lds_file%/*}";
           local kroot=""; 
@@ -383,7 +383,7 @@ runs: # Uses default x86_64 / linux user machine
             current_dir="${current_dir%/*}";
           done;
           if [[ -z "$kroot" ]]; then
-            echo "::error::Found LDS but could not find Kernel Root (Makefile).";
+            echo "::notice::Found LDS but could not find Kernel Root (Makefile).";
             kroot="$current_dir";
           fi;
           echo "Detected LDS: $lds_file";
