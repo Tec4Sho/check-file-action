@@ -2763,7 +2763,7 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n####################\nFile Extension: ${{ env.filename }}\n####################" | process_input;
           fi;
         fi;
-        if [[ "${file_type}" == [cth]* ]] && [[ -n "${files}" ]]; then
+        if [[ -n "${files}" ]]; then
           ${{ env.dirname != '' }} && echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input || echo -e "\n####################\nWorkspace Folder: ${repository}\n####################" | process_input;
           if [[ -f "${clang_file}" ]] && ${{ inputs.repair == 'true' }}; then
             echo -e '\n####################\n\t.clang-tidy found continuing...\n####################' | process_input;
@@ -2917,10 +2917,10 @@ runs: # Uses default x86_64 / linux user machine
           path='--relative-path';
         fi;
         if ${{ inputs.database == 'true' }} && [[ "${file_type}" == sh ]]; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -sEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -sEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
@@ -2929,10 +2929,10 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n####################\nDatabase File Extension: ${{ env.filename }}\n####################" | process_input;
           fi;
         elif [[ "${file_type}" == sh ]]; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -sEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -sEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
@@ -2940,7 +2940,7 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n####################\nFile Extension: ${{ env.filename }}\n####################" | process_input;
           fi;
         fi;
-        if [[ "${file_type}" == sh ]] && [[ -n "${files}" ]]; then
+        if [[ -n "${files}" ]]; then
           if ${{ env.dirname != '' }}; then
             echo -e "\n####################\nWorkspace Folder: ${{ env.dirname }}\n####################" | process_input;
           else
@@ -3084,11 +3084,11 @@ runs: # Uses default x86_64 / linux user machine
           path='--relative-path';
         fi;
         if ${{ inputs.database == 'true' }} && [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
-            files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
+          if [[ $(echo "${{ inputs.filename }}" | grep -sEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+            files=$(grep -sF "${{ inputs.dirpath }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
-            files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
+          elif [[ $(echo "${{ inputs.filename }}" | grep -sEo '^[a-zA-Z0-9_-]+$') ]]; then
+            files=$(grep -sF "${{ inputs.dirpath }}/${{ inputs.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
             regex="\.${{ inputs.filetype }}$";
@@ -3096,10 +3096,10 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n####################\nDatabase File Extension: ${{ env.filename }}\n####################" | process_input;
           fi;
         elif [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]]; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -sEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -sEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "${{ env.base }}" | grep . || fdfind -j "$(nproc)" -p "${path}" --type file -g "**/${{ inputs.filename }}" "${{ env.base }}");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
@@ -3108,7 +3108,7 @@ runs: # Uses default x86_64 / linux user machine
           fi;
         fi;
         makefile_count=1
-        if [[ $(echo "${file_type}" | egrep -i "^mk$|.*Makefile$") ]] && [[ -n "${files}" ]]; then
+        if [[ -n "${files}" ]]; then
           if [[ -e "${ini_path}" ]]; then
             echo -e "\n####################\ncheckmake.ini found in system continuing ...\n####################" | process_input;
           fi;
@@ -3204,10 +3204,10 @@ runs: # Uses default x86_64 / linux user machine
           path='--relative-path';
         fi;
         if ${{ inputs.database == 'true' }}; then
-          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -sEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -sEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(grep -sF "${{ inputs.dirpath }}/${{ env.filename }}" "${{ env.database }}" | grep . || grep -sF "${{ inputs.filename }}" "${{ env.database }}");
             echo -e "\n####################\nDatabase Filename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
@@ -3216,10 +3216,10 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\n####################\nDatabase File Extension: ${{ env.filename }}\n####################" | process_input;
           fi;
         else
-          if [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
+          if [[ $(echo "${{ inputs.filename }}" | grep -sEo '^[a-zA-Z0-9_-]+.[a-zA-Z0-9_-]+$') ]]; then
             files=$(sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "/" | grep . || sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file -g "**/${{ inputs.filename }}" "/");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
-          elif [[ $(echo "${{ inputs.filename }}" | grep -qEo '^[a-zA-Z0-9_-]+$') ]]; then
+          elif [[ $(echo "${{ inputs.filename }}" | grep -sEo '^[a-zA-Z0-9_-]+$') ]]; then
             files=$(sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/${{ inputs.filename }}" "/" | grep . || sudo fdfind -j "$(nproc)" --xdev -p "${path}" --type file -g "**/${{ inputs.filename }}" "/");
             echo -e "\n####################\nFilename: ${{ inputs.filename }}\n####################" | process_input;
           elif ${{ inputs.filetype != '' }}; then
@@ -3562,9 +3562,9 @@ runs: # Uses default x86_64 / linux user machine
             -v c="$checked_file_count" -v total="$expected_file_count" -v b="$build_src_files_count" 'BEGIN {
             if (total == 0) { total = c; }
             if (c == 0)     { print "0.00 💀 (No Files)"; exit; }
-            if (b > 100)    { error_units = (e * 10) + (w / 4) + (f * 500); }
-            else if (c > 200)    { error_units = (e * 5) + (w / 4) + (f * 90); }
-            else            { error_units = e + (w / 2) + (f * 90); }
+            if (b > 200)    { error_units = (e * 10) + (w / 4) + (f * 500); }
+            else if (c > 200)    { error_units = (e * 5) + (w / 4) + (f * 100); }
+            else            { error_units = e + (w / 2) + (f * 100); }
             density = error_units / c;
             quality_score = 100 - density;
             if (quality_score < 0) quality_score = 0;
