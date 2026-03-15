@@ -3509,7 +3509,7 @@ runs: # Uses default x86_64 / linux user machine
           file_count=0
           filetype="${{ env.filename }}";
           if (( no_file_error > 0 )); then
-            echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m ${no_error}️ ${file_type} files checked without any errors. [Hints] When using store & update or cache option these wont be rescanned for errors\n####################" | process_input;
+            echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m \033[32m${no_file_error}️\033[0m ${file_type} files checked without any errors. [Hints] When using store & update or cache option these wont be rescanned for errors\n####################" | process_input;
           fi;
           if (( clang_information > 0 )) && ${{ inputs.analyzer == '3' }}; then
             echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m added ${clang_information}️ information notes on ${file_type} files checked. [Hints] Information addresses key issues that may have error fixes available.\n####################" | process_input;
