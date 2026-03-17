@@ -2305,7 +2305,15 @@ runs: # Uses default x86_64 / linux user machine
             sed -i 's|<mach/mt_gpio.h>|<mt-plat/mt_gpio.h>|g' "$lcm_c_file";
             sed -i 's|<mach/mt_typedefs.h>|<mt-plat/mt_typedefs.h>|g' "$lcm_c_file";
             sed -i 's|<mach/mt_reg_base.h>|<mt-plat/mt_reg_base.h>|g' "$lcm_c_file";
-        fi;
+          fi;
+          mkbootimg_path="system/tools/mkbootimg/mkbootimg.py";
+          if [ -f "$mkbootimg_path" ]; then
+            echo "Patching mkbootimg.py to prevent integer crash...";
+            sed -i "s/pack('Q', get_recovery_dtbo_offset(args))/pack('Q', int(get_recovery_dtbo_offset(args) or 0))/g" "$MKBOOTIMG_PATH";
+            echo "Patch applied successfully. mkbootimg_path";
+          else
+            echo "Error: mkbootimg.py not found at $mkbootimg_path";
+          fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
           compile_json='compile_commands.json';
