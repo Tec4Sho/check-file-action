@@ -2306,13 +2306,15 @@ runs: # Uses default x86_64 / linux user machine
             sed -i 's|<mach/mt_typedefs.h>|<mt-plat/mt_typedefs.h>|g' "$lcm_c_file";
             sed -i 's|<mach/mt_reg_base.h>|<mt-plat/mt_reg_base.h>|g' "$lcm_c_file";
           fi;
-          mkbootimg_path=$(fdfind -p -a -t f -g -1 "**/mkbootimg.py" "${github}");
-          if [ -e "$mkbootimg_path" ]; then
+          mkbootimg=false
+          mkbootimg_path=$(fdfind -p -a -t f -g -1 "**/mkbootimg" "${github}");
+          if [[ -e "$mkbootimg_path" ]]; then
             echo "Patching mkbootimg to prevent integer crash...";
             sed -i "s/pack('Q', get_recovery_dtbo_offset(args))/pack('Q', int(get_recovery_dtbo_offset(args) or 0))/g" "$mkbootimg_path";
             echo "Patch applied successfully. $mkbootimg_path";
+            mkbootimg=true
           else
-            echo "Error: mkbootimg.py not found";
+            echo "Error: mkbootimg not found";
           fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
@@ -2402,6 +2404,13 @@ runs: # Uses default x86_64 / linux user machine
             DYN_KERNEL_SRC="${DYN_KERNEL_SRC:-.}";
             DYN_OUT=$(get_build_var OUT_DIR)
             mkdir -p "$DYN_OUT";
+            if [[ -e "$mkbootimg_path" ]] && [[ "$mkbootimg" == 'false' ]]; then
+              echo "Patching mkbootimg to prevent integer crash after envsetup...";
+              sed -i "s/pack('Q', get_recovery_dtbo_offset(args))/pack('Q', int(get_recovery_dtbo_offset(args) or 0))/g" "$mkbootimg_path";
+              echo "Patch applied successfully. $mkbootimg_path";
+            else
+              echo "Error: mkbootimg not found";
+            fi;
             BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
               export KCFLAGS='-w' && \
               make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
