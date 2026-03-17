@@ -2306,13 +2306,13 @@ runs: # Uses default x86_64 / linux user machine
             sed -i 's|<mach/mt_typedefs.h>|<mt-plat/mt_typedefs.h>|g' "$lcm_c_file";
             sed -i 's|<mach/mt_reg_base.h>|<mt-plat/mt_reg_base.h>|g' "$lcm_c_file";
           fi;
-          mkbootimg_path="system/tools/mkbootimg/mkbootimg.py";
-          if [ -f "$mkbootimg_path" ]; then
-            echo "Patching mkbootimg.py to prevent integer crash...";
-            sed -i "s/pack('Q', get_recovery_dtbo_offset(args))/pack('Q', int(get_recovery_dtbo_offset(args) or 0))/g" "$MKBOOTIMG_PATH";
-            echo "Patch applied successfully. mkbootimg_path";
+          mkbootimg_path=$(fdfind -p -a -t f -g -1 "**/mkbootimg.py" "${github}");
+          if [ -e "$mkbootimg_path" ]; then
+            echo "Patching mkbootimg to prevent integer crash...";
+            sed -i "s/pack('Q', get_recovery_dtbo_offset(args))/pack('Q', int(get_recovery_dtbo_offset(args) or 0))/g" "$mkbootimg_path";
+            echo "Patch applied successfully. $mkbootimg_path";
           else
-            echo "Error: mkbootimg.py not found at $mkbootimg_path";
+            echo "Error: mkbootimg.py not found";
           fi;
         fi;
         if [[ -f 'compile_commands.json' ]]; then
