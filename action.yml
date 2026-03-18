@@ -2406,13 +2406,6 @@ runs: # Uses default x86_64 / linux user machine
             DYN_KERNEL_SRC="${DYN_KERNEL_SRC:-.}";
             DYN_OUT=$(get_build_var OUT_DIR)
             mkdir -p "$DYN_OUT";
-            if [[ -e "$mkbootimg_path" ]] && [[ "$mkbootimg" == 'false' ]]; then
-              echo "Patching mkbootimg to prevent integer crash after envsetup...";
-              sed -i "s/pack('Q', get_recovery_dtbo_offset(args))/pack('Q', int(get_recovery_dtbo_offset(args) or 0))/g" "$mkbootimg_path";
-              echo "Patch applied successfully. $mkbootimg_path";
-            else
-              echo "Error: mkbootimg not found";
-            fi;
             BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
               export KCFLAGS='-w' && \
               make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
@@ -2428,7 +2421,7 @@ runs: # Uses default x86_64 / linux user machine
             MKIMAGE=$(fdfind -p -a -t f -g -1 '**/scripts/mkimage' "${github}");
             ZIMAGE="$KERNEL_OBJ/arch/arm/boot/zImage";
             OUTPUT="device/alps/tb8163p3_bsp/kernel-mtk";
-            [[ -e "$MKIMAGE" ]] && ./"$MKIMAGE" "$ZIMAGE" KERNEL > "$OUTPUT" && echo "Kernel fixed and moved to $OUTPUT" | process_input;
+            [[ -e "$MKIMAGE" ]] && "$MKIMAGE" "$ZIMAGE" KERNEL > "$OUTPUT" && echo "Kernel fixed and moved to $OUTPUT" | process_input;
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make \$FILENAME -j\$(nproc) -k";
