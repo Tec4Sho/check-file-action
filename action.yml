@@ -2422,13 +2422,11 @@ runs: # Uses default x86_64 / linux user machine
               --print-steps \
               --build "bash -c '$BUILD_CMD'" 2>&1 | process_input || check_exit=${PIPESTATUS[0]};
             check_exit=${PIPESTATUS[0]}
-            KERNEL_OBJ="out/target/product/tb8163p3_bsp/obj/KERNEL_OBJ"
-            DTB="$KERNEL_OBJ/arch/arm/boot/dts/mt8163_dtbo.dtb" # Or your specific dtb
-            ZIMAGE="$KERNEL_OBJ/arch/arm/boot/zImage"
-            OUTPUT="device/alps/tb8163p3_bsp/kernel-mtk"
-            echo -en "\x4D\x54\x4B\x21" | dd bs=512 conv=sync of=header.bin
-            cat header.bin "$ZIMAGE" "$DTB" > "$OUTPUT"
-            echo "Kernel fixed and moved to $OUTPUT" | process_input;
+            KERNEL_OBJ="out/target/product/tb8163p3_bsp/obj/KERNEL_OBJ";
+            MKIMAGE=$(fdfind -p -a -t f -g -1 '**/scripts/mkimage' "${github}");
+            ZIMAGE="$KERNEL_OBJ/arch/arm/boot/zImage";
+            OUTPUT="device/alps/tb8163p3_bsp/kernel-mtk";
+            [[ -e "$MKIMAGE" ]] && ./"$MKIMAGE" "$ZIMAGE" KERNEL > "$OUTPUT" && echo "Kernel fixed and moved to $OUTPUT" | process_input;
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make \$FILENAME -j\$(nproc) -k";
