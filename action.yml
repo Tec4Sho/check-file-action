@@ -2236,9 +2236,12 @@ runs: # Uses default x86_64 / linux user machine
       run: |
         source ~/.bashrc
         start_time="${{ env.seconds }}";
+        export TERM=dumb; 
+        export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
         export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)";
         export CLANG_TRIPLE=arm-linux-android-
+        export CC_LOGGER_KEEP_LINK=NO
         export SYSROOT="${SYSROOT}";
         codechecker='codechecker.yaml';
         compiler_list=$(dpkg --list | grep compiler | tr -d 'ii');
@@ -2333,32 +2336,32 @@ runs: # Uses default x86_64 / linux user machine
           local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*'-o -path "*/${{ inputs.DEVICE_NAME }}/*" -o -path "*/${{ inputs.dirpath }}/*"  -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_CPU_VARIANT/ {print $NF; exit}' | grep -s . || false)
           [[ -z $kernel_cpus ]] && kernel_cpus='generic';
           if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
-            export ARCH=arm \
-            CLANG_TRIPLE=arm-linux-gnueabihf- \
-            CROSS_COMPILE=arm-linux-androideabi- \
-            LLVM=1 \
-            LLVM_IAS=1 \
-            CC="clang --target=arm-linux-androideabi" \
-            LD="clang --target=arm-linux-androideabi -fuse-ld=lld" \
-            KCFLAGS="-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard";
+            export ARCH=arm
+            export CLANG_TRIPLE=arm-linux-gnueabihf-
+            export CROSS_COMPILE=arm-linux-androideabi-
+            export LLVM=1
+            export LLVM_IAS=1
+            export CC="clang --target=arm-linux-androideabi"
+            export LD="clang --target=arm-linux-androideabi -fuse-ld=lld"
+            export KCFLAGS="-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard"
           elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a53' ]]; then
-            export ARCH=arm64 \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CROSS_COMPILE=aarch64-linux-android- \
-            LLVM=1 \
-            LLVM_IAS=1 \
-            CC="clang --target=aarch64-linux-android" \
-            LD="ld.lld" \
-            KCFLAGS="-mcpu=cortex-a53";
-          elif [[ "$arch_target" =~ ^(arm64|aarch64) ]]&& [[ "$kernel_cpus" == 'cortex-a72' ]]; then
-            export ARCH=arm64 \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CROSS_COMPILE=aarch64-linux-android- \
-            LLVM=1 \
-            LLVM_IAS=1 \
-            CC="clang --target=aarch64-linux-android" \
-            LD="ld.lld" \
-            KCFLAGS="-mcpu=cortex-a72";
+            export ARCH=arm64
+            export CLANG_TRIPLE=aarch64-linux-gnu-
+            export CROSS_COMPILE=aarch64-linux-android-
+            export LLVM=1
+            export LLVM_IAS=1
+            export CC="clang --target=aarch64-linux-android"
+            export LD="ld.lld"
+            export KCFLAGS="-mcpu=cortex-a53";
+          elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a72' ]]; then
+            export ARCH=arm64
+            export CLANG_TRIPLE=aarch64-linux-gnu-
+            export CROSS_COMPILE=aarch64-linux-android-
+            export LLVM=1
+            export LLVM_IAS=1
+            export CC="clang --target=aarch64-linux-android"
+            export LD="ld.lld"
+            export KCFLAGS="-mcpu=cortex-a72"
           else
             export KCFLAGS="-mcpu=$kernel_cpus" CC=clang;
           fi;
@@ -2378,7 +2381,6 @@ runs: # Uses default x86_64 / linux user machine
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          export TERM=dumb
           export HOSTCFLAGS="-fcommon";
           export HOSTCXXFLAGS="-fcommon";
           export ALLOW_MISSING_DEPENDENCIES=true
