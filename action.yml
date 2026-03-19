@@ -2405,11 +2405,11 @@ runs: # Uses default x86_64 / linux user machine
             mkdir -p "$DYN_OUT";
             BUILD_CMD=" export HOSTCFLAGS='-fcommon' && \
               export KCFLAGS='-w' && \
+              export SOONG_KEEP_RSP_FILES=true && \
               make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
               make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS $FILENAME";
             export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
             export CC_LOGGER_KEEP_LINK=YES
-            export SOONG_KEEP_RSP_FILES=true
             export BUILD_CMD
             CodeChecker check \
               --config "${codechecker}" \
@@ -2422,7 +2422,9 @@ runs: # Uses default x86_64 / linux user machine
             ZIMAGE=$(fdfind -p -a -t f -g -1 "**/KERNEL_OBJ/arch/${{ env.arch }}/boot/zImage" "${github}");
             OUTPUT="$(pwd)/$DEVICE_PATH/kernel-mtk";
             SIZE=$(stat -c%s "$ZIMAGE" 2>/dev/null);
-            [[ -e "$MKIMAGE" ]] && [[ -e "$ZIMAGE" ]] && "$MKIMAGE" "$ZIMAGE" KERNEL "$SIZE" "$OUTPUT" 2>&1 && echo "Kernel fixed and moved to $OUTPUT" | process_input;
+            echo 'NAME = KERNEL
+          TYPE = KERNEL' > mtk_kernel.cfg
+            [[ -e "$MKIMAGE" ]] && [[ -e "$ZIMAGE" ]] && "$MKIMAGE" "$ZIMAGE" mtk_kernel.cfg > "$OUTPUT" 2>&1 && echo "Kernel fixed and moved to $OUTPUT" | process_input;
             hexdump -C -n 16 "$OUTPUT" 2>&1 | process_input;
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
