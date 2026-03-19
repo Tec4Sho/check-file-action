@@ -2425,7 +2425,7 @@ runs: # Uses default x86_64 / linux user machine
             echo 'NAME = KERNEL
           TYPE = KERNEL' > mtk_kernel.cfg
             [[ -e "$MKIMAGE" ]] && [[ -e "$ZIMAGE" ]] && "$MKIMAGE" "$ZIMAGE" mtk_kernel.cfg > "$OUTPUT" 2>&1 && echo "Kernel fixed and moved to $OUTPUT" | process_input;
-            hexdump -C -n 16 "$OUTPUT" 2>&1 | process_input;
+            hexdump -C -n 16 "$OUTPUT" 2>&1 | process_input || echo "hexdump error: $?";
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make \$FILENAME -j\$(nproc) -k";
