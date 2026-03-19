@@ -2416,14 +2416,6 @@ runs: # Uses default x86_64 / linux user machine
               --jobs "$(nproc)" \
               --build "bash -c '$BUILD_CMD'" 2>&1 | process_input || check_exit=${PIPESTATUS[0]};
             check_exit=${PIPESTATUS[0]}
-            KERNEL_OBJ="out/target/product/tb8163p3_bsp/obj/KERNEL_OBJ";
-            MKIMAGE=$(fdfind -p -a -t f -g -1 '**/scripts/mkimage' "${github}");
-            ZIMAGE=$(fdfind -p -a -t f -g -1 "**/KERNEL_OBJ/arch/${{ env.arch }}/boot/zImage" "${github}");
-            OUTPUT="$(pwd)/$DEVICE_PATH/kernel-mtk";
-            SIZE=$(stat -c%s "$ZIMAGE" 2>/dev/null);
-            echo 'NAME = KERNEL
-          TYPE = KERNEL' > mtk_kernel.cfg
-            [[ -e "$MKIMAGE" ]] && [[ -e "$ZIMAGE" ]] && "$MKIMAGE" "$ZIMAGE" mtk_kernel.cfg > "$OUTPUT" 2>&1 && echo "Kernel fixed and moved to $OUTPUT" | process_input;
             hexdump -C -n 16 "$OUTPUT" 2>&1 | process_input || echo "hexdump error: $?";
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
