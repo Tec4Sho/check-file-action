@@ -2396,8 +2396,6 @@ runs: # Uses default x86_64 / linux user machine
             DYN_CROSS=$(get_build_var TARGET_KERNEL_CROSS_COMPILE_PREFIX | xargs)
             DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR)
             DEVICE_PATH=$(get_build_var DEVICE_PATH);
-            PRODUCT_OUT=$(get_build_var PRODUCT_OUT);
-            OUTPUT="$(PRODUCT_OUT)/kernel";
             if [[ -z "$DYN_KERNEL_SRC" ]]; then
               PREBUILT_PATH=$(get_build_var TARGET_PREBUILT_KERNEL)
               DYN_KERNEL_SRC=$(dirname "$PREBUILT_PATH")
@@ -2418,6 +2416,8 @@ runs: # Uses default x86_64 / linux user machine
               --jobs "$(nproc)" \
               --build "bash -c '$BUILD_CMD'" 2>&1 | process_input || check_exit=${PIPESTATUS[0]};
             check_exit=${PIPESTATUS[0]}
+            PRODUCT_OUT=$(get_build_var PRODUCT_OUT);
+            OUTPUT="$PRODUCT_OUT/kernel";
             hexdump -C -n 16 "$OUTPUT" 2>&1 | process_input || echo "hexdump error: $?";
           elif [[ "${envsetup}" ]]; then
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
