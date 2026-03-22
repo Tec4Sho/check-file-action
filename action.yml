@@ -1085,9 +1085,11 @@ runs: # Uses default x86_64 / linux user machine
           [[ -n "${release3}" ]] && echo "release3=${release3}" >> "${GITHUB_ENV}";
         fi;
         if [[ ${{ inputs.filetype }} == [c] ]] && ${{ inputs.content == 'true' }}; then
-          `gcc -print-prog-name=cc1` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)";
+          echo -e "\nChecking gcc for default includes:";
+          `gcc -print-prog-name=cc1` -v || echo -e "\n::notice::gcc exit-code ($?)";
         elif [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.content == 'true' }}; then
-          `gcc -print-prog-name=cc1plus` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)";
+          echo -e "\nChecking g++ for default includes:";
+          `gcc -print-prog-name=cc1plus` -v || echo -e "\n::notice::gcc exit-code ($?)";
         fi;
         echo '';
       shell: bash
@@ -2367,7 +2369,6 @@ runs: # Uses default x86_64 / linux user machine
           DYN_KERNEL_SRC="${DYN_KERNEL_SRC:-.}";
           DYN_OUT=$(get_build_var OUT_DIR)
           mkdir -p "$DYN_OUT";
-          echo -e "\nChecking gcc for default includes:" | process_input;
           if [[ -e "${codechecker}" ]]; then
             echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing...\n" | process_input;
             BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
