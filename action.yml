@@ -2391,8 +2391,10 @@ runs: # Uses default x86_64 / linux user machine
               check_exit=${PIPESTATUS[0]}
           fi;
           PRODUCT_OUT=$(get_build_var PRODUCT_OUT);
-          OUTPUT="$PRODUCT_OUT/kernel";
-          [[ -e "$OUTPUT" ]] && hexdump -C -n 16 "$OUTPUT" 2>&1 | process_input;
+          OUTPUT1="$PRODUCT_OUT/kernel";
+          OUTPUT2="$PRODUCT_OUT/ramdisk.img";
+          [[ -e "$OUTPUT1" ]] && echo -e "\n$OUTPUT1 Hexdump Results:" | process_input && hexdump -C -n 16 "$OUTPUT1" 2>&1 | process_input;
+          [[ -e "$OUTPUT2" ]] && echo -e "\n$OUTPUT2 Hexdump Results:" | process_input && hexdump -C -n 16 "$OUTPUT2" 2>&1 | process_input;
           if [[ -s "${project_log}" ]] && grep -aiFq 'Process completed with exit code' "${project_log}"; then
             echo -e "\n::notice::CodeChecker check exit-code ($check_exit)" | process_input;
             echo 'check_build=false' >> "${GITHUB_ENV}";
