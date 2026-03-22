@@ -2326,51 +2326,12 @@ runs: # Uses default x86_64 / linux user machine
           file_type="${{ inputs.filetype }}";
         fi;
         echo -e "\n\033[33mCurrent python:\033[0m \033[1m$(python --version 2>&1)\033[0m \033[32m(active)\033[0m" | process_input;
-        build_module() {
-          local llvm_version="${{ inputs.release }}";
-          local arch_target="${{ env.arch }}";
-          local kroot="${{ env.SRCTREE }}";
-          local kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*'-o -path "*/${{ inputs.DEVICE_NAME }}/*" -o -path "*/${{ inputs.dirpath }}/*"  -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_CPU_VARIANT/ {print $NF; exit}' | grep -s . || false)
-          [[ -z $kernel_cpus ]] && kernel_cpus='generic';
-          if [[ "$arch_target" == "arm"* ]] && [[ "$arch_target" != *"64"* ]] && [[ "$kernel_cpus" == 'cortex-a7' ]]; then
-            export ARCH=arm
-            export CLANG_TRIPLE=arm-linux-gnueabihf-
-            export CROSS_COMPILE=arm-linux-androideabi-
-            export LLVM=1
-            export LLVM_IAS=1
-            export CC="clang --target=arm-linux-androideabi"
-            export LD="clang --target=arm-linux-androideabi -fuse-ld=lld"
-            export KCFLAGS="-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard"
-          elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a53' ]]; then
-            export ARCH=arm64
-            export CLANG_TRIPLE=aarch64-linux-gnu-
-            export CROSS_COMPILE=aarch64-linux-android-
-            export LLVM=1
-            export LLVM_IAS=1
-            export CC="clang --target=aarch64-linux-android"
-            export LD="ld.lld"
-            export KCFLAGS="-mcpu=cortex-a53";
-          elif [[ "$arch_target" =~ ^(arm64|aarch64) ]] && [[ "$kernel_cpus" == 'cortex-a72' ]]; then
-            export ARCH=arm64
-            export CLANG_TRIPLE=aarch64-linux-gnu-
-            export CROSS_COMPILE=aarch64-linux-android-
-            export LLVM=1
-            export LLVM_IAS=1
-            export CC="clang --target=aarch64-linux-android"
-            export LD="ld.lld"
-            export KCFLAGS="-mcpu=cortex-a72"
-          else
-            export KCFLAGS="-mcpu=$kernel_cpus" CC=clang;
-          fi;
-          echo -e "\n\033[32mbuild module vars exported\033[0m" | process_input;
-        } 2>/dev/null
+        llvm_version="${{ inputs.release }}";
+        arch_target="${{ env.arch }}";
+        kroot="${{ env.SRCTREE }}";
+        kernel_cpus=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*'-o -path "*/${{ inputs.DEVICE_NAME }}/*" -o -path "*/${{ inputs.dirpath }}/*"  -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_CPU_VARIANT/ {print $NF; exit}' | grep -s . || false)  
+        echo -e "\n\033[32mKernel Cpus Type: $kernel_cpus\033[0m" | process_input;
         if ${{ env.build_files == '1' }}; then
-          echo -e "\nChecking gcc for default includes:" | process_input;
-          if [[ ${{ inputs.filetype }} == [c] ]] && ${{ inputs.content == 'true' }}; then
-            `gcc -print-prog-name=cc1` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
-          elif [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.content == 'true' }}; then
-            `gcc -print-prog-name=cc1plus` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
-          fi;
           echo | gcc -v -E - 2>&1 | awk '/#include <...> search starts here:/{flag=1;next} /End of search list./{flag=0} flag' | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
           echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################\n' |  process_input;
           if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
@@ -2378,6 +2339,7 @@ runs: # Uses default x86_64 / linux user machine
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
+          export TOP=$(pwd);
           export HOSTCFLAGS="-fcommon";
           export HOSTCXXFLAGS="-fcommon";
           export ALLOW_MISSING_DEPENDENCIES=true
@@ -2386,55 +2348,50 @@ runs: # Uses default x86_64 / linux user machine
           export TW_THEME=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TW_THEME/ {print $NF; exit}' | grep -s . || false)
           export TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_HEIGHT/ {print $NF; exit}' | grep -s . || false)
           export TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_WIDTH/ {print $NF; exit}' | grep -s . || false)
-          if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]]; then
-            echo -e "\nENVSETUP FILE: ${envsetup} found" | process_input;
+          export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
+          export CC_LOGGER_KEEP_LINK=YES
+          [[ -e "${envsetup}" ]] && echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input && source "${envsetup}" && lunch "$MAKEFILE_NAME" | process_input;
+          [[ ! -n "$(get_build_var TARGET_ARCH)" ]] && DYN_ARCH="${{ env.arch }}" || DYN_ARCH=$(get_build_var TARGET_ARCH);
+          DYN_CROSS=$(get_build_var TARGET_KERNEL_CROSS_COMPILE_PREFIX | xargs)
+          DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR)
+          DEVICE_PATH=$(get_build_var DEVICE_PATH);
+          if [[ -z "$DYN_KERNEL_SRC" ]]; then
+            PREBUILT_PATH=$(get_build_var TARGET_PREBUILT_KERNEL)
+            DYN_KERNEL_SRC=$(dirname "$PREBUILT_PATH")
+          fi;
+          DYN_KERNEL_SRC="${DYN_KERNEL_SRC:-.}";
+          DYN_OUT=$(get_build_var OUT_DIR)
+          mkdir -p "$DYN_OUT";
+          echo -e "\nChecking gcc for default includes:" | process_input;
+          if [[ ${{ inputs.filetype }} == [c] ]] && ${{ inputs.content == 'true' }}; then
+            `gcc -print-prog-name=cc1` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
+          elif [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.content == 'true' }}; then
+            `gcc -print-prog-name=cc1plus` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
+          fi;
+          if [[ -e "${codechecker}" ]]; then
             echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing...\n" | process_input;
-            ${{ inputs.module == 'true' }} && build_module 
-            export TOP=$(pwd)
-            source "${envsetup}" && lunch "$MAKEFILE_NAME";
-            [[ ! -n "$(get_build_var TARGET_ARCH)" ]] && DYN_ARCH="${{ env.arch }}" || DYN_ARCH=$(get_build_var TARGET_ARCH);
-            DYN_CROSS=$(get_build_var TARGET_KERNEL_CROSS_COMPILE_PREFIX | xargs)
-            DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR)
-            DEVICE_PATH=$(get_build_var DEVICE_PATH);
-            if [[ -z "$DYN_KERNEL_SRC" ]]; then
-              PREBUILT_PATH=$(get_build_var TARGET_PREBUILT_KERNEL)
-              DYN_KERNEL_SRC=$(dirname "$PREBUILT_PATH")
-            fi;
-            DYN_KERNEL_SRC="${DYN_KERNEL_SRC:-.}";
-            DYN_OUT=$(get_build_var OUT_DIR)
-            mkdir -p "$DYN_OUT";
-            BUILD_CMD=" export HOSTCFLAGS='-fcommon' && \
-              export KCFLAGS='-w' && \
-              export SOONG_KEEP_RSP_FILES=true && \
-              make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
-              make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS $FILENAME";
-            export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
-            export CC_LOGGER_KEEP_LINK=YES
+            BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
+            export KCFLAGS='-w' && \
+            export SOONG_KEEP_RSP_FILES=true && \
+            make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
+            make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS $FILENAME";
             export BUILD_CMD
             CodeChecker check \
               --config "${codechecker}" \
               --jobs "$(nproc)" \
               --build "bash -c '$BUILD_CMD'" 2>&1 | process_input || check_exit=${PIPESTATUS[0]};
             check_exit=${PIPESTATUS[0]}
-            PRODUCT_OUT=$(get_build_var PRODUCT_OUT);
-            OUTPUT="$PRODUCT_OUT/kernel";
-            hexdump -C -n 16 "$OUTPUT" 2>&1 | process_input || echo "hexdump error: $?";
-          elif [[ "${envsetup}" ]]; then
-            echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
-            BUILD_CMD="source ${envsetup} && lunch \$MAKEFILE_NAME && make \$FILENAME -j\$(nproc) -k";
-            CodeChecker check \
-              --jobs "$(nproc)" \
-              --print-steps \
-              --build "bash -c '$BUILD_CMD'" 2>&1 | process_input;
-            check_exit=${PIPESTATUS[0]}
           else
             echo -e "\n${codechecker} file was not found continuing without...\n" | process_input;
             CodeChecker check \
               --jobs "$(nproc)" \
               --print-steps \
-              --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" 2>&1 | process_input;
+              --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" 2>&1 | process_input || check_exit=${PIPESTATUS[0]};
               check_exit=${PIPESTATUS[0]}
           fi;
+          PRODUCT_OUT=$(get_build_var PRODUCT_OUT);
+          OUTPUT="$PRODUCT_OUT/kernel";
+          [[ -e "$OUTPUT" ]] && hexdump -C -n 16 "$OUTPUT" 2>&1 | process_input;
           if [[ -s "${project_log}" ]] && grep -aiFq 'Process completed with exit code' "${project_log}"; then
             echo -e "\n::notice::CodeChecker check exit-code ($check_exit)" | process_input;
             echo 'check_build=false' >> "${GITHUB_ENV}";
