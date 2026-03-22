@@ -1084,6 +1084,11 @@ runs: # Uses default x86_64 / linux user machine
           [[ -n "${release2}" ]] && echo "release2=${release2}" >> "${GITHUB_ENV}";
           [[ -n "${release3}" ]] && echo "release3=${release3}" >> "${GITHUB_ENV}";
         fi;
+        if [[ ${{ inputs.filetype }} == [c] ]] && ${{ inputs.content == 'true' }}; then
+          `gcc -print-prog-name=cc1` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)";
+        elif [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.content == 'true' }}; then
+          `gcc -print-prog-name=cc1plus` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)";
+        fi;
         echo '';
       shell: bash
       continue-on-error: true
@@ -2350,7 +2355,7 @@ runs: # Uses default x86_64 / linux user machine
           export TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_WIDTH/ {print $NF; exit}' | grep -s . || false)
           export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
           export CC_LOGGER_KEEP_LINK=YES
-          [[ -e "${envsetup}" ]] && echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input && source "${envsetup}" && lunch "$MAKEFILE_NAME" | process_input;
+          [[ -e "${envsetup}" ]] && echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input && source "${envsetup}" && lunch "$MAKEFILE_NAME";
           [[ ! -n "$(get_build_var TARGET_ARCH)" ]] && DYN_ARCH="${{ env.arch }}" || DYN_ARCH=$(get_build_var TARGET_ARCH);
           DYN_CROSS=$(get_build_var TARGET_KERNEL_CROSS_COMPILE_PREFIX | xargs)
           DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR)
@@ -2363,11 +2368,6 @@ runs: # Uses default x86_64 / linux user machine
           DYN_OUT=$(get_build_var OUT_DIR)
           mkdir -p "$DYN_OUT";
           echo -e "\nChecking gcc for default includes:" | process_input;
-          if [[ ${{ inputs.filetype }} == [c] ]] && ${{ inputs.content == 'true' }}; then
-            `gcc -print-prog-name=cc1` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
-          elif [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.content == 'true' }}; then
-            `gcc -print-prog-name=cc1plus` -v | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
-          fi;
           if [[ -e "${codechecker}" ]]; then
             echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing...\n" | process_input;
             BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
