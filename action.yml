@@ -368,7 +368,7 @@ runs: # Uses default x86_64 / linux user machine
             lds_file=$(find "$GITHUB_WORKSPACE" -path "*/arch/$target_arch/*" -name "*.lds" | head -n 1)
           fi;
           if [[ -z "$lds_file" ]]; then
-            echo "::notice::Could not find a valid linker script for $target_arch. [Hint] setting ( linux: true ) \033[1mremoves this message\033[0m!!!";
+            echo -e "\n::notice::Could not find a valid linker script for $target_arch. [Hint] setting ( linux: true ) \033[1mremoves this message\033[0m!!!";
           fi;
           local current_dir="${lds_file%/*}";
           local kroot=""; 
@@ -383,7 +383,7 @@ runs: # Uses default x86_64 / linux user machine
             current_dir="${current_dir%/*}";
           done;
           if [[ -z "$kroot" ]]; then
-            echo "::notice::Found LDS but could not find Kernel Root (Makefile).";
+            echo "\n::notice::Found LDS but could not find Kernel Root (Makefile).";
             kroot="$current_dir";
           fi;
           echo "Detected LDS: $lds_file";
@@ -957,8 +957,10 @@ runs: # Uses default x86_64 / linux user machine
         fi;
         source_dirs=$(ls);
         type_count=0
+        type_files="${{ inputs.filetype }}";
+        file_types="${type_files// / -e }";
         total_files=$(find -type f | grep -v '\.git/.' | wc -l);
-        file_type0=$(find -type f -name "*.${{ inputs.filetype }}" | grep -v '\.git/.' | wc -l);
+        file_type0=$(fdfind -tf -e $file_types | grep -v '\.git/.' | wc -l);
         file_type1=$(find -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.c++' -o -name '*.tpp' \) | grep -v '\.git/.' | wc -l);
         file_type2=$(find -type f \( -name '*.h' -o -name '*.hh' -o -name '*.hpp' -o -name '*.h++' \) | grep -v '\.git/.' | wc -l);
         percentage0=$(echo "scale=2; (${file_type0:-0} / ${total_files:-0}) * 100" | bc);
@@ -1014,7 +1016,7 @@ runs: # Uses default x86_64 / linux user machine
         text "${text11b}" 2>/dev/null;
         text "${text11c}\n" 2>/dev/null;
       shell: bash
-      continue-on-error: true
+      continue-on-error: false
 
     - name: Linux Project Includes
       if: ( inputs.project == 'true' || env.filename != '' ) && inputs.pattern == ''
