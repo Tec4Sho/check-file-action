@@ -3272,8 +3272,8 @@ runs: # Uses default x86_64 / linux user machine
         echo -e "\n####################\nPattern Matching: ${{ inputs.pattern }}\n####################";
         if ${{ inputs.filetype != '' }}; then
           for type in ${file_types[@]}; do
-            matched1=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${type}" "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${type}" "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}");
-            content1=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${type}" "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${type}" "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}");
+            matched1=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${type}" "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${type}" "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ env.base }}" -x rg -j "$(nproc)" --color always -sHFn "${{ inputs.pattern }}");
+            content1=$(fdfind -j "$(nproc)" -p "${path}" --type file --glob "**/${{ inputs.dirpath }}/**/*.${type}" "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file -e "${type}" "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}" | rg . || fdfind -j "$(nproc)" -p "${path}" --type file "${{ env.base }}" -x rg -j "$(nproc)" -l "${{ inputs.pattern }}");
             if [[ -n ${matched1} ]]; then
               counter=$( echo "${matched1}" | rg -c "${{ inputs.pattern }}" );
               echo -e "\n####################\n ( ${counter} ) CONTENT MATCH FOUND IN ${{ inputs.filetype }} FILE(S)\n####################";
