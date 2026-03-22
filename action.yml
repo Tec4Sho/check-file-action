@@ -3489,10 +3489,10 @@ runs: # Uses default x86_64 / linux user machine
           if (( clang_warnings > 0 )); then
             echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m found ${clang_warnings}️ warnings in ${file_type} files checked. [Hints] Try using [\033[1mwarnings-as-errors\033[0m] for possible errors.\n####################" | process_input;
           fi;
-          if (( codechecker_defects > 0 )) && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
+          if (( codechecker_defects > 0 )) && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.build == '5' }}); then
             echo -e "\n####################\n::notice::⚠️ \033[1mCHECK-FILE:\033[0m checked ${codechecker_defects} ${file_type} files with defects. [Hints] Check require for those files.\n####################" | process_input;
           fi;
-          if (( codechecker_no_defects > 0 )) && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
+          if (( codechecker_no_defects > 0 )) && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }} || ${{ inputs.build == '5' }}); then
             echo -e "\n####################\n::notice::✅ \033[1mCHECK-FILE:\033[0m checked ${codechecker_no_defects} ${file_type} files without defects. [Hints] No check require for those files.\n####################" | process_input;
           fi;
           if (( codechecker_success > 0 )) && (${{ inputs.analyzer == '4' }} || ${{ inputs.build == '1' }} || ${{ inputs.build == '2' }}); then
