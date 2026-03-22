@@ -2315,6 +2315,7 @@ runs: # Uses default x86_64 / linux user machine
             sed -i 's|<mach/mt_typedefs.h>|<mt-plat/mt_typedefs.h>|g' "$lcm_c_file";
             sed -i 's|<mach/mt_reg_base.h>|<mt-plat/mt_reg_base.h>|g' "$lcm_c_file";
           fi;
+          [[ -e ./build/make/core/Makefile ]] && sed -i '1525a \\t$(hide) ./kernel/alps/tb8163p3_bsp/scripts/mkimage $@ ./kernel/alps/tb8163p3_bsp/scripts/mtk_ramdisk.cfg > $@.mtk && mv -f $@.mtk $@' ./build/make/core/Makefile && echo -e '\nMakefile was edited successfully!!!' | process_input;
           mkbootimg=false
           mkbootimg_path=$(fdfind -p -a -t f -g -1 "**/mkbootimg" "${github}");
           if [[ -e "$mkbootimg_path" ]]; then
@@ -3289,7 +3290,7 @@ runs: # Uses default x86_64 / linux user machine
                   if [[ -e 'bat.conf' ]]; then
                     batcat "${content}";
                   else
-                    batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${content}";
+                    batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full "${content}";
                   fi;
                   if ${{ inputs.number > '0' }}; then
                     if [[ "${{ inputs.number }}" -eq "${count}" ]]; then
@@ -3321,7 +3322,7 @@ runs: # Uses default x86_64 / linux user machine
                 if [[ -e 'bat.conf' ]]; then
                   batcat "${content}";
                 else
-                  batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full --nonprintable-notation=unicode "${content}";
+                  batcat --no-config --theme=ansi --paging=never --show-all --color=always --style=full "${content}";
                 fi;
                 if ${{ inputs.number > '0' }}; then
                   if [[ "${{ inputs.number }}" -eq "${count}" ]]; then
