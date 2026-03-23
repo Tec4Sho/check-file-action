@@ -2378,13 +2378,11 @@ runs: # Uses default x86_64 / linux user machine
           mkdir -p "$DYN_OUT";
           if [[ -e "${codechecker}" ]]; then
             echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing...\n" | process_input;
+            ${{ inputs.module == 'false' }} && BUILD_CMD="make -j$(nproc) $FILENAME";
             ${{ inputs.module == 'true' }} && BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
             export KCFLAGS='-w' && \
             make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
-            make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS $FILENAME";
-            ${{ inputs.module == 'false' }} && BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
-            export KCFLAGS='-w' && \
-            make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS $FILENAME";
+            make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS $FILENAME";        
             export BUILD_CMD
             CodeChecker check \
               --config "${codechecker}" \
