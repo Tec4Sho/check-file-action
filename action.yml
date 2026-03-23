@@ -2398,7 +2398,7 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           PRODUCT_OUT=$(get_build_var PRODUCT_OUT);
           OUTPUT1="$PRODUCT_OUT/kernel";
-          OUTPUT2="$PRODUCT_OUT/ramdisk.img";
+          OUTPUT2="$PRODUCT_OUT/ramdisk-recovery.img";
           [[ -e "$OUTPUT1" ]] && echo -e "\n$OUTPUT1 Hexdump Results:" | process_input && hexdump -C -n 16 "$OUTPUT1" 2>&1 | process_input;
           [[ -e "$OUTPUT2" ]] && echo -e "\n$OUTPUT2 Hexdump Results:" | process_input && hexdump -C -n 16 "$OUTPUT2" 2>&1 | process_input;
           if [[ -s "${project_log}" ]] && grep -aiFq 'Process completed with exit code' "${project_log}"; then
