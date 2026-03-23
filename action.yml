@@ -1086,10 +1086,10 @@ runs: # Uses default x86_64 / linux user machine
           [[ -n "${release2}" ]] && echo "release2=${release2}" >> "${GITHUB_ENV}";
           [[ -n "${release3}" ]] && echo "release3=${release3}" >> "${GITHUB_ENV}";
         fi;
-        if [[ ${{ inputs.filetype }} == [c] ]] && ${{ inputs.content == 'true' }}; then
+        if [[ "${{ inputs.filetype }}" == [c] ]] && ${{ inputs.content == 'true' }}; then
           echo -e "\nChecking gcc for default includes:";
           `gcc -print-prog-name=cc1` -v || echo -e "\n::notice::gcc exit-code ($?)";
-        elif [[ ${{ inputs.filetype }} == [c]* ]] && ${{ inputs.content == 'true' }}; then
+        elif [[ "${{ inputs.filetype }}" == [c]* ]] && ${{ inputs.content == 'true' }}; then
           echo -e "\nChecking g++ for default includes:";
           `gcc -print-prog-name=cc1plus` -v || echo -e "\n::notice::gcc exit-code ($?)";
         fi;
@@ -2272,6 +2272,7 @@ runs: # Uses default x86_64 / linux user machine
         }
         if ${{ inputs.repository == 'false' }} && ${{ env.dirname != '' }}; then
           cd "${{ env.dirname }}" && echo -e "\n\033[1mUser Current Directory\033[0m: ${{ env.dirname }}" | process_input;
+          gitbase="$github/${{ env.dirname }}";
           [[ -e "$skip_txt" ]] && cp -f $skip_txt . || echo '-*/include/*' > skip.txt
           codechecker=$(fdfind -p -a -t f -1 'codechecker.yaml' "${github}");
           compile_json=$(fdfind -p -a -t f -1 'compile_commands.json' "${github}");
@@ -2315,7 +2316,9 @@ runs: # Uses default x86_64 / linux user machine
             sed -i 's|<mach/mt_typedefs.h>|<mt-plat/mt_typedefs.h>|g' "$lcm_c_file";
             sed -i 's|<mach/mt_reg_base.h>|<mt-plat/mt_reg_base.h>|g' "$lcm_c_file";
           fi;
-          [[ -e ./build/make/core/Makefile ]] && sed -i '1525a \\t$(hide) ./kernel/alps/tb8163p3_bsp/scripts/mkimage $@ ./kernel/alps/tb8163p3_bsp/scripts/mtk_ramdisk.cfg > $@.mtk && mv -f $@.mtk $@' ./build/make/core/Makefile && echo -e '\nMakefile was edited successfully!!!' | process_input;
+          [[ -e ./build/make/core/Makefile ]] && sed -i '1525a \\t$(hide) $(CURDIR)/kernel/alps/tb8163p3_bsp/scripts/mkimage $@ $(CURDIR)/kernel/alps/tb8163p3_bsp/scripts/mtk_ramdisk.cfg > $@.mtk && mv -vf $@.mtk $@' $gitbase/build/make/core/Makefile && \
+          grep -q "mtk_ramdisk.cfg" $gitbase/build/make/core/Makefile && \
+          echo -e "\nChange verified!" | process_input || echo -e "\nEdit failed: string not found." | process_input;
           mkbootimg=false
           mkbootimg_path=$(fdfind -p -a -t f -g -1 "**/mkbootimg" "${github}");
           if [[ -e "$mkbootimg_path" ]]; then
