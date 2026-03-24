@@ -362,7 +362,7 @@ runs: # Uses default x86_64 / linux user machine
           [[ "$dirname" != '' ]] && dirname="/${dirname}";
           echo -e "\nSearching for $target_arch module linker script...";
           local compilier=$(find "$GITHUB_WORKSPACE" \( -path "*${dirname}/prebuilts/*" -o -path "*${dirname}/toolchain/*" \) -type f \( -name "*-gcc" -o -name "*-clang" \) -print);
-          local lds_file=$(find "$GITHUB_WORKSPACE" -path "*/arch/$target_arch/*" -name "module.lds" | head -n 1);
+          local lds_file=$(find "$GITHUB_WORKSPACE" -path "*/arch/$target_arch/*" -name "module.lds" | head -n 1 | grep . || current_dir="$GITHUB_WORKSPACE");
           if [[ -z "$lds_file" ]]; then
            echo "module.lds not found. Searching for any .lds in arch/$target_arch..."
             lds_file=$(find "$GITHUB_WORKSPACE" -path "*/arch/$target_arch/*" -name "*.lds" | head -n 1)
