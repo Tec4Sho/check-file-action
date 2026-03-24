@@ -2365,21 +2365,21 @@ runs: # Uses default x86_64 / linux user machine
           export SOONG_KEEP_RSP_FILES=true
           export CC_LOGGER_KEEP_LINK=YES
           [[ -e "${envsetup}" ]] && echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input && source "${envsetup}" && lunch "$MAKEFILE_NAME";
-          [[ ! -n "$(get_build_var TARGET_ARCH)" ]] && DYN_ARCH="${{ env.arch }}" || DYN_ARCH=$(get_build_var TARGET_ARCH);
-          DYN_CROSS=$(get_build_var TARGET_KERNEL_CROSS_COMPILE_PREFIX | xargs)
-          DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR)
-          DEVICE_PATH=$(get_build_var DEVICE_PATH);
-          if [[ -z "$DYN_KERNEL_SRC" ]]; then
-            PREBUILT_PATH=$(get_build_var TARGET_PREBUILT_KERNEL)
-            DYN_KERNEL_SRC=$(dirname "$PREBUILT_PATH")
-          fi;
-          DYN_KERNEL_SRC="${DYN_KERNEL_SRC:-.}";
-          DYN_OUT=$(get_build_var OUT_DIR)
-          mkdir -p "$DYN_OUT";
           if [[ -e "${codechecker}" ]]; then
             echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing...\n" | process_input;
-            ${{ inputs.module == 'false' }} && BUILD_CMD="make clean && make $FILENAME -j$(nproc)";
+            ${{ inputs.module == 'false' }} && BUILD_CMD="make $FILENAME -j$(nproc)";
             if ${{ inputs.module == 'true' }}; then
+              [[ ! -n "$(get_build_var TARGET_ARCH)" ]] && DYN_ARCH="${{ env.arch }}" || DYN_ARCH=$(get_build_var TARGET_ARCH);
+              DYN_CROSS=$(get_build_var TARGET_KERNEL_CROSS_COMPILE_PREFIX | xargs)
+              DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR)
+              DEVICE_PATH=$(get_build_var DEVICE_PATH);
+              if [[ -z "$DYN_KERNEL_SRC" ]]; then
+                PREBUILT_PATH=$(get_build_var TARGET_PREBUILT_KERNEL)
+                DYN_KERNEL_SRC=$(dirname "$PREBUILT_PATH")
+              fi;
+              DYN_KERNEL_SRC="${DYN_KERNEL_SRC:-.}";
+              DYN_OUT=$(get_build_var OUT_DIR)
+              mkdir -p "$DYN_OUT";
               BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
               export KCFLAGS='-w' && \
               make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
