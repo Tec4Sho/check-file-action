@@ -2366,9 +2366,9 @@ runs: # Uses default x86_64 / linux user machine
           export CC_LOGGER_KEEP_LINK=YES
           [[ -e "${envsetup}" ]] && echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input && source "${envsetup}" && lunch "$MAKEFILE_NAME";
           if [[ -e "${codechecker}" ]]; then
-            echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing...\n" | process_input;
-            ${{ inputs.module == 'false' }} && BUILD_CMD="make $FILENAME -j$(nproc)";
+            echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing..." | process_input;
             if ${{ inputs.module == 'true' }}; then
+              echo -e "\nKERNEL BUILD: TRUE" | process_input;
               [[ ! -n "$(get_build_var TARGET_ARCH)" ]] && DYN_ARCH="${{ env.arch }}" || DYN_ARCH=$(get_build_var TARGET_ARCH);
               DYN_CROSS=$(get_build_var TARGET_KERNEL_CROSS_COMPILE_PREFIX | xargs)
               DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR)
@@ -2381,10 +2381,11 @@ runs: # Uses default x86_64 / linux user machine
               DYN_OUT=$(get_build_var OUT_DIR)
               mkdir -p "$DYN_OUT";
               BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
-              export KCFLAGS='-w' && \
-              make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
-              make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS $FILENAME";
+                export KCFLAGS='-w' && \
+                make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
+                make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS ${FILENAME}";
             fi;
+            ${{ inputs.module == 'false' }} && echo -e "\nKERNEL BUILD: FALSE" | process_input && BUILD_CMD="make $FILENAME -j$(nproc)";
             export BUILD_CMD
             CodeChecker check \
               --config "${codechecker}" \
