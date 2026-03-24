@@ -2364,7 +2364,8 @@ runs: # Uses default x86_64 / linux user machine
           export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
           export SOONG_KEEP_RSP_FILES=true
           export CC_LOGGER_KEEP_LINK=YES
-          export TARGET_PREBUILT_KERNEL=$(get_build_var TARGET_PREBUILT_KERNEL)
+          export TARGET_PREBUILT_KERNEL=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_NAME }}/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_PREBUILT_KERNEL/ {print $NF; exit}' | grep -s . || false)
+          [[ -e "$TARGET_PREBUILT_KERNEL" ]] && ls -l $TARGET_PREBUILT_KERNEL
           [[ -e "${envsetup}" ]] && echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input && source "${envsetup}" && lunch "$MAKEFILE_NAME";
           if [[ -e "${codechecker}" ]]; then
             echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing..." | process_input;
@@ -2372,7 +2373,7 @@ runs: # Uses default x86_64 / linux user machine
               echo -e "\nKERNEL BUILD: TRUE" | process_input;
               [[ ! -n "$(get_build_var TARGET_ARCH)" ]] && DYN_ARCH="${{ env.arch }}" || DYN_ARCH=$(get_build_var TARGET_ARCH);
               DYN_CROSS=$(get_build_var TARGET_KERNEL_CROSS_COMPILE_PREFIX | xargs)
-              #DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR)
+              DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR)
               DEVICE_PATH=$(get_build_var DEVICE_PATH);
               if [[ -z "$DYN_KERNEL_SRC" ]]; then
                 PREBUILT_PATH=$(get_build_var TARGET_PREBUILT_KERNEL)
