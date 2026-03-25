@@ -2350,24 +2350,24 @@ runs: # Uses default x86_64 / linux user machine
         echo -e "\n\033[32mKernel Cpus Type: $kernel_cpus\033[0m" | process_input;
         if ${{ env.build_files == '1' }}; then
           echo | gcc -v -E - 2>&1 | awk '/#include <...> search starts here:/{flag=1;next} /End of search list./{flag=0} flag' | process_input || echo -e "\n::notice::gcc exit-code ($?)" | process_input;
-          echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################\n' |  process_input;
+          echo -e '\n####################\n\tCodeChecker building project from sources...(test-run -1)\n####################' |  process_input;
           if [[ -e "/home/runner/codechecker/venv/bin/activate" ]]; then
             source /home/runner/codechecker/venv/bin/activate
           else
-            echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
+            echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file" | process_input;
           fi;
-          TOP=$(pwd);
-          HOSTCFLAGS="-fcommon";
-          HOSTCXXFLAGS="-fcommon";
-          TW_THEME=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*"  -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TW_THEME/ {print $NF; exit}' | grep -s . || false)
-          TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*" -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_HEIGHT/ {print $NF; exit}' | grep -s . || false)
-          TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*" -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_WIDTH/ {print $NF; exit}' | grep -s . || false)
-          CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
-          SOONG_KEEP_RSP_FILES=true
-          CC_LOGGER_KEEP_LINK=YES
-          TARGET_PREBUILT_KERNEL=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*"  -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_PREBUILT_KERNEL/ {print $NF; exit}' | grep -s . || false)
+          export TOP=$(pwd);
+          export HOSTCFLAGS="-fcommon";
+          export HOSTCXXFLAGS="-fcommon";
+          export TW_THEME=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*"  -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TW_THEME/ {print $NF; exit}' | grep -s . || false)
+          export TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*" -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_HEIGHT/ {print $NF; exit}' | grep -s . || false)
+          export TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*" -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_WIDTH/ {print $NF; exit}' | grep -s . || false)
+          export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
+          export SOONG_KEEP_RSP_FILES=true
+          export CC_LOGGER_KEEP_LINK=YES
+          export TARGET_PREBUILT_KERNEL=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*"  -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_PREBUILT_KERNEL/ {print $NF; exit}' | grep -s . || false)
           [[ -e "$TARGET_PREBUILT_KERNEL" ]] && echo -e "\n$TARGET_PREBUILT_KERNEL";
-          ALLOW_MISSING_DEPENDENCIES=true
+          export ALLOW_MISSING_DEPENDENCIES=true
           export MAKEFILE="${{ inputs.makefile }}";
           export FILENAME="${{ env.filename }}";
           [[ -e "${envsetup}" ]] && echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input && source "${envsetup}" && lunch "$MAKEFILE";
