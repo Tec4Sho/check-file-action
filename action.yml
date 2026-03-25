@@ -369,34 +369,35 @@ runs: # Uses default x86_64 / linux user machine
           fi;
           if [[ -z "$lds_file" ]]; then
             echo -e "\n::notice::Could not find a valid linker script for $target_arch. [Hint] setting ( linux: true ) \033[1mremoves this message\033[0m!!!";
-          fi;
-          local current_dir="${lds_file%/*}";
-          local kroot=""; 
-          while [[ "$current_dir" != "$GITHUB_WORKSPACE" && "$current_dir" != "/" || "$current_dir" != "/disable" ]]; do
-            if [[ -f "${current_dir}/Makefile" && -d "${current_dir}/include" ]]; then
+          else
+            local current_dir="${lds_file%/*}";
+            local kroot=""; 
+            while [[ "$current_dir" != "$GITHUB_WORKSPACE" && "$current_dir" != "/" || "$current_dir" != "/disable" ]]; do
+              if [[ -f "${current_dir}/Makefile" && -d "${current_dir}/include" ]]; then
+                kroot="$current_dir";
+                break;
+              elif [[ -f "${current_dir}/Makefile" && -d "${current_dir%/*}/include" ]]; then
+                kroot="$current_dir";
+                break;
+              fi;
+              current_dir="${current_dir%/*}";
+            done;
+            if [[ -z "$kroot" ]]; then
+              echo "\n::notice::Found LDS but could not find Kernel Root (Makefile).";
               kroot="$current_dir";
-              break;
-            elif [[ -f "${current_dir}/Makefile" && -d "${current_dir%/*}/include" ]]; then
-              kroot="$current_dir";
-              break;
             fi;
-            current_dir="${current_dir%/*}";
-          done;
-          if [[ -z "$kroot" ]]; then
-            echo "\n::notice::Found LDS but could not find Kernel Root (Makefile).";
-            kroot="$current_dir";
-          fi;
-          echo "Detected LDS: $lds_file";
-          echo "Kernel Directory: $kroot";
-          echo "Toolchain Compilier: ${compilier:-GNU}";
-          export "SRCTREE=$kroot";
-          export "LDS_PATH=$lds_file";
-          echo "export LDS_PATH=$lds_file" | sudo tee -a ~/.bashrc >/dev/null;
-          echo "export SRCTREE=$kroot" | sudo tee -a ~/.bashrc >/dev/null;
-          if [[ -d $(pwd)/include/asm-generic ]]; then
-            ln -vsf $(pwd)/include/uapi/asm $(pwd)/arch/${target_arch}/include/uapi/asm 2>/dev/null
-            ln -vsf $(pwd)/include/asm-generic $(pwd)/arch/${target_arch}/include/asm-generic 
-            ln -vsf $(pwd)/include/asm-generic/preempt.h $(pwd)/arch/${target_arch}/include/asm/preempt.h
+            echo "Detected LDS: $lds_file";
+            echo "Kernel Directory: $kroot";
+            echo "Toolchain Compilier: ${compilier:-GNU}";
+            export "SRCTREE=$kroot";
+            export "LDS_PATH=$lds_file";
+            echo "export LDS_PATH=$lds_file" | sudo tee -a ~/.bashrc >/dev/null;
+            echo "export SRCTREE=$kroot" | sudo tee -a ~/.bashrc >/dev/null;
+            if [[ -d $(pwd)/include/asm-generic ]]; then
+              ln -vsf $(pwd)/include/uapi/asm $(pwd)/arch/${target_arch}/include/uapi/asm 2>/dev/null
+              ln -vsf $(pwd)/include/asm-generic $(pwd)/arch/${target_arch}/include/asm-generic 
+              ln -vsf $(pwd)/include/asm-generic/preempt.h $(pwd)/arch/${target_arch}/include/asm/preempt.h
+            fi;
           fi;
         }
         if ${{ inputs.linux == 'false' }}; then
