@@ -2370,8 +2370,8 @@ runs: # Uses default x86_64 / linux user machine
           export ALLOW_MISSING_DEPENDENCIES=true
           export MAKEFILE="${{ inputs.makefile }}";
           export FILENAME="${{ env.filename }}";
-          [[ -e "${envsetup}" ]] && echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input && source "${envsetup}" && lunch "$MAKEFILE";
-          export ALLOW_MISSING_DEPENDENCIES TARGET_PREBUILT_KERNEL TW_THEME TARGET_SCREEN_HEIGHT TARGET_SCREEN_WIDTH CC_LOGGER_GCC_LIKE SOONG_KEEP_RSP_FILES CC_LOGGER_KEEP_LINK HOSTCXXFLAGS HOSTCFLAGS TOP
+          [[ -e "${envsetup}" ]] && echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input;
+          export ALLOW_MISSING_DEPENDENCIES TARGET_PREBUILT_KERNEL TW_THEME TARGET_SCREEN_HEIGHT TARGET_SCREEN_WIDTH CC_LOGGER_GCC_LIKE SOONG_KEEP_RSP_FILES CC_LOGGER_KEEP_LINK HOSTCXXFLAGS HOSTCFLAGS TOP envsetup
           if [[ -e "${codechecker}" ]]; then
             echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing..." | process_input;
             if ${{ inputs.module == 'true' }}; then
@@ -2388,12 +2388,12 @@ runs: # Uses default x86_64 / linux user machine
               DYN_OUT=$(get_build_var OUT_DIR)
               mkdir -p "$DYN_OUT";
               kroot="${{ env.SRCTREE }}";
-              BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
+              BUILD_CMD="source ${envsetup} && lunch $MAKEFILE && export HOSTCFLAGS='-fcommon' && \
                 export KCFLAGS='-w' && \
                 make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
                 make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS ${FILENAME}";
             fi;
-            ${{ inputs.module == 'false' }} && echo -e "\nKERNEL BUILD: FALSE" | process_input && BUILD_CMD="make $FILENAME -j$(nproc)";
+            ${{ inputs.module == 'false' }} && echo -e "\nKERNEL BUILD: FALSE" | process_input && BUILD_CMD="source ${envsetup} && lunch $MAKEFILE && make $FILENAME -j$(nproc)";
             export BUILD_CMD
             CodeChecker check \
               --config "${codechecker}" \
