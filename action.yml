@@ -691,10 +691,14 @@ runs: # Uses default x86_64 / linux user machine
             exit 1
           fi;
         fi;
+        if [[ ! $(which mkimage) ]] && ${{ inputs.build > '3' }}; then
+          sudo aptitude -y -q -q install u-boot-tools 2>&1 >/dev/null | sed -E '/Running/,/host./d' | tr -d '\n' && echo -e "\n####################\nu-boot-tools dependencies installed\n####################\n" || echo -e '::error::No u-boot-tools installed for pattern matching';
+          [[ ! $(which mkimage) ]] && exit 1
+        fi;
         if ${{ inputs.project == 'true' }} && ${{ inputs.analyzer == 3 }} && [[ ! $(which tqdm) ]]; then
           python3 -m pip install tqdm >/dev/null && echo -e "\n####################\ntqdm dependencies installed\n####################\n" || echo -e '::warning::No tpdm installed for project progress checks';
           [[ ! $(which tqdm) ]] && exit 1
-        fi;
+        fi;sudo apt install u-boot-tools
         if ${{ inputs.project == 'true' }} && ${{ inputs.build > '2' }} && [[ ! $(which deheader) ]]; then
           sudo aptitude -y -q -q install deheader 2>&1 >/dev/null | sed -E '/Running/,/host./d' | tr -d '\n' && echo -e "\n####################\ndeheader dependencies installed\n####################" || echo -e '::error::No deheader installed for project includes check';
           [[ ! $(which deheader) ]] && exit 1
@@ -2317,7 +2321,7 @@ runs: # Uses default x86_64 / linux user machine
             sed -i 's|<mach/mt_typedefs.h>|<mt-plat/mt_typedefs.h>|g' "$lcm_c_file";
             sed -i 's|<mach/mt_reg_base.h>|<mt-plat/mt_reg_base.h>|g' "$lcm_c_file";
           fi;
-          [[ -e ./build/make/core/Makefile ]] && sed -i '1525a \\t$(hide) $(CURDIR)/kernel/alps/tb8163p3_bsp/scripts/mkimage $@ $(CURDIR)/kernel/alps/tb8163p3_bsp/scripts/mtk_ramdisk.cfg > $@.mtk && mv -vf $@.mtk $@' $gitbase/build/make/core/Makefile && \
+          ##[[ -e ./build/make/core/Makefile ]] && sed -i '1525a \\t$(hide) $(CURDIR)/kernel/alps/tb8163p3_bsp/scripts/mkimage $@ $(CURDIR)/kernel/alps/tb8163p3_bsp/scripts/mtk_ramdisk.cfg > $@.mtk && mv -vf $@.mtk $@' $gitbase/build/make/core/Makefile && \
           grep -q "mtk_ramdisk.cfg" $gitbase/build/make/core/Makefile && \
           echo -e "\nChange verified!" | process_input || echo -e "\nEdit failed: string not found." | process_input;
           mkbootimg=false
@@ -2352,27 +2356,26 @@ runs: # Uses default x86_64 / linux user machine
           else
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file\n" | process_input;
           fi;
-          export TOP=$(pwd);
-          export HOSTCFLAGS="-fcommon";
-          export HOSTCXXFLAGS="-fcommon";
-          export TW_THEME=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*"  -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TW_THEME/ {print $NF; exit}' | grep -s . || false)
-          export TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*" -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_HEIGHT/ {print $NF; exit}' | grep -s . || false)
-          export TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*" -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_WIDTH/ {print $NF; exit}' | grep -s . || false)
-          export CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
-          export SOONG_KEEP_RSP_FILES=true
-          export CC_LOGGER_KEEP_LINK=YES
+          TOP=$(pwd);
+          HOSTCFLAGS="-fcommon";
+          HOSTCXXFLAGS="-fcommon";
+          TW_THEME=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*"  -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TW_THEME/ {print $NF; exit}' | grep -s . || false)
+          TARGET_SCREEN_HEIGHT=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*" -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_HEIGHT/ {print $NF; exit}' | grep -s . || false)
+          TARGET_SCREEN_WIDTH=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*" -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_SCREEN_WIDTH/ {print $NF; exit}' | grep -s . || false)
+          CC_LOGGER_GCC_LIKE="gcc:g++:clang:clang++:/cc:c++";
+          SOONG_KEEP_RSP_FILES=true
+          CC_LOGGER_KEEP_LINK=YES
           TARGET_PREBUILT_KERNEL=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*"  -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TARGET_PREBUILT_KERNEL/ {print $NF; exit}' | grep -s . || false)
           [[ -e "$TARGET_PREBUILT_KERNEL" ]] && echo -e "\n$TARGET_PREBUILT_KERNEL";
-          [[ -e "${envsetup}" ]] && echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input;
-          export ALLOW_MISSING_DEPENDENCIES=true
-          export MAKEFILE_NAME="${{ inputs.makefile }}";
+          ALLOW_MISSING_DEPENDENCIES=true
+          export MAKEFILE="${{ inputs.makefile }}";
           export FILENAME="${{ env.filename }}";
-          export TARGET_PREBUILT_KERNEL
+          [[ -e "${envsetup}" ]] && echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input && source "${envsetup}" && lunch "$MAKEFILE";
+          export ALLOW_MISSING_DEPENDENCIES TARGET_PREBUILT_KERNEL TW_THEME TARGET_SCREEN_HEIGHT TARGET_SCREEN_WIDTH CC_LOGGER_GCC_LIKE SOONG_KEEP_RSP_FILES CC_LOGGER_KEEP_LINK HOSTCXXFLAGS HOSTCFLAGS TOP
           if [[ -e "${codechecker}" ]]; then
             echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing..." | process_input;
             if ${{ inputs.module == 'true' }}; then
               echo -e "\nKERNEL BUILD: TRUE" | process_input;
-              source "${envsetup}" && lunch "$MAKEFILE_NAME";
               [[ ! -n "$(get_build_var TARGET_ARCH)" ]] && DYN_ARCH="${{ env.arch }}" || DYN_ARCH=$(get_build_var TARGET_ARCH);
               DYN_CROSS=$(get_build_var TARGET_KERNEL_CROSS_COMPILE_PREFIX | xargs)
               DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR)
@@ -2390,7 +2393,7 @@ runs: # Uses default x86_64 / linux user machine
                 make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
                 make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS ${FILENAME}";
             fi;
-            ${{ inputs.module == 'false' }} && echo -e "\nKERNEL BUILD: FALSE" | process_input && BUILD_CMD="source ${envsetup} && lunch $MAKEFILE_NAME && make $FILENAME -j$(nproc)";
+            ${{ inputs.module == 'false' }} && echo -e "\nKERNEL BUILD: FALSE" | process_input && BUILD_CMD="make $FILENAME -j$(nproc)";
             export BUILD_CMD
             CodeChecker check \
               --config "${codechecker}" \
