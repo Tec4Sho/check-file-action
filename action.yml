@@ -2321,7 +2321,7 @@ runs: # Uses default x86_64 / linux user machine
             sed -i 's|<mach/mt_typedefs.h>|<mt-plat/mt_typedefs.h>|g' "$lcm_c_file";
             sed -i 's|<mach/mt_reg_base.h>|<mt-plat/mt_reg_base.h>|g' "$lcm_c_file";
           fi;
-          ##[[ -e ./build/make/core/Makefile ]] && sed -i '1525a \\t$(hide) $(CURDIR)/kernel/alps/tb8163p3_bsp/scripts/mkimage $@ $(CURDIR)/kernel/alps/tb8163p3_bsp/scripts/mtk_ramdisk.cfg > $@.mtk && mv -vf $@.mtk $@' $gitbase/build/make/core/Makefile && \
+          [[ -e ./build/make/core/Makefile ]] && [[ -e ./kernel/alps/tb8163p3_bsp/scripts/mkimage ]] && sed -i '1525a \\t$(hide) $(CURDIR)/kernel/alps/tb8163p3_bsp/scripts/mkimage $@ $(CURDIR)/kernel/alps/tb8163p3_bsp/scripts/mtk_ramdisk.cfg > $@.mtk && mv -vf $@.mtk $@' $gitbase/build/make/core/Makefile && \
           grep -q "mtk_ramdisk.cfg" $gitbase/build/make/core/Makefile && \
           echo -e "\nChange verified!" | process_input || echo -e "\nEdit failed: string not found." | process_input;
           mkbootimg=false
@@ -2357,6 +2357,7 @@ runs: # Uses default x86_64 / linux user machine
             echo -e "\nUnable to source ( /home/runner/codechecker/venv/bin/activate ) file" | process_input;
           fi;
           export TOP=$(pwd);
+          export PRODUCT_OUT=
           export HOSTCFLAGS="-fcommon";
           export HOSTCXXFLAGS="-fcommon";
           export TW_THEME=$(find "${{ env.base }}" \( -path '*/device/*' -o -path '*/vendor/*' -o -path "*/${{ github.event.inputs.DEVICE_PATH }}/*" -o -path "*/${{ inputs.dirpath }}/*"  -o -path "*/workspace/*" \) -type f \( -name 'BoardConfig.mk' -o -name '*.mk' \) -print | xargs -r awk '/TW_THEME/ {print $NF; exit}' | grep -s . || false)
@@ -2370,12 +2371,13 @@ runs: # Uses default x86_64 / linux user machine
           export ALLOW_MISSING_DEPENDENCIES=true
           export MAKEFILE="${{ inputs.makefile }}";
           export FILENAME="${{ env.filename }}";
-          [[ -e "${envsetup}" ]] && echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input;
           export ALLOW_MISSING_DEPENDENCIES TARGET_PREBUILT_KERNEL TW_THEME TARGET_SCREEN_HEIGHT TARGET_SCREEN_WIDTH CC_LOGGER_GCC_LIKE SOONG_KEEP_RSP_FILES CC_LOGGER_KEEP_LINK HOSTCXXFLAGS HOSTCFLAGS TOP envsetup
-          if [[ -e "${codechecker}" ]]; then
+          if [[ -e "${codechecker}" ]] && [[ -e "${envsetup}" ]]; then
             echo -e "\nCODECHECKER CONFIG: ${codechecker} found continuing..." | process_input;
+            echo -e "\nENVSETUP FILE: ${envsetup} found sourcing..." | process_input;
             if ${{ inputs.module == 'true' }}; then
               echo -e "\nKERNEL BUILD: TRUE" | process_input;
+              source ${envsetup} && lunch $MAKEFILE
               [[ ! -n "$(get_build_var TARGET_ARCH)" ]] && DYN_ARCH="${{ env.arch }}" || DYN_ARCH=$(get_build_var TARGET_ARCH);
               DYN_CROSS=$(get_build_var TARGET_KERNEL_CROSS_COMPILE_PREFIX | xargs)
               DYN_KERNEL_SRC=$(get_build_var KERNEL_SRC_DIR)
@@ -2385,15 +2387,16 @@ runs: # Uses default x86_64 / linux user machine
                 DYN_KERNEL_SRC=$(dirname "$PREBUILT_PATH")
               fi;
               DYN_KERNEL_SRC="${DYN_KERNEL_SRC:-.}";
-              DYN_OUT=$(get_build_var OUT_DIR)
+              DYN_OUT=$(get_build_var OUT_DIR);
+              PRODUCT_OUT=$(get_build_var PRODUCT_OUT);
               mkdir -p "$DYN_OUT";
               kroot="${{ env.SRCTREE }}";
-              BUILD_CMD="source ${envsetup} && lunch $MAKEFILE && export HOSTCFLAGS='-fcommon' && \
+              BUILD_CMD="export HOSTCFLAGS='-fcommon' && \
                 export KCFLAGS='-w' && \
                 make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
                 make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS ${FILENAME}";
             fi;
-            ${{ inputs.module == 'false' }} && echo -e "\nKERNEL BUILD: FALSE" | process_input && BUILD_CMD="source ${envsetup} && lunch $MAKEFILE && make $FILENAME -j$(nproc)";
+            ${{ inputs.module == 'false' }} && echo -e "\nKERNEL BUILD: FALSE" | process_input && BUILD_CMD="source ${envsetup} && lunch $MAKEFILE && export PRODUCT_OUT=$(get_build_var PRODUCT_OUT) && make $FILENAME -j$(nproc)";
             export BUILD_CMD
             CodeChecker check \
               --config "${codechecker}" \
@@ -2408,7 +2411,8 @@ runs: # Uses default x86_64 / linux user machine
               --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" 2>&1 | process_input || check_exit=${PIPESTATUS[0]};
               check_exit=${PIPESTATUS[0]}
           fi;
-          PRODUCT_OUT=$(get_build_var PRODUCT_OUT);
+          PRODUCT=$(fdfind -p -a -t f -g -1 "**/ramdisk-recovery.img" "${github}");
+          PRODUCT_OUT=${PRODUCT_OUT:-${PRODUCT%/*}};
           OUTPUT1="$PRODUCT_OUT/kernel";
           OUTPUT2="$PRODUCT_OUT/ramdisk-recovery.img";
           [[ -e "$OUTPUT1" ]] && echo -e "\n$OUTPUT1 Hexdump Results:" | process_input && hexdump -C -n 16 "$OUTPUT1" 2>&1 | process_input;
