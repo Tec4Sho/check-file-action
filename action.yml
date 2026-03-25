@@ -2396,7 +2396,7 @@ runs: # Uses default x86_64 / linux user machine
                 make -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS alldefconfig && \
                 make -j$(nproc) -C $DYN_KERNEL_SRC O=$DYN_OUT ARCH=$DYN_ARCH CROSS_COMPILE=$DYN_CROSS ${FILENAME}";
             fi;
-            ${{ inputs.module == 'false' }} && echo -e "\nKERNEL BUILD: FALSE" | process_input && BUILD_CMD="source ${envsetup} && lunch $MAKEFILE && export PRODUCT_OUT=$(get_build_var PRODUCT_OUT) && make $FILENAME -j$(nproc)";
+            ${{ inputs.module == 'false' }} && echo -e "\nKERNEL BUILD: FALSE" | process_input && BUILD_CMD="source ${envsetup} && lunch $MAKEFILE && make $FILENAME -j$(nproc)";
             export BUILD_CMD
             CodeChecker check \
               --config "${codechecker}" \
@@ -2411,12 +2411,13 @@ runs: # Uses default x86_64 / linux user machine
               --build "make ${{ inputs.makefile }} -nB -j$(nproc) -k" 2>&1 | process_input || check_exit=${PIPESTATUS[0]};
               check_exit=${PIPESTATUS[0]}
           fi;
-          PRODUCT=$(fdfind -p -a -t f -g -1 "**/ramdisk-recovery.img" "${github}");
-          PRODUCT_OUT=${PRODUCT_OUT:-${PRODUCT%/*}};
-          OUTPUT1="$PRODUCT_OUT/kernel";
-          OUTPUT2="$PRODUCT_OUT/ramdisk-recovery.img";
+          PRODUCT_OUT=$(fdfind -p -a -t f -g -1 "**/out/**/kernel" "${github}" | grep . || fdfind -p -a -t f -g -1 "**/ramdisk-recovery.img" "${github}");
+          OUTPUT1="${PRODUCT_OUT%/*}/kernel";
+          OUTPUT2="${PRODUCT_OUT%/*}/zImage";
+          OUTPUT3="${PRODUCT_OUT%/*}/ramdisk-recovery.img";
           [[ -e "$OUTPUT1" ]] && echo -e "\n$OUTPUT1 Hexdump Results:" | process_input && hexdump -C -n 16 "$OUTPUT1" 2>&1 | process_input;
           [[ -e "$OUTPUT2" ]] && echo -e "\n$OUTPUT2 Hexdump Results:" | process_input && hexdump -C -n 16 "$OUTPUT2" 2>&1 | process_input;
+          [[ -e "$OUTPUT2" ]] && echo -e "\n$OUTPUT3 Hexdump Results:" | process_input && hexdump -C -n 16 "$OUTPUT3" 2>&1 | process_input;
           if [[ -s "${project_log}" ]] && grep -aiFq 'Process completed with exit code' "${project_log}"; then
             echo -e "\n::notice::CodeChecker check exit-code ($check_exit)" | process_input;
             echo 'check_build=false' >> "${GITHUB_ENV}";
@@ -2444,7 +2445,7 @@ runs: # Uses default x86_64 / linux user machine
         seconds="$((SECONDS + start_time))";
         echo "seconds=${seconds}" >> "${GITHUB_ENV}";
       shell: bash
-      continue-on-error: true
+      continue-on-error: false
 
     - name: Check Includes & Repair CC/C++
       if: env.filename != '' && inputs.build == '0' && inputs.source != '4' && inputs.pattern == '' && inputs.include == 'true'
